@@ -1,11 +1,10 @@
 import { invoke } from ".";
 
 export namespace Test {
-  let state: Map<string, ExternalTypes>;
-  let output = "";
+  type State = { dict: Map<string, ExternalValue>; output: string };
 
-  function get(key: string) {
-    const val = state.get(key);
+  async function get(state: State, key: string) {
+    const val = state.dict.get(key);
     //console.log(`get ${key}: ${val}`);
     return {
       value: val || null,
@@ -13,32 +12,48 @@ export namespace Test {
     };
   }
 
-  function set(key: string, val: ExternalTypes) {
+  async function set(state: State, key: string, val: ExternalValue) {
     //console.log(`set ${key}: ${val}`);
     return null;
   }
 
-  function exe(name: string, args: ExternalTypes[]) {
+  async function exe(state: State, name: string, args: ExternalValue[]) {
     switch (name) {
       case "print":
-        output += args[0];
+        state.output += args[0];
+        break;
+      case "print-line":
+        state.output += args[0] + "\n";
         break;
     }
     return { value: 0, error: "none" };
   }
 
-  export function perform() {
-    //Clear environment
-    state = new Map<string, ExternalTypes>();
+  export async function perform() {
     //Define tests
     type Test = { name: string; code: string; numError?: number; out: string };
     type Result = { name: string; errSuccess: boolean; outSuccess: boolean };
     const tests: Test[] = [
-      //Basic functions
-      { name: "Hello, world!", code: `(println "Hello, world!")`, out: `Hello, world!\nNull` },
+      //Basic snippets
+      //{ name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
+      { name: "Say Hello, world!", code: `(print-line "Hello, world!")`, out: `Hello, world!\nnull` },
       { name: "1 + 1 = 2", code: `(+ 1 1)`, out: `2` },
+      { name: "(1+1)+(1+1) = 4", code: `(+ (+ 1 1) (+ 1 1))`, out: `4` },
+      //{ name: "Conditional head", code: `((if true + -) 12 9 1)`, out: `22` },
+      /*{ name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },
       //Moderate functions
-      { name: "Average", code: `(fn avg (/ (sum %) (len %))) (avg [0 10 20 30 40])`, out: `20` },
+      {
+        name: "Average",
+        code: `(function avg (/ (sum %) (len %))) (avg [0 10 20 30 40])`,
+        out: `20`,
+      },
+      //Complex functions
+      {
+        name: "Fibonacci",
+        code: `(function fib n (if (< n 2) n (+ (fib (dec n)) (fib (- n 2)))))
+               (println (fib 23))`,
+        out: `28657`,
+      },
       //Test environment functions
       {
         name: "get set get",
@@ -47,18 +62,26 @@ export namespace Test {
                 (get globals.time_offset)]`,
         numError: 0,
         out: `[null 5.5 5.5]`,
-      },
+      },*/
     ];
     //Begin tests
-    const test = (code: string) => invoke({ get, set, exe }, code);
-    const run = ({ name, code, numError, out }: Test): Result => {
-      const errors = test(code);
+    const env: Env = { funcs: {}, vars: {} };
+    const results: { name: string; errSuccess: boolean; outSuccess: boolean }[] = [];
+    for (const { name, code, numError, out } of tests) {
+      const state: State = { dict: new Map<string, ExternalValue>(), output: "" };
+      const errors = await invoke(
+        {
+          get: (key: string) => get(state, key),
+          set: (key: string, val: ExternalValue) => set(state, key, val),
+          exe: (name: string, args: ExternalValue[]) => exe(state, name, args),
+          env,
+        },
+        code
+      );
       const errSuccess = (numError || 0) == errors.length;
-      const outSuccess = output == out;
-      output = "";
-      return { name, errSuccess, outSuccess };
-    };
-    const results = tests.map(run);
+      const outSuccess = state.output == out + "\n";
+      results.push({ name, errSuccess, outSuccess });
+    }
     results.forEach(({ name, outSuccess, errSuccess }) =>
       console.log(name.padEnd(24), outSuccess, errSuccess)
     );

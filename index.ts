@@ -1,27 +1,71 @@
 import { Test } from "./test";
 import { Parse } from "./parse";
 
-export function invoke(
-  ctx: {
-    set: (key: string, val: ExternalTypes) => ExternalError;
-    get: (key: string) => ValAndErr;
-    exe: (name: Functions, args: ExternalTypes[]) => ValAndErr;
-  },
-  code: string
-): InvokeError[] {
-  const ast = Parse.parse(code);
-  //console.log(ast);
-  const { set, get, exe } = ctx;
-  {
-    set("folder/blah", "hello");
+const val2extVal = ({ v, t }: Val): ExternalValue => {
+  switch (t) {
+    case "bool":
+      return v as boolean;
+    case "num":
+      return v as number;
+    case "func":
+      return (<Func>v).name;
   }
-  {
-    const { value, error } = get("folder/blah");
+  return null;
+};
+
+async function exeFunc(stack: Val[], ctx: Ctx, func: Func): Promise<InvokeError[]> {
+  const pushNum = (n: number) => stack.push({ t: "num", v: n });
+  const pushStr = (n: string) => stack.push({ t: "str", v: n });
+  const pushNull = () => stack.push({ t: "null", v: null });
+  for (let i = 0; i < func.ins.length; ++i) {
+    const { type, value, line, col } = func.ins[i];
+    switch (type) {
+      case "num":
+        pushNum(value as number);
+        break;
+      case "str":
+        pushStr(value as string);
+        break;
+      case "op":
+        const [op, nArgs]: [string, number] = value;
+        switch (op) {
+          case "+":
+            {
+              const args = stack.splice(stack.length - nArgs, nArgs);
+              if (args.length != nArgs) {
+                return [["Unexpected Error", "+ stack depleted", line, col]];
+              }
+              const nAn = args.find(a => a.t != "num");
+              if (nAn) {
+                return [["Type Error", `"${nAn.v}" is not a number`, line, col]];
+              }
+              let sum = args.reduce((sum, { v }) => sum + <number>v, 0);
+              pushNum(sum);
+            }
+            break;
+          case "print-line":
+            {
+              const args = stack.splice(stack.length - nArgs, nArgs).map(v => `${v.v}`);
+              if (args.length != nArgs) {
+                return [["Unexpected Error", "+ stack depleted", line, col]];
+              }
+              ctx.exe(op, [args.reduce((cat, str) => cat + str, "")]);
+              pushNull();
+            }
+            break;
+        }
+        break;
+    }
   }
-  {
-    const { value, error } = exe("util.fire_projectile", [[0, 0, 0], [0, 1, 0], "M4A1"]);
-    exe("admin.ban", ["BIackShibe", "Being gay, that is a sin", 1280]);
-  }
+  return [];
+}
+
+export async function invoke(ctx: Ctx, code: string): Promise<InvokeError[]> {
+  ctx.env = { ...ctx.env, ...Parse.parse(code) };
+  console.dir(ctx.env, { depth: 10 });
+  const stack: Val[] = [];
+  await exeFunc(stack, ctx, ctx.env.funcs["entry"]);
+  await ctx.exe("print-line", stack.length ? [val2extVal(stack[0])] : []);
   return [];
 }
 
