@@ -1,6 +1,6 @@
 import { partition } from "./utils";
 
-const ops = ["print-line", "execute-last", "+"];
+export const ops = ["print-line", "execute-last", "+"];
 
 export namespace Parse {
   type Token = { type: "str" | "num" | "sym" | "(" | ")"; text: string; line: number; col: number };
@@ -95,6 +95,9 @@ export namespace Parse {
       case "num":
         return [{ type: "num", value: parseInt(text), line, col }];
       case "sym":
+        if (text == "true" || text == "false") {
+          return [{ type: "boo", value: text == "true", line, col }];
+        }
         return [{ type: "var", value: text, line, col }];
       case "(": {
         const head = tokens.shift();
@@ -113,7 +116,7 @@ export namespace Parse {
           if (!ifT.length) {
             return []; //TODO: emit invalid if warning (no branches)
           }
-          ins.push({ type: "if", value: tknsBefore - tokens.length, line, col }, ...ifT);
+          ins.push({ type: "if", value: tknsBefore - tokens.length + 1, line, col }, ...ifT);
           tknsBefore = tokens.length;
           const ifF = parseArg(tokens);
           if (ifF.length) {
@@ -125,6 +128,7 @@ export namespace Parse {
           return ins;
         }
         const headIns: Ins[] = [];
+        let args = 0;
         //Head is a form
         if (type == "(") {
           tokens.unshift(head);
@@ -134,9 +138,9 @@ export namespace Parse {
           }
           headIns.push(...ins);
           text = "execute-last";
+          ++args;
         }
         const body: Ins[] = [];
-        let args = 0;
         while (tokens.length) {
           const parsed = parseArg(tokens);
           if (!parsed.length) {
