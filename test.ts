@@ -35,10 +35,10 @@ export namespace Test {
     type Result = { name: string; errSuccess: boolean; outSuccess: boolean };
     const tests: Test[] = [
       //Basic snippets
-      //{ name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
+      { name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
       { name: "Say Hello, world!", code: `(print-line "Hello, world!")`, out: `Hello, world!\nnull` },
       { name: "1 + 1 = 2", code: `(+ 1 1)`, out: `2` },
-      { name: "(1+1)+(1+1) = 4", code: `(+ (+ 1 1) (+ 1 1))`, out: `4` },
+      { name: "(1+1)+1+(1+1) = 5", code: `(+ (+ 1 1) 1 (+ 1 1))`, out: `5` },
       //{ name: "Conditional head", code: `((if true + -) 12 9 1)`, out: `22` },
       /*{ name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },
       //Moderate functions

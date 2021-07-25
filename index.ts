@@ -7,6 +7,8 @@ const val2extVal = ({ v, t }: Val): ExternalValue => {
       return v as boolean;
     case "num":
       return v as number;
+    case "str":
+      return v as string;
     case "func":
       return (<Func>v).name;
   }
@@ -28,28 +30,34 @@ async function exeFunc(stack: Val[], ctx: Ctx, func: Func): Promise<InvokeError[
         break;
       case "op":
         const [op, nArgs]: [string, number] = value;
+        const args = stack.splice(stack.length - nArgs, nArgs);
+        if (args.length != nArgs) {
+          return [["Unexpected Error", `${op} stack depleted`, line, col]];
+        }
         switch (op) {
           case "+":
+          case "-":
             {
-              const args = stack.splice(stack.length - nArgs, nArgs);
-              if (args.length != nArgs) {
-                return [["Unexpected Error", "+ stack depleted", line, col]];
-              }
               const nAn = args.find(a => a.t != "num");
               if (nAn) {
                 return [["Type Error", `"${nAn.v}" is not a number`, line, col]];
               }
-              let sum = args.reduce((sum, { v }) => sum + <number>v, 0);
-              pushNum(sum);
+              const f: (a: number, b: number) => number =
+                op == "+"
+                  ? (a, b) => a + b
+                  : op == "-"
+                  ? (a, b) => a - b
+                  : op == "*"
+                  ? (a, b) => a * b
+                  : op == "/"
+                  ? (a, b) => a / b
+                  : () => 0;
+              pushNum(args.map(({ v }) => <number>v).reduce((sum, n) => f(sum, n)));
             }
             break;
           case "print-line":
             {
-              const args = stack.splice(stack.length - nArgs, nArgs).map(v => `${v.v}`);
-              if (args.length != nArgs) {
-                return [["Unexpected Error", "+ stack depleted", line, col]];
-              }
-              ctx.exe(op, [args.reduce((cat, str) => cat + str, "")]);
+              ctx.exe(op, [args.reduce((cat, { v }) => cat + `${v}`, "")]);
               pushNull();
             }
             break;
