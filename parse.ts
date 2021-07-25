@@ -1,6 +1,6 @@
 import { partition } from "./utils";
 
-export const ops = ["print-line", "execute-last", "+"];
+export const ops = ["print-line", "execute-last", "+", "-", "*", "/", "vec"];
 
 export namespace Parse {
   type Token = { type: "str" | "num" | "sym" | "(" | ")"; text: string; line: number; col: number };

@@ -8,6 +8,7 @@ const val2extVal = ({ v, t }: Val): ExternalValue => {
     case "num":
       return v as number;
     case "str":
+    case "key":
       return v as string;
     case "func":
       return (<Func>v).name;
@@ -17,10 +18,14 @@ const val2extVal = ({ v, t }: Val): ExternalValue => {
 
 namespace Machine {
   export let stack: Val[] = [];
-  const boo = (b: boolean) => stack.push({ t: "bool", v: b });
-  const num = (n: number) => stack.push({ t: "num", v: n });
-  const str = (s: string) => stack.push({ t: "str", v: s });
-  const nul = () => stack.push({ t: "null", v: null });
+  const _boo = (v: boolean) => stack.push({ t: "bool", v });
+  const _num = (v: number) => stack.push({ t: "num", v });
+  const _str = (v: string) => stack.push({ t: "str", v });
+  const _key = (v: string) => stack.push({ t: "key", v });
+  const _vec = (v: Val[]) => stack.push({ t: "vec", v });
+  const _nul = () => stack.push({ t: "null", v: null });
+  const str = ({ v }: Val) => v as string;
+  const vec = ({ v }: Val) => v as Val[];
 
   async function exeOp(
     op: string,
@@ -34,13 +39,18 @@ namespace Machine {
         {
           await exeOp(args.pop()!.v as string, args, ctx, line, col);
         }
-        break;
+        return [];
+      case "vec":
+        _vec(args);
+        return [];
       case "+":
       case "-":
+      case "*":
+      case "/":
         {
           const nAn = args.find(a => a.t != "num");
           if (nAn) {
-            return [["Type Error", `"${nAn.v}" is not a number`, line, col]];
+            return [{ e: "Type Error", m: `"${nAn.v}" is not a number`, line, col }];
           }
           const f: (a: number, b: number) => number =
             op == "+"
@@ -52,17 +62,29 @@ namespace Machine {
               : op == "/"
               ? (a, b) => a / b
               : () => 0;
-          num(args.map(({ v }) => <number>v).reduce((sum, n) => f(sum, n)));
+          _num(args.map(({ v }) => <number>v).reduce((sum, n) => f(sum, n)));
         }
-        break;
+        return [];
       case "print-line":
         {
           ctx.exe(op, [args.reduce((cat, { v }) => cat + `${v}`, "")]);
-          nul();
+          _nul();
         }
-        break;
+        return [];
     }
-    return [];
+    if (Number(op) && args.length) {
+      const a = args[0];
+      switch (a.t) {
+        case "vec":
+          stack.push(vec(a)[Number(op)] as Val);
+          console.log(stack);
+          return [];
+        case "str":
+          _str(str(args[0])[Number(op)]);
+          return [];
+      }
+    }
+    return [{ e: "Unknown operation", m: `${op} with ${args.length} argument/s`, line, col }];
   }
 
   export async function exeFunc(ctx: Ctx, func: Func): Promise<InvokeError[]> {
@@ -70,26 +92,37 @@ namespace Machine {
       const { type, value, line, col } = func.ins[i];
       switch (type) {
         case "boo":
-          boo(value as boolean);
+          _boo(value as boolean);
           break;
         case "num":
-          num(value as number);
+          _num(value as number);
           break;
         case "str":
-          str(value as string);
+          _str(value as string);
           break;
         case "var":
-          if (ops.includes(value)) {
-            str(value as string);
+          {
+            const name = value as string;
+            if (ops.includes(name)) {
+              _str(name);
+            } else if (name.startsWith(":")) {
+              _key(name);
+            }
           }
           break;
         case "op":
-          const [op, nArgs]: [string, number] = value;
-          const args = stack.splice(stack.length - nArgs, nArgs);
-          if (args.length != nArgs) {
-            return [["Unexpected Error", `${op} stack depleted`, line, col]];
+        case "exe":
+          {
+            const [op, nArgs]: [string, number] = value;
+            const args = stack.splice(stack.length - nArgs, nArgs);
+            if (args.length != nArgs) {
+              return [{ e: "Unexpected Error", m: `${op} stack depleted`, line, col }];
+            }
+            const errors = await exeOp(op, args, ctx, line, col);
+            if (errors.length) {
+              return errors;
+            }
           }
-          await exeOp(op, args, ctx, line, col);
           break;
         case "if":
           if (!stack.pop()) {

@@ -1,9 +1,9 @@
 type Vec3 = [number, number, number];
 type ExternalValue = null | string | number | boolean | Vec3;
-type Typ = "null" | "str" | "num" | "bool" | "vec3" | "func";
-type Val = { v: ExternalValue | Func; t: Typ };
+type Typ = "null" | "str" | "num" | "bool" | "key" | "vec" | "vec3" | "func";
+type Val = { v: Val[] | ExternalValue | Func; t: Typ };
 
-type InvokeError = [string, string, number, number];
+type InvokeError = { e: string; m: string; line: number; col: number };
 type ExternalError = null | string;
 type ValAndErr = { value: ExternalValue; error: ExternalError };
 

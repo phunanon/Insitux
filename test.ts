@@ -36,13 +36,18 @@ export namespace Test {
     const tests: Test[] = [
       //Basic snippets
       { name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
-      { name: "Say Hello, world!", code: `(print-line "Hello, world!")`, out: `Hello, world!\nnull` },
+      {
+        name: "Say Hello, world!",
+        code: `(print-line "Hello, world!")`,
+        out: `Hello, world!\nnull`,
+      },
       { name: "1 + 1 = 2", code: `(+ 1 1)`, out: `2` },
       { name: "(1+1)+1+(1+1) = 5", code: `(+ (+ 1 1) 1 (+ 1 1))`, out: `5` },
       { name: "Conditional head", code: `((if true + -) 12 9 1)`, out: `22` },
+      { name: "String retrieve", code: `(2 "Hello")`, out: `l` },
+      { name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },
       //{ name: "Define and retrieve", code: `(define a 1) a`, out: `1` },
-      /*{ name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },
-      //Moderate functions
+      /*//Moderate functions
       {
         name: "Average",
         code: `(function avg (/ (sum %) (len %))) (avg [0 10 20 30 40])`,
@@ -83,8 +88,8 @@ export namespace Test {
       const outSuccess = state.output == out + "\n";
       results.push({ name, errSuccess, outSuccess });
     }
-    results.forEach(({ name, outSuccess, errSuccess }) =>
-      console.log(name.padEnd(24), outSuccess, errSuccess)
+    results.forEach(({ name, outSuccess, errSuccess }, i) =>
+      console.log(`${i}`.padEnd(3), name.padEnd(24), outSuccess, errSuccess)
     );
   }
 }
