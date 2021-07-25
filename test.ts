@@ -42,11 +42,13 @@ export namespace Test {
         out: `Hello, world!\nnull`,
       },
       { name: "1 + 1 = 2", code: `(+ 1 1)`, out: `2` },
+      { name: "Negate 1 = -1", code: `(- 1)`, out: `-1` },
       { name: "(1+1)+1+(1+1) = 5", code: `(+ (+ 1 1) 1 (+ 1 1))`, out: `5` },
       { name: "Conditional head", code: `((if true + -) 12 9 1)`, out: `22` },
       { name: "String retrieve", code: `(2 "Hello")`, out: `l` },
       { name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },
-      //{ name: "Define and retrieve", code: `(define a 1) a`, out: `1` },
+      { name: "Define and retrieve", code: `(define a 1) a`, out: `1` },
+      { name: "Define and add", code: `(define a 1) (inc a)`, out: `2` },
       /*//Moderate functions
       {
         name: "Average",
@@ -68,15 +70,18 @@ export namespace Test {
                 (get globals.time_offset)]`,
         numError: 0,
         out: `[null 5.5 5.5]`,
-      },*/
+      },
+      //Syntax errors
+      */
     ];
     //Begin tests
     const env: Env = { funcs: {}, vars: {} };
     const results: {
       name: string;
-      errSuccess: boolean;
-      outSuccess: boolean;
+      okErr: boolean;
+      okOut: boolean;
     }[] = [];
+    const startTime = new Date().getTime();
     for (const { name, code, numError, out } of tests) {
       const state: State = {
         dict: new Map<string, ExternalValue>(),
@@ -91,12 +96,17 @@ export namespace Test {
         },
         code
       );
-      const errSuccess = (numError || 0) == errors.length;
-      const outSuccess = state.output == out + "\n";
-      results.push({ name, errSuccess, outSuccess });
+      const okErr = (numError || 0) == errors.length;
+      const okOut = state.output == out + "\n";
+      results.push({ name, okErr, okOut });
     }
-    results.forEach(({ name, outSuccess, errSuccess }, i) =>
-      console.log(`${i}`.padEnd(3), name.padEnd(24), outSuccess, errSuccess)
+    results.forEach(({ name, okOut, okErr }, i) =>
+      console.log(`${i}`.padEnd(3), name.padEnd(24), okOut, okErr)
+    );
+    console.log(
+      `${results.filter(({ okOut, okErr }) => okOut && okErr).length}/${
+        results.length
+      } passed in ${new Date().getTime() - startTime}ms.`
     );
   }
 }

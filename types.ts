@@ -1,6 +1,15 @@
 type Vec3 = [number, number, number];
 type ExternalValue = null | string | number | boolean | Vec3;
-type Typ = "null" | "str" | "num" | "bool" | "key" | "vec" | "vec3" | "func";
+type Typ =
+  | "null"
+  | "str"
+  | "num"
+  | "bool"
+  | "key"
+  | "ref"
+  | "vec"
+  | "vec3"
+  | "func";
 type Val = { v: Val[] | ExternalValue | Func; t: Typ };
 
 type InvokeError = { e: string; m: string; line: number; col: number };
@@ -31,7 +40,9 @@ type InsType =
   | "boo"
   | "num"
   | "str"
+  | "key"
   | "var"
+  | "ref"
   | "op"
   | "exe"
   | "if"

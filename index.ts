@@ -1,5 +1,5 @@
 import { Test } from "./test";
-import { Parse, ops } from "./parse";
+import { Parse, ops, minArities } from "./parse";
 
 const val2extVal = ({ v, t }: Val): ExternalValue => {
   switch (t) {
@@ -23,7 +23,9 @@ namespace Machine {
   const _str = (v: string) => stack.push({ t: "str", v });
   const _key = (v: string) => stack.push({ t: "key", v });
   const _vec = (v: Val[]) => stack.push({ t: "vec", v });
+  const _ref = (v: string) => stack.push({ t: "ref", v });
   const _nul = () => stack.push({ t: "null", v: null });
+  const num = ({ v }: Val) => v as number;
   const str = ({ v }: Val) => v as string;
   const vec = ({ v }: Val) => v as Val[];
 
@@ -34,11 +36,29 @@ namespace Machine {
     line: number,
     col: number
   ): Promise<InvokeError[]> {
+    if (args.length < (Number(op) ? 1 : minArities[op])) {
+      return [
+        {
+          e: "Arity error",
+          m: `${op} requires at least ${minArities[op]} argument/s`,
+          line,
+          col,
+        },
+      ];
+    }
     switch (op) {
       case "execute-last":
         {
           await exeOp(args.pop()!.v as string, args, ctx, line, col);
         }
+        return [];
+      case "define":
+        if (args[0].t != "ref") {
+          return [
+            { e: "Define error", m: "first arg wasn't reference", line, col },
+          ];
+        }
+        ctx.env.vars[str(args[0])] = args[1];
         return [];
       case "vec":
         _vec(args);
@@ -64,8 +84,19 @@ namespace Machine {
               : op == "/"
               ? (a, b) => a / b
               : () => 0;
+          if (op == "-" && args.length == 1) {
+            args.unshift({ t: "num", v: 0 });
+          }
           _num(args.map(({ v }) => <number>v).reduce((sum, n) => f(sum, n)));
         }
+        return [];
+      case "inc":
+        if (args[0].t != "num") {
+          return [
+            { e: "Type Error", m: `${args[0]} is not a number`, line, col },
+          ];
+        }
+        _num(num(args[0]) + 1);
         return [];
       case "print-line":
         {
@@ -74,7 +105,7 @@ namespace Machine {
         }
         return [];
     }
-    if (Number(op) && args.length) {
+    if (Number(op)) {
       const a = args[0];
       switch (a.t) {
         case "vec":
@@ -109,13 +140,21 @@ namespace Machine {
         case "str":
           _str(value as string);
           break;
+        case "ref":
+          _ref(value as string);
+          break;
+        case "key":
+          _key(value as string);
+          break;
         case "var":
           {
             const name = value as string;
             if (ops.includes(name)) {
               _str(name);
-            } else if (name.startsWith(":")) {
-              _key(name);
+            } else if (name in ctx.env.vars) {
+              stack.push(ctx.env.vars[name]);
+            } else {
+              return [{ e: "Variable not found", m: `"${name}"`, line, col }];
             }
           }
           break;
@@ -152,13 +191,13 @@ namespace Machine {
 export async function invoke(ctx: Ctx, code: string): Promise<InvokeError[]> {
   ctx.env = { ...ctx.env, ...Parse.parse(code) };
   console.dir(ctx.env, { depth: 10 });
-  await Machine.exeFunc(ctx, ctx.env.funcs["entry"]);
+  const errors = await Machine.exeFunc(ctx, ctx.env.funcs["entry"]);
   await ctx.exe(
     "print-line",
     Machine.stack.length ? [val2extVal(Machine.stack[0])] : []
   );
   Machine.stack = [];
-  return [];
+  return errors;
 }
 
 Test.perform();

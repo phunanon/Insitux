@@ -1,10 +1,29 @@
 import { partition } from "./utils";
 
-export const ops = ["print-line", "execute-last", "+", "-", "*", "/", "vec"];
+export const ops = [
+  "print-line",
+  "execute-last",
+  "define",
+  "+",
+  "-",
+  "*",
+  "/",
+  "inc",
+  "vec",
+];
+
+export const minArities: { [op: string]: number } = {
+  define: 2,
+  "+": 2,
+  "-": 1,
+  "*": 2,
+  "/": 2,
+  "inc": 1,
+};
 
 export namespace Parse {
   type Token = {
-    type: "str" | "num" | "sym" | "(" | ")";
+    type: "str" | "num" | "sym" | "ref" | "(" | ")";
     text: string;
     line: number;
     col: number;
@@ -56,7 +75,14 @@ export namespace Parse {
         }
         inNumber = isDigit;
         inSymbol = !inNumber;
-        tokens.push({ type: inSymbol ? "sym" : "num", text: "", line, col });
+        let type: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
+        {
+          const lastToken = tokens[tokens.length - 1];
+          if (lastToken.type == "sym" && lastToken.text == "define") {
+            type = "ref";
+          }
+        }
+        tokens.push({ type, text: "", line, col });
       }
       tokens[tokens.length - 1].text += c;
     }
@@ -110,8 +136,12 @@ export namespace Parse {
       case "sym":
         if (text == "true" || text == "false") {
           return [{ type: "boo", value: text == "true", line, col }];
+        } else if (text.startsWith(":")) {
+          return [{type: "key", value: text, line, col}];
         }
         return [{ type: "var", value: text, line, col }];
+      case "ref":
+        return [{ type: "ref", value: text, line, col }];
       case "(": {
         const head = tokens.shift();
         if (!head) {
@@ -182,7 +212,13 @@ export namespace Parse {
 
   function syntaxise({ name, tokens }: NamedTokens): { [name: string]: Func } {
     const [params, body] = partition(tokens, t => t.type == "sym");
-    const ins = parseArg(body);
+    const ins: Ins[] = [];
+    while (true) {
+      if (!body.length) {
+        break;
+      }
+      ins.push(...parseArg(body));
+    }
     if (!ins.length) {
       return {};
     }
