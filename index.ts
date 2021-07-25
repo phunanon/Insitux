@@ -50,7 +50,9 @@ namespace Machine {
         {
           const nAn = args.find(a => a.t != "num");
           if (nAn) {
-            return [{ e: "Type Error", m: `"${nAn.v}" is not a number`, line, col }];
+            return [
+              { e: "Type Error", m: `"${nAn.v}" is not a number`, line, col },
+            ];
           }
           const f: (a: number, b: number) => number =
             op == "+"
@@ -84,7 +86,14 @@ namespace Machine {
           return [];
       }
     }
-    return [{ e: "Unknown operation", m: `${op} with ${args.length} argument/s`, line, col }];
+    return [
+      {
+        e: "Unknown operation",
+        m: `${op} with ${args.length} argument/s`,
+        line,
+        col,
+      },
+    ];
   }
 
   export async function exeFunc(ctx: Ctx, func: Func): Promise<InvokeError[]> {
@@ -116,7 +125,9 @@ namespace Machine {
             const [op, nArgs]: [string, number] = value;
             const args = stack.splice(stack.length - nArgs, nArgs);
             if (args.length != nArgs) {
-              return [{ e: "Unexpected Error", m: `${op} stack depleted`, line, col }];
+              return [
+                { e: "Unexpected Error", m: `${op} stack depleted`, line, col },
+              ];
             }
             const errors = await exeOp(op, args, ctx, line, col);
             if (errors.length) {
@@ -142,7 +153,10 @@ export async function invoke(ctx: Ctx, code: string): Promise<InvokeError[]> {
   ctx.env = { ...ctx.env, ...Parse.parse(code) };
   console.dir(ctx.env, { depth: 10 });
   await Machine.exeFunc(ctx, ctx.env.funcs["entry"]);
-  await ctx.exe("print-line", Machine.stack.length ? [val2extVal(Machine.stack[0])] : []);
+  await ctx.exe(
+    "print-line",
+    Machine.stack.length ? [val2extVal(Machine.stack[0])] : []
+  );
   Machine.stack = [];
   return [];
 }

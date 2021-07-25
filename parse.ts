@@ -3,7 +3,12 @@ import { partition } from "./utils";
 export const ops = ["print-line", "execute-last", "+", "-", "*", "/", "vec"];
 
 export namespace Parse {
-  type Token = { type: "str" | "num" | "sym" | "(" | ")"; text: string; line: number; col: number };
+  type Token = {
+    type: "str" | "num" | "sym" | "(" | ")";
+    text: string;
+    line: number;
+    col: number;
+  };
   type NamedTokens = { name: string; tokens: Token[] };
 
   function tokenise(code: string) {
@@ -41,7 +46,8 @@ export namespace Parse {
       }
       if (!inString && !inSymbol && !inNumber) {
         if (isParen) {
-          const text: "(" | ")" = c == "[" ? "(" : c == "]" ? ")" : c == "(" ? "(" : ")";
+          const text: "(" | ")" =
+            c == "[" ? "(" : c == "]" ? ")" : c == "(" ? "(" : ")";
           tokens.push({ type: text, text, line, col });
           if (c == "[") {
             tokens.push({ type: "sym", text: "vec", line, col });
@@ -72,11 +78,18 @@ export namespace Parse {
 
   function funcise(segments: Token[][]): NamedTokens[] {
     const isFunc = (segment: Token[]) =>
-      segment.length > 1 && segment[1].type == "sym" && segment[1].text == "function";
+      segment.length > 1 &&
+      segment[1].type == "sym" &&
+      segment[1].text == "function";
     const funcs = segments.filter(t => isFunc(t));
     const entries = segments.filter(t => !isFunc(t)).flat();
-    const described = funcs.map(([p, f, name, ...tokens]) => ({ name: name.text, tokens }));
-    return entries.length ? described.concat({ name: "entry", tokens: entries }) : described;
+    const described = funcs.map(([p, f, name, ...tokens]) => ({
+      name: name.text,
+      tokens,
+    }));
+    return entries.length
+      ? described.concat({ name: "entry", tokens: entries })
+      : described;
   }
 
   function tokensToSource(tokens: Token[]): string {
@@ -116,11 +129,17 @@ export namespace Parse {
           if (!ifT.length) {
             return []; //TODO: emit invalid if warning (no branches)
           }
-          ins.push({ type: "if", value: tknsBefore - tokens.length + 1, line, col }, ...ifT);
+          ins.push(
+            { type: "if", value: tknsBefore - tokens.length + 1, line, col },
+            ...ifT
+          );
           tknsBefore = tokens.length;
           const ifF = parseArg(tokens);
           if (ifF.length) {
-            ins.push({ type: "els", value: tknsBefore - tokens.length, line, col }, ...ifF);
+            ins.push(
+              { type: "els", value: tknsBefore - tokens.length, line, col },
+              ...ifF
+            );
           }
           if (parseArg(tokens).length) {
             return []; //TODO: emit invalid if warning (too many branches)
@@ -149,7 +168,12 @@ export namespace Parse {
           ++args;
           body.push(...parsed);
         }
-        headIns.push({ type: ops.includes(text) ? "op" : "exe", value: [text, args], line, col });
+        headIns.push({
+          type: ops.includes(text) ? "op" : "exe",
+          value: [text, args],
+          line,
+          col,
+        });
         return [...body, ...headIns];
       }
     }
@@ -173,7 +197,9 @@ export namespace Parse {
     const funcs = funcise(segments);
     console.dir(funcs, { depth: 10 });
     return {
-      funcs: funcs.map(syntaxise).reduce((funcs, func) => ({ ...funcs, ...func }), {} as Funcs),
+      funcs: funcs
+        .map(syntaxise)
+        .reduce((funcs, func) => ({ ...funcs, ...func }), {} as Funcs),
       vars: {},
     };
   }

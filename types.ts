@@ -27,7 +27,16 @@ type Ctx = {
   env: Env;
 };
 
-type InsType = "boo" | "num" | "str" | "var" | "op" | "exe" | "if" | "els" | "ret";
+type InsType =
+  | "boo"
+  | "num"
+  | "str"
+  | "var"
+  | "op"
+  | "exe"
+  | "if"
+  | "els"
+  | "ret";
 type Ins = {
   type: InsType;
   value?: any;

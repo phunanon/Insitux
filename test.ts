@@ -72,9 +72,16 @@ export namespace Test {
     ];
     //Begin tests
     const env: Env = { funcs: {}, vars: {} };
-    const results: { name: string; errSuccess: boolean; outSuccess: boolean }[] = [];
+    const results: {
+      name: string;
+      errSuccess: boolean;
+      outSuccess: boolean;
+    }[] = [];
     for (const { name, code, numError, out } of tests) {
-      const state: State = { dict: new Map<string, ExternalValue>(), output: "" };
+      const state: State = {
+        dict: new Map<string, ExternalValue>(),
+        output: "",
+      };
       const errors = await invoke(
         {
           get: (key: string) => get(state, key),
