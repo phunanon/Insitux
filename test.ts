@@ -31,9 +31,12 @@ export namespace Test {
 
   export async function perform() {
     //Define tests
-    type Test = { name: string; code: string; numError?: number; out: string };
-    type Result = { name: string; errSuccess: boolean; outSuccess: boolean };
-    const tests: Test[] = [
+    const tests: {
+      name: string;
+      code: string;
+      numError?: number;
+      out: string;
+    }[] = [
       //Basic snippets
       { name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
       {
@@ -49,6 +52,39 @@ export namespace Test {
       { name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },
       { name: "Define and retrieve", code: `(define a 1) a`, out: `1` },
       { name: "Define and add", code: `(define a 1) (inc a)`, out: `2` },
+      { name: "Define op and call", code: `(define f +) (f 2 2)`, out: `4` },
+      {
+        name: "Define num op and call",
+        code: `(define f 1) (f [:a :b :c])`,
+        out: `:b`,
+      },
+      { name: "Print simple vector", code: `[1 2 3]`, out: `[1 2 3]` },
+      //Basic functions
+      {
+        name: "Call greet func",
+        code: `(function greeting (print-line "Hello!")) (greeting)`,
+        out: `Hello!\nnull`,
+      },
+      {
+        name: "Call const val func",
+        code: `(function const 123) (const)`,
+        out: `123`,
+      },
+      {
+        name: "Call greet with name",
+        code: `(function greeting name (print-line "Hello, " name "!")) (greeting "Patrick")`,
+        out: `Hello, Patrick!\nnull`,
+      },
+      {
+        name: "Call with too few args",
+        code: `(function func a b c [a b c]) (func 1 2)`,
+        out: `[1 2 null]`,
+      },
+      {
+        name: "Define func and call",
+        code: `(function func a b (+ a b)) (define f func) (f 2 2)`,
+        out: `4`,
+      },
       /*//Moderate functions
       {
         name: "Average",
@@ -80,6 +116,7 @@ export namespace Test {
       name: string;
       okErr: boolean;
       okOut: boolean;
+      errors: InvokeError[];
     }[] = [];
     const startTime = new Date().getTime();
     for (const { name, code, numError, out } of tests) {
@@ -98,10 +135,10 @@ export namespace Test {
       );
       const okErr = (numError || 0) == errors.length;
       const okOut = state.output == out + "\n";
-      results.push({ name, okErr, okOut });
+      results.push({ name, okErr, okOut, errors });
     }
-    results.forEach(({ name, okOut, okErr }, i) =>
-      console.log(`${i}`.padEnd(3), name.padEnd(24), okOut, okErr)
+    results.forEach(({ name, okOut, okErr, errors }, i) =>
+      console.log(`${i}`.padEnd(3), name.padEnd(24), okOut, okErr || errors)
     );
     console.log(
       `${results.filter(({ okOut, okErr }) => okOut && okErr).length}/${

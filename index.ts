@@ -10,6 +10,10 @@ const val2extVal = ({ v, t }: Val): ExternalValue => {
     case "str":
     case "key":
       return v as string;
+    case "vec":
+      return `[${(v as Val[]).map(val2extVal).join(" ")}]`;
+    case "null":
+      return "null";
     case "func":
       return (<Func>v).name;
   }
@@ -25,6 +29,7 @@ namespace Machine {
   const _vec = (v: Val[]) => stack.push({ t: "vec", v });
   const _ref = (v: string) => stack.push({ t: "ref", v });
   const _nul = () => stack.push({ t: "null", v: null });
+  const _fun = (v: string) => stack.push({ t: "func", v });
   const num = ({ v }: Val) => v as number;
   const str = ({ v }: Val) => v as string;
   const vec = ({ v }: Val) => v as Val[];
@@ -127,7 +132,11 @@ namespace Machine {
     ];
   }
 
-  export async function exeFunc(ctx: Ctx, func: Func): Promise<InvokeError[]> {
+  export async function exeFunc(
+    ctx: Ctx,
+    func: Func,
+    args: Val[]
+  ): Promise<InvokeError[]> {
     for (let i = 0; i < func.ins.length; ++i) {
       const { type, value, line, col } = func.ins[i];
       switch (type) {
@@ -140,11 +149,32 @@ namespace Machine {
         case "str":
           _str(value as string);
           break;
+        case "key":
+          _key(value as string);
+          break;
         case "ref":
           _ref(value as string);
           break;
-        case "key":
-          _key(value as string);
+        case "par":
+          {
+            const name = value as string;
+            const paramIdx = func.params.indexOf(name);
+            if (paramIdx == -1) {
+              return [
+                {
+                  e: "Unexpected Error",
+                  m: `Parameter ${name} not found`,
+                  line,
+                  col,
+                },
+              ];
+            }
+            if (args.length <= paramIdx) {
+              _nul();
+            } else {
+              stack.push(args[paramIdx]);
+            }
+          }
           break;
         case "var":
           {
@@ -153,6 +183,8 @@ namespace Machine {
               _str(name);
             } else if (name in ctx.env.vars) {
               stack.push(ctx.env.vars[name]);
+            } else if (name in ctx.env.funcs) {
+              _fun(name);
             } else {
               return [{ e: "Variable not found", m: `"${name}"`, line, col }];
             }
@@ -161,14 +193,34 @@ namespace Machine {
         case "op":
         case "exe":
           {
-            const [op, nArgs]: [string, number] = value;
-            const args = stack.splice(stack.length - nArgs, nArgs);
-            if (args.length != nArgs) {
+            let [op, nArgs]: [string, number] = value;
+            const params = stack.splice(stack.length - nArgs, nArgs);
+            if (params.length != nArgs) {
               return [
                 { e: "Unexpected Error", m: `${op} stack depleted`, line, col },
               ];
             }
-            const errors = await exeOp(op, args, ctx, line, col);
+            const checkIsOp = (op: string) => ops.includes(op) || !!Number(op);
+            let isOp = checkIsOp(op);
+            let isFunc = op in ctx.env.funcs;
+            //If variable name
+            if (!isOp && !isFunc && op in ctx.env.vars) {
+              op = str(ctx.env.vars[op]);
+              isOp = checkIsOp(op);
+              isFunc = op in ctx.env.funcs;
+            }
+            const errors = isOp
+              ? await exeOp(op, params, ctx, line, col)
+              : isFunc
+              ? await exeFunc(ctx, ctx.env.funcs[op], params)
+              : [
+                  {
+                    e: "Unknown Operation",
+                    m: `${op} is an unknown operation/function`,
+                    line,
+                    col,
+                  },
+                ];
             if (errors.length) {
               return errors;
             }
@@ -191,7 +243,7 @@ namespace Machine {
 export async function invoke(ctx: Ctx, code: string): Promise<InvokeError[]> {
   ctx.env = { ...ctx.env, ...Parse.parse(code) };
   console.dir(ctx.env, { depth: 10 });
-  const errors = await Machine.exeFunc(ctx, ctx.env.funcs["entry"]);
+  const errors = await Machine.exeFunc(ctx, ctx.env.funcs["entry"], []);
   await ctx.exe(
     "print-line",
     Machine.stack.length ? [val2extVal(Machine.stack[0])] : []

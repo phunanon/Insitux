@@ -18,7 +18,7 @@ export const minArities: { [op: string]: number } = {
   "-": 1,
   "*": 2,
   "/": 2,
-  "inc": 1,
+  inc: 1,
 };
 
 export namespace Parse {
@@ -126,7 +126,7 @@ export namespace Parse {
       .replace(/ \)/g, ")");
   }
 
-  function parseArg(tokens: Token[]): Ins[] {
+  function parseArg(tokens: Token[], params: string[]): Ins[] {
     const { type, text, line, col } = tokens.shift() as Token;
     switch (type) {
       case "str":
@@ -137,7 +137,9 @@ export namespace Parse {
         if (text == "true" || text == "false") {
           return [{ type: "boo", value: text == "true", line, col }];
         } else if (text.startsWith(":")) {
-          return [{type: "key", value: text, line, col}];
+          return [{ type: "key", value: text, line, col }];
+        } else if (params.includes(text)) {
+          return [{ type: "par", value: text, line, col }];
         }
         return [{ type: "var", value: text, line, col }];
       case "ref":
@@ -149,13 +151,13 @@ export namespace Parse {
         }
         let { type, text, line, col } = head;
         if (text == "if") {
-          const cond = parseArg(tokens);
+          const cond = parseArg(tokens, params);
           if (!cond.length) {
             return []; //TODO: emit invalid if warning (no condition)
           }
           const ins: Ins[] = cond;
           let tknsBefore = tokens.length;
-          const ifT = parseArg(tokens);
+          const ifT = parseArg(tokens, params);
           if (!ifT.length) {
             return []; //TODO: emit invalid if warning (no branches)
           }
@@ -164,14 +166,14 @@ export namespace Parse {
             ...ifT
           );
           tknsBefore = tokens.length;
-          const ifF = parseArg(tokens);
+          const ifF = parseArg(tokens, params);
           if (ifF.length) {
             ins.push(
               { type: "els", value: tknsBefore - tokens.length, line, col },
               ...ifF
             );
           }
-          if (parseArg(tokens).length) {
+          if (parseArg(tokens, params).length) {
             return []; //TODO: emit invalid if warning (too many branches)
           }
           return ins;
@@ -181,7 +183,7 @@ export namespace Parse {
         //Head is a form
         if (type == "(") {
           tokens.unshift(head);
-          const ins = parseArg(tokens);
+          const ins = parseArg(tokens, params);
           if (!ins.length) {
             return []; //TODO: emit invalid form head warning (empty)
           }
@@ -191,7 +193,7 @@ export namespace Parse {
         }
         const body: Ins[] = [];
         while (tokens.length) {
-          const parsed = parseArg(tokens);
+          const parsed = parseArg(tokens, params);
           if (!parsed.length) {
             break;
           }
@@ -217,7 +219,12 @@ export namespace Parse {
       if (!body.length) {
         break;
       }
-      ins.push(...parseArg(body));
+      ins.push(
+        ...parseArg(
+          body,
+          params.map(p => p.text)
+        )
+      );
     }
     if (!ins.length) {
       return {};
