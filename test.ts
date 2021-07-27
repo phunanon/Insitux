@@ -34,8 +34,8 @@ export namespace Test {
     const tests: {
       name: string;
       code: string;
-      numError?: number;
-      out: string;
+      err?: string[];
+      out?: string;
     }[] = [
       //Basic snippets
       { name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
@@ -59,6 +59,16 @@ export namespace Test {
         out: `:b`,
       },
       { name: "Print simple vector", code: `[1 2 3]`, out: `[1 2 3]` },
+      {
+        name: "Sum vector of numbers",
+        code: `[(reduce + [1 2 3]) (reduce + [1 2 3] 3)]`,
+        out: `[6 9]`,
+      },
+      {
+        name: "Sum vectors of numbers",
+        code: `(map + [1 2 3] [1 2 3 4])`,
+        out: `[2 4 6]`,
+      },
       //Basic functions
       {
         name: "Call greet func",
@@ -85,12 +95,19 @@ export namespace Test {
         code: `(function func a b (+ a b)) (define f func) (f 2 2)`,
         out: `4`,
       },
-      /*//Moderate functions
       {
-        name: "Average",
-        code: `(function avg (/ (sum %) (len %))) (avg [0 10 20 30 40])`,
-        out: `20`,
+        name: "Anonymous parameters",
+        code: `(function avg<n? (< (/ (reduce + %) (len %)) %1)) (avg<n? [0 10 20 30 40] 5)`,
+        out: `false`,
       },
+      //Type errors
+      {
+        name: "String instead of number",
+        code: `(function avg (/ (reduce + %) (len %))) (print-line (avg [1 2 3])) (avg "Hello")`,
+        out: `2`,
+        err: ["Type Error"],
+      },
+      /*
       //Complex functions
       {
         name: "Fibonacci",
@@ -119,7 +136,7 @@ export namespace Test {
       errors: InvokeError[];
     }[] = [];
     const startTime = new Date().getTime();
-    for (const { name, code, numError, out } of tests) {
+    for (const { name, code, err, out } of tests) {
       const state: State = {
         dict: new Map<string, ExternalValue>(),
         output: "",
@@ -133,15 +150,15 @@ export namespace Test {
         },
         code
       );
-      const okErr = (numError || 0) == errors.length;
-      const okOut = state.output == out + "\n";
+      const okErr = (err || []).join() == errors.map(({ e }) => e).join();
+      const okOut = !out || state.output.trim() == out;
       results.push({ name, okErr, okOut, errors });
     }
     results.forEach(({ name, okOut, okErr, errors }, i) =>
-      console.log(`${i}`.padEnd(3), name.padEnd(24), okOut, okErr || errors)
+      console.log(`${i + 1}`.padEnd(3), name.padEnd(24), okOut, okErr || errors)
     );
     console.log(
-      `${results.filter(({ okOut, okErr }) => okOut && okErr).length}/${
+      `----- ${results.filter(({ okOut, okErr }) => okOut && okErr).length}/${
         results.length
       } passed in ${new Date().getTime() - startTime}ms.`
     );

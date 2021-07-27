@@ -8,8 +8,16 @@ export const ops = [
   "-",
   "*",
   "/",
+  "<",
+  ">",
+  "<=",
+  ">=",
   "inc",
+  "dec",
   "vec",
+  "len",
+  "map",
+  "reduce",
 ];
 
 export const minArities: { [op: string]: number } = {
@@ -18,8 +26,29 @@ export const minArities: { [op: string]: number } = {
   "-": 1,
   "*": 2,
   "/": 2,
+  "<": 2,
+  ">": 2,
+  "<=": 2,
+  ">=": 2,
   inc: 1,
+  dec: 1,
+  len: 1,
+  map: 2,
+  reduce: 2,
 };
+
+export const argsMustBeNum = [
+  "+",
+  "-",
+  "*",
+  "/",
+  "<",
+  ">",
+  "<=",
+  ">=",
+  "inc",
+  "dec",
+];
 
 export namespace Parse {
   type Token = {
@@ -138,8 +167,10 @@ export namespace Parse {
           return [{ type: "boo", value: text == "true", line, col }];
         } else if (text.startsWith(":")) {
           return [{ type: "key", value: text, line, col }];
+        } else if (text.startsWith("%")) {
+          return [{ type: "par", value: Number(text.slice(1)), line, col }];
         } else if (params.includes(text)) {
-          return [{ type: "par", value: text, line, col }];
+          return [{ type: "par", value: params.indexOf(text), line, col }];
         }
         return [{ type: "var", value: text, line, col }];
       case "ref":

@@ -1,5 +1,5 @@
 import { Test } from "./test";
-import { Parse, ops, minArities } from "./parse";
+import { Parse, ops, minArities, argsMustBeNum } from "./parse";
 
 const val2extVal = ({ v, t }: Val): ExternalValue => {
   switch (t) {
@@ -33,6 +33,18 @@ namespace Machine {
   const num = ({ v }: Val) => v as number;
   const str = ({ v }: Val) => v as string;
   const vec = ({ v }: Val) => v as Val[];
+  const asArray = ({ t, v }: Val): Val[] =>
+    t == "vec"
+      ? (v as Val[]).slice()
+      : t == "str"
+      ? [...(v as string)].map(s => ({ t: "str", v: s }))
+      : [];
+  const typeErr = (m: string, line: number, col: number): InvokeError => ({
+    e: "Type Error",
+    m,
+    line,
+    col,
+  });
 
   async function exeOp(
     op: string,
@@ -41,7 +53,8 @@ namespace Machine {
     line: number,
     col: number
   ): Promise<InvokeError[]> {
-    if (args.length < (Number(op) ? 1 : minArities[op])) {
+    //Check minimum arity
+    if (args.length < (Number(op) ? 1 : minArities[op] || 0)) {
       return [
         {
           e: "Arity error",
@@ -51,6 +64,14 @@ namespace Machine {
         },
       ];
     }
+    //Check for non-numeric arguments if needed
+    if (argsMustBeNum.includes(op)) {
+      const nAn = args.findIndex(a => a.t != "num");
+      if (nAn != -1) {
+        return [typeErr(`Argument ${nAn + 1} is not a number`, line, col)];
+      }
+    }
+
     switch (op) {
       case "execute-last":
         {
@@ -60,25 +81,34 @@ namespace Machine {
       case "define":
         if (args[0].t != "ref") {
           return [
-            { e: "Define error", m: "first arg wasn't reference", line, col },
+            { e: "Define Error", m: "first arg wasn't reference", line, col },
           ];
         }
         ctx.env.vars[str(args[0])] = args[1];
         return [];
+      case "print-line":
+        {
+          ctx.exe(op, [args.reduce((cat, { v }) => cat + `${v}`, "")]);
+          _nul();
+        }
+        return [];
       case "vec":
         _vec(args);
+        return [];
+      case "len":
+        if (args[0].t == "str") {
+          _num(str(args[0]).length);
+        } else if (args[0].t == "vec") {
+          _num(vec(args[0]).length);
+        } else {
+          return [typeErr(`${args[0].v} is not a string or vector`, line, col)];
+        }
         return [];
       case "+":
       case "-":
       case "*":
       case "/":
         {
-          const nAn = args.find(a => a.t != "num");
-          if (nAn) {
-            return [
-              { e: "Type Error", m: `"${nAn.v}" is not a number`, line, col },
-            ];
-          }
           const f: (a: number, b: number) => number =
             op == "+"
               ? (a, b) => a + b
@@ -95,18 +125,82 @@ namespace Machine {
           _num(args.map(({ v }) => <number>v).reduce((sum, n) => f(sum, n)));
         }
         return [];
-      case "inc":
-        if (args[0].t != "num") {
-          return [
-            { e: "Type Error", m: `${args[0]} is not a number`, line, col },
-          ];
+      case "<":
+      case ">":
+      case "<=":
+      case ">=":
+        for (let i = 1; i < args.length; ++i) {
+          const [a, b] = [num(args[i - 1]), num(args[i])];
+          if (
+            (op == "<" && a < b) ||
+            (op == ">" && a > b) ||
+            (op == "<=" && a <= b) ||
+            (op == ">=" && a >= b)
+          ) {
+            continue;
+          }
+          _boo(false);
+          return [];
         }
-        _num(num(args[0]) + 1);
+        _boo(true);
         return [];
-      case "print-line":
+      case "inc":
+      case "dec":
+        _num(num(args[0]) + (op == "inc" ? 1 : -1));
+        return [];
+      case "map":
+      case "reduce":
         {
-          ctx.exe(op, [args.reduce((cat, { v }) => cat + `${v}`, "")]);
-          _nul();
+          const { closure, error } = realiseOperation(
+            ctx,
+            str(args.shift()!),
+            line,
+            col
+          );
+          if (error) {
+            return [error];
+          }
+          const badArg =
+            op == "map"
+              ? args.findIndex(({ t }) => t != "vec" && t != "str")
+              : args[0].t == "str" || args[0].t == "vec"
+              ? -1
+              : 1;
+          if (badArg != -1) {
+            return [
+              typeErr(`"${args[badArg]}" is not a string or vector`, line, col),
+            ];
+          }
+
+          if (op == "map") {
+            const arrays = args.map(asArray);
+            const min = Math.min(...arrays.map(a => a.length));
+            const array: Val[] = [];
+            for (let i = 0; i < min; ++i) {
+              const errors = await closure!(arrays.map(a => a[i]));
+              if (errors.length) {
+                return errors;
+              }
+              array.push(stack.pop()!);
+            }
+            _vec(array);
+            return [];
+          }
+
+          const array = asArray(args.shift()!);
+          if (array.length < 2) {
+            stack.push(...array);
+            return [];
+          }
+          let reduction: Val = args.length ? args.shift()! : array.shift()!;
+          for (let i = 0; i < array.length; ++i) {
+            const errors = await closure!([reduction, array[i]]);
+            if (errors.length) {
+              return errors;
+            }
+            reduction = stack.pop()!;
+          }
+          stack.push(reduction);
         }
         return [];
     }
@@ -130,6 +224,40 @@ namespace Machine {
         col,
       },
     ];
+  }
+
+  function realiseOperation(
+    ctx: Ctx,
+    op: string,
+    line: number,
+    col: number
+  ): {
+    closure?: (params: Val[]) => Promise<InvokeError[]>;
+    error: false | InvokeError;
+  } {
+    const checkIsOp = (op: string) => ops.includes(op) || !!Number(op);
+    let isOp = checkIsOp(op);
+    let isFunc = op in ctx.env.funcs;
+    //If variable name
+    if (!isOp && !isFunc && op in ctx.env.vars) {
+      op = str(ctx.env.vars[op]);
+      isOp = checkIsOp(op);
+      isFunc = op in ctx.env.funcs;
+    }
+    return {
+      closure: isOp
+        ? (params: Val[]) => exeOp(op, params, ctx, line, col)
+        : isFunc
+        ? (params: Val[]) => exeFunc(ctx, ctx.env.funcs[op], params)
+        : undefined,
+      error: !isOp &&
+        !isFunc && {
+          e: "Unknown Operation",
+          m: `${op} is an unknown operation/function`,
+          line,
+          col,
+        },
+    };
   }
 
   export async function exeFunc(
@@ -157,18 +285,7 @@ namespace Machine {
           break;
         case "par":
           {
-            const name = value as string;
-            const paramIdx = func.params.indexOf(name);
-            if (paramIdx == -1) {
-              return [
-                {
-                  e: "Unexpected Error",
-                  m: `Parameter ${name} not found`,
-                  line,
-                  col,
-                },
-              ];
-            }
+            const paramIdx = value as number;
             if (args.length <= paramIdx) {
               _nul();
             } else {
@@ -200,27 +317,11 @@ namespace Machine {
                 { e: "Unexpected Error", m: `${op} stack depleted`, line, col },
               ];
             }
-            const checkIsOp = (op: string) => ops.includes(op) || !!Number(op);
-            let isOp = checkIsOp(op);
-            let isFunc = op in ctx.env.funcs;
-            //If variable name
-            if (!isOp && !isFunc && op in ctx.env.vars) {
-              op = str(ctx.env.vars[op]);
-              isOp = checkIsOp(op);
-              isFunc = op in ctx.env.funcs;
+            const { closure, error } = realiseOperation(ctx, op, line, col);
+            if (error) {
+              return [error];
             }
-            const errors = isOp
-              ? await exeOp(op, params, ctx, line, col)
-              : isFunc
-              ? await exeFunc(ctx, ctx.env.funcs[op], params)
-              : [
-                  {
-                    e: "Unknown Operation",
-                    m: `${op} is an unknown operation/function`,
-                    line,
-                    col,
-                  },
-                ];
+            const errors = await closure!(params);
             if (errors.length) {
               return errors;
             }
@@ -244,10 +345,12 @@ export async function invoke(ctx: Ctx, code: string): Promise<InvokeError[]> {
   ctx.env = { ...ctx.env, ...Parse.parse(code) };
   console.dir(ctx.env, { depth: 10 });
   const errors = await Machine.exeFunc(ctx, ctx.env.funcs["entry"], []);
-  await ctx.exe(
-    "print-line",
-    Machine.stack.length ? [val2extVal(Machine.stack[0])] : []
-  );
+  if (!errors.length) {
+    await ctx.exe(
+      "print-line",
+      Machine.stack.length ? [val2extVal(Machine.stack[0])] : []
+    );
+  }
   Machine.stack = [];
   return errors;
 }
