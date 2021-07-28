@@ -1,4 +1,4 @@
-import { partition } from "./utils";
+import { len, toNum } from "./poly-fills";
 
 export const ops = [
   "print-line",
@@ -67,7 +67,7 @@ export namespace Parse {
       line = 1,
       col = 0;
     for (const n in [...code]) {
-      const c = code[parseInt(n)];
+      const c = code[toNum(n)];
       ++col;
       if (c == '"') {
         if ((inString = !inString)) {
@@ -87,7 +87,7 @@ export namespace Parse {
       const isDigit = "0123456789".includes(c);
       const isParen = "()[]".includes(c);
       if (inNumber && !isDigit) {
-        inNumber = c == "." && !tokens[tokens.length - 1].text.includes(".");
+        inNumber = c == "." && !tokens[len(tokens) - 1].text.includes(".");
       }
       if (inSymbol && isParen) {
         inSymbol = false;
@@ -106,14 +106,14 @@ export namespace Parse {
         inSymbol = !inNumber;
         let type: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
         {
-          const lastToken = tokens[tokens.length - 1];
+          const lastToken = tokens[len(tokens) - 1];
           if (lastToken.type == "sym" && lastToken.text == "define") {
             type = "ref";
           }
         }
         tokens.push({ type, text: "", line, col });
       }
-      tokens[tokens.length - 1].text += c;
+      tokens[len(tokens) - 1].text += c;
     }
     return tokens;
   }
@@ -122,8 +122,8 @@ export namespace Parse {
     const segments: Token[][] = [[]];
     let depth = 0;
     tokens.forEach(token => {
-      segments[segments.length - 1].push(token);
-      depth += Number(token.text == "(") - Number(token.text == ")");
+      segments[len(segments) - 1].push(token);
+      depth += toNum(token.text == "(") - toNum(token.text == ")");
       if (depth == 0) {
         segments.push([]);
       }
@@ -133,7 +133,7 @@ export namespace Parse {
 
   function funcise(segments: Token[][]): NamedTokens[] {
     const isFunc = (segment: Token[]) =>
-      segment.length > 1 &&
+      len(segment) > 1 &&
       segment[1].type == "sym" &&
       segment[1].text == "function";
     const funcs = segments.filter(t => isFunc(t));
@@ -142,7 +142,7 @@ export namespace Parse {
       name: name.text,
       tokens,
     }));
-    return entries.length
+    return len(entries)
       ? described.concat({ name: "entry", tokens: entries })
       : described;
   }
@@ -161,14 +161,14 @@ export namespace Parse {
       case "str":
         return [{ type: "str", value: text, line, col }];
       case "num":
-        return [{ type: "num", value: parseInt(text), line, col }];
+        return [{ type: "num", value: toNum(text), line, col }];
       case "sym":
         if (text == "true" || text == "false") {
           return [{ type: "boo", value: text == "true", line, col }];
         } else if (text.startsWith(":")) {
           return [{ type: "key", value: text, line, col }];
         } else if (text.startsWith("%")) {
-          return [{ type: "par", value: Number(text.substr(1)), line, col }];
+          return [{ type: "par", value: toNum(text.substr(1)), line, col }];
         } else if (params.includes(text)) {
           return [{ type: "par", value: params.indexOf(text), line, col }];
         }
@@ -183,28 +183,28 @@ export namespace Parse {
         let { type, text, line, col } = head;
         if (text == "if") {
           const cond = parseArg(tokens, params);
-          if (!cond.length) {
+          if (!len(cond)) {
             return []; //TODO: emit invalid if warning (no condition)
           }
           const ins: Ins[] = cond;
-          let tknsBefore = tokens.length;
+          let tknsBefore = len(tokens);
           const ifT = parseArg(tokens, params);
-          if (!ifT.length) {
+          if (!len(ifT)) {
             return []; //TODO: emit invalid if warning (no branches)
           }
           ins.push(
-            { type: "if", value: tknsBefore - tokens.length + 1, line, col },
+            { type: "if", value: tknsBefore - len(tokens) + 1, line, col },
             ...ifT
           );
-          tknsBefore = tokens.length;
+          tknsBefore = len(tokens);
           const ifF = parseArg(tokens, params);
-          if (ifF.length) {
+          if (len(ifF)) {
             ins.push(
-              { type: "els", value: tknsBefore - tokens.length, line, col },
+              { type: "els", value: tknsBefore - len(tokens), line, col },
               ...ifF
             );
           }
-          if (parseArg(tokens, params).length) {
+          if (len(parseArg(tokens, params))) {
             return []; //TODO: emit invalid if warning (too many branches)
           }
           return ins;
@@ -215,7 +215,7 @@ export namespace Parse {
         if (type == "(") {
           tokens.unshift(head);
           const ins = parseArg(tokens, params);
-          if (!ins.length) {
+          if (!len(ins)) {
             return []; //TODO: emit invalid form head warning (empty)
           }
           headIns.push(...ins);
@@ -223,9 +223,9 @@ export namespace Parse {
           ++args;
         }
         const body: Ins[] = [];
-        while (tokens.length) {
+        while (len(tokens)) {
           const parsed = parseArg(tokens, params);
-          if (!parsed.length) {
+          if (!len(parsed)) {
             break;
           }
           ++args;
@@ -243,11 +243,24 @@ export namespace Parse {
     return [];
   }
 
+  export function partition<T>(
+    array: T[],
+    predicate: (item: T) => boolean
+  ): [T[], T[]] {
+    const a: T[] = [],
+      b: T[] = [];
+    for (let i = 0, isB = false; i < len(array); ++i) {
+      isB ||= !predicate(array[i]);
+      (isB ? b : a).push(array[i]);
+    }
+    return [a, b];
+  }
+
   function syntaxise({ name, tokens }: NamedTokens): { [name: string]: Func } {
     const [params, body] = partition(tokens, t => t.type == "sym");
     const ins: Ins[] = [];
     while (true) {
-      if (!body.length) {
+      if (!len(body)) {
         break;
       }
       ins.push(
@@ -257,7 +270,7 @@ export namespace Parse {
         )
       );
     }
-    if (!ins.length) {
+    if (!len(ins)) {
       return {};
     }
     return {

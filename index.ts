@@ -1,6 +1,6 @@
 import { Test } from "./test";
 import { Parse, ops, minArities, argsMustBeNum } from "./parse";
-import { isNum } from "./utils";
+import { isNum, len, slen, slice, splice, toNum } from "./poly-fills";
 
 const val2extVal = ({ v, t }: Val): ExternalValue => {
   switch (t) {
@@ -12,7 +12,7 @@ const val2extVal = ({ v, t }: Val): ExternalValue => {
     case "key":
       return v as string;
     case "vec":
-      return `[${(v as Val[]).map(val2extVal).join(" ")}]`;
+      return `[${(v as Val[]).map(v => val2extVal(v)).join(" ")}]`;
     case "null":
       return "null";
     case "func":
@@ -36,7 +36,7 @@ namespace Machine {
   const vec = ({ v }: Val) => v as Val[];
   const asArray = ({ t, v }: Val): Val[] =>
     t === "vec"
-      ? (v as Val[]).slice()
+      ? slice(v as Val[])
       : t === "str"
       ? [...(v as string)].map(s => ({ t: "str", v: s }))
       : [];
@@ -55,7 +55,7 @@ namespace Machine {
     col: number
   ): Promise<InvokeError[]> {
     //Check minimum arity
-    if (args.length < (isNum(op) ? 1 : minArities[op] || 0)) {
+    if (len(args) < (isNum(op) ? 1 : minArities[op] || 0)) {
       return [
         {
           e: "Arity error",
@@ -98,9 +98,9 @@ namespace Machine {
         return [];
       case "len":
         if (args[0].t === "str") {
-          _num(str(args[0]).length);
+          _num(slen(str(args[0])));
         } else if (args[0].t === "vec") {
-          _num(vec(args[0]).length);
+          _num(len(vec(args[0])));
         } else {
           return [typeErr(`${args[0].v} is not a string or vector`, line, col)];
         }
@@ -110,7 +110,7 @@ namespace Machine {
       case "*":
       case "/":
         {
-          if (op === "-" && args.length === 1) {
+          if (op === "-" && len(args) === 1) {
             args.unshift({ t: "num", v: 0 });
           }
           const numOps: { [op: string]: (a: number, b: number) => number } = {
@@ -127,7 +127,7 @@ namespace Machine {
       case ">":
       case "<=":
       case ">=":
-        for (let i = 1; i < args.length; ++i) {
+        for (let i = 1; i < len(args); ++i) {
           const [a, b] = [num(args[i - 1]), num(args[i])];
           if (
             (op === "<" && a < b) ||
@@ -172,11 +172,11 @@ namespace Machine {
 
           if (op === "map") {
             const arrays = args.map(asArray);
-            const min = Math.min(...arrays.map(a => a.length));
+            const min = Math.min(...arrays.map(a => len(a)));
             const array: Val[] = [];
             for (let i = 0; i < min; ++i) {
               const errors = await closure!(arrays.map(a => a[i]));
-              if (errors.length) {
+              if (len(errors)) {
                 return errors;
               }
               array.push(stack.pop()!);
@@ -186,14 +186,14 @@ namespace Machine {
           }
 
           const array = asArray(args.shift()!);
-          if (array.length < 2) {
+          if (len(array) < 2) {
             stack.push(...array);
             return [];
           }
-          let reduction: Val = args.length ? args.shift()! : array.shift()!;
-          for (let i = 0; i < array.length; ++i) {
+          let reduction: Val = len(args) ? args.shift()! : array.shift()!;
+          for (let i = 0; i < len(array); ++i) {
             const errors = await closure!([reduction, array[i]]);
-            if (errors.length) {
+            if (len(errors)) {
               return errors;
             }
             reduction = stack.pop()!;
@@ -206,18 +206,18 @@ namespace Machine {
       const a = args[0];
       switch (a.t) {
         case "vec":
-          stack.push(vec(a)[Number(op)] as Val);
+          stack.push(vec(a)[toNum(op)] as Val);
           console.log(stack);
           return [];
         case "str":
-          _str(str(args[0])[Number(op)]);
+          _str(str(args[0])[toNum(op)]);
           return [];
       }
     }
     return [
       {
         e: "Unknown operation",
-        m: `${op} with ${args.length} argument/s`,
+        m: `${op} with ${len(args)} argument/s`,
         line,
         col,
       },
@@ -263,7 +263,7 @@ namespace Machine {
     func: Func,
     args: Val[]
   ): Promise<InvokeError[]> {
-    for (let i = 0; i < func.ins.length; ++i) {
+    for (let i = 0; i < len(func.ins); ++i) {
       const { type, value, line, col } = func.ins[i];
       switch (type) {
         case "boo":
@@ -284,7 +284,7 @@ namespace Machine {
         case "par":
           {
             const paramIdx = value as number;
-            if (args.length <= paramIdx) {
+            if (len(args) <= paramIdx) {
               _nul();
             } else {
               stack.push(args[paramIdx]);
@@ -309,8 +309,8 @@ namespace Machine {
         case "exe":
           {
             let [op, nArgs] = value as [string, number];
-            const params = stack.splice(stack.length - nArgs, nArgs);
-            if (params.length !== nArgs) {
+            const params = splice(stack, len(stack) - nArgs, nArgs);
+            if (len(params) !== nArgs) {
               return [
                 { e: "Unexpected Error", m: `${op} stack depleted`, line, col },
               ];
@@ -320,7 +320,7 @@ namespace Machine {
               return [error];
             }
             const errors = await closure!(params);
-            if (errors.length) {
+            if (len(errors)) {
               return errors;
             }
           }
@@ -343,10 +343,10 @@ export async function invoke(ctx: Ctx, code: string): Promise<InvokeError[]> {
   ctx.env = { ...ctx.env, ...Parse.parse(code) };
   console.dir(ctx.env, { depth: 10 });
   const errors = await Machine.exeFunc(ctx, ctx.env.funcs["entry"], []);
-  if (!errors.length) {
+  if (!len(errors)) {
     await ctx.exe(
       "print-line",
-      Machine.stack.length ? [val2extVal(Machine.stack[0])] : []
+      len(Machine.stack) ? [val2extVal(Machine.stack[0])] : []
     );
   }
   Machine.stack = [];

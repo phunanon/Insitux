@@ -1,4 +1,5 @@
 import { invoke } from ".";
+import { len } from "./poly-fills";
 
 export namespace Test {
   type State = { dict: Map<string, ExternalValue>; output: string };
@@ -158,8 +159,8 @@ export namespace Test {
       console.log(`${i + 1}`.padEnd(3), name.padEnd(24), okOut, okErr || errors)
     );
     console.log(
-      `----- ${results.filter(({ okOut, okErr }) => okOut && okErr).length}/${
-        results.length
+      `----- ${len(results.filter(({ okOut, okErr }) => okOut && okErr))}/${
+        len(results)
       } passed in ${new Date().getTime() - startTime}ms.`
     );
   }
