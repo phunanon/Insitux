@@ -1,5 +1,6 @@
 import { Test } from "./test";
 import { Parse, ops, minArities, argsMustBeNum } from "./parse";
+import { isNum } from "./utils";
 
 const val2extVal = ({ v, t }: Val): ExternalValue => {
   switch (t) {
@@ -34,9 +35,9 @@ namespace Machine {
   const str = ({ v }: Val) => v as string;
   const vec = ({ v }: Val) => v as Val[];
   const asArray = ({ t, v }: Val): Val[] =>
-    t == "vec"
+    t === "vec"
       ? (v as Val[]).slice()
-      : t == "str"
+      : t === "str"
       ? [...(v as string)].map(s => ({ t: "str", v: s }))
       : [];
   const typeErr = (m: string, line: number, col: number): InvokeError => ({
@@ -54,7 +55,7 @@ namespace Machine {
     col: number
   ): Promise<InvokeError[]> {
     //Check minimum arity
-    if (args.length < (Number(op) ? 1 : minArities[op] || 0)) {
+    if (args.length < (isNum(op) ? 1 : minArities[op] || 0)) {
       return [
         {
           e: "Arity error",
@@ -66,8 +67,8 @@ namespace Machine {
     }
     //Check for non-numeric arguments if needed
     if (argsMustBeNum.includes(op)) {
-      const nAn = args.findIndex(a => a.t != "num");
-      if (nAn != -1) {
+      const nAn = args.findIndex(a => a.t !== "num");
+      if (nAn !== -1) {
         return [typeErr(`Argument ${nAn + 1} is not a number`, line, col)];
       }
     }
@@ -79,7 +80,7 @@ namespace Machine {
         }
         return [];
       case "define":
-        if (args[0].t != "ref") {
+        if (args[0].t !== "ref") {
           return [
             { e: "Define Error", m: "first arg wasn't reference", line, col },
           ];
@@ -96,9 +97,9 @@ namespace Machine {
         _vec(args);
         return [];
       case "len":
-        if (args[0].t == "str") {
+        if (args[0].t === "str") {
           _num(str(args[0]).length);
-        } else if (args[0].t == "vec") {
+        } else if (args[0].t === "vec") {
           _num(vec(args[0]).length);
         } else {
           return [typeErr(`${args[0].v} is not a string or vector`, line, col)];
@@ -109,19 +110,16 @@ namespace Machine {
       case "*":
       case "/":
         {
-          const f: (a: number, b: number) => number =
-            op == "+"
-              ? (a, b) => a + b
-              : op == "-"
-              ? (a, b) => a - b
-              : op == "*"
-              ? (a, b) => a * b
-              : op == "/"
-              ? (a, b) => a / b
-              : () => 0;
-          if (op == "-" && args.length == 1) {
+          if (op === "-" && args.length === 1) {
             args.unshift({ t: "num", v: 0 });
           }
+          const numOps: { [op: string]: (a: number, b: number) => number } = {
+            "+": (a, b) => a + b,
+            "-": (a, b) => a - b,
+            "*": (a, b) => a * b,
+            "/": (a, b) => a / b,
+          };
+          const f = numOps[op];
           _num(args.map(({ v }) => <number>v).reduce((sum, n) => f(sum, n)));
         }
         return [];
@@ -132,10 +130,10 @@ namespace Machine {
         for (let i = 1; i < args.length; ++i) {
           const [a, b] = [num(args[i - 1]), num(args[i])];
           if (
-            (op == "<" && a < b) ||
-            (op == ">" && a > b) ||
-            (op == "<=" && a <= b) ||
-            (op == ">=" && a >= b)
+            (op === "<" && a < b) ||
+            (op === ">" && a > b) ||
+            (op === "<=" && a <= b) ||
+            (op === ">=" && a >= b)
           ) {
             continue;
           }
@@ -146,7 +144,7 @@ namespace Machine {
         return [];
       case "inc":
       case "dec":
-        _num(num(args[0]) + (op == "inc" ? 1 : -1));
+        _num(num(args[0]) + (op === "inc" ? 1 : -1));
         return [];
       case "map":
       case "reduce":
@@ -161,18 +159,18 @@ namespace Machine {
             return [error];
           }
           const badArg =
-            op == "map"
-              ? args.findIndex(({ t }) => t != "vec" && t != "str")
-              : args[0].t == "str" || args[0].t == "vec"
+            op === "map"
+              ? args.findIndex(({ t }) => t !== "vec" && t != "str")
+              : args[0].t === "str" || args[0].t === "vec"
               ? -1
               : 1;
-          if (badArg != -1) {
+          if (badArg !== -1) {
             return [
               typeErr(`"${args[badArg]}" is not a string or vector`, line, col),
             ];
           }
 
-          if (op == "map") {
+          if (op === "map") {
             const arrays = args.map(asArray);
             const min = Math.min(...arrays.map(a => a.length));
             const array: Val[] = [];
@@ -204,7 +202,7 @@ namespace Machine {
         }
         return [];
     }
-    if (Number(op)) {
+    if (isNum(op)) {
       const a = args[0];
       switch (a.t) {
         case "vec":
@@ -235,7 +233,7 @@ namespace Machine {
     closure?: (params: Val[]) => Promise<InvokeError[]>;
     error: false | InvokeError;
   } {
-    const checkIsOp = (op: string) => ops.includes(op) || !!Number(op);
+    const checkIsOp = (op: string) => ops.includes(op) || isNum(op);
     let isOp = checkIsOp(op);
     let isFunc = op in ctx.env.funcs;
     //If variable name
@@ -310,9 +308,9 @@ namespace Machine {
         case "op":
         case "exe":
           {
-            let [op, nArgs]: [string, number] = value;
+            let [op, nArgs] = value as [string, number];
             const params = stack.splice(stack.length - nArgs, nArgs);
-            if (params.length != nArgs) {
+            if (params.length !== nArgs) {
               return [
                 { e: "Unexpected Error", m: `${op} stack depleted`, line, col },
               ];
@@ -329,11 +327,11 @@ namespace Machine {
           break;
         case "if":
           if (!stack.pop()) {
-            i += value;
+            i += value as number;
           }
           break;
         case "els":
-          i += value;
+          i += value as number;
           break;
       }
     }

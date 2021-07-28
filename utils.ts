@@ -6,3 +6,5 @@ export function partition<T>(array: T[], predicate: (item: T) => boolean): [T[],
   }
   return [a, b];
 }
+
+export const isNum = (x: unknown) => !Number.isNaN(Number(x));

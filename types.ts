@@ -51,7 +51,7 @@ type InsType =
   | "ret";
 type Ins = {
   type: InsType;
-  value?: any;
+  value?: unknown;
   line: number;
   col: number;
 };

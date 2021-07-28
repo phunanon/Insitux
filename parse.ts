@@ -67,7 +67,7 @@ export namespace Parse {
       line = 1,
       col = 0;
     for (const n in [...code]) {
-      const c = code[n];
+      const c = code[parseInt(n)];
       ++col;
       if (c == '"') {
         if ((inString = !inString)) {
@@ -168,7 +168,7 @@ export namespace Parse {
         } else if (text.startsWith(":")) {
           return [{ type: "key", value: text, line, col }];
         } else if (text.startsWith("%")) {
-          return [{ type: "par", value: Number(text.slice(1)), line, col }];
+          return [{ type: "par", value: Number(text.substr(1)), line, col }];
         } else if (params.includes(text)) {
           return [{ type: "par", value: params.indexOf(text), line, col }];
         }
