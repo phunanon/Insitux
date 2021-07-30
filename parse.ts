@@ -270,7 +270,7 @@ function syntaxise({ name, tokens }: NamedTokens): { [name: string]: Func } {
     return {};
   }
   return {
-    [name]: { name, params: params.map(t => t.text), ins },
+    [name]: { name, ins },
   };
 }
 
@@ -278,7 +278,6 @@ export function parse(code: string): Env {
   const tokens = tokenise(code);
   const segments = segment(tokens);
   const funcs = funcise(segments);
-  console.dir(funcs, { depth: 10 });
   return {
     funcs: funcs
       .map(syntaxise)

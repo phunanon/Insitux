@@ -33,6 +33,7 @@ const _fun = (v: string) => stack.push({ t: "func", v });
 const num = ({ v }: Val) => v as number;
 const str = ({ v }: Val) => v as string;
 const vec = ({ v }: Val) => v as Val[];
+const asBoo = ({ t, v }: Val) => t === "bool" ? v as boolean : t !== "null";
 const asArray = ({ t, v }: Val): Val[] =>
   t === "vec"
     ? slice(v as Val[])
@@ -206,7 +207,6 @@ async function exeOp(
     switch (a.t) {
       case "vec":
         stack.push(vec(a)[toNum(op)] as Val);
-        console.log(stack);
         return [];
       case "str":
         _str(str(args[0])[toNum(op)]);
@@ -325,7 +325,7 @@ async function exeFunc(
         }
         break;
       case "if":
-        if (!stack.pop()) {
+        if (!asBoo(stack.pop()!)) {
           i += value as number;
         }
         break;
@@ -339,7 +339,6 @@ async function exeFunc(
 
 export async function invoke(ctx: Ctx, code: string): Promise<InvokeError[]> {
   ctx.env = { ...ctx.env, ...parse(code) };
-  console.dir(ctx.env, { depth: 10 });
   const errors = await exeFunc(ctx, ctx.env.funcs["entry"], []);
   if (!len(errors)) {
     await ctx.exe("print-line", len(stack) ? [val2extVal(stack[0])] : []);

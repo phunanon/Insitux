@@ -20,7 +20,6 @@ type FuncName = "print" | "print-line" | string;
 
 type Func = {
   name: string;
-  params: string[];
   ins: Ins[];
 };
 type Funcs = { [key: string]: Func };

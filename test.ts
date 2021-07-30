@@ -107,25 +107,22 @@ export async function performTests() {
       out: `2`,
       err: ["Type Error"],
     },
-    /*
-      //Complex functions
-      {
-        name: "Fibonacci",
-        code: `(function fib n (if (< n 2) n (+ (fib (dec n)) (fib (- n 2)))))
-               (println (fib 23))`,
-        out: `28657`,
-      },
-      //Test environment functions
-      {
-        name: "get set get",
-        code: `[(get globals.time_offset)
-                (set globals.time_offset 5.5)
-                (get globals.time_offset)]`,
-        numError: 0,
-        out: `[null 5.5 5.5]`,
-      },
-      //Syntax errors
-      */
+    //Complex functions
+    {
+      name: "Fibonacci 23",
+      code: `(function fib n (if (< n 2) n (+ (fib (dec n)) (fib (- n 2)))))
+             (fib 23)`,
+      out: `28657`,
+    },
+    //Test environment functions
+    {
+      name: "get set get",
+      code: `[(get globals.time_offset)
+              (set globals.time_offset 5.5)
+              (get globals.time_offset)]`,
+      out: `[null 5.5 5.5]`,
+    },
+    //Syntax errors
   ];
   //Begin tests
   const env: Env = { funcs: {}, vars: {} };
@@ -134,13 +131,14 @@ export async function performTests() {
     okErr: boolean;
     okOut: boolean;
     errors: InvokeError[];
+    elapsedMs: number;
   }[] = [];
-  const startTime = new Date().getTime();
   for (const { name, code, err, out } of tests) {
     const state: State = {
       dict: new Map<string, ExternalValue>(),
       output: "",
     };
+    const startTime = new Date().getTime();
     const errors = await invoke(
       {
         get: (key: string) => get(state, key),
@@ -152,14 +150,27 @@ export async function performTests() {
     );
     const okErr = (err || []).join() == errors.map(({ e }) => e).join();
     const okOut = !out || state.output.trim() == out;
-    results.push({ name, okErr, okOut, errors });
+    results.push({
+      name,
+      okErr,
+      okOut,
+      errors,
+      elapsedMs: new Date().getTime() - startTime,
+    });
   }
-  results.forEach(({ name, okOut, okErr, errors }, i) =>
-    console.log(`${i + 1}`.padEnd(3), name.padEnd(24), okOut, okErr || errors)
+  results.forEach(({ name, okOut, okErr, errors, elapsedMs }, i) =>
+    console.log(
+      `${i + 1}`.padEnd(3),
+      name.padEnd(24),
+      `${elapsedMs}ms`.padEnd(6),
+      okOut,
+      okErr || errors
+    )
   );
+  const totalMs = results.reduce((sum, { elapsedMs }) => sum + elapsedMs, 0);
   console.log(
     `----- ${len(results.filter(({ okOut, okErr }) => okOut && okErr))}/${len(
       results
-    )} passed in ${new Date().getTime() - startTime}ms.`
+    )} passed in ${totalMs}ms.`
   );
 }
