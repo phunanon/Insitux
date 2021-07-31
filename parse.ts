@@ -1,4 +1,14 @@
-import { flat, has, len, slice, starts, sub, substr, toNum } from "./poly-fills";
+import {
+  concat,
+  flat,
+  has,
+  len,
+  slice,
+  starts,
+  sub,
+  substr,
+  toNum,
+} from "./poly-fills";
 import { Env, Func, Funcs, Ins } from "./types";
 
 export const ops = [
@@ -66,8 +76,7 @@ function tokenise(code: string) {
     inNumber = false,
     line = 1,
     col = 0;
-  for (const n in [...code]) {
-    const c = code[toNum(n)];
+  for (const c of [...code]) {
     ++col;
     if (c === '"') {
       if ((inString = !inString)) {
@@ -138,12 +147,12 @@ function funcise(segments: Token[][]): NamedTokens[] {
     segment[1].text === "function";
   const funcs = segments.filter(t => isFunc(t));
   const entries = flat(segments.filter(t => !isFunc(t)));
-  const described = funcs.map((tokens) => ({
+  const described = funcs.map(tokens => ({
     name: tokens[2].text,
     tokens: slice(tokens, 3),
   }));
   return len(entries)
-    ? described.concat({ name: "entry", tokens: entries })
+    ? concat(described, [{ name: "entry", tokens: entries }])
     : described;
 }
 
@@ -172,8 +181,9 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
       if (!head) {
         break;
       }
-      let { type, text, line, col } = head;
-      if (text === "if") {
+      const { type, text, line, col } = head;
+      let op = text;
+      if (op === "if") {
         const cond = parseArg(tokens, params);
         if (!len(cond)) {
           return []; //TODO: emit invalid if warning (no condition)
@@ -211,7 +221,7 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
           return []; //TODO: emit invalid form head warning (empty)
         }
         headIns.push(...ins);
-        text = "execute-last";
+        op = "execute-last";
         ++args;
       }
       const body: Ins[] = [];
@@ -224,8 +234,8 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
         body.push(...parsed);
       }
       headIns.push({
-        type: has(ops, text) ? "op" : "exe",
-        value: [text, args],
+        type: has(ops, op) ? "op" : "exe",
+        value: [op, args],
         line,
         col,
       });
