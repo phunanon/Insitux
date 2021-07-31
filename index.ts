@@ -369,6 +369,9 @@ async function exeFunc(
 
 export async function invoke(ctx: Ctx, code: string): Promise<InvokeError[]> {
   ctx.env = { ...ctx.env, ...parse(code) };
+  if (!("entry" in ctx.env.funcs)) {
+    return [];
+  }
   const errors = await exeFunc(ctx, ctx.env.funcs["entry"], []);
   if (!len(errors)) {
     await ctx.exe("print-line", [

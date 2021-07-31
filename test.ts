@@ -78,6 +78,11 @@ export async function performTests() {
     },
     //Basic functions
     {
+      name: "Define with no call",
+      code: `(function func (print-line "Nothing."))`,
+      out: ``,
+    },
+    {
       name: "Call greet func",
       code: `(function greeting (print-line "Hello!")) (greeting)`,
       out: `Hello!\nnull`,
