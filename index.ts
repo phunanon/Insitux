@@ -103,6 +103,13 @@ async function exeOp(
       ctx.env.vars[str(args[0])] = args[1];
       stack.push(args[1]);
       return [];
+    case "str":
+      stack.push({
+        t: "str",
+        v: args.reduce((cat, v) => cat + val2str(v), ""),
+      });
+      return [];
+    case "print":
     case "print-line":
       {
         ctx.exe(op, [

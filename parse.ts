@@ -15,6 +15,7 @@ import { Func, Funcs, Ins } from "./types";
 
 export const ops = [
   "print-line",
+  "print",
   "execute-last",
   "define",
   "+",
@@ -31,6 +32,7 @@ export const ops = [
   "len",
   "map",
   "reduce",
+  "str",
 ];
 
 export const minArities: { [op: string]: number } = {
