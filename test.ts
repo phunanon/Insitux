@@ -1,5 +1,5 @@
 import { invoke } from ".";
-import { len } from "./poly-fills";
+import { len, trim } from "./poly-fills";
 import { Env, ExternalError, InvokeError, Val, ValAndErr } from "./types";
 
 type State = { dict: Map<string, Val>; output: string };
@@ -164,7 +164,7 @@ export async function performTests() {
       code
     );
     const okErr = (err || []).join() == errors.map(({ e }) => e).join();
-    const okOut = !out || state.output.trim() == out;
+    const okOut = !out || trim(state.output) == out;
     results.push({
       name,
       okErr,
