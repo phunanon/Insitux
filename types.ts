@@ -36,7 +36,7 @@ export type InsType =
   | "els"
   | "ret";
 export type Ins = {
-  type: InsType;
+  typ: InsType;
   value?: unknown;
   line: number;
   col: number;

@@ -287,8 +287,8 @@ async function exeFunc(
   args: Val[]
 ): Promise<InvokeError[]> {
   for (let i = 0; i < len(func.ins); ++i) {
-    const { type, value, line, col } = func.ins[i];
-    switch (type) {
+    const { typ, value, line, col } = func.ins[i];
+    switch (typ) {
       case "boo":
         _boo(value as boolean);
         break;

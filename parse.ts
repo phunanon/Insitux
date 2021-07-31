@@ -63,7 +63,7 @@ export const argsMustBeNum = [
 ];
 
 type Token = {
-  type: "str" | "num" | "sym" | "ref" | "(" | ")";
+  typ: "str" | "num" | "sym" | "ref" | "(" | ")";
   text: string;
   line: number;
   col: number;
@@ -81,7 +81,7 @@ function tokenise(code: string) {
     ++col;
     if (c === '"') {
       if ((inString = !inString)) {
-        tokens.push({ type: "str", text: "", line, col });
+        tokens.push({ typ: "str", text: "", line, col });
       }
       inNumber = inSymbol = false;
       continue;
@@ -106,22 +106,22 @@ function tokenise(code: string) {
       if (isParen) {
         const text: "(" | ")" =
           c === "[" ? "(" : c === "]" ? ")" : c === "(" ? "(" : ")";
-        tokens.push({ type: text, text, line, col });
+        tokens.push({ typ: text, text, line, col });
         if (c === "[") {
-          tokens.push({ type: "sym", text: "vec", line, col });
+          tokens.push({ typ: "sym", text: "vec", line, col });
         }
         continue;
       }
       inNumber = isDigit;
       inSymbol = !inNumber;
-      let type: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
+      let typ: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
       {
         const lastToken = tokens[len(tokens) - 1];
-        if (lastToken.type === "sym" && lastToken.text === "define") {
-          type = "ref";
+        if (lastToken.typ === "sym" && lastToken.text === "define") {
+          typ = "ref";
         }
       }
-      tokens.push({ type, text: "", line, col });
+      tokens.push({ typ, text: "", line, col });
     }
     tokens[len(tokens) - 1].text += c;
   }
@@ -144,7 +144,7 @@ function segment(tokens: Token[]): Token[][] {
 function funcise(segments: Token[][]): NamedTokens[] {
   const isFunc = (segment: Token[]) =>
     len(segment) > 1 &&
-    segment[1].type === "sym" &&
+    segment[1].typ === "sym" &&
     segment[1].text === "function";
   const funcs = segments.filter(t => isFunc(t));
   const entries = flat(segments.filter(t => !isFunc(t)));
@@ -158,31 +158,31 @@ function funcise(segments: Token[][]): NamedTokens[] {
 }
 
 function parseArg(tokens: Token[], params: string[]): Ins[] {
-  const { type, text, line, col } = tokens.shift() as Token;
-  switch (type) {
+  const { typ, text, line, col } = tokens.shift() as Token;
+  switch (typ) {
     case "str":
-      return [{ type: "str", value: text, line, col }];
+      return [{ typ: "str", value: text, line, col }];
     case "num":
-      return [{ type: "num", value: toNum(text), line, col }];
+      return [{ typ: "num", value: toNum(text), line, col }];
     case "sym":
       if (text === "true" || text === "false") {
-        return [{ type: "boo", value: text === "true", line, col }];
+        return [{ typ: "boo", value: text === "true", line, col }];
       } else if (starts(text, ":")) {
-        return [{ type: "key", value: text, line, col }];
+        return [{ typ: "key", value: text, line, col }];
       } else if (starts(text, "%")) {
-        return [{ type: "par", value: toNum(substr(text, 1)), line, col }];
+        return [{ typ: "par", value: toNum(substr(text, 1)), line, col }];
       } else if (has(params, text)) {
-        return [{ type: "par", value: params.indexOf(text), line, col }];
+        return [{ typ: "par", value: params.indexOf(text), line, col }];
       }
-      return [{ type: "var", value: text, line, col }];
+      return [{ typ: "var", value: text, line, col }];
     case "ref":
-      return [{ type: "ref", value: text, line, col }];
+      return [{ typ: "ref", value: text, line, col }];
     case "(": {
       const head = tokens.shift();
       if (!head) {
         break;
       }
-      const { type, text, line, col } = head;
+      const { typ, text, line, col } = head;
       let op = text;
       if (op === "if") {
         const cond = parseArg(tokens, params);
@@ -195,17 +195,18 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
         if (!len(ifT)) {
           return []; //TODO: emit invalid if warning (no branches)
         }
-        ins.push(
-          { type: "if", value: tknsBefore - len(tokens) + 1, line, col },
-          ...ifT
-        );
+        ins.push({
+          typ: "if",
+          value: tknsBefore - len(tokens) + 1,
+          line,
+          col,
+        });
+        push(ins, ifT);
         tknsBefore = len(tokens);
         const ifF = parseArg(tokens, params);
         if (len(ifF)) {
-          ins.push(
-            { type: "els", value: tknsBefore - len(tokens), line, col },
-            ...ifF
-          );
+          ins.push({ typ: "els", value: tknsBefore - len(tokens), line, col });
+          push(ins, ifF);
         }
         if (len(parseArg(tokens, params))) {
           return []; //TODO: emit invalid if warning (too many branches)
@@ -215,7 +216,7 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
       const headIns: Ins[] = [];
       let args = 0;
       //Head is a form
-      if (type === "(") {
+      if (typ === "(") {
         tokens.unshift(head);
         const ins = parseArg(tokens, params);
         if (!len(ins)) {
@@ -235,7 +236,7 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
         push(body, parsed);
       }
       headIns.push({
-        type: has(ops, op) ? "op" : "exe",
+        typ: has(ops, op) ? "op" : "exe",
         value: [op, args],
         line,
         col,
@@ -257,14 +258,15 @@ function partition<T>(array: T[], predicate: (item: T) => boolean): [T[], T[]] {
 }
 
 function syntaxise({ name, tokens }: NamedTokens): { [name: string]: Func } {
-  const [params, body] = partition(tokens, t => t.type === "sym");
+  const [params, body] = partition(tokens, t => t.typ === "sym");
   const ins: Ins[] = [];
   while (true) {
     if (!len(body)) {
       break;
     }
-    ins.push(
-      ...parseArg(
+    push(
+      ins,
+      parseArg(
         body,
         params.map(p => p.text)
       )
