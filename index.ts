@@ -72,7 +72,7 @@ async function exeOp(
   if (len(args) < (isNum(op) || starts(op, "$") ? 1 : minArities[op] || 0)) {
     return [
       {
-        e: "Arity error",
+        e: "Arity Error",
         m: `${op} requires at least ${minArities[op]} argument/s`,
         line,
         col,
@@ -89,9 +89,9 @@ async function exeOp(
 
   if (!isNum(op) && starts(op, "$")) {
     const val = args.pop()!;
-    const error = await ctx.set(substr(op, 1), val);
+    const err = await ctx.set(substr(op, 1), val);
     stack.push(val);
-    return error ? [{ e: "External Error", m: error, line, col }] : [];
+    return err ? [{ e: "External Error", m: err, line, col }] : [];
   }
 
   switch (op) {
@@ -172,14 +172,14 @@ async function exeOp(
     case "map":
     case "reduce":
       {
-        const { closure, error } = realiseOperation(
+        const { closure, err } = realiseOperation(
           ctx,
           str(args.shift()!),
           line,
           col
         );
-        if (error) {
-          return [error];
+        if (err) {
+          return [err];
         }
         const badArg =
           op === "map"
@@ -253,7 +253,7 @@ function realiseOperation(
   col: number
 ): {
   closure?: (params: Val[]) => Promise<InvokeError[]>;
-  error: false | InvokeError;
+  err: false | InvokeError;
 } {
   const checkIsOp = (op: string) =>
     has(ops, op) || isNum(op) || starts(op, "$");
@@ -271,7 +271,7 @@ function realiseOperation(
       : isFunc
       ? (params: Val[]) => exeFunc(ctx, ctx.env.funcs[op], params)
       : undefined,
-    error: !isOp &&
+    err: !isOp &&
       !isFunc && {
         e: "Unknown Operation",
         m: `${op} is an unknown operation/function`,
@@ -320,9 +320,9 @@ async function exeFunc(
           if (has(ops, name)) {
             _str(name);
           } else if (starts(name, "$")) {
-            const { value, error } = await ctx.get(substr(name, 1));
-            if (error) {
-              return [{ e: "External Error", m: error, line, col }];
+            const { value, err } = await ctx.get(substr(name, 1));
+            if (err) {
+              return [{ e: "External Error", m: err, line, col }];
             }
             stack.push(value);
           } else if (name in ctx.env.vars) {
@@ -344,9 +344,9 @@ async function exeFunc(
               { e: "Unexpected Error", m: `${op} stack depleted`, line, col },
             ];
           }
-          const { closure, error } = realiseOperation(ctx, op, line, col);
-          if (error) {
-            return [error];
+          const { closure, err } = realiseOperation(ctx, op, line, col);
+          if (err) {
+            return [err];
           }
           const errors = await closure!(params);
           if (len(errors)) {

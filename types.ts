@@ -1,9 +1,20 @@
-export type Typ = "null" | "str" | "num" | "bool" | "key" | "ref" | "vec" | "func";
-export type Val = { v: Val[] | undefined | string | number | boolean | Func; t: Typ };
+export type Typ =
+  | "null"
+  | "str"
+  | "num"
+  | "bool"
+  | "key"
+  | "ref"
+  | "vec"
+  | "func";
+export type Val = {
+  v: Val[] | undefined | string | number | boolean | Func;
+  t: Typ;
+};
 
 export type InvokeError = { e: string; m: string; line: number; col: number };
 export type ExternalError = undefined | string;
-export type ValAndErr = { value: Val; error: ExternalError };
+export type ValAndErr = { value: Val; err: ExternalError };
 
 export type Func = {
   name: string;

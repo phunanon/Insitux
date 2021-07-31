@@ -6,9 +6,9 @@ type State = { dict: Map<string, Val>; output: string };
 
 async function get(state: State, key: string): Promise<ValAndErr> {
   if (!state.dict.has(key)) {
-    return { value: { t: "null", v: undefined }, error: `"${key} not found.` };
+    return { value: { t: "null", v: undefined }, err: `"${key} not found.` };
   }
-  return { value: state.dict.get(key)!, error: undefined };
+  return { value: state.dict.get(key)!, err: undefined };
 }
 
 async function set(
@@ -33,7 +33,7 @@ async function exe(
       state.output += args[0].v + "\n";
       break;
   }
-  return { value: { t: "null", v: undefined }, error: undefined };
+  return { value: { t: "null", v: undefined }, err: undefined };
 }
 
 export async function performTests() {
