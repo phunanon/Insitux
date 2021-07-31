@@ -11,7 +11,7 @@ import {
   substr,
   toNum,
 } from "./poly-fills";
-import { Env, Func, Funcs, Ins } from "./types";
+import { Func, Funcs, Ins } from "./types";
 
 export const ops = [
   "print-line",
@@ -281,12 +281,11 @@ function syntaxise({ name, tokens }: NamedTokens): Func {
   return { name, ins };
 }
 
-export function parse(code: string): Env {
+export function parse(code: string): Funcs {
   const tokens = tokenise(code);
   const segments = segment(tokens);
   const labelled = funcise(segments);
-  const funcs = labelled.map(syntaxise);
-  const env: Env = { funcs: {}, vars: {} };
-  funcs.forEach(f => (env.funcs[f.name] = f));
-  return env;
+  const funcs: Funcs = {};
+  labelled.map(syntaxise).forEach(f => (funcs[f.name] = f));
+  return funcs;
 }

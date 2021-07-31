@@ -80,7 +80,6 @@ export async function performTests() {
     {
       name: "Define with no call",
       code: `(function func (print-line "Nothing."))`,
-      out: ``,
     },
     {
       name: "Call greet func",
@@ -140,7 +139,6 @@ export async function performTests() {
     //Syntax errors
   ];
   //Begin tests
-  const env: Env = { funcs: {}, vars: {} };
   const results: {
     name: string;
     okErr: boolean;
@@ -153,6 +151,7 @@ export async function performTests() {
       dict: new Map<string, Val>(),
       output: "",
     };
+    const env: Env = { funcs: {}, vars: {} };
     const startTime = new Date().getTime();
     const errors = await invoke(
       {

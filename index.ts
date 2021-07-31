@@ -83,7 +83,7 @@ async function exeOp(
   if (has(argsMustBeNum, op)) {
     const nAn = args.findIndex(a => a.t !== "num");
     if (nAn !== -1) {
-      return [typeErr(`Argument ${nAn + 1} is not a number`, line, col)];
+      return [typeErr(`argument ${nAn + 1} is not a number`, line, col)];
     }
   }
 
@@ -107,6 +107,7 @@ async function exeOp(
         ];
       }
       ctx.env.vars[str(args[0])] = args[1];
+      stack.push(args[1]);
       return [];
     case "print-line":
       {
@@ -238,7 +239,7 @@ async function exeOp(
   }
   return [
     {
-      e: "Unknown operation",
+      e: "Unknown Operation",
       m: `${op} with ${len(args)} argument/s`,
       line,
       col,
@@ -368,14 +369,15 @@ async function exeFunc(
 }
 
 export async function invoke(ctx: Ctx, code: string): Promise<InvokeError[]> {
-  ctx.env = { ...ctx.env, ...parse(code) };
+  ctx.env.funcs = { ...ctx.env.funcs, ...parse(code) };
   if (!("entry" in ctx.env.funcs)) {
     return [];
   }
   const errors = await exeFunc(ctx, ctx.env.funcs["entry"], []);
+  delete ctx.env.funcs["entry"];
   if (!len(errors)) {
     await ctx.exe("print-line", [
-      { t: "str", v: stack.reduce((cat, v) => cat + val2str(v), "") },
+      { t: "str", v: val2str(stack[len(stack) - 1]) },
     ]);
   }
   stack = [];
