@@ -1,19 +1,23 @@
 import { invoke } from ".";
 import { len } from "./poly-fills";
-import { Env, InvokeError, Val, ValAndErr } from "./types";
+import { Env, ExternalError, InvokeError, Val, ValAndErr } from "./types";
 
 type State = { dict: Map<string, Val>; output: string };
 
 async function get(state: State, key: string): Promise<ValAndErr> {
   if (!state.dict.has(key)) {
-    return { value: { t: "null", v: null }, error: `"${key} not found.` };
+    return { value: { t: "null", v: undefined }, error: `"${key} not found.` };
   }
-  return { value: state.dict.get(key)!, error: null };
+  return { value: state.dict.get(key)!, error: undefined };
 }
 
-async function set(state: State, key: string, val: Val) {
+async function set(
+  state: State,
+  key: string,
+  val: Val
+): Promise<ExternalError> {
   state.dict.set(key, val);
-  return null;
+  return undefined;
 }
 
 async function exe(
@@ -29,7 +33,7 @@ async function exe(
       state.output += args[0].v + "\n";
       break;
   }
-  return { value: { t: "null", v: null }, error: null };
+  return { value: { t: "null", v: undefined }, error: undefined };
 }
 
 export async function performTests() {

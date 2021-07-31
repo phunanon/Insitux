@@ -41,7 +41,7 @@ const _str = (v: string) => stack.push({ t: "str", v });
 const _key = (v: string) => stack.push({ t: "key", v });
 const _vec = (v: Val[]) => stack.push({ t: "vec", v });
 const _ref = (v: string) => stack.push({ t: "ref", v });
-const _nul = () => stack.push({ t: "null", v: null });
+const _nul = () => stack.push({ t: "null", v: undefined });
 const _fun = (v: string) => stack.push({ t: "func", v });
 const num = ({ v }: Val) => v as number;
 const str = ({ v }: Val) => v as string;
