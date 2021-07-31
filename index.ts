@@ -3,7 +3,7 @@ import {
   has,
   isNum,
   len,
-  math,
+  min,
   slen,
   slice,
   splice,
@@ -13,6 +13,7 @@ import {
   toNum,
 } from "./poly-fills";
 import { performTests } from "./test";
+import { Ctx, Func, InvokeError, Val } from "./types";
 
 const val2str = ({ v, t }: Val): string => {
   switch (t) {
@@ -181,7 +182,7 @@ async function exeOp(
         }
         const badArg =
           op === "map"
-            ? args.findIndex(({ t }) => t !== "vec" && t != "str")
+            ? args.findIndex(({ t }) => t !== "vec" && t !== "str")
             : args[0].t === "str" || args[0].t === "vec"
             ? -1
             : 1;
@@ -193,9 +194,9 @@ async function exeOp(
 
         if (op === "map") {
           const arrays = args.map(asArray);
-          const min = math.min(...arrays.map(a => len(a)));
+          const shortest = min(...arrays.map(a => len(a)));
           const array: Val[] = [];
-          for (let i = 0; i < min; ++i) {
+          for (let i = 0; i < shortest; ++i) {
             const errors = await closure!(arrays.map(a => a[i]));
             if (len(errors)) {
               return errors;

@@ -1,5 +1,6 @@
 import { invoke } from ".";
 import { len } from "./poly-fills";
+import { Env, InvokeError, Val, ValAndErr } from "./types";
 
 type State = { dict: Map<string, Val>; output: string };
 

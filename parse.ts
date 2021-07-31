@@ -1,4 +1,5 @@
-import { flat, has, len, slice, splice, starts, substr, toNum } from "./poly-fills";
+import { flat, has, len, slice, starts, sub, substr, toNum } from "./poly-fills";
+import { Env, Func, Funcs, Ins } from "./types";
 
 export const ops = [
   "print-line",
@@ -75,7 +76,7 @@ function tokenise(code: string) {
       inNumber = inSymbol = false;
       continue;
     }
-    if (!inString && has(" \t\n", c)) {
+    if (!inString && sub(" \t\n", c)) {
       inNumber = inSymbol = false;
       if (c === "\n") {
         ++line;
@@ -83,10 +84,10 @@ function tokenise(code: string) {
       }
       continue;
     }
-    const isDigit = has("0123456789", c);
-    const isParen = has("()[]", c);
+    const isDigit = sub("0123456789", c);
+    const isParen = sub("()[]", c);
     if (inNumber && !isDigit) {
-      inNumber = c === "." && !has(tokens[len(tokens) - 1].text, ".");
+      inNumber = c === "." && !sub(tokens[len(tokens) - 1].text, ".");
     }
     if (inSymbol && isParen) {
       inSymbol = false;
