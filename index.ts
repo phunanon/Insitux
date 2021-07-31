@@ -1,24 +1,36 @@
 import { ops, minArities, argsMustBeNum, parse } from "./parse";
-import { isNum, len, slen, slice, splice, toNum } from "./poly-fills";
+import {
+  has,
+  isNum,
+  len,
+  math,
+  slen,
+  slice,
+  splice,
+  starts,
+  strIdx,
+  substr,
+  toNum,
+} from "./poly-fills";
 import { performTests } from "./test";
 
-const val2extVal = ({ v, t }: Val): ExternalValue => {
+const val2str = ({ v, t }: Val): string => {
   switch (t) {
     case "bool":
-      return v as boolean;
+      return `${v as boolean}`;
     case "num":
-      return v as number;
+      return `${v as number}`;
     case "str":
     case "key":
       return v as string;
     case "vec":
-      return `[${(v as Val[]).map(v => val2extVal(v)).join(" ")}]`;
+      return `[${(v as Val[]).map(v => val2str(v)).join(" ")}]`;
     case "null":
       return "null";
     case "func":
       return (<Func>v).name;
   }
-  return null;
+  return "?";
 };
 
 let stack: Val[] = [];
@@ -33,7 +45,7 @@ const _fun = (v: string) => stack.push({ t: "func", v });
 const num = ({ v }: Val) => v as number;
 const str = ({ v }: Val) => v as string;
 const vec = ({ v }: Val) => v as Val[];
-const asBoo = ({ t, v }: Val) => t === "bool" ? v as boolean : t !== "null";
+const asBoo = ({ t, v }: Val) => (t === "bool" ? (v as boolean) : t !== "null");
 const asArray = ({ t, v }: Val): Val[] =>
   t === "vec"
     ? slice(v as Val[])
@@ -55,7 +67,7 @@ async function exeOp(
   col: number
 ): Promise<InvokeError[]> {
   //Check minimum arity
-  if (len(args) < (isNum(op) ? 1 : minArities[op] || 0)) {
+  if (len(args) < (isNum(op) || starts(op, "$") ? 1 : minArities[op] || 0)) {
     return [
       {
         e: "Arity error",
@@ -66,11 +78,18 @@ async function exeOp(
     ];
   }
   //Check for non-numeric arguments if needed
-  if (argsMustBeNum.includes(op)) {
+  if (has(argsMustBeNum, op)) {
     const nAn = args.findIndex(a => a.t !== "num");
     if (nAn !== -1) {
       return [typeErr(`Argument ${nAn + 1} is not a number`, line, col)];
     }
+  }
+
+  if (!isNum(op) && starts(op, "$")) {
+    const val = args.pop()!;
+    const error = await ctx.set(substr(op, 1), val);
+    stack.push(val);
+    return error ? [{ e: "External Error", m: error, line, col }] : [];
   }
 
   switch (op) {
@@ -89,7 +108,9 @@ async function exeOp(
       return [];
     case "print-line":
       {
-        ctx.exe(op, [args.reduce((cat, { v }) => cat + `${v}`, "")]);
+        ctx.exe(op, [
+          { t: "str", v: args.reduce((cat, v) => cat + val2str(v), "") },
+        ]);
         _nul();
       }
       return [];
@@ -172,7 +193,7 @@ async function exeOp(
 
         if (op === "map") {
           const arrays = args.map(asArray);
-          const min = Math.min(...arrays.map(a => len(a)));
+          const min = math.min(...arrays.map(a => len(a)));
           const array: Val[] = [];
           for (let i = 0; i < min; ++i) {
             const errors = await closure!(arrays.map(a => a[i]));
@@ -190,7 +211,7 @@ async function exeOp(
           stack.push(...array);
           return [];
         }
-        let reduction: Val = len(args) ? args.shift()! : array.shift()!;
+        let reduction: Val = (len(args) ? args : array).shift()!;
         for (let i = 0; i < len(array); ++i) {
           const errors = await closure!([reduction, array[i]]);
           if (len(errors)) {
@@ -209,7 +230,7 @@ async function exeOp(
         stack.push(vec(a)[toNum(op)] as Val);
         return [];
       case "str":
-        _str(str(args[0])[toNum(op)]);
+        _str(strIdx(str(args[0]), toNum(op)));
         return [];
     }
   }
@@ -232,7 +253,8 @@ function realiseOperation(
   closure?: (params: Val[]) => Promise<InvokeError[]>;
   error: false | InvokeError;
 } {
-  const checkIsOp = (op: string) => ops.includes(op) || isNum(op);
+  const checkIsOp = (op: string) =>
+    has(ops, op) || isNum(op) || starts(op, "$");
   let isOp = checkIsOp(op);
   let isFunc = op in ctx.env.funcs;
   //If variable name
@@ -293,8 +315,14 @@ async function exeFunc(
       case "var":
         {
           const name = value as string;
-          if (ops.includes(name)) {
+          if (has(ops, name)) {
             _str(name);
+          } else if (starts(name, "$")) {
+            const { value, error } = await ctx.get(substr(name, 1));
+            if (error) {
+              return [{ e: "External Error", m: error, line, col }];
+            }
+            stack.push(value);
           } else if (name in ctx.env.vars) {
             stack.push(ctx.env.vars[name]);
           } else if (name in ctx.env.funcs) {
@@ -341,7 +369,9 @@ export async function invoke(ctx: Ctx, code: string): Promise<InvokeError[]> {
   ctx.env = { ...ctx.env, ...parse(code) };
   const errors = await exeFunc(ctx, ctx.env.funcs["entry"], []);
   if (!len(errors)) {
-    await ctx.exe("print-line", len(stack) ? [val2extVal(stack[0])] : []);
+    await ctx.exe("print-line", [
+      { t: "str", v: stack.reduce((cat, v) => cat + val2str(v), "") },
+    ]);
   }
   stack = [];
   return errors;

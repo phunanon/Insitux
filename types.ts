@@ -1,20 +1,9 @@
-type Vec3 = [number, number, number];
-type ExternalValue = null | string | number | boolean | Vec3;
-type Typ =
-  | "null"
-  | "str"
-  | "num"
-  | "bool"
-  | "key"
-  | "ref"
-  | "vec"
-  | "vec3"
-  | "func";
-type Val = { v: Val[] | ExternalValue | Func; t: Typ };
+type Typ = "null" | "str" | "num" | "bool" | "key" | "ref" | "vec" | "func";
+type Val = { v: Val[] | null | string | number | boolean | Func; t: Typ };
 
 type InvokeError = { e: string; m: string; line: number; col: number };
 type ExternalError = null | string;
-type ValAndErr = { value: ExternalValue; error: ExternalError };
+type ValAndErr = { value: Val; error: ExternalError };
 
 type FuncName = "print" | "print-line" | string;
 
@@ -29,9 +18,9 @@ type Env = {
 };
 
 type Ctx = {
-  set: (key: string, val: ExternalValue) => Promise<ExternalError>;
+  set: (key: string, val: Val) => Promise<ExternalError>;
   get: (key: string) => Promise<ValAndErr>;
-  exe: (name: FuncName, args: ExternalValue[]) => Promise<ValAndErr>;
+  exe: (name: FuncName, args: Val[]) => Promise<ValAndErr>;
   env: Env;
 };
 

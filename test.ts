@@ -1,32 +1,34 @@
 import { invoke } from ".";
 import { len } from "./poly-fills";
 
-type State = { dict: Map<string, ExternalValue>; output: string };
+type State = { dict: Map<string, Val>; output: string };
 
-async function get(state: State, key: string) {
-  const val = state.dict.get(key);
-  //console.log(`get ${key}: ${val}`);
-  return {
-    value: val || null,
-    error: val ? null : `"${key} not found.`,
-  };
+async function get(state: State, key: string): Promise<ValAndErr> {
+  if (!state.dict.has(key)) {
+    return { value: { t: "null", v: null }, error: `"${key} not found.` };
+  }
+  return { value: state.dict.get(key)!, error: null };
 }
 
-async function set(state: State, key: string, val: ExternalValue) {
-  //console.log(`set ${key}: ${val}`);
+async function set(state: State, key: string, val: Val) {
+  state.dict.set(key, val);
   return null;
 }
 
-async function exe(state: State, name: string, args: ExternalValue[]) {
+async function exe(
+  state: State,
+  name: string,
+  args: Val[]
+): Promise<ValAndErr> {
   switch (name) {
     case "print":
-      state.output += args[0];
+      state.output += args[0].v;
       break;
     case "print-line":
-      state.output += args[0] + "\n";
+      state.output += args[0].v + "\n";
       break;
   }
-  return { value: 0, error: "none" };
+  return { value: { t: "null", v: null }, error: null };
 }
 
 export async function performTests() {
@@ -116,11 +118,9 @@ export async function performTests() {
     },
     //Test environment functions
     {
-      name: "get set get",
-      code: `[(get globals.time_offset)
-              (set globals.time_offset 5.5)
-              (get globals.time_offset)]`,
-      out: `[null 5.5 5.5]`,
+      name: "set get",
+      code: `[($globals.time_offset 5.5) $globals.time_offset]`,
+      out: `[5.5 5.5]`,
     },
     //Syntax errors
   ];
@@ -135,15 +135,15 @@ export async function performTests() {
   }[] = [];
   for (const { name, code, err, out } of tests) {
     const state: State = {
-      dict: new Map<string, ExternalValue>(),
+      dict: new Map<string, Val>(),
       output: "",
     };
     const startTime = new Date().getTime();
     const errors = await invoke(
       {
         get: (key: string) => get(state, key),
-        set: (key: string, val: ExternalValue) => set(state, key, val),
-        exe: (name: string, args: ExternalValue[]) => exe(state, name, args),
+        set: (key: string, val: Val) => set(state, key, val),
+        exe: (name: string, args: Val[]) => exe(state, name, args),
         env,
       },
       code

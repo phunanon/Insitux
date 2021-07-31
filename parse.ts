@@ -1,4 +1,4 @@
-import { len, toNum } from "./poly-fills";
+import { flat, has, len, slice, splice, starts, substr, toNum } from "./poly-fills";
 
 export const ops = [
   "print-line",
@@ -68,25 +68,25 @@ function tokenise(code: string) {
   for (const n in [...code]) {
     const c = code[toNum(n)];
     ++col;
-    if (c == '"') {
+    if (c === '"') {
       if ((inString = !inString)) {
         tokens.push({ type: "str", text: "", line, col });
       }
       inNumber = inSymbol = false;
       continue;
     }
-    if (!inString && " \t\n".includes(c)) {
+    if (!inString && has(" \t\n", c)) {
       inNumber = inSymbol = false;
-      if (c == "\n") {
+      if (c === "\n") {
         ++line;
         col = 0;
       }
       continue;
     }
-    const isDigit = "0123456789".includes(c);
-    const isParen = "()[]".includes(c);
+    const isDigit = has("0123456789", c);
+    const isParen = has("()[]", c);
     if (inNumber && !isDigit) {
-      inNumber = c == "." && !tokens[len(tokens) - 1].text.includes(".");
+      inNumber = c === "." && !has(tokens[len(tokens) - 1].text, ".");
     }
     if (inSymbol && isParen) {
       inSymbol = false;
@@ -94,9 +94,9 @@ function tokenise(code: string) {
     if (!inString && !inSymbol && !inNumber) {
       if (isParen) {
         const text: "(" | ")" =
-          c == "[" ? "(" : c == "]" ? ")" : c == "(" ? "(" : ")";
+          c === "[" ? "(" : c === "]" ? ")" : c === "(" ? "(" : ")";
         tokens.push({ type: text, text, line, col });
-        if (c == "[") {
+        if (c === "[") {
           tokens.push({ type: "sym", text: "vec", line, col });
         }
         continue;
@@ -106,7 +106,7 @@ function tokenise(code: string) {
       let type: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
       {
         const lastToken = tokens[len(tokens) - 1];
-        if (lastToken.type == "sym" && lastToken.text == "define") {
+        if (lastToken.type === "sym" && lastToken.text === "define") {
           type = "ref";
         }
       }
@@ -122,8 +122,8 @@ function segment(tokens: Token[]): Token[][] {
   let depth = 0;
   tokens.forEach(token => {
     segments[len(segments) - 1].push(token);
-    depth += toNum(token.text == "(") - toNum(token.text == ")");
-    if (depth == 0) {
+    depth += toNum(token.text === "(") - toNum(token.text === ")");
+    if (depth === 0) {
       segments.push([]);
     }
   });
@@ -133,25 +133,17 @@ function segment(tokens: Token[]): Token[][] {
 function funcise(segments: Token[][]): NamedTokens[] {
   const isFunc = (segment: Token[]) =>
     len(segment) > 1 &&
-    segment[1].type == "sym" &&
-    segment[1].text == "function";
+    segment[1].type === "sym" &&
+    segment[1].text === "function";
   const funcs = segments.filter(t => isFunc(t));
-  const entries = segments.filter(t => !isFunc(t)).flat();
-  const described = funcs.map(([p, f, name, ...tokens]) => ({
-    name: name.text,
-    tokens,
+  const entries = flat(segments.filter(t => !isFunc(t)));
+  const described = funcs.map((tokens) => ({
+    name: tokens[2].text,
+    tokens: slice(tokens, 3),
   }));
   return len(entries)
     ? described.concat({ name: "entry", tokens: entries })
     : described;
-}
-
-function tokensToSource(tokens: Token[]): string {
-  return tokens
-    .map(t => (t.type == "str" ? `"${t.text}"` : t.text))
-    .join(" ")
-    .replace(/\( /g, "(")
-    .replace(/ \)/g, ")");
 }
 
 function parseArg(tokens: Token[], params: string[]): Ins[] {
@@ -162,13 +154,13 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
     case "num":
       return [{ type: "num", value: toNum(text), line, col }];
     case "sym":
-      if (text == "true" || text == "false") {
-        return [{ type: "boo", value: text == "true", line, col }];
-      } else if (text.startsWith(":")) {
+      if (text === "true" || text === "false") {
+        return [{ type: "boo", value: text === "true", line, col }];
+      } else if (starts(text, ":")) {
         return [{ type: "key", value: text, line, col }];
-      } else if (text.startsWith("%")) {
-        return [{ type: "par", value: toNum(text.substr(1)), line, col }];
-      } else if (params.includes(text)) {
+      } else if (starts(text, "%")) {
+        return [{ type: "par", value: toNum(substr(text, 1)), line, col }];
+      } else if (has(params, text)) {
         return [{ type: "par", value: params.indexOf(text), line, col }];
       }
       return [{ type: "var", value: text, line, col }];
@@ -180,7 +172,7 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
         break;
       }
       let { type, text, line, col } = head;
-      if (text == "if") {
+      if (text === "if") {
         const cond = parseArg(tokens, params);
         if (!len(cond)) {
           return []; //TODO: emit invalid if warning (no condition)
@@ -211,7 +203,7 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
       const headIns: Ins[] = [];
       let args = 0;
       //Head is a form
-      if (type == "(") {
+      if (type === "(") {
         tokens.unshift(head);
         const ins = parseArg(tokens, params);
         if (!len(ins)) {
@@ -231,7 +223,7 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
         body.push(...parsed);
       }
       headIns.push({
-        type: ops.includes(text) ? "op" : "exe",
+        type: has(ops, text) ? "op" : "exe",
         value: [text, args],
         line,
         col,
@@ -253,7 +245,7 @@ function partition<T>(array: T[], predicate: (item: T) => boolean): [T[], T[]] {
 }
 
 function syntaxise({ name, tokens }: NamedTokens): { [name: string]: Func } {
-  const [params, body] = partition(tokens, t => t.type == "sym");
+  const [params, body] = partition(tokens, t => t.type === "sym");
   const ins: Ins[] = [];
   while (true) {
     if (!len(body)) {
