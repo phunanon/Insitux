@@ -258,7 +258,7 @@ function partition<T>(array: T[], predicate: (item: T) => boolean): [T[], T[]] {
   return [a, b];
 }
 
-function syntaxise({ name, tokens }: NamedTokens): { [name: string]: Func } {
+function syntaxise({ name, tokens }: NamedTokens): Func {
   const [params, body] = partition(tokens, t => t.typ === "sym");
   //In the case of e.g. (entry x)
   if (!len(body) && len(params)) {
@@ -278,22 +278,15 @@ function syntaxise({ name, tokens }: NamedTokens): { [name: string]: Func } {
       )
     );
   }
-  if (!len(ins)) {
-    return {};
-  }
-  return {
-    [name]: { name, ins },
-  };
+  return { name, ins };
 }
 
 export function parse(code: string): Env {
   const tokens = tokenise(code);
   const segments = segment(tokens);
-  const funcs = funcise(segments);
-  return {
-    funcs: funcs
-      .map(syntaxise)
-      .reduce((funcs, func) => ({ ...funcs, ...func }), {} as Funcs),
-    vars: {},
-  };
+  const labelled = funcise(segments);
+  const funcs = labelled.map(syntaxise);
+  const env: Env = { funcs: {}, vars: {} };
+  funcs.forEach(f => (env.funcs[f.name] = f));
+  return env;
 }
