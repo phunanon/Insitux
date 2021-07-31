@@ -330,7 +330,7 @@ async function exeFunc(
           } else if (name in ctx.env.funcs) {
             _fun(name);
           } else {
-            return [{ e: "Variable not found", m: `"${name}"`, line, col }];
+            return [{ e: "Reference Error", m: `"${name}"`, line, col }];
           }
         }
         break;

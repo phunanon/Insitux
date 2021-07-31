@@ -5,6 +5,7 @@ import {
   len,
   push,
   slice,
+  splice,
   starts,
   sub,
   substr,
@@ -115,7 +116,7 @@ function tokenise(code: string) {
       inNumber = isDigit;
       inSymbol = !inNumber;
       let typ: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
-      {
+      if (len(tokens)) {
         const lastToken = tokens[len(tokens) - 1];
         if (lastToken.typ === "sym" && lastToken.text === "define") {
           typ = "ref";
@@ -259,6 +260,11 @@ function partition<T>(array: T[], predicate: (item: T) => boolean): [T[], T[]] {
 
 function syntaxise({ name, tokens }: NamedTokens): { [name: string]: Func } {
   const [params, body] = partition(tokens, t => t.typ === "sym");
+  //In the case of e.g. (entry x)
+  if (!len(body) && len(params)) {
+    body.push(params[0]);
+    splice(params, 0, len(params));
+  }
   const ins: Ins[] = [];
   while (true) {
     if (!len(body)) {

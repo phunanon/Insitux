@@ -107,12 +107,17 @@ export async function performTests() {
       code: `(function avg<n? (< (/ (reduce + %) (len %)) %1)) (avg<n? [0 10 20 30 40] 5)`,
       out: `false`,
     },
-    //Type errors
+    //Runtime errors
     {
       name: "String instead of number",
       code: `(function avg (/ (reduce + %) (len %))) (print-line (avg [1 2 3])) (avg "Hello")`,
       out: `2`,
       err: ["Type Error"],
+    },
+    {
+      name: "Reference non-existing",
+      code: `x`,
+      err: ["Reference Error"],
     },
     //Complex functions
     {
