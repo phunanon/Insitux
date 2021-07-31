@@ -30,6 +30,7 @@ async function exe(
       state.output += args[0].v;
       break;
     case "print-line":
+    case "test/function":
       state.output += args[0].v + "\n";
       break;
   }
@@ -135,6 +136,11 @@ export async function performTests() {
       name: "set get",
       code: `[($globals.time_offset 5.5) $globals.time_offset]`,
       out: `[5.5 5.5]`,
+    },
+    {
+      name: "exe",
+      code: `(test/function 123)`,
+      out: `123\nnull`,
     },
     //Syntax errors
   ];

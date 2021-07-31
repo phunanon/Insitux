@@ -10,6 +10,7 @@ import {
   splice,
   starts,
   strIdx,
+  sub,
   substr,
   toNum,
 } from "./poly-fills";
@@ -85,13 +86,6 @@ async function exeOp(
     if (nAn !== -1) {
       return [typeErr(`argument ${nAn + 1} is not a number`, line, col)];
     }
-  }
-
-  if (!isNum(op) && starts(op, "$")) {
-    const val = args.pop()!;
-    const err = await ctx.set(substr(op, 1), val);
-    stack.push(val);
-    return err ? [{ e: "External Error", m: err, line, col }] : [];
   }
 
   switch (op) {
@@ -226,6 +220,7 @@ async function exeOp(
       }
       return [];
   }
+
   if (isNum(op)) {
     const a = args[0];
     switch (a.t) {
@@ -236,7 +231,21 @@ async function exeOp(
         _str(strIdx(str(args[0]), toNum(op)));
         return [];
     }
+  } else {
+    if (starts(op, "$")) {
+      const val = args.pop()!;
+      const err = await ctx.set(substr(op, 1), val);
+      stack.push(val);
+      return err ? [{ e: "External Error", m: err, line, col }] : [];
+    } else if (sub(op, "/")) {
+      const { err, value } = await ctx.exe(op, args);
+      if (!err) {
+        stack.push(value);
+      }
+      return err ? [{ e: "External Error", m: err, line, col }] : [];
+    }
   }
+
   return [
     {
       e: "Unknown Operation",
@@ -257,7 +266,7 @@ function realiseOperation(
   err: false | InvokeError;
 } {
   const checkIsOp = (op: string) =>
-    has(ops, op) || isNum(op) || starts(op, "$");
+    has(ops, op) || isNum(op) || starts(op, "$") || sub(op, "/");
   let isOp = checkIsOp(op);
   let isFunc = op in ctx.env.funcs;
   //If variable name
@@ -275,7 +284,7 @@ function realiseOperation(
     err: !isOp &&
       !isFunc && {
         e: "Unknown Operation",
-        m: `${op} is an unknown operation/function`,
+        m: `${op} is an unknown operation or function`,
         line,
         col,
       },
