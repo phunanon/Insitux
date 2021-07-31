@@ -4,6 +4,7 @@ import {
   isNum,
   len,
   min,
+  push,
   slen,
   slice,
   splice,
@@ -209,7 +210,7 @@ async function exeOp(
 
         const array = asArray(args.shift()!);
         if (len(array) < 2) {
-          stack.push(...array);
+          push(stack, array);
           return [];
         }
         let reduction: Val = (len(args) ? args : array).shift()!;

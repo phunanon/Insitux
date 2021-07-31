@@ -3,6 +3,7 @@ import {
   flat,
   has,
   len,
+  push,
   slice,
   starts,
   sub,
@@ -220,7 +221,7 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
         if (!len(ins)) {
           return []; //TODO: emit invalid form head warning (empty)
         }
-        headIns.push(...ins);
+        push(headIns, ins);
         op = "execute-last";
         ++args;
       }
@@ -231,7 +232,7 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
           break;
         }
         ++args;
-        body.push(...parsed);
+        push(body, parsed);
       }
       headIns.push({
         type: has(ops, op) ? "op" : "exe",
