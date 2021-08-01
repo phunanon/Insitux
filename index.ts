@@ -15,7 +15,7 @@ import {
   toNum,
 } from "./poly-fills";
 import { performTests } from "./test";
-import { Ctx, Func, InvokeError, Val } from "./types";
+import { Ctx, ErrCtx, Func, InvokeError, Val } from "./types";
 
 const val2str = ({ v, t }: Val): string => {
   switch (t) {
@@ -57,11 +57,10 @@ const asArray = ({ t, v }: Val): Val[] =>
     ? [...(v as string)].map(s => ({ t: "str", v: s }))
     : [];
 
-const typeErr = (m: string, line: number, col: number): InvokeError => ({
+const typeErr = (m: string, errCtx: ErrCtx): InvokeError => ({
   e: "Type Error",
   m,
-  line,
-  col,
+  errCtx,
 });
 
 const isVecEqual = (a: Val, b: Val): boolean => {
@@ -86,8 +85,7 @@ async function exeOp(
   op: string,
   args: Val[],
   ctx: Ctx,
-  line: number,
-  col: number
+  errCtx: ErrCtx
 ): Promise<InvokeError[]> {
   //Check minimum arity
   if (len(args) < (isNum(op) || starts(op, "$") ? 1 : minArities[op] || 0)) {
@@ -95,8 +93,7 @@ async function exeOp(
       {
         e: "Arity Error",
         m: `${op} requires at least ${minArities[op]} argument/s`,
-        line,
-        col,
+        errCtx,
       },
     ];
   }
@@ -104,21 +101,19 @@ async function exeOp(
   if (has(argsMustBeNum, op)) {
     const nAn = args.findIndex(a => a.t !== "num");
     if (nAn !== -1) {
-      return [typeErr(`argument ${nAn + 1} is not a number`, line, col)];
+      return [typeErr(`argument ${nAn + 1} is not a number`, errCtx)];
     }
   }
 
   switch (op) {
     case "execute-last":
       {
-        await exeOp(args.pop()!.v as string, args, ctx, line, col);
+        await exeOp(args.pop()!.v as string, args, ctx, errCtx);
       }
       return [];
     case "define":
       if (args[0].t !== "ref") {
-        return [
-          { e: "Define Error", m: "first arg wasn't reference", line, col },
-        ];
+        return [{ e: "Define Error", m: "first arg wasn't reference", errCtx }];
       }
       ctx.env.vars[str(args[0])] = args[1];
       stack.push(args[1]);
@@ -147,7 +142,7 @@ async function exeOp(
       } else if (args[0].t === "vec") {
         _num(len(vec(args[0])));
       } else {
-        return [typeErr(`${args[0].v} is not a string or vector`, line, col)];
+        return [typeErr(`${args[0].v} is not a string or vector`, errCtx)];
       }
       return [];
     case "=":
@@ -209,8 +204,7 @@ async function exeOp(
         const { closure, err } = realiseOperation(
           ctx,
           str(args.shift()!),
-          line,
-          col
+          errCtx
         );
         if (err) {
           return [err];
@@ -223,7 +217,7 @@ async function exeOp(
             : 1;
         if (badArg !== -1) {
           return [
-            typeErr(`"${args[badArg]}" is not a string or vector`, line, col),
+            typeErr(`"${args[badArg]}" is not a string or vector`, errCtx),
           ];
         }
 
@@ -275,13 +269,13 @@ async function exeOp(
       const val = args.pop()!;
       const err = await ctx.set(substr(op, 1), val);
       stack.push(val);
-      return err ? [{ e: "External Error", m: err, line, col }] : [];
+      return err ? [{ e: "External Error", m: err, errCtx }] : [];
     } else if (sub(op, "/")) {
       const { err, value } = await ctx.exe(op, args);
       if (!err) {
         stack.push(value);
       }
-      return err ? [{ e: "External Error", m: err, line, col }] : [];
+      return err ? [{ e: "External Error", m: err, errCtx }] : [];
     }
   }
 
@@ -289,8 +283,7 @@ async function exeOp(
     {
       e: "Unknown Operation",
       m: `${op} with ${len(args)} argument/s`,
-      line,
-      col,
+      errCtx,
     },
   ];
 }
@@ -298,8 +291,7 @@ async function exeOp(
 function realiseOperation(
   ctx: Ctx,
   op: string,
-  line: number,
-  col: number
+  errCtx: ErrCtx
 ): {
   closure?: (params: Val[]) => Promise<InvokeError[]>;
   err: false | InvokeError;
@@ -316,7 +308,7 @@ function realiseOperation(
   }
   return {
     closure: isOp
-      ? (params: Val[]) => exeOp(op, params, ctx, line, col)
+      ? (params: Val[]) => exeOp(op, params, ctx, errCtx)
       : isFunc
       ? (params: Val[]) => exeFunc(ctx, ctx.env.funcs[op], params)
       : undefined,
@@ -324,8 +316,7 @@ function realiseOperation(
       !isFunc && {
         e: "Unknown Operation",
         m: `${op} is an unknown operation or function`,
-        line,
-        col,
+        errCtx,
       },
   };
 }
@@ -336,7 +327,7 @@ async function exeFunc(
   args: Val[]
 ): Promise<InvokeError[]> {
   for (let i = 0; i < len(func.ins); ++i) {
-    const { typ, value, line, col } = func.ins[i];
+    const { typ, value, errCtx } = func.ins[i];
     switch (typ) {
       case "boo":
         _boo(value as boolean);
@@ -371,7 +362,7 @@ async function exeFunc(
           } else if (starts(name, "$")) {
             const { value, err } = await ctx.get(substr(name, 1));
             if (err) {
-              return [{ e: "External Error", m: err, line, col }];
+              return [{ e: "External Error", m: err, errCtx }];
             }
             stack.push(value);
           } else if (name in ctx.env.vars) {
@@ -379,7 +370,7 @@ async function exeFunc(
           } else if (name in ctx.env.funcs) {
             _fun(name);
           } else {
-            return [{ e: "Reference Error", m: `"${name}"`, line, col }];
+            return [{ e: "Reference Error", m: `"${name}"`, errCtx }];
           }
         }
         break;
@@ -390,10 +381,10 @@ async function exeFunc(
           const params = splice(stack, len(stack) - nArgs, nArgs);
           if (len(params) !== nArgs) {
             return [
-              { e: "Unexpected Error", m: `${op} stack depleted`, line, col },
+              { e: "Unexpected Error", m: `${op} stack depleted`, errCtx },
             ];
           }
-          const { closure, err } = realiseOperation(ctx, op, line, col);
+          const { closure, err } = realiseOperation(ctx, op, errCtx);
           if (err) {
             return [err];
           }
@@ -416,8 +407,12 @@ async function exeFunc(
   return [];
 }
 
-export async function invoke(ctx: Ctx, code: string): Promise<InvokeError[]> {
-  ctx.env.funcs = { ...ctx.env.funcs, ...parse(code) };
+export async function invoke(
+  ctx: Ctx,
+  code: string,
+  invocationId: string
+): Promise<InvokeError[]> {
+  ctx.env.funcs = { ...ctx.env.funcs, ...parse(code, invocationId) };
   if (!("entry" in ctx.env.funcs)) {
     return [];
   }

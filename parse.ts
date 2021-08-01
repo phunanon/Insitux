@@ -11,7 +11,7 @@ import {
   substr,
   toNum,
 } from "./poly-fills";
-import { Func, Funcs, Ins } from "./types";
+import { ErrCtx, Func, Funcs, Ins } from "./types";
 
 export const ops = [
   "print-line",
@@ -72,12 +72,11 @@ export const argsMustBeNum = [
 type Token = {
   typ: "str" | "num" | "sym" | "ref" | "(" | ")";
   text: string;
-  line: number;
-  col: number;
+  errCtx: ErrCtx;
 };
 type NamedTokens = { name: string; tokens: Token[] };
 
-function tokenise(code: string) {
+function tokenise(code: string, invocationId: string) {
   const tokens: Token[] = [];
   let inString = false,
     inSymbol = false,
@@ -88,7 +87,11 @@ function tokenise(code: string) {
     ++col;
     if (c === '"') {
       if ((inString = !inString)) {
-        tokens.push({ typ: "str", text: "", line, col });
+        tokens.push({
+          typ: "str",
+          text: "",
+          errCtx: { invocationId, line, col },
+        });
       }
       inNumber = inSymbol = false;
       continue;
@@ -101,6 +104,7 @@ function tokenise(code: string) {
       }
       continue;
     }
+    const errCtx: ErrCtx = { invocationId, line, col };
     const isDigit = sub("0123456789", c);
     const isParen = sub("()[]", c);
     if (inNumber && !isDigit) {
@@ -113,9 +117,9 @@ function tokenise(code: string) {
       if (isParen) {
         const text: "(" | ")" =
           c === "[" ? "(" : c === "]" ? ")" : c === "(" ? "(" : ")";
-        tokens.push({ typ: text, text, line, col });
+        tokens.push({ typ: text, text, errCtx });
         if (c === "[") {
-          tokens.push({ typ: "sym", text: "vec", line, col });
+          tokens.push({ typ: "sym", text: "vec", errCtx });
         }
         continue;
       }
@@ -128,7 +132,7 @@ function tokenise(code: string) {
           typ = "ref";
         }
       }
-      tokens.push({ typ, text: "", line, col });
+      tokens.push({ typ, text: "", errCtx });
     }
     tokens[len(tokens) - 1].text += c;
   }
@@ -165,31 +169,31 @@ function funcise(segments: Token[][]): NamedTokens[] {
 }
 
 function parseArg(tokens: Token[], params: string[]): Ins[] {
-  const { typ, text, line, col } = tokens.shift() as Token;
+  const { typ, text, errCtx } = tokens.shift() as Token;
   switch (typ) {
     case "str":
-      return [{ typ: "str", value: text, line, col }];
+      return [{ typ: "str", value: text, errCtx }];
     case "num":
-      return [{ typ: "num", value: toNum(text), line, col }];
+      return [{ typ: "num", value: toNum(text), errCtx }];
     case "sym":
       if (text === "true" || text === "false") {
-        return [{ typ: "boo", value: text === "true", line, col }];
+        return [{ typ: "boo", value: text === "true", errCtx }];
       } else if (starts(text, ":")) {
-        return [{ typ: "key", value: text, line, col }];
+        return [{ typ: "key", value: text, errCtx }];
       } else if (starts(text, "%")) {
-        return [{ typ: "par", value: toNum(substr(text, 1)), line, col }];
+        return [{ typ: "par", value: toNum(substr(text, 1)), errCtx }];
       } else if (has(params, text)) {
-        return [{ typ: "par", value: params.indexOf(text), line, col }];
+        return [{ typ: "par", value: params.indexOf(text), errCtx }];
       }
-      return [{ typ: "var", value: text, line, col }];
+      return [{ typ: "var", value: text, errCtx }];
     case "ref":
-      return [{ typ: "ref", value: text, line, col }];
+      return [{ typ: "ref", value: text, errCtx }];
     case "(": {
       const head = tokens.shift();
       if (!head) {
         break;
       }
-      const { typ, text, line, col } = head;
+      const { typ, text, errCtx } = head;
       let op = text;
       if (op === "if") {
         const cond = parseArg(tokens, params);
@@ -202,17 +206,12 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
         if (!len(ifT)) {
           return []; //TODO: emit invalid if warning (no branches)
         }
-        ins.push({
-          typ: "if",
-          value: tknsBefore - len(tokens) + 1,
-          line,
-          col,
-        });
+        ins.push({ typ: "if", value: tknsBefore - len(tokens) + 1, errCtx });
         push(ins, ifT);
         tknsBefore = len(tokens);
         const ifF = parseArg(tokens, params);
         if (len(ifF)) {
-          ins.push({ typ: "els", value: tknsBefore - len(tokens), line, col });
+          ins.push({ typ: "els", value: tknsBefore - len(tokens), errCtx });
           push(ins, ifF);
         }
         if (len(parseArg(tokens, params))) {
@@ -245,8 +244,7 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
       headIns.push({
         typ: has(ops, op) ? "op" : "exe",
         value: [op, args],
-        line,
-        col,
+        errCtx,
       });
       return [...body, ...headIns];
     }
@@ -287,8 +285,8 @@ function syntaxise({ name, tokens }: NamedTokens): Func {
   return { name, ins };
 }
 
-export function parse(code: string): Funcs {
-  const tokens = tokenise(code);
+export function parse(code: string, invocationId: string): Funcs {
+  const tokens = tokenise(code, invocationId);
   const segments = segment(tokens);
   const labelled = funcise(segments);
   const funcs: Funcs = {};

@@ -175,7 +175,8 @@ export async function performTests() {
         exe: (name: string, args: Val[]) => exe(state, name, args),
         env,
       },
-      code
+      code,
+      "testing"
     );
     const okErr = (err || []).join() == errors.map(({ e }) => e).join();
     const okOut = !out || trim(state.output) == out;

@@ -12,7 +12,8 @@ export type Val = {
   t: Typ;
 };
 
-export type InvokeError = { e: string; m: string; line: number; col: number };
+export type ErrCtx = { invocationId: string; line: number; col: number };
+export type InvokeError = { e: string; m: string; errCtx: ErrCtx };
 export type ExternalError = undefined | string;
 export type ValAndErr = { value: Val; err: ExternalError };
 
@@ -49,6 +50,5 @@ export type InsType =
 export type Ins = {
   typ: InsType;
   value?: unknown;
-  line: number;
-  col: number;
+  errCtx: ErrCtx;
 };
