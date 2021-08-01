@@ -45,7 +45,7 @@ Each value separated by spaces are called _arguments_. Below is a list of
 built-in operations each within an example.
 
 ```clj
-;Prints a line of text, joining its arguments together.
+;Prints a line of text, joining its arguments together
 (print-line "2 + 2 = " (+ 2 2))
 2 + 2 = 4
 
@@ -68,8 +68,10 @@ Hello, world!
 (dec 50)      49
 
 ;Various equality operators, which all accept a variable number of arguments
-;Note: < > <= >= only compare numbers 
+;Note: < > <= >= only compare numbers
+;Note: != will only check that each value is different from the next
 (= 10 10)     true
+(!= 1 2 1)    true
 (< 1 2 3)     true
 (> 10 5)      true
 (<= 10 10 15) true

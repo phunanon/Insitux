@@ -49,18 +49,38 @@ const num = ({ v }: Val) => v as number;
 const str = ({ v }: Val) => v as string;
 const vec = ({ v }: Val) => v as Val[];
 const asBoo = ({ t, v }: Val) => (t === "bool" ? (v as boolean) : t !== "null");
+
 const asArray = ({ t, v }: Val): Val[] =>
   t === "vec"
     ? slice(v as Val[])
     : t === "str"
     ? [...(v as string)].map(s => ({ t: "str", v: s }))
     : [];
+
 const typeErr = (m: string, line: number, col: number): InvokeError => ({
   e: "Type Error",
   m,
   line,
   col,
 });
+
+const isVecEqual = (a: Val, b: Val): boolean => {
+  const [av, bv] = [vec(a), vec(b)];
+  if (len(av) !== len(bv)) {
+    return false;
+  }
+  return !av.some((x, i) => !isEqual(x, bv[i]));
+};
+
+const isEqual = (a: Val, b: Val) => {
+  return a.t === b.t && a.t == "num"
+    ? num(a) === num(b)
+    : a.t == "str"
+    ? str(a) === str(b)
+    : a.t == "vec"
+    ? isVecEqual(a, b)
+    : false;
+};
 
 async function exeOp(
   op: string,
@@ -128,6 +148,18 @@ async function exeOp(
         _num(len(vec(args[0])));
       } else {
         return [typeErr(`${args[0].v} is not a string or vector`, line, col)];
+      }
+      return [];
+    case "=":
+    case "!=":
+      {
+        for (let i = 1; i < len(args); ++i) {
+          if (isEqual(args[i - 1], args[i]) !== (op === "=")) {
+            _boo(false);
+            return [];
+          }
+        }
+        _boo(true);
       }
       return [];
     case "+":

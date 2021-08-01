@@ -1,5 +1,5 @@
 import { invoke } from ".";
-import { len, trim } from "./poly-fills";
+import { len, padEnd, trim } from "./poly-fills";
 import { Env, ExternalError, InvokeError, Val, ValAndErr } from "./types";
 
 type State = { dict: Map<string, Val>; output: string };
@@ -58,6 +58,15 @@ export async function performTests() {
     { name: "Conditional head", code: `((if true + -) 12 9 1)`, out: `22` },
     { name: "String retrieve", code: `(2 "Hello")`, out: `l` },
     { name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },
+    {
+      name: "Equalities",
+      code: `[(= 1 2 1)
+              (!= 1 2 1)
+              (= "Hello" "hello")
+              (!= "world" "world")
+              (= [0 [1]] [0 [1]])]`,
+      out: `[false true false false true]`,
+    },
     { name: "Define and retrieve", code: `(define a 1) a`, out: `1` },
     { name: "Define and add", code: `(define a 1) (inc a)`, out: `2` },
     { name: "Define op and call", code: `(define f +) (f 2 2)`, out: `4` },
@@ -180,9 +189,9 @@ export async function performTests() {
   }
   results.forEach(({ name, okOut, okErr, errors, elapsedMs }, i) =>
     console.log(
-      `${i + 1}`.padEnd(3),
-      name.padEnd(24),
-      `${elapsedMs}ms`.padEnd(6),
+      padEnd(`${i + 1}`, 3),
+      padEnd(name, 24),
+      padEnd(`${elapsedMs}ms`, 6),
       okOut,
       okErr || errors
     )

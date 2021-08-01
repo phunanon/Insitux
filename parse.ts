@@ -18,6 +18,8 @@ export const ops = [
   "print",
   "execute-last",
   "define",
+  "=",
+  "!=",
   "+",
   "-",
   "*",
@@ -37,6 +39,8 @@ export const ops = [
 
 export const minArities: { [op: string]: number } = {
   define: 2,
+  "=": 2,
+  "!=": 2,
   "+": 2,
   "-": 1,
   "*": 2,
