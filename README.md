@@ -1,6 +1,8 @@
 # Insitux
 
-A basic s-expression programming language.  
+| ![Insitux logo](media/Insitux.png) | A basic s-expression programming language. |
+| ------------------------------ | ------------------------------------------ |
+
 Try its REPL [here](https://insitux.phunanon.repl.co/).
 
 ## Usage
