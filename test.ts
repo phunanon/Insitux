@@ -56,8 +56,24 @@ export async function performTests() {
     { name: "Negate 1 = -1", code: `(- 1)`, out: `-1` },
     { name: "(1+1)+1+(1+1) = 5", code: `(+ (+ 1 1) 1 (+ 1 1))`, out: `5` },
     { name: "Conditional head", code: `((if true + -) 12 9 1)`, out: `22` },
+    { name: "Cond number head", code: `((if true 1 2) [:a :b :c])`, out: `:b` },
     { name: "String retrieve", code: `(2 "Hello")`, out: `l` },
     { name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },
+    {
+      name: "Key as operation",
+      code: `(:age {:name "Patrick" :age 24})`,
+      out: `24`,
+    },
+    {
+      name: "Map as operation 1",
+      code: `({"name" "Patrick" "age" 24} "age")`,
+      out: `24`,
+    },
+    {
+      name: "Map as operation 2",
+      code: `({"name" "Patrick"} "age" 24)`,
+      out: `{name Patrick, age 24}`,
+    },
     {
       name: "Equalities",
       code: `[(= 1 2 1)
@@ -70,6 +86,7 @@ export async function performTests() {
     { name: "Define and retrieve", code: `(define a 1) a`, out: `1` },
     { name: "Define and add", code: `(define a 1) (inc a)`, out: `2` },
     { name: "Define op and call", code: `(define f +) (f 2 2)`, out: `4` },
+    { name: "Define vec and call", code: `(define f []) (f 1)`, out: `[1]` },
     {
       name: "Define num op and call",
       code: `(define f 1) (f [:a :b :c])`,
@@ -152,6 +169,7 @@ export async function performTests() {
       out: `123\nnull`,
     },
     //Syntax errors
+    { name: "Empty parens", code: `()`, err: ["Parse Error"] },
   ];
   //Begin tests
   const results: {
@@ -178,8 +196,8 @@ export async function performTests() {
       code,
       "testing"
     );
-    const okErr = (err || []).join() == errors.map(({ e }) => e).join();
-    const okOut = !out || trim(state.output) == out;
+    const okErr = (err || []).join() === errors.map(({ e }) => e).join();
+    const okOut = !out || trim(state.output) === out;
     results.push({
       name,
       okErr,

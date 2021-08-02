@@ -5,7 +5,7 @@ export const splice = <T>(arr: T[], start: number, numDel?: number): T[] =>
   arr.splice(start, numDel);
 export const len = (arr: unknown[]): number => arr.length;
 export const slen = (str: string): number => str.length;
-export const isNum = (x: unknown): boolean => !Number.isNaN(Number(x));
+export const isNum = (x: unknown): x is number => !Number.isNaN(Number(x));
 export const min = Math.min;
 export const substr = (str: string, start: number): string => str.substr(start);
 export const strIdx = (str: string, idx: number): string => str[idx];

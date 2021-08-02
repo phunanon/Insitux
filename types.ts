@@ -1,21 +1,17 @@
-export type Typ =
-  | "null"
-  | "str"
-  | "num"
-  | "bool"
-  | "key"
-  | "ref"
-  | "vec"
-  | "func";
 export type Val = {
-  v: Val[] | undefined | string | number | boolean | Func;
-  t: Typ;
+  v: Val[] | Dict | undefined | string | number | boolean | Func;
+  t: "null" | "str" | "num" | "bool" | "key" | "ref" | "vec" | "dict" | "func";
 };
 
 export type ErrCtx = { invocationId: string; line: number; col: number };
 export type InvokeError = { e: string; m: string; errCtx: ErrCtx };
 export type ExternalError = undefined | string;
 export type ValAndErr = { value: Val; err: ExternalError };
+
+export type Dict = {
+  keys: Val[];
+  vals: Val[];
+};
 
 export type Func = {
   name: string;

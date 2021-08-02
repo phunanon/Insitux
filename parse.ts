@@ -11,7 +11,7 @@ import {
   substr,
   toNum,
 } from "./poly-fills";
-import { ErrCtx, Func, Funcs, Ins } from "./types";
+import { ErrCtx, Func, Funcs, Ins, InvokeError } from "./types";
 
 export const ops = [
   "print-line",
@@ -31,6 +31,7 @@ export const ops = [
   "inc",
   "dec",
   "vec",
+  "dict",
   "len",
   "map",
   "reduce",
@@ -106,7 +107,7 @@ function tokenise(code: string, invocationId: string) {
     }
     const errCtx: ErrCtx = { invocationId, line, col };
     const isDigit = sub("0123456789", c);
-    const isParen = sub("()[]", c);
+    const isParen = sub("()[]{}", c);
     if (inNumber && !isDigit) {
       inNumber = c === "." && !sub(tokens[len(tokens) - 1].text, ".");
     }
@@ -115,11 +116,20 @@ function tokenise(code: string, invocationId: string) {
     }
     if (!inString && !inSymbol && !inNumber) {
       if (isParen) {
-        const text: "(" | ")" =
-          c === "[" ? "(" : c === "]" ? ")" : c === "(" ? "(" : ")";
+        const parens: { [ch: string]: Token["typ"] } = {
+          "[": "(",
+          "{": "(",
+          "(": "(",
+          ")": ")",
+          "}": ")",
+          "]": ")",
+        };
+        const text = parens[c]!;
         tokens.push({ typ: text, text, errCtx });
         if (c === "[") {
           tokens.push({ typ: "sym", text: "vec", errCtx });
+        } else if (c === "{") {
+          tokens.push({ typ: "sym", text: "dict", errCtx });
         }
         continue;
       }
@@ -285,11 +295,48 @@ function syntaxise({ name, tokens }: NamedTokens): Func {
   return { name, ins };
 }
 
-export function parse(code: string, invocationId: string): Funcs {
+function tokenErrorDetect(tokens: Token[], invocationId: string) {
+  //Check for empty expression
+  let emptyHead: Token | undefined;
+  for (let t = 0, lastWasL = false; t < len(tokens); ++t) {
+    if (lastWasL && tokens[t].typ == ")") {
+      emptyHead = tokens[t];
+      break;
+    }
+    lastWasL = tokens[t].typ == "(";
+  }
+  //Check for paren imbalance
+  const numL = len(tokens.filter(({ typ }) => typ === "("));
+  const numR = len(tokens.filter(({ typ }) => typ === ")"));
+  const imbalanced = numL !== numR;
+
+  const errors: InvokeError[] = [];
+  if (imbalanced) {
+    errors.push({
+      e: "Parse Error",
+      m: `there are unmatched parentheses`,
+      errCtx: { invocationId, line: 0, col: 0 },
+    });
+  }
+  if (emptyHead) {
+    errors.push({
+      e: "Parse Error",
+      m: `empty expression forbidden`,
+      errCtx: emptyHead.errCtx,
+    });
+  }
+  return errors;
+}
+
+export function parse(
+  code: string,
+  invocationId: string
+): { funcs: Funcs; errors: InvokeError[] } {
   const tokens = tokenise(code, invocationId);
+  const tokenErrors = tokenErrorDetect(tokens, invocationId);
   const segments = segment(tokens);
   const labelled = funcise(segments);
   const funcs: Funcs = {};
   labelled.map(syntaxise).forEach(f => (funcs[f.name] = f));
-  return funcs;
+  return { errors: tokenErrors, funcs };
 }

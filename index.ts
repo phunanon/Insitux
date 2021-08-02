@@ -15,7 +15,7 @@ import {
   toNum,
 } from "./poly-fills";
 import { performTests } from "./test";
-import { Ctx, ErrCtx, Func, InvokeError, Val } from "./types";
+import { Ctx, Dict, ErrCtx, Func, InvokeError, Val } from "./types";
 
 const val2str = ({ v, t }: Val): string => {
   switch (t) {
@@ -28,6 +28,12 @@ const val2str = ({ v, t }: Val): string => {
       return v as string;
     case "vec":
       return `[${(v as Val[]).map(v => val2str(v)).join(" ")}]`;
+    case "dict": {
+      const { keys, vals } = v as Dict;
+      const [ks, vs] = [keys.map(val2str), vals.map(val2str)];
+      const entries = ks.map((k, i) => `${k} ${vs[i]}`);
+      return `{${entries.join(", ")}}`;
+    }
     case "null":
       return "null";
     case "func":
@@ -48,6 +54,7 @@ const _fun = (v: string) => stack.push({ t: "func", v });
 const num = ({ v }: Val) => v as number;
 const str = ({ v }: Val) => v as string;
 const vec = ({ v }: Val) => v as Val[];
+const dict = ({ v }: Val) => v as Dict;
 const asBoo = ({ t, v }: Val) => (t === "bool" ? (v as boolean) : t !== "null");
 
 const asArray = ({ t, v }: Val): Val[] =>
@@ -63,32 +70,89 @@ const typeErr = (m: string, errCtx: ErrCtx): InvokeError => ({
   errCtx,
 });
 
-const isVecEqual = (a: Val, b: Val): boolean => {
-  const [av, bv] = [vec(a), vec(b)];
-  if (len(av) !== len(bv)) {
-    return false;
-  }
-  return !av.some((x, i) => !isEqual(x, bv[i]));
+const isVecEqual = (a: Val[], b: Val[]): boolean =>
+  len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
+
+const isDictEqual = (a: Val, b: Val): boolean => {
+  const [ad, bd] = [dict(a), dict(b)];
+  return len(ad.keys) === len(bd.keys) && isVecEqual(ad.keys, bd.keys);
 };
 
 const isEqual = (a: Val, b: Val) => {
-  return a.t === b.t && a.t == "num"
+  return a.t === b.t && a.t === "num"
     ? num(a) === num(b)
-    : a.t == "str"
+    : a.t === "str" || a.t === "key"
     ? str(a) === str(b)
-    : a.t == "vec"
-    ? isVecEqual(a, b)
+    : a.t === "vec"
+    ? isVecEqual(vec(a), vec(b))
+    : a.t === "dict"
+    ? isDictEqual(a, b)
     : false;
 };
 
+const dictGet = ({ keys, vals }: Dict, key: Val) => {
+  const idx = keys.findIndex(k => isEqual(k, key));
+  return idx === -1 ? <Val>{ t: "null", v: undefined } : vals[idx];
+};
+
+const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
+  const [nKeys, nVals] = [slice(keys), slice(vals)];
+  const idx = keys.findIndex(k => isEqual(k, key));
+  if (idx !== -1) {
+    nVals[idx] = val;
+  } else {
+    nKeys.push(key);
+    nVals.push(val);
+  }
+  return <Val>{ t: "dict", v: <Dict>{ keys: nKeys, vals: nVals } };
+};
+
+async function exeVal(
+  { v, t }: Val,
+  args: Val[],
+  ctx: Ctx,
+  errCtx: ErrCtx
+): Promise<InvokeError[]> {
+  if (t === "str") {
+    return await exeOp(v as string, args, ctx, errCtx);
+  } else if (t === "num") {
+    return await exeOp(v as number, args, ctx, errCtx);
+  } else if (t === "vec") {
+    const arr = slice(v as Val[]);
+    push(arr, args);
+    _vec(arr);
+    return [];
+  } else if (t === "dict") {
+    const d = v as Dict;
+    if (len(args) === 1) {
+      stack.push(dictGet(d, args[0]));
+    } else if (len(args) === 2) {
+      stack.push(dictSet(d, args[0], args[1]));
+    } else {
+      return [
+        {
+          e: "Arity Error",
+          m: `dict as operation takes one or two arguments`,
+          errCtx,
+        },
+      ];
+    }
+    return [];
+  }
+  return [typeErr(`Head was not a valid operation`, errCtx)];
+}
+
 async function exeOp(
-  op: string,
+  op: string | number,
   args: Val[],
   ctx: Ctx,
   errCtx: ErrCtx
 ): Promise<InvokeError[]> {
   //Check minimum arity
-  if (len(args) < (isNum(op) || starts(op, "$") ? 1 : minArities[op] || 0)) {
+  if (
+    len(args) <
+    (isNum(op) || starts(op, "$") || starts(op, ":") ? 1 : minArities[op] || 0)
+  ) {
     return [
       {
         e: "Arity Error",
@@ -107,10 +171,7 @@ async function exeOp(
 
   switch (op) {
     case "execute-last":
-      {
-        await exeOp(args.pop()!.v as string, args, ctx, errCtx);
-      }
-      return [];
+      return await exeVal(args.pop()!, args, ctx, errCtx);
     case "define":
       if (args[0].t !== "ref") {
         return [{ e: "Define Error", m: "first arg wasn't reference", errCtx }];
@@ -135,6 +196,18 @@ async function exeOp(
       return [];
     case "vec":
       _vec(args);
+      return [];
+    case "dict":
+      if (len(args) % 2 === 1) {
+        args.pop();
+      }
+      stack.push({
+        t: "dict",
+        v: {
+          keys: args.filter((_, i) => !(i % 2)),
+          vals: args.filter((_, i) => i % 2),
+        },
+      });
       return [];
     case "len":
       if (args[0].t === "str") {
@@ -201,11 +274,7 @@ async function exeOp(
     case "map":
     case "reduce":
       {
-        const { closure, err } = realiseOperation(
-          ctx,
-          str(args.shift()!),
-          errCtx
-        );
+        const { closure, err } = opFromName(ctx, str(args.shift()!), errCtx);
         if (err) {
           return [err];
         }
@@ -276,6 +345,12 @@ async function exeOp(
         stack.push(value);
       }
       return err ? [{ e: "External Error", m: err, errCtx }] : [];
+    } else if (starts(op, ":")) {
+      if (args[0].t !== "dict") {
+        return [typeErr(`argument 1 wasn't a dict`, errCtx)];
+      }
+      stack.push(dictGet(dict(args[0]), { t: "key", v: op }));
+      return [];
     }
   }
 
@@ -288,7 +363,7 @@ async function exeOp(
   ];
 }
 
-function realiseOperation(
+function opFromName(
   ctx: Ctx,
   op: string,
   errCtx: ErrCtx
@@ -297,14 +372,26 @@ function realiseOperation(
   err: false | InvokeError;
 } {
   const checkIsOp = (op: string) =>
-    has(ops, op) || isNum(op) || starts(op, "$") || sub(op, "/");
+    has(ops, op) ||
+    isNum(op) ||
+    starts(op, "$") ||
+    starts(op, ":") ||
+    sub(op, "/");
   let isOp = checkIsOp(op);
   let isFunc = op in ctx.env.funcs;
   //If variable name
   if (!isOp && !isFunc && op in ctx.env.vars) {
-    op = str(ctx.env.vars[op]);
-    isOp = checkIsOp(op);
-    isFunc = op in ctx.env.funcs;
+    const val = ctx.env.vars[op];
+    if (val.t === "str" || val.t === "func") {
+      op = str(val);
+      isOp = checkIsOp(op);
+      isFunc = op in ctx.env.funcs;
+    } else {
+      return {
+        closure: (params: Val[]) => exeVal(val, params, ctx, errCtx),
+        err: false,
+      };
+    }
   }
   return {
     closure: isOp
@@ -370,7 +457,9 @@ async function exeFunc(
           } else if (name in ctx.env.funcs) {
             _fun(name);
           } else {
-            return [{ e: "Reference Error", m: `"${name}"`, errCtx }];
+            return [
+              { e: "Reference Error", m: `"${name}" did not exist`, errCtx },
+            ];
           }
         }
         break;
@@ -384,7 +473,7 @@ async function exeFunc(
               { e: "Unexpected Error", m: `${op} stack depleted`, errCtx },
             ];
           }
-          const { closure, err } = realiseOperation(ctx, op, errCtx);
+          const { closure, err } = opFromName(ctx, op, errCtx);
           if (err) {
             return [err];
           }
@@ -412,7 +501,11 @@ export async function invoke(
   code: string,
   invocationId: string
 ): Promise<InvokeError[]> {
-  ctx.env.funcs = { ...ctx.env.funcs, ...parse(code, invocationId) };
+  const parsed = parse(code, invocationId);
+  if (len(parsed.errors)) {
+    return parsed.errors;
+  }
+  ctx.env.funcs = { ...ctx.env.funcs, ...parsed.funcs };
   if (!("entry" in ctx.env.funcs)) {
     return [];
   }
