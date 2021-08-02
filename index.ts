@@ -499,7 +499,8 @@ async function exeFunc(
 export async function invoke(
   ctx: Ctx,
   code: string,
-  invocationId: string
+  invocationId: string,
+  printResult = false,
 ): Promise<InvokeError[]> {
   const parsed = parse(code, invocationId);
   if (len(parsed.errors)) {
@@ -511,7 +512,7 @@ export async function invoke(
   }
   const errors = await exeFunc(ctx, ctx.env.funcs["entry"], []);
   delete ctx.env.funcs["entry"];
-  if (!len(errors)) {
+  if (!len(errors) && printResult) {
     await ctx.exe("print-line", [
       { t: "str", v: val2str(stack[len(stack) - 1]) },
     ]);

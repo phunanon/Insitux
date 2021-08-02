@@ -194,7 +194,8 @@ export async function performTests() {
         env,
       },
       code,
-      "testing"
+      "testing",
+      true,
     );
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
     const okOut = !out || trim(state.output) === out;
