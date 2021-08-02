@@ -204,8 +204,8 @@ async function exeOp(
       stack.push({
         t: "dict",
         v: {
-          keys: args.filter((_, i) => !(i % 2)),
-          vals: args.filter((_, i) => i % 2),
+          keys: args.filter((_, i) => i % 2 === 0),
+          vals: args.filter((_, i) => i % 2 === 1),
         },
       });
       return [];

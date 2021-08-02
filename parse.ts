@@ -299,11 +299,11 @@ function tokenErrorDetect(tokens: Token[], invocationId: string) {
   //Check for empty expression
   let emptyHead: Token | undefined;
   for (let t = 0, lastWasL = false; t < len(tokens); ++t) {
-    if (lastWasL && tokens[t].typ == ")") {
+    if (lastWasL && tokens[t].typ === ")") {
       emptyHead = tokens[t];
       break;
     }
-    lastWasL = tokens[t].typ == "(";
+    lastWasL = tokens[t].typ === "(";
   }
   //Check for paren imbalance
   const numL = len(tokens.filter(({ typ }) => typ === "("));
