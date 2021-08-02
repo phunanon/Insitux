@@ -13,9 +13,9 @@ You and the Insitux app talk to each other in these ways:
 | ------ | ------------------------ | ----------------------------- |
 | code   | goes into the app        | `(+ 2 2)`                     |
 | return | comes out of the app     | `4`                           |
-| get    | reads data               | `$day_cycle_speed`            |
-| set    | writes data              | `($day_cycle_speed 100)`      |
-| exe    | data goes both in an out | `(util/fire [0 0 0] [0 1 0])` |
+| get    | reads data               | `$day.cycle_speed`            |
+| set    | writes data              | `($day.cycle_speed 100)`      |
+| exe    | data goes both in an out | `(util.fire [0 0 0] [0 1 0])` |
 
 ### Writing the code
 

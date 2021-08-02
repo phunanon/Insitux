@@ -30,7 +30,7 @@ async function exe(
       state.output += args[0].v;
       break;
     case "print-line":
-    case "test/function":
+    case "test.function":
       state.output += args[0].v + "\n";
       break;
   }
@@ -165,7 +165,7 @@ export async function performTests() {
     },
     {
       name: "exe",
-      code: `(test/function 123)`,
+      code: `(test.function 123)`,
       out: `123\nnull`,
     },
     //Syntax errors

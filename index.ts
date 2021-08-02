@@ -339,7 +339,7 @@ async function exeOp(
       const err = await ctx.set(substr(op, 1), val);
       stack.push(val);
       return err ? [{ e: "External Error", m: err, errCtx }] : [];
-    } else if (sub(op, "/")) {
+    } else if (sub(op, ".")) {
       const { err, value } = await ctx.exe(op, args);
       if (!err) {
         stack.push(value);
@@ -376,7 +376,7 @@ function opFromName(
     isNum(op) ||
     starts(op, "$") ||
     starts(op, ":") ||
-    sub(op, "/");
+    sub(op, ".");
   let isOp = checkIsOp(op);
   let isFunc = op in ctx.env.funcs;
   //If variable name
