@@ -25,6 +25,7 @@ async function exe(
   name: string,
   args: Val[]
 ): Promise<ValAndErr> {
+  const nullVal: Val = { t: "null", v: undefined };
   switch (name) {
     case "print":
       state.output += args[0].v;
@@ -33,8 +34,10 @@ async function exe(
     case "test.function":
       state.output += args[0].v + "\n";
       break;
+    default:
+      return { value: nullVal, err: "operation does not exist" };
   }
-  return { value: { t: "null", v: undefined }, err: undefined };
+  return { value: nullVal, err: undefined };
 }
 
 export async function performTests() {
@@ -149,6 +152,11 @@ export async function performTests() {
       name: "Reference non-existing",
       code: `x`,
       err: ["Reference Error"],
+    },
+    {
+      name: "Call non-existing",
+      code: `(x)`,
+      err: ["External Error"],
     },
     //Complex functions
     {

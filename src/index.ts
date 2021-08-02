@@ -274,10 +274,7 @@ async function exeOp(
     case "map":
     case "reduce":
       {
-        const { closure, err } = opFromName(ctx, str(args.shift()!), errCtx);
-        if (err) {
-          return [err];
-        }
+        const closure = opFromName(ctx, str(args.shift()!), errCtx);
         const badArg =
           op === "map"
             ? args.findIndex(({ t }) => t !== "vec" && t !== "str")
@@ -295,7 +292,7 @@ async function exeOp(
           const shortest = min(...arrays.map(a => len(a)));
           const array: Val[] = [];
           for (let i = 0; i < shortest; ++i) {
-            const errors = await closure!(arrays.map(a => a[i]));
+            const errors = await closure(arrays.map(a => a[i]));
             if (len(errors)) {
               return errors;
             }
@@ -328,22 +325,17 @@ async function exeOp(
     switch (a.t) {
       case "vec":
         stack.push(vec(a)[toNum(op)] as Val);
-        return [];
+        break;
       case "str":
         _str(strIdx(str(args[0]), toNum(op)));
-        return [];
+        break;
     }
+    return [];
   } else {
     if (starts(op, "$")) {
       const val = args.pop()!;
       const err = await ctx.set(substr(op, 1), val);
       stack.push(val);
-      return err ? [{ e: "External Error", m: err, errCtx }] : [];
-    } else if (sub(op, ".")) {
-      const { err, value } = await ctx.exe(op, args);
-      if (!err) {
-        stack.push(value);
-      }
       return err ? [{ e: "External Error", m: err, errCtx }] : [];
     } else if (starts(op, ":")) {
       if (args[0].t !== "dict") {
@@ -354,58 +346,36 @@ async function exeOp(
     }
   }
 
-  return [
-    {
-      e: "Unknown Operation",
-      m: `${op} with ${len(args)} argument/s`,
-      errCtx,
-    },
-  ];
+  const { err, value } = await ctx.exe(op, args);
+  if (!err) {
+    stack.push(value);
+  }
+  return err ? [{ e: "External Error", m: err, errCtx }] : [];
 }
 
 function opFromName(
   ctx: Ctx,
   op: string,
   errCtx: ErrCtx
-): {
-  closure?: (params: Val[]) => Promise<InvokeError[]>;
-  err: false | InvokeError;
-} {
+): (params: Val[]) => Promise<InvokeError[]> {
   const checkIsOp = (op: string) =>
-    has(ops, op) ||
-    isNum(op) ||
-    starts(op, "$") ||
-    starts(op, ":") ||
-    sub(op, ".");
+    has(ops, op) || isNum(op) || starts(op, "$") || starts(op, ":");
   let isOp = checkIsOp(op);
-  let isFunc = op in ctx.env.funcs;
+  let isFunc = !isOp && op in ctx.env.funcs;
   //If variable name
   if (!isOp && !isFunc && op in ctx.env.vars) {
     const val = ctx.env.vars[op];
     if (val.t === "str" || val.t === "func") {
       op = str(val);
       isOp = checkIsOp(op);
-      isFunc = op in ctx.env.funcs;
+      isFunc = !isOp && op in ctx.env.funcs;
     } else {
-      return {
-        closure: (params: Val[]) => exeVal(val, params, ctx, errCtx),
-        err: false,
-      };
+      return (params: Val[]) => exeVal(val, params, ctx, errCtx);
     }
   }
-  return {
-    closure: isOp
-      ? (params: Val[]) => exeOp(op, params, ctx, errCtx)
-      : isFunc
-      ? (params: Val[]) => exeFunc(ctx, ctx.env.funcs[op], params)
-      : undefined,
-    err: !isOp &&
-      !isFunc && {
-        e: "Unknown Operation",
-        m: `${op} is an unknown operation or function`,
-        errCtx,
-      },
-  };
+  return isFunc
+    ? (params: Val[]) => exeFunc(ctx, ctx.env.funcs[op], params)
+    : (params: Val[]) => exeOp(op, params, ctx, errCtx);
 }
 
 async function exeFunc(
@@ -473,11 +443,8 @@ async function exeFunc(
               { e: "Unexpected Error", m: `${op} stack depleted`, errCtx },
             ];
           }
-          const { closure, err } = opFromName(ctx, op, errCtx);
-          if (err) {
-            return [err];
-          }
-          const errors = await closure!(params);
+          const closure = opFromName(ctx, op, errCtx);
+          const errors = await closure(params);
           if (len(errors)) {
             return errors;
           }
@@ -500,7 +467,7 @@ export async function invoke(
   ctx: Ctx,
   code: string,
   invocationId: string,
-  printResult = false,
+  printResult = false
 ): Promise<InvokeError[]> {
   const parsed = parse(code, invocationId);
   if (len(parsed.errors)) {
