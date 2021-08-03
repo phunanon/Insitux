@@ -386,6 +386,9 @@ async function exeFunc(
   for (let i = 0; i < len(func.ins); ++i) {
     const { typ, value, errCtx } = func.ins[i];
     switch (typ) {
+      case "nul":
+        _nul();
+        break;
       case "boo":
         _boo(value as boolean);
         break;

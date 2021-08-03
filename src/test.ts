@@ -59,7 +59,21 @@ export async function performTests() {
     { name: "Negate 1 = -1", code: `(- 1)`, out: `-1` },
     { name: "(1+1)+1+(1+1) = 5", code: `(+ (+ 1 1) 1 (+ 1 1))`, out: `5` },
     { name: "Conditional head", code: `((if true + -) 12 9 1)`, out: `22` },
-    { name: "Cond number head", code: `((if true 1 2) [:a :b :c])`, out: `:b` },
+    {
+      name: "Cond number head",
+      code: `((if false 1 2) [:a :b :c])`,
+      out: `:c`,
+    },
+    {
+      name: "and & short-circuit",
+      code: `[(and true (if true null 1) true) (and 1 2 3)]`,
+      out: `[false true]`,
+    },
+    {
+      name: "or & short-circuit",
+      code: `[(or true (print "hello") 1) (or false 1 2)]`,
+      out: `[true 1]`,
+    },
     { name: "String retrieve", code: `(2 "Hello")`, out: `l` },
     { name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },
     {
@@ -160,10 +174,13 @@ export async function performTests() {
     },
     //Complex functions
     {
-      name: "Fibonacci 23",
-      code: `(function fib n (if (< n 2) n (+ (fib (dec n)) (fib (- n 2)))))
-             (fib 23)`,
-      out: `28657`,
+      name: "Fibonacci 15",
+      code: `(function fib n
+               (if (< n 2) n
+                   (+ (fib (dec n))
+                      (fib (- n 2)))))
+             (fib 15)`,
+      out: `610`,
     },
     //Test environment functions
     {
@@ -178,6 +195,11 @@ export async function performTests() {
     },
     //Syntax errors
     { name: "Empty parens", code: `()`, err: ["Parse Error"] },
+    {
+      name: "Imbalanced parens",
+      code: `(print ("hello!")`,
+      err: ["Parse Error"],
+    },
   ];
   //Begin tests
   const results: {

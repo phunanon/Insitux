@@ -31,6 +31,7 @@ export type Ctx = {
 };
 
 export type InsType =
+  | "nul"
   | "boo"
   | "num"
   | "str"

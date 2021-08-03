@@ -188,6 +188,8 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
     case "sym":
       if (text === "true" || text === "false") {
         return [{ typ: "boo", value: text === "true", errCtx }];
+      } else if (text == "null") {
+        return [{ typ: "nul", value: undefined, errCtx }];
       } else if (starts(text, ":")) {
         return [{ typ: "key", value: text, errCtx }];
       } else if (starts(text, "%")) {
@@ -211,22 +213,45 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
           return []; //TODO: emit invalid if warning (no condition)
         }
         const ins: Ins[] = cond;
-        let tknsBefore = len(tokens);
         const ifT = parseArg(tokens, params);
         if (!len(ifT)) {
           return []; //TODO: emit invalid if warning (no branches)
         }
-        ins.push({ typ: "if", value: tknsBefore - len(tokens) + 1, errCtx });
+        ins.push({ typ: "if", value: len(ifT) + 1, errCtx });
         push(ins, ifT);
-        tknsBefore = len(tokens);
         const ifF = parseArg(tokens, params);
         if (len(ifF)) {
-          ins.push({ typ: "els", value: tknsBefore - len(tokens), errCtx });
+          ins.push({ typ: "els", value: len(ifF), errCtx });
           push(ins, ifF);
         }
         if (len(parseArg(tokens, params))) {
           return []; //TODO: emit invalid if warning (too many branches)
         }
+        return ins;
+      } else if (op === "and") {
+        const args: Ins[][] = [];
+        let remainingIns = 0;
+        while (true) {
+          const arg = parseArg(tokens, params);
+          if (!len(arg)) {
+            break;
+          }
+          args.push(arg);
+          remainingIns += len(arg) + 1; //+1 for the if ins itself
+        }
+        ++remainingIns;
+        const ins: Ins[] = [];
+        for (let a = 0; a < len(args); ++a) {
+          push(ins, args[a]);
+          remainingIns -= len(args[a]);
+          ins.push({ typ: "if", value: remainingIns, errCtx });
+          --remainingIns;
+        }
+        push(ins, [
+          { typ: "boo", value: true, errCtx },
+          { typ: "els", value: 1, errCtx },
+          { typ: "boo", value: false, errCtx },
+        ]);
         return ins;
       }
       const headIns: Ins[] = [];
