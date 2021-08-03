@@ -24,26 +24,38 @@
       background-color: var(--black);
       border: 0.4rem solid var(--black);
     }
-    div {
+    div, span {
       padding: 0rem 0.2rem 0rem 0.2rem;
       line-height: 2rem;
     }
-    div:first-child {
+    div {
       flex: 1;
       padding-right: 0rem;
       background-color: #8f30ef;
-      height: 2.1rem;
+      height: 2.05rem;
     }
-    div:last-child {
+    span {
       flex: 1;
       padding-left: 0.06rem;
       padding-right: 0rem;
       background-color: var(--black);
-      height: 2.1rem;
+      height: 2.05rem;
+    }
+    section.small div {
+      padding-right: .15rem;
+    }
+    section.small span {
+      padding-left: .15rem;
     }
   </style>
 </head>
 <section>
   <div>insitu</div>
-  <div>x</div>
+  <span>x</span>
+</section>
+<br>
+<br>
+<section class="small">
+  <div>i</div>
+  <span>x</span>
 </section>
