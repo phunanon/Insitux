@@ -71,8 +71,8 @@ export async function performTests() {
     },
     {
       name: "or & short-circuit",
-      code: `[(or true (print "hello") 1) (or false 1 2)]`,
-      out: `[true 1]`,
+      code: `[(or true (print "hello") 1) (or false (print "-> ") 1)]`,
+      out: `-> [true 1]`,
     },
     { name: "String retrieve", code: `(2 "Hello")`, out: `l` },
     { name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },

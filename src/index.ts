@@ -453,6 +453,13 @@ async function exeFunc(
           }
         }
         break;
+      case "or":
+        if (asBoo(stack[len(stack) - 1])) {
+          i += value as number;
+        } else {
+          stack.pop();
+        }
+        break;
       case "if":
         if (!asBoo(stack.pop()!)) {
           i += value as number;

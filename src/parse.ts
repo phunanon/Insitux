@@ -241,30 +241,35 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
           return []; //TODO: emit invalid if warning (too many branches)
         }
         return ins;
-      } else if (op === "and") {
+      } else if (op === "and" || op === "or") {
         const args: Ins[][] = [];
-        let remainingIns = 0;
+        let insCount = 0;
         while (true) {
           const arg = parseArg(tokens, params);
           if (!len(arg)) {
             break;
           }
           args.push(arg);
-          remainingIns += len(arg) + 1; //+1 for the if ins itself
+          insCount += len(arg) + 1; //+1 for the if/or ins itself
         }
-        ++remainingIns;
         const ins: Ins[] = [];
+        insCount += toNum(op === "and");
+        const typ = op === "and" ? "if" : "or";
         for (let a = 0; a < len(args); ++a) {
           push(ins, args[a]);
-          remainingIns -= len(args[a]);
-          ins.push({ typ: "if", value: remainingIns, errCtx });
-          --remainingIns;
+          insCount -= len(args[a]);
+          ins.push({ typ, value: insCount, errCtx });
+          --insCount;
         }
-        push(ins, [
-          { typ: "boo", value: true, errCtx },
-          { typ: "els", value: 1, errCtx },
-          { typ: "boo", value: false, errCtx },
-        ]);
+        if (op === "and") {
+          push(ins, [
+            { typ: "boo", value: true, errCtx },
+            { typ: "els", value: 1, errCtx },
+            { typ: "boo", value: false, errCtx },
+          ]);
+        } else {
+          ins.push({ typ: "boo", value: false, errCtx });
+        }
         return ins;
       }
       const headIns: Ins[] = [];
@@ -376,5 +381,6 @@ export function parse(
   const labelled = funcise(segments);
   const funcs: Funcs = {};
   labelled.map(syntaxise).forEach(f => (funcs[f.name] = f));
+  console.dir(funcs["entry"], { depth: 10 });
   return { errors: tokenErrors, funcs };
 }

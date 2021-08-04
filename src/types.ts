@@ -43,7 +43,7 @@ export type InsType =
   | "exe"
   | "if"
   | "els"
-  | "ret";
+  | "or";
 export type Ins = {
   typ: InsType;
   value?: unknown;
