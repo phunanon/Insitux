@@ -82,10 +82,19 @@ function tokenise(code: string, invocationId: string) {
   let inString = false,
     inSymbol = false,
     inNumber = false,
+    inComment = false,
     line = 1,
     col = 0;
   for (const c of [...code]) {
     ++col;
+    if (inComment) {
+      if (c === "\n") {
+        inComment = false;
+        ++line;
+        col = 0;
+      }
+      continue;
+    }
     if (c === '"') {
       if ((inString = !inString)) {
         tokens.push({
@@ -103,6 +112,10 @@ function tokenise(code: string, invocationId: string) {
         ++line;
         col = 0;
       }
+      continue;
+    }
+    if (!inString && c === ";") {
+      inComment = true;
       continue;
     }
     const errCtx: ErrCtx = { invocationId, line, col };
@@ -363,5 +376,6 @@ export function parse(
   const labelled = funcise(segments);
   const funcs: Funcs = {};
   labelled.map(syntaxise).forEach(f => (funcs[f.name] = f));
+  console.dir(funcs["entry"], { depth: 10 });
   return { errors: tokenErrors, funcs };
 }

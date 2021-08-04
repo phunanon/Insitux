@@ -1,7 +1,7 @@
 # Insitux
 
 | ![Insitux logo](media/Insitux.png) | A basic s-expression programming language. |
-| ------------------------------ | ------------------------------------------ |
+| ---------------------------------- | ------------------------------------------ |
 
 Try its REPL [here](https://insitux.phunanon.repl.co/).
 
@@ -92,6 +92,15 @@ Hello, world! Welcome 2 my app. [:a :b :c]
 ;Note: the first letter/item is 0, the second is 1, etc
 (2 "Hello!")    l
 (2 [:a :b :c])  :c
+```
+
+### Miscellaneous
+
+Write `;` outside of a string of text to create a comment:
+
+```clj
+;This won't be treated as code
+(print-line "Hello") ;Comment at the end of lines of code too
 ```
 
 "vec", "map", "reduce"
