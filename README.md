@@ -94,6 +94,8 @@ Hello, world! Welcome 2 my app. [:a :b :c]
 (2 [:a :b :c])  :c
 ```
 
+TODO: describe vec, map, reduce
+
 ### Miscellaneous
 
 Write `;` outside of a string of text to create a comment:
@@ -103,4 +105,4 @@ Write `;` outside of a string of text to create a comment:
 (print-line "Hello") ;Comment at the end of lines of code too
 ```
 
-"vec", "map", "reduce"
+Write decimal numbers either `0.123` or `.123`.

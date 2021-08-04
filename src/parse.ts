@@ -146,7 +146,7 @@ function tokenise(code: string, invocationId: string) {
         }
         continue;
       }
-      inNumber = isDigit;
+      inNumber = isDigit || c === ".";
       inSymbol = !inNumber;
       let typ: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
       if (len(tokens)) {
@@ -376,6 +376,5 @@ export function parse(
   const labelled = funcise(segments);
   const funcs: Funcs = {};
   labelled.map(syntaxise).forEach(f => (funcs[f.name] = f));
-  console.dir(funcs["entry"], { depth: 10 });
   return { errors: tokenErrors, funcs };
 }

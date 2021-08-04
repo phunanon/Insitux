@@ -120,6 +120,12 @@ export async function performTests() {
       code: `(map + [1 2 3] [1 2 3 4])`,
       out: `[2 4 6]`,
     },
+    {
+      name: "Comments, short decimal",
+      code: `;((print-line "Hello")
+             .456`,
+      out: `0.456`
+    },
     //Basic functions
     {
       name: "Define with no call",
