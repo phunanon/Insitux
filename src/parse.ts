@@ -36,6 +36,8 @@ export const ops = [
   "map",
   "reduce",
   "str",
+  "rand-num",
+  "rand-int",
 ];
 
 export const minArities: { [op: string]: number } = {
@@ -381,6 +383,5 @@ export function parse(
   const labelled = funcise(segments);
   const funcs: Funcs = {};
   labelled.map(syntaxise).forEach(f => (funcs[f.name] = f));
-  console.dir(funcs["entry"], { depth: 10 });
   return { errors: tokenErrors, funcs };
 }

@@ -5,12 +5,13 @@ import {
   len,
   min,
   push,
+  randInt,
+  randNum,
   slen,
   slice,
   splice,
   starts,
   strIdx,
-  sub,
   substr,
   toNum,
 } from "./poly-fills";
@@ -316,6 +317,21 @@ async function exeOp(
           reduction = stack.pop()!;
         }
         stack.push(reduction);
+      }
+      return [];
+    case "rand-int":
+    case "rand-num":
+      {
+        const nArgs = len(args);
+        const [a, b] = [
+          nArgs < 2 ? 0 : num(args[0]),
+          nArgs === 0
+            ? 1 + toNum(op === "rand-int")
+            : nArgs === 1
+            ? num(args[0])
+            : num(args[1]),
+        ];
+        _num(op === "rand-int" ? randInt(a, b) : randNum(a, b));
       }
       return [];
   }

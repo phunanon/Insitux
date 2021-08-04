@@ -17,3 +17,5 @@ export const concat = <T>(a: T[], b: T[]): T[] => a.concat(b);
 export const push = <T>(arr: T[], add: T[]) => arr.push(...add);
 export const trim = (str: string) => str.trim();
 export const padEnd = (str: string, by: number) => str.padEnd(by);
+export const randNum = (a: number, b: number) => a + Math.random() * (b - a);
+export const randInt = (a: number, b: number) => Math.floor(randNum(a, b));

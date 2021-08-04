@@ -79,19 +79,30 @@ Hello, world!
 (<= 10 10 15) true
 (>= 10 11 11) false
 
-;Returns the length of a string of text or a vector
+;Creates a vector (list) of values in two different ways
+[1 "hello" :c]  which is the same as  (vec 1 "hello" :c)
+
+;The length of a string of text or a vector
 (print (len "Hello!") " ")
 (print (len [0 1 2]))
 6 3
 
 ;Concatenates strings of text together, also displaying numbers and vectors as text too
-(str "Hello, " "world! Welcome " 2 " my app. " [:a :b :c])
-Hello, world! Welcome 2 my app. [:a :b :c]
+(str "Hello, " "world! Welcome " 2 " my app. " [:a :b "c"])
+Hello, world! Welcome 2 my app. [:a :b c]
 
 ;Whole numbers can be used to retrieve characters from a string of text or items from a vector
 ;Note: the first letter/item is 0, the second is 1, etc
 (2 "Hello!")    l
 (2 [:a :b :c])  :c
+
+;Either a random whole number (integer) or decimal number
+[(rand-int) (rand-int)]  might be [0 0], [0 1], [1 0], [1 1]
+(rand-int 10)            any integer from 0 to 9
+(rand-int 10 20)         any integer from 10 to 20
+(rand-num)               any decimal between 0 and 1
+(rand-num 100)           any decimal between 0 and 100
+(rand-num -10 10)        any decimal between -10 and 10
 ```
 
 TODO: describe vec, map, reduce
