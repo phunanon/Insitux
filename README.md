@@ -105,7 +105,7 @@ Hello, world! Welcome 2 my app. [:a :b c]
 (rand-num -10 10)        any decimal between -10 and 10
 ```
 
-TODO: describe vec, map, reduce
+TODO: describe map, reduce
 
 ### Miscellaneous
 

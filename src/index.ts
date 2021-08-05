@@ -399,6 +399,7 @@ async function exeFunc(
   func: Func,
   args: Val[]
 ): Promise<InvokeError[]> {
+  let savedStackLengths: number[] = [];
   for (let i = 0; i < len(func.ins); ++i) {
     const { typ, value, errCtx } = func.ins[i];
     switch (typ) {
@@ -481,8 +482,17 @@ async function exeFunc(
           i += value as number;
         }
         break;
-      case "els":
+      case "jmp":
         i += value as number;
+        break;
+      case "sav":
+        savedStackLengths.push(len(stack));
+        break;
+      case "res":
+        {
+          const numDel = len(stack) - savedStackLengths.pop()!;
+          splice(stack, len(stack) - numDel, numDel);
+        }
         break;
     }
   }

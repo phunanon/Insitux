@@ -42,7 +42,9 @@ export type InsType =
   | "op"
   | "exe"
   | "if"
-  | "els"
+  | "jmp"
+  | "sav" //Save stack length
+  | "res" //Restore stack length
   | "or";
 export type Ins = {
   typ: InsType;

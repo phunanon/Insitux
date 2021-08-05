@@ -161,6 +161,14 @@ export async function performTests() {
       code: `(function avg<n? (< (/ (reduce + %) (len %)) %1)) (avg<n? [0 10 20 30 40] 5)`,
       out: `false`,
     },
+    {
+      name: "While loop",
+      code: `(define n 5)
+             (while (< 0 n)
+               (print n)
+               (define n (dec n)))`,
+      out: `543215`,
+    },
     //Runtime errors
     {
       name: "String instead of number",

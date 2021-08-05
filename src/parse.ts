@@ -38,6 +38,7 @@ export const ops = [
   "str",
   "rand-num",
   "rand-int",
+  "while",
 ];
 
 export const minArities: { [op: string]: number } = {
@@ -203,7 +204,7 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
     case "sym":
       if (text === "true" || text === "false") {
         return [{ typ: "boo", value: text === "true", errCtx }];
-      } else if (text == "null") {
+      } else if (text === "null") {
         return [{ typ: "nul", value: undefined, errCtx }];
       } else if (starts(text, ":")) {
         return [{ typ: "key", value: text, errCtx }];
@@ -236,14 +237,14 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
         push(ins, ifT);
         const ifF = parseArg(tokens, params);
         if (len(ifF)) {
-          ins.push({ typ: "els", value: len(ifF), errCtx });
+          ins.push({ typ: "jmp", value: len(ifF), errCtx });
           push(ins, ifF);
         }
         if (len(parseArg(tokens, params))) {
           return []; //TODO: emit invalid if warning (too many branches)
         }
         return ins;
-      } else if (op === "and" || op === "or") {
+      } else if (op === "and" || op === "or" || op === "while") {
         const args: Ins[][] = [];
         let insCount = 0;
         while (true) {
@@ -252,9 +253,24 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
             break;
           }
           args.push(arg);
-          insCount += len(arg) + 1; //+1 for the if/or ins itself
+          insCount += len(arg);
+        }
+        if (!len(args)) {
+          return []; //TODO: emit invalid and/or/while form
         }
         const ins: Ins[] = [];
+        if (op === "while") {
+          insCount += 3; //+1 for the if op, +2 for the sav and res ops
+          const head = args.shift()!;
+          push(ins, head);
+          ins.push({ typ: "if", value: insCount - len(head), errCtx });
+          ins.push({ typ: "sav", errCtx });
+          args.forEach(as => push(ins, as));
+          ins.push({ typ: "res", errCtx });
+          ins.push({ typ: "jmp", value: -(insCount + 1), errCtx });
+          return ins;
+        }
+        insCount += len(args); //+1 for each if/or ins
         insCount += toNum(op === "and");
         const typ = op === "and" ? "if" : "or";
         for (let a = 0; a < len(args); ++a) {
@@ -266,7 +282,7 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
         if (op === "and") {
           push(ins, [
             { typ: "boo", value: true, errCtx },
-            { typ: "els", value: 1, errCtx },
+            { typ: "jmp", value: 1, errCtx },
             { typ: "boo", value: false, errCtx },
           ]);
         } else {
