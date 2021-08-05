@@ -399,9 +399,21 @@ async function exeFunc(
   func: Func,
   args: Val[]
 ): Promise<InvokeError[]> {
+  ctx.loopBudget -= 10;
   let savedStackLengths: number[] = [];
   for (let i = 0; i < len(func.ins); ++i) {
     const { typ, value, errCtx } = func.ins[i];
+
+    if (ctx.loopBudget < 1) {
+      return [
+        {
+          e: "Loop Error",
+          m: "looped or called too many times",
+          errCtx,
+        },
+      ];
+    }
+
     switch (typ) {
       case "nul":
         _nul();
@@ -484,6 +496,7 @@ async function exeFunc(
         break;
       case "jmp":
         i += value as number;
+        --ctx.loopBudget;
         break;
       case "sav":
         savedStackLengths.push(len(stack));

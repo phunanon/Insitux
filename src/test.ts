@@ -124,7 +124,7 @@ export async function performTests() {
       name: "Comments, short decimal",
       code: `;((print-line "Hello")
              .456`,
-      out: `0.456`
+      out: `0.456`,
     },
     //Basic functions
     {
@@ -186,15 +186,27 @@ export async function performTests() {
       code: `(x)`,
       err: ["External Error"],
     },
+    {
+      name: "Loop budget 1",
+      code: `(function loop (loop)) (loop)`,
+      err: ["Loop Error"],
+    },
+    {
+      name: "Loop budget 2",
+      code: `(define n 10000)
+             (while (< 0 n)
+               (define n (dec n)))`,
+      err: ["Loop Error"],
+    },
     //Complex functions
     {
-      name: "Fibonacci 15",
+      name: "Fibonacci 13",
       code: `(function fib n
                (if (< n 2) n
                    (+ (fib (dec n))
                       (fib (- n 2)))))
-             (fib 15)`,
-      out: `610`,
+             (fib 13)`,
+      out: `233`,
     },
     //Test environment functions
     {
@@ -236,6 +248,7 @@ export async function performTests() {
         set: (key: string, val: Val) => set(state, key, val),
         exe: (name: string, args: Val[]) => exe(state, name, args),
         env,
+        loopBudget: 10000,
       },
       code,
       "testing",
