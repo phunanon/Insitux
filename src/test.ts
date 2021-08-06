@@ -137,9 +137,16 @@ export async function performTests() {
       out: `Hello!\nnull`,
     },
     {
-      name: "Call const val func",
+      name: "Call const value func",
       code: `(function const 123) (const)`,
       out: `123`,
+    },
+    {
+      name: "Call identity funcs",
+      code: `(function id1 %)
+             (function id2 x x)
+             [(id1 123) (id2 456)]`,
+      out: `[123 456]`,
     },
     {
       name: "Call greet with name",
@@ -224,6 +231,16 @@ export async function performTests() {
     {
       name: "Imbalanced parens",
       code: `(print ("hello!")`,
+      err: ["Parse Error"],
+    },
+    {
+      name: "Function as op",
+      code: `(function)`,
+      err: ["Parse Error"],
+    },
+    {
+      name: "Function without body",
+      code: `(function func)`,
       err: ["Parse Error"],
     },
   ];

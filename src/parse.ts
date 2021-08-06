@@ -188,9 +188,16 @@ function funcise(segments: Token[][]): NamedTokens[] {
   const described = funcs.map(tokens => ({
     name: tokens[2].text,
     tokens: slice(tokens, 3),
+    errCtx: tokens[2].errCtx,
   }));
   return len(entries)
-    ? concat(described, [{ name: "entry", tokens: entries }])
+    ? concat(described, [
+        {
+          name: "entry",
+          tokens: entries,
+          errCtx: entries[0].errCtx,
+        },
+      ])
     : described;
 }
 
@@ -323,19 +330,59 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
   return [];
 }
 
-function partition<T>(array: T[], predicate: (item: T) => boolean): [T[], T[]] {
+function partitionWhen<T>(
+  array: T[],
+  predicate: (item: T) => boolean
+): [T[], T[]] {
   const a: T[] = [],
     b: T[] = [];
   for (let i = 0, isB = false; i < len(array); ++i) {
-    isB ||= !predicate(array[i]);
+    isB ||= predicate(array[i]);
     (isB ? b : a).push(array[i]);
   }
   return [a, b];
 }
 
-function syntaxise({ name, tokens }: NamedTokens): Func {
-  const [params, body] = partition(tokens, t => t.typ === "sym");
-  //In the case of e.g. (entry x)
+function partition<T>(array: T[], predicate: (item: T) => boolean): [T[], T[]] {
+  const a: T[] = [],
+    b: T[] = [];
+  array.forEach(x => (predicate(x) ? b : a).push(x));
+  return [a, b];
+}
+
+function syntaxise(
+  { name, tokens }: NamedTokens,
+  errCtx: ErrCtx
+): {
+  func?: Func;
+  err?: InvokeError;
+} {
+  const [params, body] = partitionWhen(tokens, t => t.typ !== "sym");
+  //In the case of e.g. (function)
+  if (!len(params) && !len(body)) {
+    return {
+      err: {
+        e: "Parse Error",
+        m: "empty function body",
+        errCtx,
+      },
+    };
+  }
+  //In the case of e.g. (function name)
+  if (!len(params) && body[0].typ === ")") {
+    return {
+      err: {
+        e: "Parse Error",
+        m: "empty function body",
+        errCtx: { invocationId: errCtx.invocationId, line: 0, col: 0 },
+      },
+    };
+  }
+  //In the case of e.g. (function x %)
+  if (len(params) && len(body) === 1) {
+    body.unshift(params.pop()!);
+  }
+  //In the case of e.g. (function entry x)
   if (!len(body) && len(params)) {
     body.push(params[0]);
     splice(params, 0, len(params));
@@ -353,7 +400,7 @@ function syntaxise({ name, tokens }: NamedTokens): Func {
       )
     );
   }
-  return { name, ins };
+  return { func: { name, ins } };
 }
 
 function tokenErrorDetect(tokens: Token[], invocationId: string) {
@@ -397,7 +444,21 @@ export function parse(
   const tokenErrors = tokenErrorDetect(tokens, invocationId);
   const segments = segment(tokens);
   const labelled = funcise(segments);
+  const funcsAndErrors = labelled.map(named =>
+    syntaxise(named, {
+      invocationId,
+      line: named.errCtx.line,
+      col: named.errCtx.col,
+    })
+  );
+  const [funcArr, errors] = partition(funcsAndErrors, fae => !!fae.err);
+  if (len(errors)) {
+    return {
+      funcs: {},
+      errors: errors.map(fae => fae.err!),
+    };
+  }
   const funcs: Funcs = {};
-  labelled.map(syntaxise).forEach(f => (funcs[f.name] = f));
+  funcArr.forEach(({ func }) => (funcs[func!.name] = func!));
   return { errors: tokenErrors, funcs };
 }
