@@ -78,7 +78,11 @@ type Token = {
   text: string;
   errCtx: ErrCtx;
 };
-type NamedTokens = { name: string; tokens: Token[] };
+type NamedTokens = {
+    name: string;
+    tokens: Token[];
+    errCtx: ErrCtx;
+};
 
 function tokenise(code: string, invocationId: string) {
   const tokens: Token[] = [];
