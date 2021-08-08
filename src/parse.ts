@@ -153,7 +153,7 @@ function tokenise(code: string, invocationId: string) {
         }
         continue;
       }
-      inNumber = isDigit || c === ".";
+      inNumber = isDigit || c === "." || c === "-";
       inSymbol = !inNumber;
       let typ: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
       if (len(tokens)) {
