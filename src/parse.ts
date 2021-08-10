@@ -4,6 +4,7 @@ import {
   has,
   len,
   push,
+  slen,
   slice,
   splice,
   starts,
@@ -79,20 +80,23 @@ type Token = {
   errCtx: ErrCtx;
 };
 type NamedTokens = {
-    name: string;
-    tokens: Token[];
-    errCtx: ErrCtx;
+  name: string;
+  tokens: Token[];
+  errCtx: ErrCtx;
 };
 
 function tokenise(code: string, invocationId: string) {
   const tokens: Token[] = [];
+  const digits = "0123456789";
   let inString = false,
     inSymbol = false,
     inNumber = false,
     inComment = false,
     line = 1,
     col = 0;
-  for (const c of [...code]) {
+  for (let i = 0, l = slen(code); i < l; ++i) {
+    const c = code[i],
+      next = i + 1 !== l ? code[i + 1] : "";
     ++col;
     if (inComment) {
       if (c === "\n") {
@@ -126,14 +130,17 @@ function tokenise(code: string, invocationId: string) {
       continue;
     }
     const errCtx: ErrCtx = { invocationId, line, col };
-    const isDigit = sub("0123456789", c);
+    const isDigit = (ch: string) => sub(digits, ch);
     const isParen = sub("()[]{}", c);
-    if (inNumber && !isDigit) {
+    //Allow one . per number
+    if (inNumber && !isDigit(c)) {
       inNumber = c === "." && !sub(tokens[len(tokens) - 1].text, ".");
     }
+    //Stop scanning symbol if a paren
     if (inSymbol && isParen) {
       inSymbol = false;
     }
+    //If we just finished concatenating a token
     if (!inString && !inSymbol && !inNumber) {
       if (isParen) {
         const parens: { [ch: string]: Token["typ"] } = {
@@ -153,7 +160,10 @@ function tokenise(code: string, invocationId: string) {
         }
         continue;
       }
-      inNumber = isDigit || c === "." || c === "-";
+      inNumber =
+        isDigit(c) ||
+        (c === "." && isDigit(next)) ||
+        (c === "-" && (isDigit(next) || next === "."));
       inSymbol = !inNumber;
       let typ: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
       if (len(tokens)) {
@@ -372,24 +382,24 @@ function syntaxise(
       },
     };
   }
-  //In the case of e.g. (function name)
-  if (!len(params) && body[0].typ === ")") {
-    return {
-      err: {
-        e: "Parse Error",
-        m: "empty function body",
-        errCtx: { invocationId: errCtx.invocationId, line: 0, col: 0 },
-      },
-    };
+  if (len(body) && body[0].typ === ")") {
+    if (len(params)) {
+      //In the case of e.g. (function f %)
+      body.unshift(params.shift()!);
+    } else {
+      //In the case of e.g. (function name)
+      return {
+        err: {
+          e: "Parse Error",
+          m: "empty function body",
+          errCtx: { invocationId: errCtx.invocationId, line: 0, col: 0 },
+        },
+      };
+    }
   }
-  //In the case of e.g. (function x %)
-  if (len(params) && len(body) === 1) {
-    body.unshift(params.pop()!);
-  }
-  //In the case of e.g. (function entry x)
-  if (!len(body) && len(params)) {
-    body.push(params[0]);
-    splice(params, 0, len(params));
+  //In the case of e.g. (function entry x y z)
+  if (len(params) && !len(body)) {
+    body.push(params.pop()!);
   }
   const ins: Ins[] = [];
   while (true) {

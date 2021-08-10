@@ -246,13 +246,12 @@ export async function performTests() {
   ];
   //Begin tests
   const results: {
-    name: string;
     okErr: boolean;
     okOut: boolean;
-    errors: InvokeError[];
     elapsedMs: number;
   }[] = [];
-  for (const { name, code, err, out } of tests) {
+  for (let t = 0; t < len(tests); ++t) {
+    const { name, code, err, out } = tests[t];
     const state: State = {
       dict: new Map<string, Val>(),
       output: "",
@@ -273,27 +272,21 @@ export async function performTests() {
     );
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
     const okOut = !out || trim(state.output) === out;
-    results.push({
-      name,
-      okErr,
-      okOut,
-      errors,
-      elapsedMs: new Date().getTime() - startTime,
-    });
-  }
-  results.forEach(({ name, okOut, okErr, errors, elapsedMs }, i) =>
+    const elapsedMs = new Date().getTime() - startTime;
     console.log(
-      padEnd(`${i + 1}`, 3),
+      padEnd(`${t + 1}`, 3),
       padEnd(name, 24),
       padEnd(`${elapsedMs}ms`, 6),
       okOut,
       okErr || errors
-    )
-  );
+    );
+    results.push({
+      okErr,
+      okOut,
+      elapsedMs,
+    });
+  }
   const totalMs = results.reduce((sum, { elapsedMs }) => sum + elapsedMs, 0);
-  console.log(
-    `----- ${len(results.filter(({ okOut, okErr }) => okOut && okErr))}/${len(
-      results
-    )} passed in ${totalMs}ms.`
-  );
+  const numPassed = len(results.filter(({ okOut, okErr }) => okOut && okErr));
+  console.log(`----- ${numPassed}/${len(results)} passed in ${totalMs}ms.`);
 }
