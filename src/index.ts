@@ -149,15 +149,17 @@ async function exeOp(
   ctx: Ctx,
   errCtx: ErrCtx
 ): Promise<InvokeError[]> {
-  //Check minimum arity
-  if (
-    len(args) <
-    (isNum(op) || starts(op, "$") || starts(op, ":") ? 1 : minArities[op] || 0)
-  ) {
+  //Arity checks
+  if (isNum(op) || starts(op, ":")) {
+    if (len(args) !== 1) {
+      return [{ e: "Arity Error", m: `use one argument only`, errCtx }];
+    }
+  } else if (len(args) < minArities[op]) {
+    const a = minArities[op];
     return [
       {
         e: "Arity Error",
-        m: `${op} requires at least ${minArities[op]} argument/s`,
+        m: `${op} requires at least ${a} argument${a === 1 ? "" : "s"}`,
         errCtx,
       },
     ];
