@@ -173,6 +173,10 @@ async function exeOp(
   }
 
   switch (op) {
+    case "version":
+      _num(0);
+      return [];
+      break;
     case "execute-last":
       return await exeVal(args.pop()!, args, ctx, errCtx);
     case "define":
