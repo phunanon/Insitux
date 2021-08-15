@@ -40,6 +40,7 @@ export const ops = [
   "rand-int",
   "while",
   "version",
+  "tests",
 ];
 
 export const minArities: { [op: string]: number } = {

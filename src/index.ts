@@ -177,7 +177,16 @@ async function exeOp(
     case "version":
       _num(20210815);
       return [];
-      break;
+    case "tests":
+      {
+        const tests = await performTests()
+        const summary = tests.pop()!;
+        for (const test of tests) {
+          await exeOp("print-line", [{ v: test, t: "str" }], ctx, errCtx);
+        }
+        _str(summary);
+      }
+      return [];
     case "execute-last":
       return await exeVal(args.pop()!, args, ctx, errCtx);
     case "define":
@@ -546,7 +555,10 @@ export async function invoke(
 
 export function symbols(ctx: Ctx): string[] {
   let syms = ["function"];
-  syms = concat(syms, ops.filter(o => o !== "execute-last"));
+  syms = concat(
+    syms,
+    ops.filter(o => o !== "execute-last")
+  );
   syms = concat(syms, Object.keys(ctx.env.funcs));
   syms = concat(syms, Object.keys(ctx.env.vars));
   return syms;

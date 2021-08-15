@@ -55,6 +55,10 @@ function completer(line: string) {
 rl.prompt();
 
 rl.on("line", async line => {
+  if (line == "quit") {
+    rl.close();
+    return;
+  }
   await invoke(ctx, line, "repl", true);
   rl.prompt();
 });
