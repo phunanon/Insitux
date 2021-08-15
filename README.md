@@ -8,6 +8,10 @@
   </tr>
 </table>
 
+Successor to [Chika](https://github.com/phunanon/Chika),
+[Epizeuxis](https://github.com/phunanon/Epizeuxis),
+and [Kuan](https://github.com/phunanon/Kuan).
+
 ## Usage
 
 Like any programming language it is written down as _code_. Insitux takes your

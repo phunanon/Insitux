@@ -6,7 +6,6 @@ import {
   push,
   slen,
   slice,
-  splice,
   starts,
   sub,
   substr,
@@ -40,6 +39,7 @@ export const ops = [
   "rand-num",
   "rand-int",
   "while",
+  "version",
 ];
 
 export const minArities: { [op: string]: number } = {

@@ -1,6 +1,6 @@
 import { invoke } from ".";
 import { len, padEnd, trim } from "./poly-fills";
-import { Env, ExternalError, InvokeError, Val, ValAndErr } from "./types";
+import { Env, ExternalError, Val, ValAndErr } from "./types";
 
 type State = { dict: Map<string, Val>; output: string };
 
@@ -150,7 +150,8 @@ export async function performTests() {
     },
     {
       name: "Call greet with name",
-      code: `(function greeting name (print-line "Hello, " name "!")) (greeting "Patrick")`,
+      code: `(function greeting name (print-line "Hello, " name "!"))
+             (greeting "Patrick")`,
       out: `Hello, Patrick!\nnull`,
     },
     {
@@ -165,7 +166,8 @@ export async function performTests() {
     },
     {
       name: "Anonymous parameters",
-      code: `(function avg<n? (< (/ (reduce + %) (len %)) %1)) (avg<n? [0 10 20 30 40] 5)`,
+      code: `(function avg<n? (< (/ (reduce + %) (len %)) %1))
+             (avg<n? [0 10 20 30 40] 5)`,
       out: `false`,
     },
     {
@@ -179,7 +181,9 @@ export async function performTests() {
     //Runtime errors
     {
       name: "String instead of number",
-      code: `(function avg (/ (reduce + %) (len %))) (print-line (avg [1 2 3])) (avg "Hello")`,
+      code: `(function avg (/ (reduce + %) (len %)))
+             (print-line (avg [1 2 3]))
+             (avg "Hello")`,
       out: `2`,
       err: ["Type Error"],
     },
@@ -290,3 +294,5 @@ export async function performTests() {
   const numPassed = len(results.filter(({ okOut, okErr }) => okOut && okErr));
   console.log(`----- ${numPassed}/${len(results)} passed in ${totalMs}ms.`);
 }
+
+performTests();

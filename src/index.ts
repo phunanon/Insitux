@@ -1,5 +1,6 @@
 import { ops, minArities, argsMustBeNum, parse } from "./parse";
 import {
+  concat,
   has,
   isNum,
   len,
@@ -38,7 +39,7 @@ const val2str = ({ v, t }: Val): string => {
     case "null":
       return "null";
     case "func":
-      return (<Func>v).name;
+      return `<${(<Func>v).name}>`;
   }
   return "?";
 };
@@ -174,7 +175,7 @@ async function exeOp(
 
   switch (op) {
     case "version":
-      _num(0);
+      _num(20210815);
       return [];
       break;
     case "execute-last":
@@ -543,4 +544,10 @@ export async function invoke(
   return errors;
 }
 
-performTests();
+export function symbols(ctx: Ctx): string[] {
+  let syms = ["function"];
+  syms = concat(syms, ops.filter(o => o !== "execute-last"));
+  syms = concat(syms, Object.keys(ctx.env.funcs));
+  syms = concat(syms, Object.keys(ctx.env.vars));
+  return syms;
+}
