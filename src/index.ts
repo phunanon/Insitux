@@ -5,6 +5,7 @@ import {
   isNum,
   len,
   min,
+  objKeys,
   push,
   randInt,
   randNum,
@@ -559,7 +560,7 @@ export function symbols(ctx: Ctx): string[] {
     syms,
     ops.filter(o => o !== "execute-last")
   );
-  syms = concat(syms, Object.keys(ctx.env.funcs));
-  syms = concat(syms, Object.keys(ctx.env.vars));
+  syms = concat(syms, objKeys(ctx.env.funcs));
+  syms = concat(syms, objKeys(ctx.env.vars));
   return syms;
 }

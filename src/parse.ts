@@ -7,6 +7,7 @@ import {
   slen,
   slice,
   starts,
+  strIdx,
   sub,
   substr,
   toNum,
@@ -96,8 +97,8 @@ function tokenise(code: string, invocationId: string) {
     line = 1,
     col = 0;
   for (let i = 0, l = slen(code); i < l; ++i) {
-    const c = code[i],
-      next = i + 1 !== l ? code[i + 1] : "";
+    const c = strIdx(code, i),
+      next = i + 1 !== l ? strIdx(code, i + 1) : "";
     ++col;
     if (inComment) {
       if (c === "\n") {

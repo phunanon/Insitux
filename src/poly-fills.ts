@@ -19,3 +19,4 @@ export const trim = (str: string) => str.trim();
 export const padEnd = (str: string, by: number) => str.padEnd(by);
 export const randNum = (a: number, b: number) => a + Math.random() * (b - a);
 export const randInt = (a: number, b: number) => Math.floor(randNum(a, b));
+export const objKeys = (x: object) => Object.keys(x);
