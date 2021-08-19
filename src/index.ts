@@ -156,7 +156,7 @@ async function exeOp(
     if (len(args) !== 1) {
       return [{ e: "Arity Error", m: `use one argument only`, errCtx }];
     }
-  } else if (len(args) < minArities[op]) {
+  } else if (op in minArities && len(args) < minArities[op]) {
     const a = minArities[op];
     return [
       {

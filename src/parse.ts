@@ -98,7 +98,7 @@ function tokenise(code: string, invocationId: string) {
     col = 0;
   for (let i = 0, l = slen(code); i < l; ++i) {
     const c = strIdx(code, i),
-      next = i + 1 !== l ? strIdx(code, i + 1) : "";
+      nextCh = i + 1 !== l ? strIdx(code, i + 1) : "";
     ++col;
     if (inComment) {
       if (c === "\n") {
@@ -164,8 +164,8 @@ function tokenise(code: string, invocationId: string) {
       }
       inNumber =
         isDigit(c) ||
-        (c === "." && isDigit(next)) ||
-        (c === "-" && (isDigit(next) || next === "."));
+        (c === "." && isDigit(nextCh)) ||
+        (c === "-" && (isDigit(nextCh) || nextCh === "."));
       inSymbol = !inNumber;
       let typ: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
       if (len(tokens)) {
