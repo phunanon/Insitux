@@ -2,7 +2,6 @@
 
 Insitux was developed with roblox-ts in mind, allowing for easy porting to roblox, and consequently, deadline.
 Currently, the commandline it works with is still in "early" development, however its core functionality works.
-Code completion is coming, however, for now the accessible API functions will be listed here.
 
 shobfix is an environment and server wrapper for Insitux.
 Insitux is a scripting language, which may access values from the shobfix environment.
@@ -54,18 +53,27 @@ to define variables, use `define`:
 
 ## The API
 
+### note about permission levels
+
+- 1: public player
+- 2: vip server owner
+- 3: moderator
+- 4: admin
+
 ### main.ts
 
 basic shobfix environment definitions to interface with your console or provide basic functionality
 
 ```clojure
+#defs:main.ts
+
 (print ...)
 ;; function
-;; prints supplied args to your console
+;; prints supplied args to the console
 
 (clear)
 ;; function
-;; clears your console
+;; clears the console
 
 (typeof arg)
 ;; function
@@ -73,7 +81,7 @@ basic shobfix environment definitions to interface with your console or provide 
 
 (wait n)
 ;; function
-;; alias for Luau wait
+;; alias for Luau `wait()`
 ```
 
 ### dl.ts
@@ -81,6 +89,26 @@ basic shobfix environment definitions to interface with your console or provide 
 deadline environment definitions to do things like set the time, change the map or gamemode
 
 ```clojure
+#defs:dl.ts
+
+(print $dl.players.BIackShibe.name)
+;; readonly string value
+;; name of "BIackShibe", if a player named BIackShibe is ingame
+
+(print $dl.players.BIackShibe.team)
+($dl.players.BIackShibe.team team)
+;; string value
+;; team of "BIackShibe", can be set to either security or insurgent
+
+(print $dl.players.BIackShibe.position)
+($dl.players.BIackShibe.position [x y z])
+;; vector3 value
+;; the position of "BIackShibe", can be set with a vector as shown above
+
+(print (dl.players.BIackShibe.is_alive))
+;; function
+;; returns whether "BIackShibe" is alive
+
 (print $dl.globals.map.lighting)
 ;; readonly string value
 ;; current map lighting
@@ -158,6 +186,26 @@ deadline environment definitions to do things like set the time, change the map 
 (print $dl.globals.version)
 ;; readonly string value
 ;; game version
+
+(dl.util.message message)
+;; admin-restricted function
+;; prints message to server chat without text filtering
+
+(dl.util.fmessage message)
+;; function
+;; prints message to server chat
+
+(dl.util.set_map target_map)
+;; function
+;; sets current map to target_map
+
+(dl.sound.play rbxassetid)
+(dl.sound.play "rbxassetid://2297359893")
+;; 0.19.2+
+;; function
+;; plays a sound globally
+;; placeholder until a sound object is added
+;; in the game
 ```
 
 ## Test
@@ -165,6 +213,8 @@ deadline environment definitions to do things like set the time, change the map 
 Test functions
 
 ```clojure
+#defs:test.ts
+
 (test.lua_error_test)
 ;; function
 ;; Lua error()
@@ -181,5 +231,9 @@ Test functions
 ## Examples
 
 ```clojure
-(dl.util.message "hello world from deadline " $dl.globals.version " rev. " $dl.globals.revision)
+(print "hello world from deadline " $dl.globals.version " rev. " $dl.globals.revision)
+```
+
+```clojure
+(dl.util.set_map "dl_shipment")
 ```
