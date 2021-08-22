@@ -60,6 +60,18 @@ to define variables, use `define`:
 - 3: moderator
 - 4: admin
 
+### index.ts
+
+internal insitux functions
+
+```clojure
+#defs:index.ts
+
+(example "hello world")
+;; readonly internal admin only something tag tag tag function
+;; description goes here
+```
+
 ### main.ts
 
 basic shobfix environment definitions to interface with your console or provide basic functionality
