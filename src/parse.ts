@@ -262,9 +262,9 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
         if (len(ifF)) {
           ins.push({ typ: "jmp", value: len(ifF), errCtx });
           push(ins, ifF);
-        }
-        if (len(parseArg(tokens, params))) {
-          return []; //TODO: emit invalid if warning (too many branches)
+          if (len(parseArg(tokens, params))) {
+            return []; //TODO: emit invalid if warning (too many branches)
+          }
         }
         return ins;
       } else if (op === "and" || op === "or" || op === "while") {

@@ -139,6 +139,10 @@ built-in operations each within an example, with results after a `=>`.
   (define n (inc n)))
 => 012345
 
+;Returns the last argument
+(if true (do (print "hello") 3))
+=> 3
+
 ;Runs built-in Insitux tests
 (tests)
 

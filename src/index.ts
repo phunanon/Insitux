@@ -353,6 +353,13 @@ async function exeOp(
         _num(op === "rand-int" ? randInt(a, b) : randNum(a, b));
       }
       return [];
+    case "do":
+      if (len(args)) {
+        stack.push(args.pop()!);
+      } else {
+        _nul();
+      }
+      return [];
   }
 
   if (isNum(op)) {
