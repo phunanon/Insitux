@@ -15,8 +15,8 @@ import {
 import { ErrCtx, Func, Funcs, Ins, InvokeError } from "./types";
 
 export const ops = [
-  "print-line",
   "print",
+  "print-str",
   "execute-last",
   "define",
   "=",

@@ -42,7 +42,7 @@ operations called _functions_. An example:
 ```clj
 (function say-hello name
   (define greeting "Hello")
-  (print-line greeting ", " name "!"))
+  (print greeting ", " name "!"))
 ```
 
 If you first enter this into the app, then `(say-hello "Patrick")`, it would
@@ -56,17 +56,17 @@ built-in operations each within an example, with results after a `=>`.
 
 ```clj
 ;Prints a line of text, joining its arguments together
-(print-line "2 + 2 = " (+ 2 2))
+(print "2 + 2 = " (+ 2 2))
 => 2 + 2 = 4
 
 ;Prints text without a line after it
-(print "Hello, ")
-(print "world!")
+(print-str "Hello, ")
+(print-str "world!")
 => Hello, world!
 
 ;Defines a variable for later use
 (define my-number 123)
-(print-line my-number)
+(print my-number)
 => 123
 
 ;Various arithmetic operators, which except for `inc` and `dec` accept a variable number of arguments
@@ -142,7 +142,7 @@ built-in operations each within an example, with results after a `=>`.
 
 ```clj
 ;This won't be treated as code
-(print-line "Hello") ;Comment at the end of lines too
+(print "Hello") ;Comment at the end of lines too
 ```
 
 - Write decimal numbers either `0.123` or `.123`.

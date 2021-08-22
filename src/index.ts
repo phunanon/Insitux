@@ -185,7 +185,7 @@ async function exeOp(
         const tests = await performTests();
         const summary = tests.pop()!;
         for (const test of tests) {
-          await exeOp("print-line", [{ v: test, t: "str" }], ctx, errCtx);
+          await exeOp("print", [{ v: test, t: "str" }], ctx, errCtx);
         }
         _str(summary);
       }
@@ -206,7 +206,7 @@ async function exeOp(
       });
       return [];
     case "print":
-    case "print-line":
+    case "print-str":
       {
         ctx.exe(op, [
           { t: "str", v: args.reduce((cat, v) => cat + val2str(v), "") },
@@ -548,7 +548,7 @@ export async function invoke(
   const errors = await exeFunc(ctx, ctx.env.funcs["entry"], []);
   delete ctx.env.funcs["entry"];
   if (!len(errors) && printResult) {
-    await ctx.exe("print-line", [
+    await ctx.exe("print", [
       { t: "str", v: val2str(stack[len(stack) - 1]) },
     ]);
   }
@@ -566,3 +566,5 @@ export function symbols(ctx: Ctx): string[] {
   syms = concat(syms, objKeys(ctx.env.vars));
   return syms;
 }
+
+performTests();

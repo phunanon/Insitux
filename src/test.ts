@@ -27,10 +27,10 @@ async function exe(
 ): Promise<ValAndErr> {
   const nullVal: Val = { t: "null", v: undefined };
   switch (name) {
-    case "print":
+    case "print-str":
       state.output += args[0].v;
       break;
-    case "print-line":
+    case "print":
     case "test.function":
       state.output += args[0].v + "\n";
       break;
@@ -50,7 +50,7 @@ const tests: {
   { name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
   {
     name: "Say Hello, world!",
-    code: `(print-line "Hello, world!")`,
+    code: `(print "Hello, world!")`,
     out: `Hello, world!\nnull`,
   },
   { name: "1 + 1 = 2", code: `(+ 1 1)`, out: `2` },
@@ -69,7 +69,7 @@ const tests: {
   },
   {
     name: "or & short-circuit",
-    code: `[(or true (print "hello") 1) (or false (print "-> ") 1)]`,
+    code: `[(or true (print "hello") 1) (or false (print-str "-> ") 1)]`,
     out: `-> [true 1]`,
   },
   { name: "String retrieve", code: `(2 "Hello")`, out: `l` },
@@ -120,18 +120,18 @@ const tests: {
   },
   {
     name: "Comments, short decimal",
-    code: `;((print-line "Hello")
+    code: `;((print "Hello")
            .456`,
     out: `0.456`,
   },
   //Basic functions
   {
     name: "Define with no call",
-    code: `(function func (print-line "Nothing."))`,
+    code: `(function func (print "Nothing."))`,
   },
   {
     name: "Call greet func",
-    code: `(function greeting (print-line "Hello!")) (greeting)`,
+    code: `(function greeting (print "Hello!")) (greeting)`,
     out: `Hello!\nnull`,
   },
   {
@@ -148,7 +148,7 @@ const tests: {
   },
   {
     name: "Call greet with name",
-    code: `(function greeting name (print-line "Hello, " name "!"))
+    code: `(function greeting name (print "Hello, " name "!"))
            (greeting "Patrick")`,
     out: `Hello, Patrick!\nnull`,
   },
@@ -172,7 +172,7 @@ const tests: {
     name: "While loop",
     code: `(define n 5)
            (while (< 0 n)
-             (print n)
+             (print-str n)
              (define n (dec n)))`,
     out: `543215`,
   },
@@ -180,7 +180,7 @@ const tests: {
   {
     name: "String instead of number",
     code: `(function avg (/ (reduce + %) (len %)))
-           (print-line (avg [1 2 3]))
+           (print (avg [1 2 3]))
            (avg "Hello")`,
     out: `2`,
     err: ["Type Error"],

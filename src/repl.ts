@@ -23,9 +23,9 @@ async function exe(name: string, args: Val[]): Promise<ValAndErr> {
   const nullVal: Val = { v: undefined, t: "null" };
   switch (name) {
     case "print":
-    case "print-line":
+    case "print-str":
       process.stdout.write(args[0].v as string);
-      if (name === "print-line") {
+      if (name === "print") {
         process.stdout.write("\n");
       }
       break;
