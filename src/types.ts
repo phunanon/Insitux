@@ -29,6 +29,7 @@ export type Ctx = {
   exe: (name: string, args: Val[]) => Promise<ValAndErr>;
   env: Env;
   loopBudget: number;
+  callBudget: number;
 };
 
 export type InsType =

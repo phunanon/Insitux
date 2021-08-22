@@ -418,16 +418,17 @@ async function exeFunc(
   func: Func,
   args: Val[]
 ): Promise<InvokeError[]> {
-  ctx.loopBudget -= 10;
+  --ctx.callBudget;
   let savedStackLengths: number[] = [];
   for (let i = 0; i < len(func.ins); ++i) {
     const { typ, value, errCtx } = func.ins[i];
 
-    if (ctx.loopBudget < 1) {
+    const tooManyLoops = ctx.loopBudget < 1;
+    if (tooManyLoops || ctx.callBudget < 1) {
       return [
         {
-          e: "Loop Error",
-          m: "looped or called too many times",
+          e: "Budget Error",
+          m: `${tooManyLoops ? "looped" : "called"} too many times`,
           errCtx,
         },
       ];
@@ -566,5 +567,3 @@ export function symbols(ctx: Ctx): string[] {
   syms = concat(syms, objKeys(ctx.env.vars));
   return syms;
 }
-
-performTests();

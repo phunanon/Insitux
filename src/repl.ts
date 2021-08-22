@@ -17,6 +17,7 @@ const ctx: Ctx = {
   set: async (key: string, val: Val) => env.set(key, val) && undefined,
   exe,
   loopBudget: 10000,
+  callBudget: 1000,
 };
 
 async function exe(name: string, args: Val[]): Promise<ValAndErr> {

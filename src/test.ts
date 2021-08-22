@@ -196,16 +196,16 @@ const tests: {
     err: ["External Error"],
   },
   {
-    name: "Loop budget 1",
+    name: "Call budget",
     code: `(function loop (loop)) (loop)`,
-    err: ["Loop Error"],
+    err: ["Budget Error"],
   },
   {
-    name: "Loop budget 2",
+    name: "Loop budget",
     code: `(define n 10000)
            (while (< 0 n)
              (define n (dec n)))`,
-    err: ["Loop Error"],
+    err: ["Budget Error"],
   },
   //Complex functions
   {
@@ -269,6 +269,7 @@ export async function performTests(): Promise<string[]> {
         exe: (name: string, args: Val[]) => exe(state, name, args),
         env,
         loopBudget: 10000,
+        callBudget: 1000,
       },
       code,
       "testing",
@@ -281,7 +282,11 @@ export async function performTests(): Promise<string[]> {
       padEnd(`${t + 1}`, 3),
       padEnd(name, 24),
       padEnd(`${elapsedMs}ms`, 6),
-      okErr || errors,
+      okErr ||
+        errors.map(
+          ({ e, m, errCtx: { line, col } }) =>
+            `${e} ${line}:${col}: ${m}`
+        ),
     ];
     results.push({
       okErr,
