@@ -1,5 +1,5 @@
 import { invoke } from ".";
-import { concat, len, padEnd, trim } from "./poly-fills";
+import { concat, getTimeMs, len, padEnd, trim } from "./poly-fills";
 import { Env, ExternalError, Val, ValAndErr } from "./types";
 
 type State = { dict: Map<string, Val>; output: string };
@@ -261,7 +261,7 @@ export async function performTests(): Promise<string[]> {
       output: "",
     };
     const env: Env = { funcs: {}, vars: {} };
-    const startTime = new Date().getTime();
+    const startTime = getTimeMs();
     const errors = await invoke(
       {
         get: (key: string) => get(state, key),
@@ -276,7 +276,7 @@ export async function performTests(): Promise<string[]> {
     );
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
     const okOut = !out || trim(state.output) === out;
-    const elapsedMs = new Date().getTime() - startTime;
+    const elapsedMs = getTimeMs() - startTime;
     const [testNum, testName, testElapsed, testErrors] = [
       padEnd(`${t + 1}`, 3),
       padEnd(name, 24),

@@ -25,7 +25,7 @@ async function exe(name: string, args: Val[]): Promise<ValAndErr> {
     case "print":
     case "print-line":
       process.stdout.write(args[0].v as string);
-      if (name == "print-line") {
+      if (name === "print-line") {
         process.stdout.write("\n");
       }
       break;
@@ -55,7 +55,7 @@ function completer(line: string) {
 rl.prompt();
 
 rl.on("line", async line => {
-  if (line == "quit") {
+  if (line === "quit") {
     rl.close();
     return;
   }
