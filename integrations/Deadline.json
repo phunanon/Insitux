@@ -1,203 +1,568 @@
 {
-  "index.ts": {
-    "description": ["internal insitux functions"],
-    "list": [
-      {
-        "directory": "function",
-        "description": [
-          "(function sum a b (+ a b))",
-          "keyword",
-          "Defines a new function."
-        ]
-      },
-      {
-        "directory": "define",
-        "description": [
-          "(define variable-name 123)",
-          "keyword",
-          "Defines a variable for later use."
-        ]
-      },
-      {
-        "directory": "print",
-        "description": [
-          "(print \"2 + 2 = \" (+ 2 2))",
-          "function",
-          "Prints a line of text, joining its arguments together."
-        ]
-      },
-      {
-        "directory": "+",
-        "description": [
-          "(+ 1 2 3)",
-          "function",
-          "Sums together its arguments."
-        ]
-      },
-      {
-        "directory": "-",
-        "description": [
-          "(- 3 2 1)",
-          "function",
-          "Subtracts each argument from the previous in turn."
-        ]
-      },
-      {
-        "directory": "*",
-        "description": [
-          "(* 10 10 10)",
-          "function",
-          "Multiplies all its arguments together."
-        ]
-      },
-      {
-        "directory": "/",
-        "description": [
-          "(/ 10 5 2)",
-          "function",
-          "Divides each argument by the next in turn."
-        ]
-      },
-      {
-        "directory": "inc",
-        "description": [
-          "(inc 123)",
-          "function",
-          "Returns its argument +1 (incremented)."
-        ]
-      },
-      {
-        "directory": "dec",
-        "description": [
-          "(dec 123)",
-          "function",
-          "Returns its argument -1 (decremented)."
-        ]
-      },
-      {
-        "directory": "=",
-        "description": [
-          "(= 123 my-variable)",
-          "function",
-          "Tests if all arguments are equal to one another."
-        ]
-      },
-      {
-        "directory": "!=",
-        "description": [
-          "(!= 123 456)",
-          "function",
-          "Tests if each argument is different from the previous."
-        ]
-      },
-      {
-        "directory": "<",
-        "description": [
-          "(< 1 2 3)",
-          "function",
-          "Tests if arguments are increasing in value."
-        ]
-      },
-      {
-        "directory": ">",
-        "description": [
-          "(> 3 2 1)",
-          "function",
-          "Tests if arguments are decreasing in value."
-        ]
-      },
-      {
-        "directory": "<=",
-        "description": [
-          "(<= 3 3 4 5)",
-          "function",
-          "Tests if arguments are not decreasing in value."
-        ]
-      },
-      {
-        "directory": ">=",
-        "description": [
-          "(>= 4 4 3 2 2 1)",
-          "function",
-          "Tests if arguments are not increasing in value."
-        ]
-      },
-      {
-        "directory": "vec",
-        "description": [
-          "(vec 1 \"hello\" :c)",
-          "function",
-          "Returns a vector of its arguments, exactly as using […]."
-        ]
-      },
-      {
-        "directory": "dict",
-        "description": [
-          "(dict 1 \"hello\" :c \"world\")",
-          "function",
-          "Returns a dictionary of its arguments, exactly as using {…}."
-        ]
-      },
-      {
-        "directory": "len",
-        "description": [
-          "(len \"hello\")",
-          "function",
-          "Returns the length of a string or vector."
-        ]
-      },
-      {
-        "directory": "rand-int",
-        "description": [
-          "(rand-int 10 20)",
-          "function",
-          "Returns a random whole number between its two arguments.",
-          "Or, provided no arguments a random 0 or 1.",
-          "Or, provided one argument a random whole number between 0 and that."
-        ]
-      },
-      {
-        "directory": "rand-num",
-        "description": [
-          "(rand-num)",
-          "function",
-          "Returns a random number between 0 and 1.",
-          "Or, provided one argument a random number between 0 and that.",
-          "Or, provided two arguments a random number between those two."
-        ]
-      },
-      {
-        "directory": "map",
-        "description": [
-          "(map str [0 1 2] \"abc\")",
-          "function",
-          "Returns a vector of calling a function with each of all the items or characters of one or more vectors or strings as arguments."
-        ]
-      },
-      {
-        "directory": "reduce",
-        "description": [
-          "(reduce + [1 2 3])",
-          "function",
-          "Calls a function repeatedly with each vector item or string character and the result from the previous function result."
-        ]
-      },
-      {
-        "directory": "while",
-        "description": [
-          "(while (< n 5) (do-something) (define n (inc n)))",
-          "function",
-          "Runs expressions until its condition (first argument) is false."
-        ]
-      },
-      {
-        "directory": "str",
-        "description": [
-          "(str \"Hello, \" \"world!\")",
-          "function",
-          "Concatenates its arguments into one string."
-        ]
-      }
-    ]
-  }
+	"index.ts": {
+		"description": ["internal insitux functions"],
+		"list": [
+			{
+				"directory": "function",
+				"description": [
+					"(function sum a b (+ a b))",
+					"keyword",
+					"Defines a new function."
+				]
+			},
+			{
+				"directory": "define",
+				"description": [
+					"(define variable-name 123)",
+					"keyword",
+					"Defines a variable for later use."
+				]
+			},
+			{
+				"directory": "print",
+				"description": [
+					"(print \"2 + 2 = \" (+ 2 2))",
+					"function",
+					"Prints a line of text, joining its arguments together."
+				]
+			},
+			{
+				"directory": "+",
+				"description": [
+					"(+ 1 2 3)",
+					"function",
+					"Sums together its arguments."
+				]
+			},
+			{
+				"directory": "-",
+				"description": [
+					"(- 3 2 1)",
+					"function",
+					"Subtracts each argument from the previous in turn."
+				]
+			},
+			{
+				"directory": "*",
+				"description": [
+					"(* 10 10 10)",
+					"function",
+					"Multiplies all its arguments together."
+				]
+			},
+			{
+				"directory": "/",
+				"description": [
+					"(/ 10 5 2)",
+					"function",
+					"Divides each argument by the next in turn."
+				]
+			},
+			{
+				"directory": "inc",
+				"description": [
+					"(inc 123)",
+					"function",
+					"Returns its argument +1 (incremented)."
+				]
+			},
+			{
+				"directory": "dec",
+				"description": [
+					"(dec 123)",
+					"function",
+					"Returns its argument -1 (decremented)."
+				]
+			},
+			{
+				"directory": "=",
+				"description": [
+					"(= 123 my-variable)",
+					"function",
+					"Tests if all arguments are equal to one another."
+				]
+			},
+			{
+				"directory": "!=",
+				"description": [
+					"(!= 123 456)",
+					"function",
+					"Tests if each argument is different from the previous."
+				]
+			},
+			{
+				"directory": "<",
+				"description": [
+					"(< 1 2 3)",
+					"function",
+					"Tests if arguments are increasing in value."
+				]
+			},
+			{
+				"directory": ">",
+				"description": [
+					"(> 3 2 1)",
+					"function",
+					"Tests if arguments are decreasing in value."
+				]
+			},
+			{
+				"directory": "<=",
+				"description": [
+					"(<= 3 3 4 5)",
+					"function",
+					"Tests if arguments are not decreasing in value."
+				]
+			},
+			{
+				"directory": ">=",
+				"description": [
+					"(>= 4 4 3 2 2 1)",
+					"function",
+					"Tests if arguments are not increasing in value."
+				]
+			},
+			{
+				"directory": "vec",
+				"description": [
+					"(vec 1 \"hello\" :c)",
+					"function",
+					"Returns a vector of its arguments, exactly as using […]."
+				]
+			},
+			{
+				"directory": "dict",
+				"description": [
+					"(dict 1 \"hello\" :c \"world\")",
+					"function",
+					"Returns a dictionary of its arguments, exactly as using {…}."
+				]
+			},
+			{
+				"directory": "len",
+				"description": [
+					"(len \"hello\")",
+					"function",
+					"Returns the length of a string or vector."
+				]
+			},
+			{
+				"directory": "rand-int",
+				"description": [
+					"(rand-int 10 20)",
+					"function",
+					"Returns a random whole number between its two arguments.",
+					"Or, provided no arguments a random 0 or 1.",
+					"Or, provided one argument a random whole number between 0 and that."
+				]
+			},
+			{
+				"directory": "rand-num",
+				"description": [
+					"(rand-num)",
+					"function",
+					"Returns a random number between 0 and 1.",
+					"Or, provided one argument a random number between 0 and that.",
+					"Or, provided two arguments a random number between those two."
+				]
+			},
+			{
+				"directory": "map",
+				"description": [
+					"(map str [0 1 2] \"abc\")",
+					"function",
+					"Returns a vector of calling a function with each of all the items or characters of one or more vectors or strings as arguments."
+				]
+			},
+			{
+				"directory": "reduce",
+				"description": [
+					"(reduce + [1 2 3])",
+					"function",
+					"Calls a function repeatedly with each vector item or string character and the result from the previous function result."
+				]
+			},
+			{
+				"directory": "while",
+				"description": [
+					"(while (< n 5) (do-something) (define n (inc n)))",
+					"function",
+					"Runs expressions until its condition (first argument) is false."
+				]
+			},
+			{
+				"directory": "str",
+				"description": [
+					"(str \"Hello, \" \"world!\")",
+					"function",
+					"Concatenates its arguments into one string."
+				]
+			}
+		]
+	},
+	"main.ts": {
+		"description": [
+			"basic shobfix environment definitions to interface with your console or provide basic functionality"
+		],
+		"list": [
+			{
+				"directory": "print",
+				"description": [
+					"(print ...)",
+					"function",
+					"prints supplied args to the console"
+				]
+			},
+			{
+				"directory": "time",
+				"description": [
+					"(print (time))",
+					"function",
+					"Luau `tick()`"
+				]
+			},
+			{
+				"directory": "ticked",
+				"description": [
+					"(ticked ...)",
+					"(function hello xyz (print \"deltatime:\" xyz))",
+					"(ticked hello)",
+					"function",
+					"connects to a shobfix event that runs every 0.1s"
+				]
+			},
+						{
+				"directory": "ticked_kill",
+				"description": [
+					"(ticked_kill)",
+					"function",
+					"kills all ticked connections"
+				]
+			},
+			{
+				"directory": "clear",
+				"description": [
+					"(clear)",
+					"function",
+					"clears the console"
+				]
+			},			
+			{
+				"directory": "typeof",
+				"description": [
+					"(typeof arg)",
+					"function",
+					"returns a string type of `arg`"
+				]
+			},			
+			{
+				"directory": "wait",
+				"description": [
+					"(wait n)",
+					"function",
+					"waits for `n` seconds",
+					"alias for Luau `wait()`"
+				]
+			}
+		]
+	},
+	"dl.ts": {
+		"description": [
+			"deadline environment definitions to do things like set the time, change the map or gamemode"
+		],
+		"list": [
+			{
+				"directory": "$dl.players.${any}.name",
+				"description": [
+					"(print $dl.players.${any}.name)",
+					"readonly string value",
+					"name of \"${any}\", if a player named ${any} is ingame"
+				]
+			},	
+			{
+				"directory": "$dl.players.${any}.kick",
+				"description": [
+					"(dl.players.${any}.kick)",
+					"function",
+					"kicks \"${any}\""
+				]
+			},
+						{
+				"directory": "$dl.players.${any}.serverban",
+				"description": [
+					"(dl.players.${any}.serverban)",
+					"function",
+					"serverbans \"${any}\", preventing them from joining the server they got kicked from"
+				]
+			},
+			{
+				"directory": "$dl.players.${any}.name",
+				"description": [
+					"(print $dl.players.${any}.name)",
+					"readonly string value",
+					"name of \"${any}\", if a player named ${any} is ingame"
+				]
+			},
+			{
+				"directory": "$dl.players.${any}.team",
+				"description": [
+					"(print $dl.players.${any}.team)",
+					"($dl.players.${any}.team team)",
+					"string value",
+					"team of \"${any}\", can be set to either security or insurgent"
+				]
+			},	
+			{
+				"directory": "$dl.players.${any}.position",
+				"description": [
+					"(print $dl.players.${any}.position)",
+					"($dl.players.${any}.position [x y z])",
+					"vector3 value",
+					"the position of \"${any}\", can be set with a vector as shown above"
+				]
+			},	
+			{
+				"directory": "$dl.players.${any}.is_alive",
+				"description": [
+					"(print (dl.players.${any}.is_alive))",
+					"function",
+					"returns whether \"${any}\" is alive"
+				]
+			},
+			{
+				"directory": "$dl.globals.map.lighting",
+				"description": [
+					"(print $dl.globals.map.lighting)",
+					"readonly string value",
+					"current map lighting"
+				]
+			},
+			{
+				"directory": "$dl.globals.map.loaded",
+				"description": [
+					"(print $dl.globals.map.loaded)",
+					"readonly boolean value",
+					"idk to be honest it's completely useless internally"
+				]
+			},
+			{
+				"directory": "$dl.globals.map.title",
+				"description": [
+					"(print $dl.globals.map.title)",
+					"readonly string value",
+					"name of the current map"
+				]
+			},
+			{
+				"directory": "$dl.globals.tags",
+				"description": [
+					"(print $dl.globals.tags)",
+					"unfinished; will likely allow for custom orb tags",
+					"same ones as the ones used for capture points and teammates"
+				]
+			},
+			{
+				"directory": "$dl.globals.team_aliases",
+				"description": [
+					"(print $dl.globals.team_aliases)",
+					"unfinished; will allow to change team names and colors"
+				]
+			},
+			{
+				"directory": "$dl.globals.base_player_weight",
+				"description": [
+					"(print $dl.globals.base_player_weight)",
+					"number value",
+					"default player weight; before any weapon weight calculation is done"
+				]
+			},
+			{
+				"directory": "$dl.globals.base_player_weight",
+				"description": [
+					"(print $dl.globals.base_player_weight)",
+					"number value",
+					"default player weight; before any weapon weight calculation is done"
+				]
+			},
+			{
+				"directory": "$dl.globals.builder_revision",
+				"description": [
+					"(print $dl.globals.builder_revision)",
+					"readonly number value",
+					"current revision of the weapon builder"
+				]
+			},
+			{
+				"directory": "$dl.globals.channel_type",
+				"description": [
+					"(print $dl.globals.channel_type)",
+					"readonly string value",
+					"game channel type"
+				]
+			},
+			{
+				"directory": "$dl.globals.chat_tip_frequency",
+				"description": [
+					"(print $dl.globals.chat_tip_frequency)",
+					"number value",
+					"frequency of chat tips"
+				]
+			},
+			{
+				"directory": "$dl.globals.chat_tips_enabled",
+				"description": [
+					"(print $dl.globals.chat_tips_enabled)",
+					"bool value",
+					"sets whether chat tips appear"
+				]
+			},
+			{
+				"directory": "$dl.globals.day_cycle_speed",
+				"description": [
+					"(print $dl.globals.day_cycle_speed)",
+					"number value",
+					"how quickly the day passes"
+				]
+			},
+			{
+				"directory": "$dl.globals.disable_attachment_checks",
+				"description": [
+					"(print $dl.globals.disable_attachment_checks)",
+					"bool value",
+					"disables most builder attachment validity checks"
+				]
+			},
+			{
+				"directory": "$dl.globals.editor_mount_any",
+				"description": [
+					"(print $dl.globals.editor_mount_any)",
+					"bool value",
+					"disables mount_type builder validity checks, extremely stupid"
+				]
+			},
+			{
+				"directory": "$dl.globals.revision",
+				"description": [
+					"(print $dl.globals.revision)",
+					"readonly number value",
+					"game revision"
+				]
+			},
+			{
+				"directory": "$dl.globals.jump_frequency",
+				"description": [
+					"(print $dl.globals.jump_frequency)",
+					"number value",
+					"how often the players can jump"
+				]
+			},
+			{
+				"directory": "$dl.globals.pvp",
+				"description": [
+					"(print $dl.globals.pvp)",
+					"bool value",
+					"whether pvp is enabled"
+				]
+			},
+			{
+				"directory": "$dl.globals.spawn_enabled",
+				"description": [
+					"(print $dl.globals.spawn_enabled)",
+					"bool value",
+					"whether spawning is enabled"
+				]
+			},
+			{
+				"directory": "$dl.globals.team_kill",
+				"description": [
+					"(print $dl.globals.team_kill)",
+					"bool value",
+					"whether teamkilling is enabled"
+				]
+			},
+			{
+				"directory": "$dl.globals.time_offset",
+				"description": [
+					"(print $dl.globals.time_offset)",
+					"number value",
+					"day cycle offset in hours"
+				]
+			},
+			{
+				"directory": "$dl.globals.version",
+				"description": [
+					"(print $dl.globals.version)",
+					"readonly string value",
+					"game version"
+				]
+			},
+			{
+				"directory": "$dl.util.message",
+				"description": [
+					"(print $dl.util.message message)",
+					"admin-restricted function",
+					"prints message to server chat without text filtering"
+				]
+			},
+			{
+				"directory": "$dl.util.fmessage",
+				"description": [
+					"(print $dl.util.fmessage message)",
+					"admin-restricted function",
+					"prints message to server chat"
+				]
+			},
+			{
+				"directory": "$dl.util.set_map",
+				"description": [
+					"(print $dl.util.set_map target_map)",
+					"function",
+					"sets current map to target_map"
+				]
+			},
+			{
+				"directory": "$dl.sound.play",
+				"description": [
+					"(dl.sound.play rbxassetid)",
+					"(dl.sound.play \"rbxassetid://2297359893\")",
+					"0.19.2+",
+					"function",
+					"plays a sound globally",
+					"placeholder until a sound object is added",
+					"in the game"
+				]
+			}
+		]
+	},
+	"test.ts": {
+		"description": [
+			"test functions"
+		],
+		"list": [
+			{
+				"directory": "$test.lua_error_test",
+				"description": [
+					"function",
+					"shobfix error"
+				]
+			},			
+			{
+				"directory": "$test.shobfix_generic_error_test",
+				"description": [
+					"function",
+					"shobfix error"
+				]
+			},			
+			{
+				"directory": "$test.shobfix_perm_error_test",
+				"description": [
+					"function",
+					"permission error"
+				]
+			}
+		]
+	}
 }
+
+
+
