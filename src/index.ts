@@ -413,7 +413,7 @@ function opFromName(
     : (params: Val[]) => exeOp(op, params, ctx, errCtx);
 }
 
-async function exeFunc(
+export async function exeFunc(
   ctx: Ctx,
   func: Func,
   args: Val[]

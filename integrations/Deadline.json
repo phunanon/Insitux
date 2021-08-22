@@ -1,0 +1,203 @@
+{
+  "index.ts": {
+    "description": ["internal insitux functions"],
+    "list": [
+      {
+        "directory": "function",
+        "description": [
+          "(function sum a b (+ a b))",
+          "keyword",
+          "Defines a new function."
+        ]
+      },
+      {
+        "directory": "define",
+        "description": [
+          "(define variable-name 123)",
+          "keyword",
+          "Defines a variable for later use."
+        ]
+      },
+      {
+        "directory": "print",
+        "description": [
+          "(print \"2 + 2 = \" (+ 2 2))",
+          "function",
+          "Prints a line of text, joining its arguments together."
+        ]
+      },
+      {
+        "directory": "+",
+        "description": [
+          "(+ 1 2 3)",
+          "function",
+          "Sums together its arguments."
+        ]
+      },
+      {
+        "directory": "-",
+        "description": [
+          "(- 3 2 1)",
+          "function",
+          "Subtracts each argument from the previous in turn."
+        ]
+      },
+      {
+        "directory": "*",
+        "description": [
+          "(* 10 10 10)",
+          "function",
+          "Multiplies all its arguments together."
+        ]
+      },
+      {
+        "directory": "/",
+        "description": [
+          "(/ 10 5 2)",
+          "function",
+          "Divides each argument by the next in turn."
+        ]
+      },
+      {
+        "directory": "inc",
+        "description": [
+          "(inc 123)",
+          "function",
+          "Returns its argument +1 (incremented)."
+        ]
+      },
+      {
+        "directory": "dec",
+        "description": [
+          "(dec 123)",
+          "function",
+          "Returns its argument -1 (decremented)."
+        ]
+      },
+      {
+        "directory": "=",
+        "description": [
+          "(= 123 my-variable)",
+          "function",
+          "Tests if all arguments are equal to one another."
+        ]
+      },
+      {
+        "directory": "!=",
+        "description": [
+          "(!= 123 456)",
+          "function",
+          "Tests if each argument is different from the previous."
+        ]
+      },
+      {
+        "directory": "<",
+        "description": [
+          "(< 1 2 3)",
+          "function",
+          "Tests if arguments are increasing in value."
+        ]
+      },
+      {
+        "directory": ">",
+        "description": [
+          "(> 3 2 1)",
+          "function",
+          "Tests if arguments are decreasing in value."
+        ]
+      },
+      {
+        "directory": "<=",
+        "description": [
+          "(<= 3 3 4 5)",
+          "function",
+          "Tests if arguments are not decreasing in value."
+        ]
+      },
+      {
+        "directory": ">=",
+        "description": [
+          "(>= 4 4 3 2 2 1)",
+          "function",
+          "Tests if arguments are not increasing in value."
+        ]
+      },
+      {
+        "directory": "vec",
+        "description": [
+          "(vec 1 \"hello\" :c)",
+          "function",
+          "Returns a vector of its arguments, exactly as using […]."
+        ]
+      },
+      {
+        "directory": "dict",
+        "description": [
+          "(dict 1 \"hello\" :c \"world\")",
+          "function",
+          "Returns a dictionary of its arguments, exactly as using {…}."
+        ]
+      },
+      {
+        "directory": "len",
+        "description": [
+          "(len \"hello\")",
+          "function",
+          "Returns the length of a string or vector."
+        ]
+      },
+      {
+        "directory": "rand-int",
+        "description": [
+          "(rand-int 10 20)",
+          "function",
+          "Returns a random whole number between its two arguments.",
+          "Or, provided no arguments a random 0 or 1.",
+          "Or, provided one argument a random whole number between 0 and that."
+        ]
+      },
+      {
+        "directory": "rand-num",
+        "description": [
+          "(rand-num)",
+          "function",
+          "Returns a random number between 0 and 1.",
+          "Or, provided one argument a random number between 0 and that.",
+          "Or, provided two arguments a random number between those two."
+        ]
+      },
+      {
+        "directory": "map",
+        "description": [
+          "(map str [0 1 2] \"abc\")",
+          "function",
+          "Returns a vector of calling a function with each of all the items or characters of one or more vectors or strings as arguments."
+        ]
+      },
+      {
+        "directory": "reduce",
+        "description": [
+          "(reduce + [1 2 3])",
+          "function",
+          "Calls a function repeatedly with each vector item or string character and the result from the previous function result."
+        ]
+      },
+      {
+        "directory": "while",
+        "description": [
+          "(while (< n 5) (do-something) (define n (inc n)))",
+          "function",
+          "Runs expressions until its condition (first argument) is false."
+        ]
+      },
+      {
+        "directory": "str",
+        "description": [
+          "(str \"Hello, \" \"world!\")",
+          "function",
+          "Concatenates its arguments into one string."
+        ]
+      }
+    ]
+  }
+}

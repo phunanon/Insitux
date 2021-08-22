@@ -91,6 +91,10 @@ built-in operations each within an example, with results after a `=>`.
 [1 "hello" :c]
 (vec 1 "hello" :c)
 
+;Creates a dictionary of values in two different ways
+{:a 123 "hello" "world"}
+(dict :a 123 "hello" "world")
+
 ;The length of a string of text or a vector
 (print (len "Hello!") " ")
 (print (len [0 1 2]))
@@ -134,6 +138,12 @@ built-in operations each within an example, with results after a `=>`.
   (print n)
   (define n (inc n)))
 => 012345
+
+;Runs built-in Insitux tests
+(tests)
+
+;Returns Insitux version
+(version)
 ```
 
 ### Miscellaneous
