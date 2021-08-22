@@ -1,3 +1,5 @@
+export const insituxVersion = 20210822;
+
 import { ops, minArities, argsMustBeNum, parse } from "./parse";
 import {
   concat,
@@ -176,11 +178,11 @@ async function exeOp(
 
   switch (op) {
     case "version":
-      _num(20210815);
+      _num(insituxVersion);
       return [];
     case "tests":
       {
-        const tests = await performTests()
+        const tests = await performTests();
         const summary = tests.pop()!;
         for (const test of tests) {
           await exeOp("print-line", [{ v: test, t: "str" }], ctx, errCtx);
