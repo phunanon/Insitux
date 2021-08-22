@@ -371,6 +371,9 @@ async function exeOp(
       case "str":
         _str(strIdx(str(args[0]), toNum(op)));
         break;
+      default:
+        _nul();
+        break;
     }
     return [];
   } else {
