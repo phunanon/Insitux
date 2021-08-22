@@ -51,14 +51,15 @@ to define variables, use `define`:
 ;; prints hi (0.5)
 ```
 
-## The API
 
-### note about permission levels
+## Permission levels
 
 - 1: public player
 - 2: vip server owner
 - 3: moderator
 - 4: admin
+
+## The API
 
 ### index.ts
 
