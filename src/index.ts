@@ -154,7 +154,7 @@ async function exeOp(
   errCtx: ErrCtx
 ): Promise<InvokeError[]> {
   //Arity checks
-  if (isNum(op) || starts(op, ":")) {
+  if (isNum(op) || starts(op, ":") || starts(op, "$")) {
     if (len(args) !== 1) {
       return [{ e: "Arity Error", m: `use one argument only`, errCtx }];
     }
