@@ -287,7 +287,7 @@
 					"kicks \"${any}\""
 				]
 			},
-						{
+			{
 				"directory": "$dl.players.${any}.serverban",
 				"description": [
 					"(dl.players.${any}.serverban)",
@@ -296,11 +296,19 @@
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.name",
+				"directory": "$dl.players.${any}.explode",
 				"description": [
-					"(print $dl.players.${any}.name)",
-					"readonly string value",
-					"name of \"${any}\", if a player named ${any} is ingame"
+					"(dl.players.${any}.explode)",
+					"function",
+					"blows up ${any}"
+				]
+			},
+			{
+				"directory": "$dl.players.${any}.kill",
+				"description": [
+					"(dl.players.${any}.kill)",
+					"function",
+					"kills ${any}"
 				]
 			},
 			{
@@ -502,6 +510,16 @@
 					"(print $dl.util.message message)",
 					"admin-restricted function",
 					"prints message to server chat without text filtering"
+				]
+			},
+						{
+				"directory": "$dl.util.explosion",
+				"description": [
+					"(dl.util.explosion [x y z] grenade)",
+					"(dl.util.explosion [0 0 0])",
+					"(dl.util.explosion [0 0 0] \"TestGrenade\")",
+					"function",
+					"causes an explosion at position x y z with the specified grenade"
 				]
 			},
 			{
