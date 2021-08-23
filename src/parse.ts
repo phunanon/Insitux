@@ -91,6 +91,7 @@ function tokenise(code: string, invocationId: string) {
   const tokens: Token[] = [];
   const digits = "0123456789";
   let inString = false,
+    inStringAt = [0, 0],
     inSymbol = false,
     inNumber = false,
     inComment = false,
@@ -110,6 +111,7 @@ function tokenise(code: string, invocationId: string) {
     }
     if (c === '"') {
       if ((inString = !inString)) {
+        inStringAt = [line, col];
         tokens.push({
           typ: "str",
           text: "",
@@ -178,7 +180,7 @@ function tokenise(code: string, invocationId: string) {
     }
     tokens[len(tokens) - 1].text += c;
   }
-  return tokens;
+  return { tokens, stringError: inString ? inStringAt : undefined };
 }
 
 function segment(tokens: Token[]): Token[][] {
@@ -419,8 +421,64 @@ function syntaxise(
   return { func: { name, ins } };
 }
 
-function tokenErrorDetect(tokens: Token[], invocationId: string) {
-  //Check for empty expression
+function findParenImbalance(
+  tokens: Token[],
+  numL: number,
+  numR: number
+): [number, number] {
+  //Scan for first instance of untimely closed
+  //  or last instance of unclosed open
+  const untimely = numR > numL;
+  const [l, r] = [untimely ? "(" : ")", untimely ? ")" : "("];
+  const direction = untimely ? 1 : -1;
+  for (
+    let t = 0, depth = 0;
+    untimely ? t < len(tokens) : t >= 0;
+    t += direction
+  ) {
+    const {
+      typ,
+      errCtx: { line, col },
+    } = tokens[t];
+    depth += toNum(typ === l) - toNum(typ === r);
+    if (depth < 0) {
+      return [line, col];
+    }
+  }
+  return [0, 0];
+}
+
+function errorDetect(
+  stringError: number[] | undefined,
+  tokens: Token[],
+  invocationId: string
+) {
+  const errors: InvokeError[] = [];
+
+  //Check for paren imbalance
+  const countTyp = (t: Token["typ"]) =>
+    len(tokens.filter(({ typ }) => typ === t));
+  const [numL, numR] = [countTyp("("), countTyp(")")];
+  if (numL !== numR) {
+    const [line, col] = findParenImbalance(tokens, numL, numR);
+    errors.push({
+      e: "Parse Error",
+      m: `unmatched parenthesis`,
+      errCtx: { invocationId, line, col },
+    });
+  }
+
+  //Check for double-quote imbalance
+  if (stringError) {
+    const [line, col] = stringError;
+    errors.push({
+      e: "Parse Error",
+      m: `unmatched double quotation marks`,
+      errCtx: { invocationId, line, col },
+    });
+  }
+
+  //Check for any empty expressions
   let emptyHead: Token | undefined;
   for (let t = 0, lastWasL = false; t < len(tokens); ++t) {
     if (lastWasL && tokens[t].typ === ")") {
@@ -428,19 +486,6 @@ function tokenErrorDetect(tokens: Token[], invocationId: string) {
       break;
     }
     lastWasL = tokens[t].typ === "(";
-  }
-  //Check for paren imbalance
-  const numL = len(tokens.filter(({ typ }) => typ === "("));
-  const numR = len(tokens.filter(({ typ }) => typ === ")"));
-  const imbalanced = numL !== numR;
-
-  const errors: InvokeError[] = [];
-  if (imbalanced) {
-    errors.push({
-      e: "Parse Error",
-      m: `there are unmatched parentheses`,
-      errCtx: { invocationId, line: 0, col: 0 },
-    });
   }
   if (emptyHead) {
     errors.push({
@@ -456,8 +501,8 @@ export function parse(
   code: string,
   invocationId: string
 ): { funcs: Funcs; errors: InvokeError[] } {
-  const tokens = tokenise(code, invocationId);
-  const tokenErrors = tokenErrorDetect(tokens, invocationId);
+  const { tokens, stringError } = tokenise(code, invocationId);
+  const tokenErrors = errorDetect(stringError, tokens, invocationId);
   const segments = segment(tokens);
   const labelled = funcise(segments);
   const funcsAndErrors = labelled.map(named =>

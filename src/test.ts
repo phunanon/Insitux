@@ -236,6 +236,16 @@ const tests: {
     err: ["Parse Error"],
   },
   {
+    name: "Imbalanced quotes 1",
+    code: `(print "Hello)`,
+    err: ["Parse Error", "Parse Error"],
+  },
+  {
+    name: "Imbalanced quotes 2",
+    code: `print "Hello")`,
+    err: ["Parse Error"],
+  },
+  {
     name: "Function as op",
     code: `(function)`,
     err: ["Parse Error"],
