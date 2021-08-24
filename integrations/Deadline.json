@@ -197,6 +197,22 @@
 					"function",
 					"Concatenates its arguments into one string."
 				]
+			},
+			{
+				"directory": "apply",
+				"description": [
+					"(apply + [0 1] 2 [3 4])",
+					"function",
+					"Applies a vector's items and other arguments as the arguments to a function."
+				]
+			},
+			{
+				"directory": "into",
+				"description": [
+					"(into [0 1] {3 4 5 6})",
+					"function",
+					"Returns the concatenation of vectors and dictionaries."
+				]
 			}
 		]
 	},

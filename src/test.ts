@@ -124,6 +124,16 @@ const tests: {
            .456`,
     out: `0.456`,
   },
+  {
+    name: "Dictionary into vector",
+    code: `(into [1 2] {3 4 5 6})`,
+    out: `[1 2 3 4 5 6]`,
+  },
+  {
+    name: "Vector into dictionary",
+    code: `(into {[0] 1 [2] 3} [[0] 2])`,
+    out: `{[0] 2, [2] 3}`,
+  },
   //Basic functions
   {
     name: "Define with no call",
@@ -294,8 +304,7 @@ export async function performTests(): Promise<string[]> {
       padEnd(`${elapsedMs}ms`, 6),
       okErr ||
         errors.map(
-          ({ e, m, errCtx: { line, col } }) =>
-            `${e} ${line}:${col}: ${m}`
+          ({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`
         ),
     ];
     results.push({

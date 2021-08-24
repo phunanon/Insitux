@@ -40,6 +40,8 @@ export const ops = [
   "rand-num",
   "rand-int",
   "while",
+  "apply",
+  "into",
   "version",
   "tests",
 ];
@@ -61,6 +63,8 @@ export const minArities: { [op: string]: number } = {
   len: 1,
   map: 2,
   reduce: 2,
+  apply: 2,
+  into: 2,
 };
 
 export const argsMustBeNum = [

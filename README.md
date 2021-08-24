@@ -125,7 +125,7 @@ built-in operations each within an example, with results after a `=>`.
 ;Note that it only iterates by the minimum number of vector items
 (map double [0 1 2 3])    => [0 2 4 6]
 (map + [0 1 2 3] [4 5 6]) => [4 5 8]
-(map str "abc" "xyz")     => [ax by cz]
+(map str "abc" "xyz")     => ["ax" "by" "cz"]
 
 ;"Reduces" a vector into one value through a function, also accepting an initial value as its second argument
 (reduce + [1 2 3])   => 6
@@ -140,8 +140,18 @@ built-in operations each within an example, with results after a `=>`.
 => 012345
 
 ;Returns the last argument
-(if true (do (print "hello") 3))
-=> 3
+(do (print-str "hello") 1 2 3)
+=> hello3
+
+;Returns the concatenation of vectors and dictionaries
+(into {} [0 1 2 3 4 5])         => {0 1, 2 3, 4 5}
+(into [] {:a "hi" :b "bye"})    => [:a "hi" :b "bye"]
+(into {:a 123 :b 456} {:a 456}) => {:a 456 :b 456}
+(into [1 2 3] [4 5 6])          => [1 2 3 4 5 6]
+
+;Applies a vector's items and other arguments as the arguments to a function
+(apply + [0 1 2] 3 [4 5 6])
+=> 21
 
 ;Runs built-in Insitux tests
 (tests)

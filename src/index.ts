@@ -3,6 +3,7 @@ export const insituxVersion = 20210822;
 import { ops, minArities, argsMustBeNum, parse } from "./parse";
 import {
   concat,
+  flat,
   has,
   isNum,
   len,
@@ -53,13 +54,14 @@ const _num = (v: number) => stack.push({ t: "num", v });
 const _str = (v: string) => stack.push({ t: "str", v });
 const _key = (v: string) => stack.push({ t: "key", v });
 const _vec = (v: Val[]) => stack.push({ t: "vec", v });
+const _dic = (v: Dict) => stack.push({ t: "dict", v });
 const _ref = (v: string) => stack.push({ t: "ref", v });
 const _nul = () => stack.push({ t: "null", v: undefined });
 const _fun = (v: string) => stack.push({ t: "func", v });
 const num = ({ v }: Val) => v as number;
 const str = ({ v }: Val) => v as string;
 const vec = ({ v }: Val) => v as Val[];
-const dict = ({ v }: Val) => v as Dict;
+const dic = ({ v }: Val) => v as Dict;
 const asBoo = ({ t, v }: Val) => (t === "bool" ? (v as boolean) : t !== "null");
 
 const asArray = ({ t, v }: Val): Val[] =>
@@ -67,7 +69,32 @@ const asArray = ({ t, v }: Val): Val[] =>
     ? slice(v as Val[])
     : t === "str"
     ? [...(v as string)].map(s => ({ t: "str", v: s }))
+    : t === "dict"
+    ? flat((v as Dict).keys.map((k, i) => [k, (v as Dict).vals[i]]))
     : [];
+
+const toDict = (args: Val[]): Val => {
+  if (len(args) % 2 === 1) {
+    args.pop();
+  }
+  const keys = args.filter((_, i) => i % 2 === 0);
+  const vals = args.filter((_, i) => i % 2 === 1);
+  const ddKeys: Val[] = [],
+    ddVals: Val[] = [];
+  keys.forEach((key, i) => {
+    const existingIdx = ddKeys.findIndex(k => isEqual(k, key));
+    if (existingIdx === -1) {
+      ddKeys.push(key);
+      ddVals.push(vals[i]);
+    } else {
+      ddVals[existingIdx] = vals[i];
+    }
+  });
+  return {
+    t: "dict",
+    v: { keys: ddKeys, vals: ddVals },
+  };
+};
 
 const typeErr = (m: string, errCtx: ErrCtx): InvokeError => ({
   e: "Type Error",
@@ -79,7 +106,7 @@ const isVecEqual = (a: Val[], b: Val[]): boolean =>
   len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
 
 const isDictEqual = (a: Val, b: Val): boolean => {
-  const [ad, bd] = [dict(a), dict(b)];
+  const [ad, bd] = [dic(a), dic(b)];
   return len(ad.keys) === len(bd.keys) && isVecEqual(ad.keys, bd.keys);
 };
 
@@ -217,18 +244,10 @@ async function exeOp(
     case "vec":
       _vec(args);
       return [];
-    case "dict":
-      if (len(args) % 2 === 1) {
-        args.pop();
-      }
-      stack.push({
-        t: "dict",
-        v: {
-          keys: args.filter((_, i) => i % 2 === 0),
-          vals: args.filter((_, i) => i % 2 === 1),
-        },
-      });
+    case "dict": {
+      stack.push(toDict(args));
       return [];
+    }
     case "len":
       if (args[0].t === "str") {
         _num(slen(str(args[0])));
@@ -360,6 +379,38 @@ async function exeOp(
         _nul();
       }
       return [];
+    case "apply": {
+      const closure = opFromName(ctx, str(args.shift()!), errCtx);
+      return await closure(flat(args.map(a => (a.t === "vec" ? vec(a) : [a]))));
+    }
+    case "into": {
+      const a0v = args[0].t === "vec";
+      const a0d = args[0].t === "dict";
+      const a1v = args[1].t === "vec";
+      const a1d = args[1].t === "dict";
+      if ((!a0v && !a0d) || (!a1v && !a1d)) {
+        return [
+          {
+            e: "Type Error",
+            m: "each argument must be a vector or dictionary",
+            errCtx,
+          },
+        ];
+      }
+      if (a0v) {
+        _vec(concat(vec(args[0]), a1v ? vec(args[1]) : asArray(args[1])));
+      } else {
+        if (a1v) {
+          const v1 = asArray(args[1]);
+          stack.push(toDict(concat(asArray(args[0]), v1)));
+        } else {
+          const { keys, vals } = dic(args[0]);
+          const d1 = dic(args[1]);
+          _dic({ keys: concat(keys, d1.keys), vals: concat(vals, d1.vals) });
+        }
+      }
+      return [];
+    }
   }
 
   if (isNum(op)) {
@@ -386,7 +437,7 @@ async function exeOp(
       if (args[0].t !== "dict") {
         return [typeErr(`argument 1 wasn't a dict`, errCtx)];
       }
-      stack.push(dictGet(dict(args[0]), { t: "key", v: op }));
+      stack.push(dictGet(dic(args[0]), { t: "key", v: op }));
       return [];
     }
   }
@@ -559,9 +610,7 @@ export async function invoke(
   const errors = await exeFunc(ctx, ctx.env.funcs["entry"], []);
   delete ctx.env.funcs["entry"];
   if (!len(errors) && printResult) {
-    await ctx.exe("print", [
-      { t: "str", v: val2str(stack[len(stack) - 1]) },
-    ]);
+    await ctx.exe("print", [{ t: "str", v: val2str(stack[len(stack) - 1]) }]);
   }
   stack = [];
   return errors;
