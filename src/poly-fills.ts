@@ -7,7 +7,9 @@ export const len = (arr: unknown[]): number => arr.length;
 export const slen = (str: string): number => str.length;
 export const isNum = (x: unknown): x is number => !Number.isNaN(Number(x));
 export const min = Math.min;
-export const substr = (str: string, start: number): string => str.substr(start);
+export const max = Math.max;
+export const substr = (str: string, start: number, length?: number): string =>
+  str.substr(start, length);
 export const strIdx = (str: string, idx: number): string => str[idx];
 export const sub = (x: string, s: string): boolean => x.includes(s);
 export const has = <T>(x: T[], y: T): boolean => x.includes(y);
@@ -21,3 +23,4 @@ export const randNum = (a: number, b: number) => a + Math.random() * (b - a);
 export const randInt = (a: number, b: number) => Math.floor(randNum(a, b));
 export const objKeys = (x: object) => Object.keys(x);
 export const getTimeMs = () => new Date().getTime();
+export const abs = (n: number) => (n < 0 ? -n : n);

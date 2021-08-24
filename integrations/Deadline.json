@@ -213,6 +213,14 @@
 					"function",
 					"Returns the concatenation of vectors and dictionaries."
 				]
+			},
+			{
+				"directory": "sect",
+				"description": [
+					"(sect \"Hello, world!\" 1 3)",
+					"function",
+					"Returns a section of a vector or string."
+				]
 			}
 		]
 	},

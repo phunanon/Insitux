@@ -1,12 +1,14 @@
-export const insituxVersion = 20210822;
+export const insituxVersion = 20210824;
 
 import { ops, minArities, argsMustBeNum, parse } from "./parse";
 import {
+  abs,
   concat,
   flat,
   has,
   isNum,
   len,
+  max,
   min,
   objKeys,
   push,
@@ -51,9 +53,9 @@ const val2str = ({ v, t }: Val): string => {
 let stack: Val[] = [];
 const _boo = (v: boolean) => stack.push({ t: "bool", v });
 const _num = (v: number) => stack.push({ t: "num", v });
-const _str = (v: string) => stack.push({ t: "str", v });
+const _str = (v: string = "") => stack.push({ t: "str", v });
 const _key = (v: string) => stack.push({ t: "key", v });
-const _vec = (v: Val[]) => stack.push({ t: "vec", v });
+const _vec = (v: Val[] = []) => stack.push({ t: "vec", v });
 const _dic = (v: Dict) => stack.push({ t: "dict", v });
 const _ref = (v: string) => stack.push({ t: "ref", v });
 const _nul = () => stack.push({ t: "null", v: undefined });
@@ -389,13 +391,7 @@ async function exeOp(
       const a1v = args[1].t === "vec";
       const a1d = args[1].t === "dict";
       if ((!a0v && !a0d) || (!a1v && !a1d)) {
-        return [
-          {
-            e: "Type Error",
-            m: "each argument must be a vector or dictionary",
-            errCtx,
-          },
-        ];
+        return [typeErr("each argument must be vector or dictionary", errCtx)];
       }
       if (a0v) {
         _vec(concat(vec(args[0]), a1v ? vec(args[1]) : asArray(args[1])));
@@ -408,6 +404,41 @@ async function exeOp(
           const d1 = dic(args[1]);
           _dic({ keys: concat(keys, d1.keys), vals: concat(vals, d1.vals) });
         }
+      }
+      return [];
+    }
+    case "sect": {
+      const isVec = args[0].t === "vec";
+      const isStr = args[0].t === "str";
+      if (!isVec && !isStr) {
+        return [typeErr("first argument must be vector or string", errCtx)];
+      }
+      if (len(args) > 1 && args[1].t !== "num") {
+        return [typeErr("second argument must be number", errCtx)];
+      }
+      if (len(args) > 2) {
+        if (args[2].t !== "num") {
+          return [typeErr("third argument must be number", errCtx)];
+        }
+      }
+      let skip = len(args) > 1 ? num(args[1]) : 1;
+      const v = args[0];
+      const vlen = isVec ? len(vec(v)) : slen(str(v));
+      const take = min(
+        max(len(args) > 2 ? num(args[2]) : vlen - abs(skip), 0),
+        vlen
+      );
+      if (abs(skip) > vlen) {
+        (isVec ? _vec : _str)();
+        return [];
+      }
+      if (isVec) {
+        const [a, b] =
+          skip < 0 ? [vlen + skip, vlen + skip + take] : [skip, skip + take];
+        _vec(slice(vec(v), a, b));
+      } else {
+        const [start, length] = [skip < 0 ? vlen + skip : skip, take];
+        _str(substr(str(args[0]), start, length));
       }
       return [];
     }

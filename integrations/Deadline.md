@@ -174,7 +174,12 @@ internal insitux functions
 
 (into [0 1] {3 4 5 6})
 ;; function
-;; Returns the concatenation of vectors and dictionaries.```
+;; Returns the concatenation of vectors and dictionaries.
+
+(sect "Hello, world!" 1 3)
+;; function
+;; Returns a section of a vector or string.
+```
 
 ### main.ts
 

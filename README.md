@@ -149,6 +149,13 @@ built-in operations each within an example, with results after a `=>`.
 (into {:a 123 :b 456} {:a 456}) => {:a 456 :b 456}
 (into [1 2 3] [4 5 6])          => [1 2 3 4 5 6]
 
+;Returns a section of a vector or string
+(sect [1 2 3 4])        => [2 3 4]
+(sect [1 2 3 4] 2)      => [3 4]
+(sect "Hello" -1)       => "Hell"
+(sect "Hello" 1 3)      => "ell"
+(sect [1 2 3 4 5] -2 2) => [2 3]
+
 ;Applies a vector's items and other arguments as the arguments to a function
 (apply + [0 1 2] 3 [4 5 6])
 => 21

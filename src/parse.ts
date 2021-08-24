@@ -42,6 +42,7 @@ export const ops = [
   "while",
   "apply",
   "into",
+  "sect",
   "version",
   "tests",
 ];
@@ -65,6 +66,7 @@ export const minArities: { [op: string]: number } = {
   reduce: 2,
   apply: 2,
   into: 2,
+  sect: 1,
 };
 
 export const argsMustBeNum = [
