@@ -462,7 +462,16 @@
 					"readonly string value",
 					"name of \"${any}\", if a player named ${any} is ingame"
 				]
-			},	
+			},
+			{
+				"directory": "$dl.players.${any}.health",
+				"description": [
+				    "(print $dl.players.${any}.health)",
+				    "number value",
+				    "health of \"${any}\", if they are alive",
+							"returns -1 if they are not"
+				]
+		    	},
 			{
 				"directory": "$dl.players.${any}.kick",
 				"description": [
