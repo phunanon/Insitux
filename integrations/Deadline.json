@@ -748,7 +748,7 @@
 				"description": [
 					"(print (dl.list_players))",
 					"function",
-					"lists all players in the game",
+					"lists all players in the game"
 				]
 			}
 		]
