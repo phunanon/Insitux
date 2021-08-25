@@ -69,13 +69,33 @@ built-in operations each within an example, with results after a `=>`.
 (print my-number)
 => 123
 
-;Various arithmetic operators, which except for `inc` and `dec` accept a variable number of arguments
+;Yields the mathematical Pi
+(pi) => 3.141592653589793
+
+;Various arithmetic operators which take one or more arguments
 (+ 1 1 1)    => 3
 (- 10 5 1)   => 4
 (* 10 10 10) => 1000
 (/ 10 3)     => 3.333333
+
+;Various arithmetic functions which take one argument only
 (inc 100)    => 101
 (dec 50)     => 49
+(abs -123)   => 123
+(sin (pi))   => ~0
+(cos (pi))   => -1
+(tan (* 45 (/ (pi) 180)))
+=> ~1
+(sqrt 25)    => 5
+(round 3.5)  => 4
+(floor 2.7)  => 2
+(ceil 2.1)   => 3
+
+;Various arithmetic functions which take two or more arguments
+(** 10 2)   => 100
+(rem 10 3)  => 1
+(min 1 2 3) => 1
+(max 1 2 3) => 3
 
 ;Various equality operators, which all accept a variable number of arguments
 ;Note: < > <= >= only compare numbers
@@ -95,10 +115,10 @@ built-in operations each within an example, with results after a `=>`.
 {:a 123 "hello" "world"}
 (dict :a 123 "hello" "world")
 
-;The length of a string of text or a vector
-(print (len "Hello!") " ")
-(print (len [0 1 2]))
-=> 6 3
+;The length of a string of text or a vector, or number of dictionary entries
+(len "Hello!")  => 6
+(len [0 1 2])   => 3
+(len {0 1 2 3}) => 2
 
 ;Concatenates strings of text together, also displaying numbers and vectors as text too
 (str "Hello, "
@@ -108,10 +128,21 @@ built-in operations each within an example, with results after a `=>`.
      [:a :b "c"])
 => Hello, world! Welcome 2 my app. [:a :b c]
 
-;Whole numbers can be used to retrieve characters from a string of text or items from a vector
+;Returns a string parsed into a number
+(num "123") => 123
+
+;Returns character from string index or item from vector index
 ;Note: the first letter/item is 0, the second is 1, etc
 (2 "Hello!")   => l
 (2 [:a :b :c]) => :c
+
+;Returns item if contained within vector else null
+([0 1 2 3] 3)   => 3
+([:a :b :c] :d) => null
+
+;Returns value associated with key if within dictionary else null
+({0 1 2 3} 0)           => 1
+({:a "hi" :b "bye"} :c) => null
 
 ;Either a random whole number (integer) or decimal number
 [(rand-int) (rand-int)]  might be [0 0], [0 1], [1 0], [1 1]
@@ -155,6 +186,19 @@ built-in operations each within an example, with results after a `=>`.
 (sect "Hello" -1)       => "Hell"
 (sect "Hello" 1 3)      => "ell"
 (sect [1 2 3 4 5] -2 2) => [2 3]
+
+;Returns the keys and values of a dictionary
+(define d {0 1 :a "hello" "hi" 123})
+(keys d) => [0 :a "hi"]
+(vals d) => [1 "hello" 123]
+
+;Tests if a string contains a sub-string
+(has? "Hello" "ll") => true
+
+;Returns index of an item or sub-string in a vector or string, or null
+(idx [1 2 3 4] 5)  => null
+(idx [1 2 3 4] 3)  => 2
+(idx "Hello" "ll") => 2
 
 ;Applies a vector's items and other arguments as the arguments to a function
 (apply + [0 1 2] 3 [4 5 6])

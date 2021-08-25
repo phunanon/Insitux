@@ -138,7 +138,7 @@ internal insitux functions
 
 (len "hello")
 ;; function
-;; Returns the length of a string or vector.
+;; Returns the length of a string, vector, or number of dictionary entries.
 
 (rand-int 10 20)
 ;; function
@@ -179,6 +179,78 @@ internal insitux functions
 (sect "Hello, world!" 1 3)
 ;; function
 ;; Returns a section of a vector or string.
+
+(abs -123)
+;; function
+;; Returns absolute of a number.
+
+(sin (pi))
+;; function
+;; Returns sine of a radian angle.
+
+(cos (pi))
+;; function
+;; Returns cosine of a radian angle.
+
+(tan (* 45 (/ (pi) 180)))
+;; function
+;; Returns tangent of a radian angle.
+
+(sqrt 25)
+;; function
+;; Returns the square root of a number.
+
+(rem 10 2)
+;; function
+;; Returns the remainder of a division.
+
+(round 3.5)
+;; function
+;; Rounds a number to the nearest integer.
+
+(floor 3.9)
+;; function
+;; Rounds a number down to the nearest integer.
+
+(ceil 3.1)
+;; function
+;; Rounds a number up to the nearest integer.
+
+(min 1 2 3)
+;; function
+;; Returns the smallest number of its arguments.
+
+(max 1 2 3)
+;; function
+;; Returns the largest number of its arguments.
+
+(** 10 2)
+;; function
+;; Returns its first argument to the power of its second argument.
+
+(pi)
+;; function
+;; Returns the mathematical Pi.
+
+(has? "Hello" "ll")
+;; function
+;; Tests if a string contains a sub-string.
+
+(num "123")
+;; function
+;; Converts a string to a number.
+
+(keys {0 1 2 3})
+;; function
+;; Returns the keys of a dictionary.
+
+(vals {0 1 2 3})
+;; function
+;; Returns the vals of a dictionary.
+
+(idx [1 2 3] 2)
+;; function
+;; Returns index of an item or sub-string in a vector or string, or null.
 ```
 
 ### main.ts

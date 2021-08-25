@@ -1,25 +1,37 @@
-export const insituxVersion = 20210824;
+export const insituxVersion = 20210825;
 
 import { ops, minArities, argsMustBeNum, parse } from "./parse";
 import {
   abs,
+  ceil,
   concat,
+  cos,
+  findIdx,
   flat,
+  floor,
   has,
+  idx,
   isNum,
   len,
   max,
   min,
   objKeys,
+  pi,
   push,
   randInt,
   randNum,
+  round,
+  sin,
   slen,
   slice,
   splice,
+  sqrt,
   starts,
   strIdx,
+  sub,
+  subIdx,
   substr,
+  tan,
   toNum,
 } from "./poly-fills";
 import { performTests } from "./test";
@@ -152,9 +164,21 @@ async function exeVal(
   } else if (t === "num") {
     return await exeOp(v as number, args, ctx, errCtx);
   } else if (t === "vec") {
-    const arr = slice(v as Val[]);
-    push(arr, args);
-    _vec(arr);
+    if (len(args) === 0) {
+      return [
+        {
+          e: "Arity Error",
+          m: "vector as operation takes one argument",
+          errCtx,
+        },
+      ];
+    }
+    const found = (<Val[]>v).find(val => isEqual(val, args[0]));
+    if (found) {
+      stack.push(found);
+    } else {
+      _nul();
+    }
     return [];
   } else if (t === "dict") {
     const d = v as Dict;
@@ -182,6 +206,7 @@ async function exeOp(
   ctx: Ctx,
   errCtx: ErrCtx
 ): Promise<InvokeError[]> {
+  const tErr = (msg: string) => [typeErr(msg, errCtx)];
   //Arity checks
   if (isNum(op) || starts(op, ":") || starts(op, "$")) {
     if (len(args) !== 1) {
@@ -201,7 +226,7 @@ async function exeOp(
   if (has(argsMustBeNum, op)) {
     const nAn = args.findIndex(a => a.t !== "num");
     if (nAn !== -1) {
-      return [typeErr(`argument ${nAn + 1} is not a number`, errCtx)];
+      return tErr(`argument ${nAn + 1} is not a number`);
     }
   }
 
@@ -255,9 +280,26 @@ async function exeOp(
         _num(slen(str(args[0])));
       } else if (args[0].t === "vec") {
         _num(len(vec(args[0])));
+      } else if (args[0].t === "dict") {
+        _num(len(dic(args[0]).keys));
       } else {
-        return [typeErr(`${args[0].v} is not a string or vector`, errCtx)];
+        return tErr(`argument must be string, vector, or dictionary`);
       }
+      return [];
+    case "num":
+      if (args[0].t !== "str" && args[0].t !== "num") {
+        return tErr("argument must be string or number");
+      }
+      if (!isNum(args[0].v)) {
+        return [
+          {
+            e: "Convert Error",
+            m: `"${args[0].v}" could not be parsed as a number`,
+            errCtx,
+          },
+        ];
+      }
+      _num(toNum(args[0].v));
       return [];
     case "=":
     case "!=":
@@ -275,6 +317,10 @@ async function exeOp(
     case "-":
     case "*":
     case "/":
+    case "**":
+    case "rem":
+    case "min":
+    case "max":
       {
         if (op === "-" && len(args) === 1) {
           args.unshift({ t: "num", v: 0 });
@@ -284,6 +330,10 @@ async function exeOp(
           "-": (a, b) => a - b,
           "*": (a, b) => a * b,
           "/": (a, b) => a / b,
+          "**": (a, b) => a ** b,
+          rem: (a, b) => a % b,
+          min: (a, b) => min(a, b),
+          max: (a, b) => max(a, b),
         };
         const f = numOps[op];
         _num(args.map(({ v }) => <number>v).reduce((sum, n) => f(sum, n)));
@@ -312,6 +362,42 @@ async function exeOp(
     case "dec":
       _num(num(args[0]) + (op === "inc" ? 1 : -1));
       return [];
+    case "pi":
+      _num(pi);
+      return [];
+    case "sin":
+    case "cos":
+    case "tan":
+    case "sqrt":
+    case "round":
+    case "floor":
+    case "ceil":
+      _num({ sin, cos, tan, sqrt, round, floor, ceil }[op](num(args[0])));
+      return [];
+    case "has?": {
+      if (args[0].t !== "str" || args[1].t !== "str") {
+        return tErr("strings can only contain strings");
+      }
+      _boo(sub(str(args[0]), str(args[1])));
+      return [];
+    }
+    case "idx": {
+      let i: number = -1;
+      if (args[0].t === "str") {
+        if (args[1].t !== "str") {
+          return tErr("strings can only contain strings");
+        }
+        i = subIdx(str(args[0]), str(args[1]));
+      } else if (args[0].t === "vec") {
+        i = findIdx(vec(args[0]), a => isEqual(a, args[1]));
+      }
+      if (i === -1) {
+        _nul();
+      } else {
+        _num(i);
+      }
+      return [];
+    }
     case "map":
     case "reduce":
       {
@@ -323,9 +409,7 @@ async function exeOp(
             ? -1
             : 1;
         if (badArg !== -1) {
-          return [
-            typeErr(`"${args[badArg]}" is not a string or vector`, errCtx),
-          ];
+          return tErr(`"${args[badArg]}" is not a string or vector`);
         }
 
         if (op === "map") {
@@ -391,7 +475,7 @@ async function exeOp(
       const a1v = args[1].t === "vec";
       const a1d = args[1].t === "dict";
       if ((!a0v && !a0d) || (!a1v && !a1d)) {
-        return [typeErr("each argument must be vector or dictionary", errCtx)];
+        return tErr("each argument must be vector or dictionary");
       }
       if (a0v) {
         _vec(concat(vec(args[0]), a1v ? vec(args[1]) : asArray(args[1])));
@@ -411,14 +495,14 @@ async function exeOp(
       const isVec = args[0].t === "vec";
       const isStr = args[0].t === "str";
       if (!isVec && !isStr) {
-        return [typeErr("first argument must be vector or string", errCtx)];
+        return tErr("first argument must be vector or string");
       }
       if (len(args) > 1 && args[1].t !== "num") {
-        return [typeErr("second argument must be number", errCtx)];
+        return tErr("second argument must be number");
       }
       if (len(args) > 2) {
         if (args[2].t !== "num") {
-          return [typeErr("third argument must be number", errCtx)];
+          return tErr("third argument must be number");
         }
       }
       let skip = len(args) > 1 ? num(args[1]) : 1;
@@ -442,6 +526,13 @@ async function exeOp(
       }
       return [];
     }
+    case "keys":
+    case "vals":
+      if (args[0].t !== "dict") {
+        return tErr("argument must be dictionary");
+      }
+      _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
+      return [];
   }
 
   if (isNum(op)) {
@@ -466,7 +557,7 @@ async function exeOp(
       return err ? [{ e: "External Error", m: err, errCtx }] : [];
     } else if (starts(op, ":")) {
       if (args[0].t !== "dict") {
-        return [typeErr(`argument 1 wasn't a dict`, errCtx)];
+        return tErr(`argument 1 wasn't a dict`);
       }
       stack.push(dictGet(dic(args[0]), { t: "key", v: op }));
       return [];
