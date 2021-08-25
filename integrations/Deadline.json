@@ -406,19 +406,19 @@
 				]
 			},
 			{
-				"directory": "ticked",
+				"directory": "ticked.connect",
 				"description": [
-					"(ticked ...)",
+					"(ticked.connect ...)",
 					"(function hello xyz (print \"deltatime:\" xyz))",
-					"(ticked hello)",
+					"(ticked.connect hello)",
 					"function",
 					"connects to a shobfix event that runs every 0.1s"
 				]
 			},
 						{
-				"directory": "ticked_kill",
+				"directory": "ticked.kill",
 				"description": [
-					"(ticked_kill)",
+					"(ticked.kill)",
 					"function",
 					"kills all ticked connections"
 				]
@@ -782,6 +782,5 @@
 		]
 	}
 }
-
 
 
