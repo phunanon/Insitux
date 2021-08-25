@@ -101,7 +101,7 @@ const tests: {
   { name: "Define and retrieve", code: `(define a 1) a`, out: `1` },
   { name: "Define and add", code: `(define a 1) (inc a)`, out: `2` },
   { name: "Define op and call", code: `(define f +) (f 2 2)`, out: `4` },
-  { name: "Define vec and call", code: `(define f []) (f 1)`, out: `[1]` },
+  { name: "Define vec and call", code: `(define f [1]) (f 1)`, out: `1` },
   {
     name: "Define num op and call",
     code: `(define f 1) (f [:a :b :c])`,
@@ -193,29 +193,29 @@ const tests: {
            (print (avg [1 2 3]))
            (avg "Hello")`,
     out: `2`,
-    err: ["Type Error"],
+    err: ["Type"],
   },
   {
     name: "Reference non-existing",
     code: `x`,
-    err: ["Reference Error"],
+    err: ["Reference"],
   },
   {
     name: "Call non-existing",
     code: `(x)`,
-    err: ["External Error"],
+    err: ["External"],
   },
   {
     name: "Call budget",
     code: `(function loop (loop)) (loop)`,
-    err: ["Budget Error"],
+    err: ["Budget"],
   },
   {
     name: "Loop budget",
     code: `(define n 10000)
            (while (< 0 n)
              (define n (dec n)))`,
-    err: ["Budget Error"],
+    err: ["Budget"],
   },
   //Complex functions
   {
@@ -239,31 +239,31 @@ const tests: {
     out: `123\nnull`,
   },
   //Syntax errors
-  { name: "Empty parens", code: `()`, err: ["Parse Error"] },
+  { name: "Empty parens", code: `()`, err: ["Parse"] },
   {
     name: "Imbalanced parens",
     code: `(print ("hello!")`,
-    err: ["Parse Error"],
+    err: ["Parse"],
   },
   {
     name: "Imbalanced quotes 1",
     code: `(print "Hello)`,
-    err: ["Parse Error", "Parse Error"],
+    err: ["Parse", "Parse"],
   },
   {
     name: "Imbalanced quotes 2",
     code: `print "Hello")`,
-    err: ["Parse Error"],
+    err: ["Parse"],
   },
   {
     name: "Function as op",
     code: `(function)`,
-    err: ["Parse Error"],
+    err: ["Parse"],
   },
   {
     name: "Function without body",
     code: `(function func)`,
-    err: ["Parse Error"],
+    err: ["Parse"],
   },
 ];
 

@@ -146,6 +146,9 @@ built-in operations each within an example, with results after a `=>`.
 ({0 1 2 3} 0)           => 1
 ({:a "hi" :b "bye"} :c) => null
 
+;Associates a new key and value in a dictionary
+({:a 2 :b 3} :c 4) => {:a 2 :b 3 :c 4}
+
 ;Either a random whole number (integer) or decimal number
 [(rand-int) (rand-int)]  might be [0 0], [0 1], [1 0], [1 1]
 (rand-int 10)            any integer from 0 to 9

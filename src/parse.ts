@@ -12,125 +12,7 @@ import {
   substr,
   toNum,
 } from "./poly-fills";
-import { ErrCtx, Func, Funcs, Ins, InvokeError } from "./types";
-
-export const ops = [
-  "print",
-  "print-str",
-  "execute-last",
-  "define",
-  "=",
-  "!=",
-  "+",
-  "-",
-  "*",
-  "/",
-  "**",
-  "<",
-  ">",
-  "<=",
-  ">=",
-  "inc",
-  "dec",
-  "min",
-  "max",
-  "abs",
-  "sqrt",
-  "round",
-  "floor",
-  "ceil",
-  "odd?",
-  "even?",
-  "rem",
-  "sin",
-  "cos",
-  "tan",
-  "vec",
-  "dict",
-  "len",
-  "num",
-  "has?",
-  "map",
-  "reduce",
-  "str",
-  "rand-num",
-  "rand-int",
-  "while",
-  "apply",
-  "into",
-  "sect",
-  "keys",
-  "vals",
-  "version",
-  "tests",
-];
-
-export const minArities: { [op: string]: number } = {
-  define: 2,
-  "=": 2,
-  "!=": 2,
-  "+": 2,
-  "-": 1,
-  "*": 2,
-  "/": 2,
-  "**": 1,
-  "<": 2,
-  ">": 2,
-  "<=": 2,
-  ">=": 2,
-  inc: 1,
-  dec: 1,
-  min: 2,
-  max: 2,
-  abs: 1,
-  sqrt: 1,
-  round: 1,
-  floor: 1,
-  ceil: 1,
-  "odd?": 1,
-  "even?": 1,
-  rem: 2,
-  sin: 1,
-  cos: 1,
-  tan: 1,
-  len: 1,
-  num: 1,
-  "has?": 2,
-  map: 2,
-  reduce: 2,
-  apply: 2,
-  into: 2,
-  sect: 1,
-  keys: 1,
-  vals: 1,
-};
-
-export const argsMustBeNum = [
-  "+",
-  "-",
-  "*",
-  "/",
-  "**",
-  "<",
-  ">",
-  "<=",
-  ">=",
-  "inc",
-  "dec",
-  "min",
-  "max",
-  "abs",
-  "sqrt",
-  "round",
-  "floor",
-  "ceil",
-  "odd?",
-  "even?",
-  "rem",
-  "sin",
-  "cos",
-  "tan",
-];
+import { ErrCtx, Func, Funcs, Ins, InvokeError, ops } from "./types";
 
 type Token = {
   typ: "str" | "num" | "sym" | "ref" | "(" | ")";
@@ -395,7 +277,10 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
       }
       headIns.push({
         typ: has(ops, op) ? "op" : "exe",
-        value: [op, args],
+        value: [
+          typ === "num" ? { t: "num", v: toNum(op) } : { t: "str", v: op },
+          args,
+        ],
         errCtx,
       });
       return [...body, ...headIns];
@@ -436,7 +321,7 @@ function syntaxise(
   if (!len(params) && !len(body)) {
     return {
       err: {
-        e: "Parse Error",
+        e: "Parse",
         m: "empty function body",
         errCtx,
       },
@@ -450,7 +335,7 @@ function syntaxise(
       //In the case of e.g. (function name)
       return {
         err: {
-          e: "Parse Error",
+          e: "Parse",
           m: "empty function body",
           errCtx: { invocationId: errCtx.invocationId, line: 0, col: 0 },
         },
@@ -518,7 +403,7 @@ function errorDetect(
   if (numL !== numR) {
     const [line, col] = findParenImbalance(tokens, numL, numR);
     errors.push({
-      e: "Parse Error",
+      e: "Parse",
       m: `unmatched parenthesis`,
       errCtx: { invocationId, line, col },
     });
@@ -528,7 +413,7 @@ function errorDetect(
   if (stringError) {
     const [line, col] = stringError;
     errors.push({
-      e: "Parse Error",
+      e: "Parse",
       m: `unmatched double quotation marks`,
       errCtx: { invocationId, line, col },
     });
@@ -545,7 +430,7 @@ function errorDetect(
   }
   if (emptyHead) {
     errors.push({
-      e: "Parse Error",
+      e: "Parse",
       m: `empty expression forbidden`,
       errCtx: emptyHead.errCtx,
     });

@@ -6,6 +6,7 @@ export const splice = <T>(arr: T[], start: number, numDel?: number): T[] =>
 export const len = (arr: unknown[]): number => arr.length;
 export const slen = (str: string): number => str.length;
 export const isNum = (x: unknown): x is number => !Number.isNaN(Number(x));
+export const isArray = <T>(x: unknown): x is T[] => Array.isArray(x);
 export const substr = (str: string, start: number, length?: number): string =>
   str.substr(start, length);
 export const strIdx = (str: string, idx: number): string => str[idx];

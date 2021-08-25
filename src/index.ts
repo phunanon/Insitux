@@ -1,6 +1,6 @@
 export const insituxVersion = 20210825;
 
-import { ops, minArities, argsMustBeNum, parse } from "./parse";
+import { parse } from "./parse";
 import {
   abs,
   ceil,
@@ -9,6 +9,7 @@ import {
   flat,
   floor,
   has,
+  isArray,
   isNum,
   len,
   max,
@@ -33,7 +34,19 @@ import {
   toNum,
 } from "./poly-fills";
 import { performTests } from "./test";
-import { Ctx, Dict, ErrCtx, Func, InvokeError, Val } from "./types";
+import {
+  argsMustBe,
+  argsMustBeNum,
+  Ctx,
+  Dict,
+  ErrCtx,
+  Func,
+  InvokeError,
+  minArities,
+  ops,
+  typeNames,
+  Val,
+} from "./types";
 
 const val2str = ({ v, t }: Val): string => {
   switch (t) {
@@ -75,6 +88,11 @@ const str = ({ v }: Val) => v as string;
 const vec = ({ v }: Val) => v as Val[];
 const dic = ({ v }: Val) => v as Dict;
 const asBoo = ({ t, v }: Val) => (t === "bool" ? (v as boolean) : t !== "null");
+const visStr = (val: Val): val is { t: "str"; v: string } => val.t === "str";
+const visNum = (val: Val): val is { t: "num"; v: number } => val.t === "num";
+const visVec = (val: Val): val is { t: "vec"; v: Val[] } => val.t === "vec";
+const visDic = (val: Val): val is { t: "dict"; v: Dict } => val.t === "dict";
+const visFun = (val: Val): val is { t: "func"; v: string } => val.t === "func";
 
 const asArray = ({ t, v }: Val): Val[] =>
   t === "vec"
@@ -109,7 +127,7 @@ const toDict = (args: Val[]): Val => {
 };
 
 const typeErr = (m: string, errCtx: ErrCtx): InvokeError => ({
-  e: "Type Error",
+  e: "Type",
   m,
   errCtx,
 });
@@ -151,74 +169,40 @@ const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
   return <Val>{ t: "dict", v: <Dict>{ keys: nKeys, vals: nVals } };
 };
 
-async function exeVal(
-  { v, t }: Val,
-  args: Val[],
-  ctx: Ctx,
-  errCtx: ErrCtx
-): Promise<InvokeError[]> {
-  if (t === "str") {
-    return await exeOp(v as string, args, ctx, errCtx);
-  } else if (t === "num") {
-    return await exeOp(v as number, args, ctx, errCtx);
-  } else if (t === "vec") {
-    if (len(args) === 0) {
-      return [
-        {
-          e: "Arity Error",
-          m: "vector as operation takes one argument",
-          errCtx,
-        },
-      ];
-    }
-    const found = (<Val[]>v).find(val => isEqual(val, args[0]));
-    if (found) {
-      stack.push(found);
-    } else {
-      _nul();
-    }
-    return [];
-  } else if (t === "dict") {
-    const d = v as Dict;
-    if (len(args) === 1) {
-      stack.push(dictGet(d, args[0]));
-    } else if (len(args) === 2) {
-      stack.push(dictSet(d, args[0], args[1]));
-    } else {
-      return [
-        {
-          e: "Arity Error",
-          m: `dict as operation takes one or two arguments`,
-          errCtx,
-        },
-      ];
-    }
-    return [];
-  }
-  return [typeErr(`Head was not a valid operation`, errCtx)];
-}
-
 async function exeOp(
-  op: string | number,
+  op: string,
   args: Val[],
   ctx: Ctx,
   errCtx: ErrCtx
 ): Promise<InvokeError[]> {
   const tErr = (msg: string) => [typeErr(msg, errCtx)];
   //Arity checks
-  if (isNum(op) || starts(op, ":") || starts(op, "$")) {
-    if (len(args) !== 1) {
-      return [{ e: "Arity Error", m: `use one argument only`, errCtx }];
-    }
-  } else if (op in minArities && len(args) < minArities[op]) {
+  if (op in minArities && len(args) < minArities[op]) {
     const a = minArities[op];
     return [
       {
-        e: "Arity Error",
+        e: "Arity",
         m: `${op} requires at least ${a} argument${a === 1 ? "" : "s"}`,
         errCtx,
       },
     ];
+  } else if (op in argsMustBe) {
+    const violations = argsMustBe[op]
+      .map((need, i) =>
+        isArray(need)
+          ? has(need, args[i].t)
+            ? false
+            : `argument ${i + 1} must be either: ${need
+                .map(t => typeNames[t])
+                .join(", ")}`
+          : need === args[i].t
+          ? false
+          : `argument ${i + 1} must be ${typeNames[need]}`
+      )
+      .filter(r => r);
+    if (len(violations)) {
+      return violations.map(v => typeErr(<string>v, errCtx));
+    }
   }
   //Check for non-numeric arguments if needed
   if (has(argsMustBeNum, op)) {
@@ -243,11 +227,8 @@ async function exeOp(
       }
       return [];
     case "execute-last":
-      return await exeVal(args.pop()!, args, ctx, errCtx);
+      return await getExe(ctx, args.pop()!, errCtx)(args);
     case "define":
-      if (args[0].t !== "ref") {
-        return [{ e: "Define Error", m: "first arg wasn't reference", errCtx }];
-      }
       ctx.env.vars[str(args[0])] = args[1];
       stack.push(args[1]);
       return [];
@@ -274,24 +255,19 @@ async function exeOp(
       return [];
     }
     case "len":
-      if (args[0].t === "str") {
-        _num(slen(str(args[0])));
-      } else if (args[0].t === "vec") {
-        _num(len(vec(args[0])));
-      } else if (args[0].t === "dict") {
-        _num(len(dic(args[0]).keys));
-      } else {
-        return tErr(`argument must be string, vector, or dictionary`);
-      }
+      _num(
+        args[0].t === "str"
+          ? slen(str(args[0]))
+          : args[0].t === "vec"
+          ? len(vec(args[0]))
+          : len(dic(args[0]).keys)
+      );
       return [];
     case "num":
-      if (args[0].t !== "str" && args[0].t !== "num") {
-        return tErr("argument must be string or number");
-      }
       if (!isNum(args[0].v)) {
         return [
           {
-            e: "Convert Error",
+            e: "Convert",
             m: `"${args[0].v}" could not be parsed as a number`,
             errCtx,
           },
@@ -376,13 +352,9 @@ async function exeOp(
     case "even?":
       _boo(num(args[0]) % 2 === (op === "odd?" ? 1 : 0));
       return [];
-    case "has?": {
-      if (args[0].t !== "str" || args[1].t !== "str") {
-        return tErr("strings can only contain strings");
-      }
+    case "has?":
       _boo(sub(str(args[0]), str(args[1])));
       return [];
-    }
     case "idx": {
       let i: number = -1;
       if (args[0].t === "str") {
@@ -403,7 +375,7 @@ async function exeOp(
     case "map":
     case "reduce":
       {
-        const closure = opFromName(ctx, str(args.shift()!), errCtx);
+        const closure = getExe(ctx, args.shift()!, errCtx);
         const badArg =
           op === "map"
             ? args.findIndex(({ t }) => t !== "vec" && t !== "str")
@@ -468,7 +440,7 @@ async function exeOp(
       }
       return [];
     case "apply": {
-      const closure = opFromName(ctx, str(args.shift()!), errCtx);
+      const closure = getExe(ctx, args.shift()!, errCtx);
       return await closure(flat(args.map(a => (a.t === "vec" ? vec(a) : [a]))));
     }
     case "into": {
@@ -530,72 +502,112 @@ async function exeOp(
     }
     case "keys":
     case "vals":
-      if (args[0].t !== "dict") {
-        return tErr("argument must be dictionary");
-      }
       _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
       return [];
   }
 
-  if (isNum(op)) {
-    const a = args[0];
-    switch (a.t) {
-      case "vec":
-        stack.push(vec(a)[toNum(op)] as Val);
-        break;
-      case "str":
-        _str(strIdx(str(args[0]), toNum(op)));
-        break;
-      default:
-        _nul();
-        break;
-    }
-    return [];
-  } else {
-    if (starts(op, "$")) {
-      const val = args.pop()!;
-      const err = await ctx.set(substr(op, 1), val);
-      stack.push(val);
-      return err ? [{ e: "External Error", m: err, errCtx }] : [];
-    } else if (starts(op, ":")) {
-      if (args[0].t !== "dict") {
-        return tErr(`argument 1 wasn't a dict`);
-      }
-      stack.push(dictGet(dic(args[0]), { t: "key", v: op }));
-      return [];
-    }
-  }
-
-  const { err, value } = await ctx.exe(op, args);
-  if (!err) {
-    stack.push(value);
-  }
-  return err ? [{ e: "External Error", m: err, errCtx }] : [];
+  return [{ e: "Unexpected", m: "operation doesn't exist", errCtx }];
 }
 
-function opFromName(
+function getExe(
   ctx: Ctx,
-  op: string,
+  op: Val,
   errCtx: ErrCtx
 ): (params: Val[]) => Promise<InvokeError[]> {
-  const checkIsOp = (op: string) =>
-    has(ops, op) || isNum(op) || starts(op, "$") || starts(op, ":");
-  let isOp = checkIsOp(op);
-  let isFunc = !isOp && op in ctx.env.funcs;
-  //If variable name
-  if (!isOp && !isFunc && op in ctx.env.vars) {
-    const val = ctx.env.vars[op];
-    if (val.t === "str" || val.t === "func") {
-      op = str(val);
-      isOp = checkIsOp(op);
-      isFunc = !isOp && op in ctx.env.funcs;
-    } else {
-      return (params: Val[]) => exeVal(val, params, ctx, errCtx);
+  const monoArityError = [{ e: "Arity", m: `one argument required`, errCtx }];
+  if (visStr(op) || visFun(op)) {
+    const str = op.v;
+    if (has(ops, str)) {
+      return (params: Val[]) => exeOp(str, params, ctx, errCtx);
     }
+    if (str in ctx.env.funcs) {
+      return (params: Val[]) => exeFunc(ctx, ctx.env.funcs[str], params);
+    }
+    if (str in ctx.env.vars) {
+      return getExe(ctx, ctx.env.vars[str], errCtx);
+    }
+    if (starts(str, "$")) {
+      return async (params: Val[]) => {
+        if (!len(params)) {
+          return monoArityError;
+        }
+        const err = await ctx.set(substr(str, 1), params[0]);
+        stack.push(params[0]);
+        return err ? [{ e: "External", m: err, errCtx }] : [];
+      };
+    }
+    if (starts(str, ":")) {
+      return async (params: Val[]) => {
+        if (!len(params)) {
+          return monoArityError;
+        }
+        if (params[0].t !== "dict") {
+          return [typeErr(`argument 1 wasn't a dict`, errCtx)];
+        }
+        stack.push(dictGet(dic(params[0]), { t: "key", v: str }));
+        return [];
+      };
+    }
+    return async (params: Val[]) => {
+      const { err, value } = await ctx.exe(str, params);
+      if (!err) {
+        stack.push(value);
+      }
+      return err ? [{ e: "External", m: err, errCtx }] : [];
+    };
+  } else if (visNum(op)) {
+    const n = op.v;
+    return async (params: Val[]) => {
+      if (!len(params)) {
+        return monoArityError;
+      }
+      const a = params[0];
+      switch (a.t) {
+        case "str":
+          _str(strIdx(str(a), n));
+          break;
+        case "vec":
+          stack.push(vec(a)[n] as Val);
+          break;
+        default:
+          return [typeErr("argument must be string or vector", errCtx)];
+      }
+      return [];
+    };
+  } else if (visVec(op)) {
+    const { v } = op;
+    return async (params: Val[]) => {
+      if (!len(params)) {
+        return monoArityError;
+      }
+      const found = v.find(val => isEqual(val, params[0]));
+      if (found) {
+        stack.push(found);
+      } else {
+        _nul();
+      }
+      return [];
+    };
+  } else if (visDic(op)) {
+    const dict = op.v;
+    return async (params: Val[]) => {
+      if (len(params) === 1) {
+        stack.push(dictGet(dict, params[0]));
+      } else if (len(params) === 2) {
+        stack.push(dictSet(dict, params[0], params[1]));
+      } else {
+        return [
+          {
+            e: "Arity",
+            m: `dict as operation takes one or two arguments`,
+            errCtx,
+          },
+        ];
+      }
+      return [];
+    };
   }
-  return isFunc
-    ? (params: Val[]) => exeFunc(ctx, ctx.env.funcs[op], params)
-    : (params: Val[]) => exeOp(op, params, ctx, errCtx);
+  return async _ => [{ e: "Unexpected", m: "operation is invalid", errCtx }];
 }
 
 export async function exeFunc(
@@ -612,7 +624,7 @@ export async function exeFunc(
     if (tooManyLoops || ctx.callBudget < 1) {
       return [
         {
-          e: "Budget Error",
+          e: "Budget",
           m: `${tooManyLoops ? "looped" : "called"} too many times`,
           errCtx,
         },
@@ -656,7 +668,7 @@ export async function exeFunc(
           } else if (starts(name, "$")) {
             const { value, err } = await ctx.get(substr(name, 1));
             if (err) {
-              return [{ e: "External Error", m: err, errCtx }];
+              return [{ e: "External", m: err, errCtx }];
             }
             stack.push(value);
           } else if (name in ctx.env.vars) {
@@ -664,23 +676,19 @@ export async function exeFunc(
           } else if (name in ctx.env.funcs) {
             _fun(name);
           } else {
-            return [
-              { e: "Reference Error", m: `"${name}" did not exist`, errCtx },
-            ];
+            return [{ e: "Reference", m: `"${name}" did not exist`, errCtx }];
           }
         }
         break;
       case "op":
       case "exe":
         {
-          let [op, nArgs] = value as [string, number];
+          let [op, nArgs] = value as [Val, number];
           const params = splice(stack, len(stack) - nArgs, nArgs);
           if (len(params) !== nArgs) {
-            return [
-              { e: "Unexpected Error", m: `${op} stack depleted`, errCtx },
-            ];
+            return [{ e: "Unexpected", m: `${op} stack depleted`, errCtx }];
           }
-          const closure = opFromName(ctx, op, errCtx);
+          const closure = getExe(ctx, op, errCtx);
           const errors = await closure(params);
           if (len(errors)) {
             return errors;
