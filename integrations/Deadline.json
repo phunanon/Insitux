@@ -742,6 +742,14 @@
 					"placeholder until a sound object is added",
 					"in the game"
 				]
+			},
+			{
+				"directory": "dl.list_players",
+				"description": [
+					"(print (dl.list_players))",
+					"function",
+					"lists all players in the game",
+				]
 			}
 		]
 	},
