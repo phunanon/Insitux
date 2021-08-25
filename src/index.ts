@@ -6,7 +6,6 @@ import {
   ceil,
   concat,
   cos,
-  findIdx,
   flat,
   floor,
   has,
@@ -392,7 +391,7 @@ async function exeOp(
         }
         i = subIdx(str(args[0]), str(args[1]));
       } else if (args[0].t === "vec") {
-        i = findIdx(vec(args[0]), a => isEqual(a, args[1]));
+        i = vec(args[0]).findIndex(a => isEqual(a, args[1]));
       }
       if (i === -1) {
         _nul();
