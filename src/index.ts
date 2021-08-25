@@ -10,7 +10,6 @@ import {
   flat,
   floor,
   has,
-  idx,
   isNum,
   len,
   max,
@@ -373,6 +372,10 @@ async function exeOp(
     case "floor":
     case "ceil":
       _num({ sin, cos, tan, sqrt, round, floor, ceil }[op](num(args[0])));
+      return [];
+    case "odd?":
+    case "even?":
+      _boo(num(args[0]) % 2 === (op === "odd?" ? 1 : 0));
       return [];
     case "has?": {
       if (args[0].t !== "str" || args[1].t !== "str") {

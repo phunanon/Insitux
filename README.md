@@ -78,7 +78,7 @@ built-in operations each within an example, with results after a `=>`.
 (* 10 10 10) => 1000
 (/ 10 3)     => 3.333333
 
-;Various arithmetic functions which take one argument only
+;Various arithmetic and logic functions which take one argument only
 (inc 100)    => 101
 (dec 50)     => 49
 (abs -123)   => 123
@@ -90,6 +90,8 @@ built-in operations each within an example, with results after a `=>`.
 (round 3.5)  => 4
 (floor 2.7)  => 2
 (ceil 2.1)   => 3
+(odd? 5)     => true
+(even? 5)    => false
 
 ;Various arithmetic functions which take two or more arguments
 (** 10 2)   => 100

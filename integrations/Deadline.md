@@ -251,6 +251,14 @@ internal insitux functions
 (idx [1 2 3] 2)
 ;; function
 ;; Returns index of an item or sub-string in a vector or string, or null.
+
+(odd? 5)
+;; function
+;; Tests if number is odd.
+
+(even? 4)
+;; function
+;; Tests if number is even.
 ```
 
 ### main.ts

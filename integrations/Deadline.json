@@ -365,6 +365,22 @@
 					"function",
 					"Returns index of an item or sub-string in a vector or string, or null."
 				]
+			},
+			{
+				"directory": "odd?",
+				"description": [
+					"(odd? 5)",
+					"function",
+					"Tests if number is odd."
+				]
+			},
+			{
+				"directory": "even?",
+				"description": [
+					"(even? 4)",
+					"function",
+					"Tests if number is even."
+				]
 			}
 		]
 	},
