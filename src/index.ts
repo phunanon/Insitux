@@ -6,6 +6,7 @@ import {
   ceil,
   concat,
   cos,
+  ends,
   flat,
   floor,
   has,
@@ -90,6 +91,7 @@ const visNum = (val: Val): val is { t: "num"; v: number } => val.t === "num";
 const visVec = (val: Val): val is { t: "vec"; v: Val[] } => val.t === "vec";
 const visDic = (val: Val): val is { t: "dict"; v: Dict } => val.t === "dict";
 const visFun = (val: Val): val is { t: "func"; v: string } => val.t === "func";
+const visKey = (val: Val): val is { t: "key"; v: string } => val.t === "key";
 
 const asArray = ({ t, v }: Val): Val[] =>
   t === "vec"
@@ -99,6 +101,9 @@ const asArray = ({ t, v }: Val): Val[] =>
     : t === "dict"
     ? flat((v as Dict).keys.map((k, i) => [k, (v as Dict).vals[i]]))
     : [];
+
+const stringify = (vals: Val[]) =>
+  vals.reduce((cat, v) => cat + val2str(v), "");
 
 const toDict = (args: Val[]): Val => {
   if (len(args) % 2 === 1) {
@@ -168,17 +173,19 @@ const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
 
 function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
   const { argTypes, exactArity, maxArity, minArity, onlyNum } = ops[op];
-  const aErr = (msg: string) => [{ e: "Arity", m: msg, errCtx }];
-  if (exactArity && len(args) !== exactArity) {
-    return aErr(
-      `needs exactly ${exactArity} argument${exactArity !== 1 ? "s" : ""}`
-    );
+  const aErr = (msg: string) => [
+    { e: "Arity", m: `${op} needs ${msg}`, errCtx },
+  ];
+  const nArg = len(args);
+  if (exactArity && nArg !== exactArity) {
+    return aErr(`exactly ${exactArity} argument${exactArity !== 1 ? "s" : ""}`);
   }
-  if (
-    (minArity && len(args) < minArity) ||
-    (maxArity && len(args) > maxArity)
-  ) {
-    return aErr(`needs between ${minArity} and ${maxArity} arguments`);
+  if (minArity && !maxArity && nArg < minArity) {
+    return aErr(`at least ${minArity} argument${minArity !== 1 ? "s" : ""}`);
+  } else if (!minArity && maxArity && nArg > maxArity) {
+    return aErr(`at most ${maxArity} argument${maxArity !== 1 ? "s" : ""}`);
+  } else if (minArity && maxArity && (nArg < minArity || nArg > maxArity)) {
+    return aErr(`between ${minArity} and ${maxArity} arguments`);
   }
   if (onlyNum && args.findIndex(a => a.t !== "num") !== -1) {
     return [typeErr(`numeric arguments only`, errCtx)];
@@ -189,7 +196,7 @@ function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
   const typeViolations = argTypes
     .map(
       (need, i) =>
-        i < len(args) &&
+        i < nArg &&
         (isArray(need)
           ? has(need, args[i].t)
             ? false
@@ -199,8 +206,8 @@ function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
           : need === args[i].t
           ? false
           : `argument ${i + 1} must be ${typeNames[need]}`)
-      )
-      .filter(r => r);
+    )
+    .filter(r => r);
   return typeViolations.map(v => typeErr(<string>v, errCtx));
 }
 
@@ -242,15 +249,13 @@ async function exeOp(
     case "str":
       stack.push({
         t: "str",
-        v: args.reduce((cat, v) => cat + val2str(v), ""),
+        v: stringify(args),
       });
       return [];
     case "print":
     case "print-str":
       {
-        ctx.exe(op, [
-          { t: "str", v: args.reduce((cat, v) => cat + val2str(v), "") },
-        ]);
+        ctx.exe(op, [{ t: "str", v: stringify(args) }]);
         _nul();
       }
       return [];
@@ -285,7 +290,7 @@ async function exeOp(
     case "=":
     case "!=":
       {
-        for (let i = 1; i < len(args); ++i) {
+        for (let i = 1, lim = len(args); i < lim; ++i) {
           if (isEqual(args[i - 1], args[i]) !== (op === "=")) {
             _boo(false);
             return [];
@@ -324,7 +329,7 @@ async function exeOp(
     case ">":
     case "<=":
     case ">=":
-      for (let i = 1; i < len(args); ++i) {
+      for (let i = 1, lim = len(args); i < lim; ++i) {
         const [a, b] = [num(args[i - 1]), num(args[i])];
         if (
           (op === "<" && a < b) ||
@@ -412,7 +417,7 @@ async function exeOp(
         const array = asArray(args.shift()!);
         if (op === "filter") {
           const filtered: Val[] = [];
-          for (let i = 0; i < len(array); ++i) {
+          for (let i = 0, lim = len(array); i < lim; ++i) {
             const errors = await closure([array[i]]);
             if (len(errors)) {
               return errors;
@@ -430,7 +435,7 @@ async function exeOp(
           return [];
         }
         let reduction: Val = (len(args) ? args : array).shift()!;
-        for (let i = 0; i < len(array); ++i) {
+        for (let i = 0, lim = len(array); i < lim; ++i) {
           const errors = await closure([reduction, array[i]]);
           if (len(errors)) {
             return errors;
@@ -484,31 +489,109 @@ async function exeOp(
       return [];
     }
     case "sect": {
-      const isVec = args[0].t === "vec";
-      let skip = len(args) > 1 ? num(args[1]) : 1;
       const v = args[0];
+      const isVec = v.t === "vec";
       const vlen = isVec ? len(vec(v)) : slen(str(v));
-      const take = min(
-        max(len(args) > 2 ? num(args[2]) : vlen - abs(skip), 0),
-        vlen
-      );
-      if (abs(skip) > vlen) {
+      let a = 0,
+        b = vlen;
+      switch (len(args)) {
+        case 1:
+          a = 1;
+          break;
+        case 2: {
+          const del = num(args[1]);
+          if (del < 0) {
+            b += del;
+          } else {
+            a += del;
+          }
+          break;
+        }
+        case 3: {
+          const skip = num(args[1]);
+          const take = num(args[2]);
+          a = skip < 0 ? vlen + skip + (take < 0 ? take : 0) : a + skip;
+          b = (take < 0 ? b : a) + take;
+          break;
+        }
+      }
+      a = max(a, 0);
+      b = min(b, vlen);
+      if (a > b) {
         (isVec ? _vec : _str)();
         return [];
       }
       if (isVec) {
-        const [a, b] =
-          skip < 0 ? [vlen + skip, vlen + skip + take] : [skip, skip + take];
         _vec(slice(vec(v), a, b));
       } else {
-        const [start, length] = [skip < 0 ? vlen + skip : skip, take];
-        _str(substr(str(args[0]), start, length));
+        _str(substr(str(args[0]), a, b - a));
       }
+      return [];
+    }
+    case "reverse":
+      if (args[0].t === "str") {
+        _str(stringify(asArray(args[0]).reverse()));
+      } else {
+        _vec(asArray(args[0]).reverse());
+      }
+      return [];
+    case "sort": {
+      if (!len(vec(args[0]))) {
+        _vec();
+        return [];
+      }
+      const src = asArray(args[0]);
+      const mapped: Val[][] = [];
+      if (len(args) === 1) {
+        push(
+          mapped,
+          src.map(v => [v, v])
+        );
+      } else {
+        const closure = getExe(ctx, args.pop()!, errCtx);
+        for (let i = 0, lim = len(src); i < lim; ++i) {
+          const errors = await closure([src[i]]);
+          if (len(errors)) {
+            return errors;
+          }
+          mapped.push([src[i], stack.pop()!]);
+        }
+      }
+      const okT = mapped[0][1].t;
+      if (mapped.some(([_, { t }]) => t !== okT || !has(["num", "str"], t))) {
+        return tErr("can only sort by all number or all string");
+      }
+      if (visNum(mapped[0][1])) {
+        mapped.sort(([x, a], [y, b]) => (num(a) > num(b) ? 1 : -1));
+      } else {
+        mapped.sort(([x, a], [y, b]) => (str(a) > str(b) ? 1 : -1));
+      }
+      _vec(mapped.map(([v]) => v));
       return [];
     }
     case "keys":
     case "vals":
       _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
+      return [];
+    case "starts-with?":
+      _boo(starts(str(args[0]), str(args[1])));
+      return [];
+    case "ends-with?":
+      _boo(ends(str(args[0]), str(args[1])));
+      return [];
+    case "split":
+      _vec(
+        str(args[0])
+          .split(len(args) > 1 ? str(args[1]) : " ")
+          .map(v => <Val>{ t: "str", v })
+      );
+      return [];
+    case "join":
+      _str(
+        vec(args[0])
+          .map(val2str)
+          .join(len(args) > 1 ? str(args[1]) : " ")
+      );
       return [];
   }
 
@@ -542,24 +625,23 @@ function getExe(
         return err ? [{ e: "External", m: err, errCtx }] : [];
       };
     }
-    if (starts(str, ":")) {
-      return async (params: Val[]) => {
-        if (!len(params)) {
-          return monoArityError;
-        }
-        if (params[0].t !== "dict") {
-          return [typeErr(`argument 1 wasn't a dict`, errCtx)];
-        }
-        stack.push(dictGet(dic(params[0]), { t: "key", v: str }));
-        return [];
-      };
-    }
     return async (params: Val[]) => {
       const { err, value } = await ctx.exe(str, params);
       if (!err) {
         stack.push(value);
       }
       return err ? [{ e: "External", m: err, errCtx }] : [];
+    };
+  } else if (visKey(op)) {
+    return async (params: Val[]) => {
+      if (!len(params)) {
+        return monoArityError;
+      }
+      if (params[0].t !== "dict") {
+        return [typeErr(`argument 1 wasn't a dict`, errCtx)];
+      }
+      stack.push(dictGet(dic(params[0]), op));
+      return [];
     };
   } else if (visNum(op)) {
     const n = op.v;
@@ -573,14 +655,14 @@ function getExe(
           if (n >= slen(str(a))) {
             _nul();
           } else {
-          _str(strIdx(str(a), n));
+            _str(strIdx(str(a), n));
           }
           break;
         case "vec":
           if (n >= len(vec(a))) {
             _nul();
           } else {
-          stack.push(vec(a)[n] as Val);
+            stack.push(vec(a)[n] as Val);
           }
           break;
         default:
@@ -631,7 +713,7 @@ export async function exeFunc(
 ): Promise<InvokeError[]> {
   --ctx.callBudget;
   let savedStackLengths: number[] = [];
-  for (let i = 0; i < len(func.ins); ++i) {
+  for (let i = 0, lim = len(func.ins); i < lim; ++i) {
     const { typ, value, errCtx } = func.ins[i];
 
     const tooManyLoops = ctx.loopBudget < 1;
@@ -772,3 +854,5 @@ export function symbols(ctx: Ctx): string[] {
   syms = concat(syms, objKeys(ctx.env.vars));
   return syms;
 }
+
+performTests();

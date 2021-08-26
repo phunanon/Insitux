@@ -185,12 +185,42 @@ built-in operations each within an example, with results after a `=>`.
 (into {:a 123 :b 456} {:a 456}) => {:a 456 :b 456}
 (into [1 2 3] [4 5 6])          => [1 2 3 4 5 6]
 
-;Returns a section of a vector or string
-(sect [1 2 3 4])        => [2 3 4]
-(sect [1 2 3 4] 2)      => [3 4]
-(sect "Hello" -1)       => "Hell"
-(sect "Hello" 1 3)      => "ell"
-(sect [1 2 3 4 5] -2 2) => [2 3]
+;Returns a section of a string or vector
+(sect "Patrick")       => "atrick"
+(sect "Patrick" 2)     => "trick"
+(sect "Patrick" -2)    => "Patri"
+(sect "Patrick" 1 2)   => "at"
+(sect "Patrick" 1 -1)  => "atric"
+(sect "Patrick" -2 1)  => "c"
+(sect "Patrick" -2 -2) => "ri"
+(sect [0 1 2 3])       => [1 2 3]
+etc
+
+;Filter a vector or string by a function
+(filter odd? [0 1 2 3])    => [1 3]
+(filter ["e" "l"] "Hello") => ["e" "l" "l"]
+
+;Returns the reverse of a vector or string
+(reverse "Hello") => "olleH"
+(reverse [1 2 3]) => [3 2 1]
+
+;Returns a vector sorted, optionally sorting by the return of a function of each item
+;Note: will only sort all number or all string
+(sort [0 7 8 9 8 6])    => [0 6 7 8 8 9]
+(sort [0 1 8 9 65] str) => [0 1 65 8 9]
+(sort [{:a 23} {:a 24} {:a 19}] :a) => [{:a 19} {:a 23} {:a 24}]
+
+;Tests if a string starts with and ends with another string
+(starts-with? "Hello" "He") => true
+(ends-with? "Hello" "Lo")   => false
+
+;Splits a string by spaces or provided delimiting string
+(split "Hello" "e") => ["H" "llo"]
+(split "hi hi!")    => ["hi" "hi!"]
+
+;Joins a vector by spaces or provided string
+(join [1 2 3])      => "1 2 3"
+(join [1 2 3] ", ") => "1, 2, 3"
 
 ;Returns the keys and values of a dictionary
 (define d {0 1 :a "hello" "hi" 123})

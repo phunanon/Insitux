@@ -47,7 +47,7 @@ const tests: {
   out?: string;
 }[] = [
   //Basic snippets
-  { name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
+  { name: "Hello, world!", code: `(sort [{:age 23} {:age 24} {:age 19}] :age)`, out: `Hello, world!` },
   {
     name: "Say Hello, world!",
     code: `(print "Hello, world!")`,

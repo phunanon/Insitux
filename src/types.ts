@@ -61,7 +61,7 @@ export const ops: {
     exactArity?: number;
     onlyNum?: boolean;
     argTypes?: (Val["t"] | Val["t"][])[];
-};
+  };
 } = {
   print: {},
   "print-str": {},
@@ -115,10 +115,16 @@ export const ops: {
     ],
   },
   sect: { minArity: 1, maxArity: 3, argTypes: [["vec", "str"], "num", "num"] },
+  reverse: { exactArity: 1, argTypes: [["vec", "str"]] },
+  sort: { minArity: 1, maxArity: 2, argTypes: ["vec"] },
   keys: { exactArity: 1, argTypes: ["dict"] },
   vals: { exactArity: 1, argTypes: ["dict"] },
-  version: {},
-  tests: {},
+  "starts-with?": { exactArity: 2, argTypes: ["str", "str"] },
+  "ends-with?": { exactArity: 2, argTypes: ["str", "str"] },
+  split: { minArity: 1, maxArity: 2, argTypes: ["str", "str"] },
+  join: { minArity: 1, maxArity: 2, argTypes: ["vec", "str"] },
+  version: { exactArity: 0 },
+  tests: { exactArity: 0 },
 };
 
 export const typeNames = {

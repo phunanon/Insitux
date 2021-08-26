@@ -259,6 +259,34 @@ internal insitux functions
 (even? 4)
 ;; function
 ;; Tests if number is even.
+
+(filter odd? [0 1 2 3])
+;; function
+;; Filters a vector or string by a function.
+
+(reverse [0 1 2 3])
+;; function
+;; Returns the reverse of a vector or string.
+
+(sort [8 6 9 0 4] sin)
+;; function
+;; Sorts a vector of numbers or strings, optionally sorting by the return of a function of each item.
+
+(starts-with? "Hello" "He")
+;; function
+;; Tests if a string starts with another string.
+
+(ends-with? "hello" "lo")
+;; function
+;; Tests if a string ends with another string.
+
+(split "hello" "e")
+;; function
+;; Splits a string into a vector by space or a provided string.
+
+(join [0 1 2 3])
+;; function
+;; Joins a vector into a string by spaces or a provided string.
 ```
 
 ### main.ts

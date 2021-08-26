@@ -14,6 +14,7 @@ export const sub = (x: string, s: string): boolean => x.includes(s);
 export const subIdx = (x: string, s: string) => x.indexOf(s);
 export const has = <T>(x: T[], y: T): boolean => x.includes(y);
 export const starts = (str: string, x: string): boolean => str.startsWith(x);
+export const ends = (str: string, x: string): boolean => str.endsWith(x);
 export const flat = <T>(arr: T[][]): T[] => arr.flat(); //e.g. [[0], [1], []] => [0, 1]
 export const concat = <T>(a: T[], b: T[]): T[] => a.concat(b);
 export const push = <T>(arr: T[], add: T[]) => arr.push(...add);
