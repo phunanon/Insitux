@@ -374,6 +374,7 @@ async function exeOp(
     }
     case "map":
     case "reduce":
+    case "filter":
       {
         const closure = getExe(ctx, args.shift()!, errCtx);
         const badArg =
@@ -402,13 +403,28 @@ async function exeOp(
         }
 
         const array = asArray(args.shift()!);
+        if (op === "filter") {
+          const filtered: Val[] = [];
+          for (let i = 0; i < len(array); ++i) {
+            const errors = await closure([array[i]]);
+            if (len(errors)) {
+              return errors;
+            }
+            if (asBoo(stack.pop()!)) {
+              filtered.push(array[i]);
+            }
+          }
+          _vec(filtered);
+          return [];
+        }
+
         if (len(array) < 2) {
           push(stack, array);
           return [];
         }
         let reduction: Val = (len(args) ? args : array).shift()!;
         for (let i = 0; i < len(array); ++i) {
-          const errors = await closure!([reduction, array[i]]);
+          const errors = await closure([reduction, array[i]]);
           if (len(errors)) {
             return errors;
           }
@@ -564,10 +580,18 @@ function getExe(
       const a = params[0];
       switch (a.t) {
         case "str":
+          if (n >= slen(str(a))) {
+            _nul();
+          } else {
           _str(strIdx(str(a), n));
+          }
           break;
         case "vec":
+          if (n >= len(vec(a))) {
+            _nul();
+          } else {
           stack.push(vec(a)[n] as Val);
+          }
           break;
         default:
           return [typeErr("argument must be string or vector", errCtx)];

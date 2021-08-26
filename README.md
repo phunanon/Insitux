@@ -227,7 +227,7 @@ built-in operations each within an example, with results after a `=>`.
 
 - Write decimal numbers either `0.123` or `.123`.
 
-### Long-form examples
+### Various examples
 
 ```clj
 ; 2D coordinate inside 2D area?
@@ -238,11 +238,15 @@ built-in operations each within an example, with results after a `=>`.
 (inside-2d? 50 50 0 0 100 100)  => true
 (inside-2d? 50 150 0 0 100 100) => false
 
-;Recursive Fibonacci solver
+; Recursive Fibonacci solver
 (function fib n
   (if (< n 2) n
       (+ (fib (dec n))
          (fib (- n 2)))))
 
 (fib 13) => 233
+
+; Filter for vectors and strings above a certain length
+(filter 2 [[1] [:a :b :c] "hello" "hi"])
+=> [[:a :b :c] "hello"]
 ```

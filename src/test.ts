@@ -80,12 +80,12 @@ const tests: {
     out: `24`,
   },
   {
-    name: "Map as operation 1",
+    name: "Dictionary as op 1",
     code: `({"name" "Patrick" "age" 24} "age")`,
     out: `24`,
   },
   {
-    name: "Map as operation 2",
+    name: "Dictionary as op 2",
     code: `({"name" "Patrick"} "age" 24)`,
     out: `{name Patrick, age 24}`,
   },
@@ -117,6 +117,11 @@ const tests: {
     name: "Sum vectors of numbers",
     code: `(map + [1 2 3] [1 2 3 4])`,
     out: `[2 4 6]`,
+  },
+  {
+    name: "Filter by integer",
+    code: `(filter 2 [[1] [:a :b :c] "hello" "hi"])`,
+    out: `[[:a :b :c] hello]`,
   },
   {
     name: "Comments, short decimal",

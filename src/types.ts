@@ -92,6 +92,7 @@ export const ops = [
   "has?",
   "map",
   "reduce",
+  "filter",
   "str",
   "rand-num",
   "rand-int",
@@ -138,6 +139,7 @@ export const minArities: { [op: string]: number } = {
   "has?": 2,
   map: 2,
   reduce: 2,
+  filter: 2,
   apply: 2,
   into: 2,
   sect: 1,
@@ -180,8 +182,8 @@ export const argsMustBe: { [op: string]: (Val["t"] | Val["t"][])[] } = {
   num: [["str", "num"]],
   idx: [["str", "vec"]],
   "has?": ["str", "str"],
-  "keys": ["dict"],
-  "vals": ["dict"],
+  keys: ["dict"],
+  vals: ["dict"],
 };
 
 export const typeNames = {
