@@ -276,7 +276,7 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
         push(body, parsed);
       }
       headIns.push({
-        typ: has(ops, op) ? "op" : "exe",
+        typ: ops[op] ? "op" : "exe",
         value: [
           typ === "num" ? { t: "num", v: toNum(op) } : { t: "str", v: op },
           args,

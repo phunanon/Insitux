@@ -1,4 +1,4 @@
-export const insituxVersion = 20210825;
+export const insituxVersion = 20210826;
 
 import { parse } from "./parse";
 import {
@@ -35,14 +35,11 @@ import {
 } from "./poly-fills";
 import { performTests } from "./test";
 import {
-  argsMustBe,
-  argsMustBeNum,
   Ctx,
   Dict,
   ErrCtx,
   Func,
   InvokeError,
-  minArities,
   ops,
   typeNames,
   Val,
@@ -169,27 +166,31 @@ const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
   return <Val>{ t: "dict", v: <Dict>{ keys: nKeys, vals: nVals } };
 };
 
-async function exeOp(
-  op: string,
-  args: Val[],
-  ctx: Ctx,
-  errCtx: ErrCtx
-): Promise<InvokeError[]> {
-  const tErr = (msg: string) => [typeErr(msg, errCtx)];
-  //Arity checks
-  if (op in minArities && len(args) < minArities[op]) {
-    const a = minArities[op];
-    return [
-      {
-        e: "Arity",
-        m: `${op} requires at least ${a} argument${a === 1 ? "" : "s"}`,
-        errCtx,
-      },
-    ];
-  } else if (op in argsMustBe) {
-    const violations = argsMustBe[op]
-      .map((need, i) =>
-        isArray(need)
+function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
+  const { argTypes, exactArity, maxArity, minArity, onlyNum } = ops[op];
+  const aErr = (msg: string) => [{ e: "Arity", m: msg, errCtx }];
+  if (exactArity && len(args) !== exactArity) {
+    return aErr(
+      `needs exactly ${exactArity} argument${exactArity !== 1 ? "s" : ""}`
+    );
+  }
+  if (
+    (minArity && len(args) < minArity) ||
+    (maxArity && len(args) > maxArity)
+  ) {
+    return aErr(`needs between ${minArity} and ${maxArity} arguments`);
+  }
+  if (onlyNum && args.findIndex(a => a.t !== "num") !== -1) {
+    return [typeErr(`numeric arguments only`, errCtx)];
+  }
+  if (!argTypes) {
+    return [];
+  }
+  const typeViolations = argTypes
+    .map(
+      (need, i) =>
+        i < len(args) &&
+        (isArray(need)
           ? has(need, args[i].t)
             ? false
             : `argument ${i + 1} must be either: ${need
@@ -197,18 +198,24 @@ async function exeOp(
                 .join(", ")}`
           : need === args[i].t
           ? false
-          : `argument ${i + 1} must be ${typeNames[need]}`
+          : `argument ${i + 1} must be ${typeNames[need]}`)
       )
       .filter(r => r);
+  return typeViolations.map(v => typeErr(<string>v, errCtx));
+}
+
+async function exeOp(
+  op: string,
+  args: Val[],
+  ctx: Ctx,
+  errCtx: ErrCtx
+): Promise<InvokeError[]> {
+  const tErr = (msg: string) => [typeErr(msg, errCtx)];
+  //Argument arity and type checks
+  {
+    const violations = exeOpViolations(op, args, errCtx);
     if (len(violations)) {
-      return violations.map(v => typeErr(<string>v, errCtx));
-    }
-  }
-  //Check for non-numeric arguments if needed
-  if (has(argsMustBeNum, op)) {
-    const nAn = args.findIndex(a => a.t !== "num");
-    if (nAn !== -1) {
-      return tErr(`argument ${nAn + 1} is not a number`);
+      return violations;
     }
   }
 
@@ -461,12 +468,7 @@ async function exeOp(
     }
     case "into": {
       const a0v = args[0].t === "vec";
-      const a0d = args[0].t === "dict";
       const a1v = args[1].t === "vec";
-      const a1d = args[1].t === "dict";
-      if ((!a0v && !a0d) || (!a1v && !a1d)) {
-        return tErr("each argument must be vector or dictionary");
-      }
       if (a0v) {
         _vec(concat(vec(args[0]), a1v ? vec(args[1]) : asArray(args[1])));
       } else {
@@ -483,18 +485,6 @@ async function exeOp(
     }
     case "sect": {
       const isVec = args[0].t === "vec";
-      const isStr = args[0].t === "str";
-      if (!isVec && !isStr) {
-        return tErr("first argument must be vector or string");
-      }
-      if (len(args) > 1 && args[1].t !== "num") {
-        return tErr("second argument must be number");
-      }
-      if (len(args) > 2) {
-        if (args[2].t !== "num") {
-          return tErr("third argument must be number");
-        }
-      }
       let skip = len(args) > 1 ? num(args[1]) : 1;
       const v = args[0];
       const vlen = isVec ? len(vec(v)) : slen(str(v));
@@ -533,7 +523,7 @@ function getExe(
   const monoArityError = [{ e: "Arity", m: `one argument required`, errCtx }];
   if (visStr(op) || visFun(op)) {
     const str = op.v;
-    if (has(ops, str)) {
+    if (ops[str]) {
       return (params: Val[]) => exeOp(str, params, ctx, errCtx);
     }
     if (str in ctx.env.funcs) {
@@ -687,7 +677,7 @@ export async function exeFunc(
       case "var":
         {
           const name = value as string;
-          if (has(ops, name)) {
+          if (ops[name]) {
             _str(name);
           } else if (starts(name, "$")) {
             const { value, err } = await ctx.get(substr(name, 1));
@@ -776,7 +766,7 @@ export function symbols(ctx: Ctx): string[] {
   let syms = ["function"];
   syms = concat(
     syms,
-    ops.filter(o => o !== "execute-last")
+    objKeys(ops).filter(o => o !== "execute-last")
   );
   syms = concat(syms, objKeys(ctx.env.funcs));
   syms = concat(syms, objKeys(ctx.env.vars));
