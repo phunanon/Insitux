@@ -86,12 +86,18 @@ const str = ({ v }: Val) => v as string;
 const vec = ({ v }: Val) => v as Val[];
 const dic = ({ v }: Val) => v as Dict;
 const asBoo = ({ t, v }: Val) => (t === "bool" ? (v as boolean) : t !== "null");
-const visStr = (val: Val): val is { t: "str"; v: string } => val.t === "str";
-const visNum = (val: Val): val is { t: "num"; v: number } => val.t === "num";
-const visVec = (val: Val): val is { t: "vec"; v: Val[] } => val.t === "vec";
-const visDic = (val: Val): val is { t: "dict"; v: Dict } => val.t === "dict";
-const visFun = (val: Val): val is { t: "func"; v: string } => val.t === "func";
-const visKey = (val: Val): val is { t: "key"; v: string } => val.t === "key";
+export const visStr = (val: Val): val is { t: "str"; v: string } =>
+  val.t === "str";
+export const visNum = (val: Val): val is { t: "num"; v: number } =>
+  val.t === "num";
+export const visVec = (val: Val): val is { t: "vec"; v: Val[] } =>
+  val.t === "vec";
+export const visDic = (val: Val): val is { t: "dict"; v: Dict } =>
+  val.t === "dict";
+export const visFun = (val: Val): val is { t: "func"; v: string } =>
+  val.t === "func";
+export const visKey = (val: Val): val is { t: "key"; v: string } =>
+  val.t === "key";
 
 const asArray = ({ t, v }: Val): Val[] =>
   t === "vec"
@@ -350,6 +356,9 @@ async function exeOp(
     case "inc":
     case "dec":
       _num(num(args[0]) + (op === "inc" ? 1 : -1));
+      return [];
+    case "abs":
+      _num(abs(num(args[0])));
       return [];
     case "pi":
       _num(pi);
@@ -857,5 +866,3 @@ export function symbols(ctx: Ctx): string[] {
   syms = concat(syms, objKeys(ctx.env.vars));
   return syms;
 }
-
-performTests();

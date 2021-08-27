@@ -1,20 +1,28 @@
 import readline = require("readline");
 import fs = require("fs");
-import { invoke, symbols } from ".";
+import { invoke, symbols, visStr } from ".";
 import { Ctx, Val, ValAndErr } from "./types";
 const rf = (f: string) => fs.readFileSync(f).toString();
 const env = new Map<string, Val>();
 
+async function get(key: string) {
+  return env.has(key)
+  ? { value: env.get(key)!, err: undefined }
+  : {
+      value: <Val>{ v: undefined, t: "null" },
+      err: `key ${key} not found`,
+    };
+}
+
+async function set(key: string, val: Val) {
+  env.set(key, val);
+  return undefined;
+}
+
 const ctx: Ctx = {
   env: { funcs: {}, vars: {} },
-  get: async (key: string) =>
-    env.has(key)
-      ? { value: env.get(key)!, err: undefined }
-      : {
-          value: <Val>{ v: undefined, t: "null" },
-          err: `key ${key} not found`,
-        },
-  set: async (key: string, val: Val) => env.set(key, val) && undefined,
+  get,
+  set,
   exe,
   loopBudget: 10000,
   callBudget: 1000,
@@ -31,6 +39,14 @@ async function exe(name: string, args: Val[]): Promise<ValAndErr> {
       }
       break;
     default:
+      if (args.length && visStr(args[0]) && args[0].v.startsWith("$")) {
+        if (args.length == 1) {
+          return await get(`${args[0].v.substr(1)}.${name}`);
+        } else {
+          set(`${args[0].v.substr(1)}.${name}`, args[1]);
+          return { value: args[1], err: undefined };
+        }
+      }
       return { value: nullVal, err: "operation does not exist" };
   }
   return { value: nullVal, err: undefined };
