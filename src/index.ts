@@ -287,6 +287,9 @@ async function exeOp(
       }
       _num(toNum(args[0].v));
       return [];
+    case "!":
+      _boo(!asBoo(args[0]));
+      return [];
     case "=":
     case "!=":
       {

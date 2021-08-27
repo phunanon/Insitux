@@ -67,6 +67,7 @@ export const ops: {
   "print-str": {},
   "execute-last": {},
   define: { exactArity: 2, argTypes: ["ref"] },
+  "!": { exactArity: 1 },
   "=": { minArity: 2 },
   "!=": { minArity: 2 },
   "+": { minArity: 2, onlyNum: true },

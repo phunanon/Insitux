@@ -22,8 +22,8 @@ You and the Insitux app talk to each other in these ways:
 | ------ | ------------------------ | ----------------------------- |
 | code   | goes into the app        | `(+ 2 2)`                     |
 | return | comes out of the app     | `4`                           |
-| get    | reads data               | `$day.cycle_speed`            |
 | set    | writes data              | `($day.cycle_speed 100)`      |
+| get    | reads data               | `$day.cycle_speed`            |
 | exe    | data goes both in an out | `(util.fire [0 0 0] [0 1 0])` |
 
 ### Writing the code
@@ -69,6 +69,9 @@ built-in operations each within an example, with results after a `=>`.
 (print my-number)
 => 123
 
+;If
+(if )
+
 ;Yields the mathematical Pi
 (pi) => 3.141592653589793
 
@@ -109,6 +112,12 @@ built-in operations each within an example, with results after a `=>`.
 (<= 10 10 15) => true
 (>= 10 11 11) => false
 
+;Negates boolean value
+(! true)  => false
+(! false) => true
+(! null)  => true
+(! 123)   => false
+
 ;Creates a vector (list) of values in two different ways
 [1 "hello" :c]
 (vec 1 "hello" :c)
@@ -128,7 +137,7 @@ built-in operations each within an example, with results after a `=>`.
      2
      " my app. "
      [:a :b "c"])
-=> Hello, world! Welcome 2 my app. [:a :b c]
+=> "Hello, world! Welcome 2 my app. [:a :b c]"
 
 ;Returns a string parsed into a number
 (num "123") => 123
@@ -256,6 +265,15 @@ etc
 ```
 
 - Write decimal numbers either `0.123` or `.123`.
+
+- Insitux implementations are advised to support this behaviour:
+```clj
+($test.ing 123)   => 123
+$test.ing         => 123
+(ing "$test")     => 123
+(ing "$test" 456) => 456
+$test.ing         => 456
+```
 
 ### Various examples
 
