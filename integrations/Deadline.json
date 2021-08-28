@@ -6,7 +6,7 @@
 				"directory": "function",
 				"description": [
 					"(function sum a b (+ a b))",
-					"keyword",
+					"syntax",
 					"Defines a new function."
 				]
 			},
@@ -14,8 +14,24 @@
 				"directory": "define",
 				"description": [
 					"(define variable-name 123)",
-					"keyword",
+					"syntax",
 					"Defines a variable for later use."
+				]
+			},
+			{
+				"directory": "if",
+				"description": [
+					"(if true (print \"hi\") (print \"bye\"))",
+					"syntax",
+					"Tests a condition and executes either the second or third argument."
+				]
+			},
+			{
+				"directory": "while",
+				"description": [
+					"(while (pos? n) (print \"hi\") (define n (dec n)))",
+					"syntax",
+					"Loops all arguments so long as the first argument is true."
 				]
 			},
 			{
@@ -56,6 +72,14 @@
 					"(/ 10 5 2)",
 					"function",
 					"Divides each argument by the next in turn."
+				]
+			},
+			{
+				"directory": "//",
+				"description": [
+					"(// 10 3)",
+					"function",
+					"Divides and retains the quotient each argument by the next in turn."
 				]
 			},
 			{
@@ -436,6 +460,102 @@
 					"(join [0 1 2 3])",
 					"function",
 					"Joins a vector into a string by spaces or a provided string."
+				]
+			},
+			{
+				"directory": "time",
+				"description": [
+					"(time)",
+					"function",
+					"Returns the time in milliseconds."
+				]
+			},
+			{
+				"directory": "pos?",
+				"description": [
+					"(pos? 5)",
+					"function",
+					"Tests if a number is positive."
+				]
+			},
+			{
+				"directory": "neg?",
+				"description": [
+					"(neg? -5)",
+					"function",
+					"Tests if a number is negative."
+				]
+			},
+			{
+				"directory": "zero?",
+				"description": [
+					"(zero? 0)",
+					"function",
+					"Tests if a value is 0."
+				]
+			},
+			{
+				"directory": "null?",
+				"description": [
+					"(null? null)",
+					"function",
+					"Tests if a value is null."
+				]
+			},
+			{
+				"directory": "num?",
+				"description": [
+					"(num? 123)",
+					"function",
+					"Tests if a value is number."
+				]
+			},
+			{
+				"directory": "bool?",
+				"description": [
+					"(bool? true)",
+					"function",
+					"Tests if a value is boolean."
+				]
+			},
+			{
+				"directory": "str?",
+				"description": [
+					"(str? \"hi\")",
+					"function",
+					"Tests if a value is string."
+				]
+			},
+			{
+				"directory": "dict?",
+				"description": [
+					"(dict? {})",
+					"function",
+					"Tests if a value is dictionary."
+				]
+			},
+			{
+				"directory": "vec?",
+				"description": [
+					"(vec? [])",
+					"function",
+					"Tests if a value is vector."
+				]
+			},
+			{
+				"directory": "key?",
+				"description": [
+					"(key? :abc)",
+					"function",
+					"Tests if a value is keyword."
+				]
+			},
+			{
+				"directory": "func?",
+				"description": [
+					"(func? +)",
+					"function",
+					"Tests if a value is function."
 				]
 			}
 		]

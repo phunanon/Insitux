@@ -69,8 +69,15 @@ built-in operations each within an example, with results after a `=>`.
 (print my-number)
 => 123
 
-;If
-(if )
+;Tests a condition and executes either the second or third argument
+(if true 1 2) => 1
+(if 1 2 3)    => 2
+(if false 1)  => null
+(if null 1 2) => 2
+(if false
+  (print "hi")
+  (print "bye"))
+=> bye
 
 ;Yields the mathematical Pi
 (pi) => 3.141592653589793
@@ -80,8 +87,9 @@ built-in operations each within an example, with results after a `=>`.
 (- 10 5 1)   => 4
 (* 10 10 10) => 1000
 (/ 10 3)     => 3.333333
+(// 10 3)    => 3
 
-;Various arithmetic and logic functions which take one argument only
+;Various arithmetic and test functions which take one argument only
 (inc 100)    => 101
 (dec 50)     => 49
 (abs -123)   => 123
@@ -93,8 +101,9 @@ built-in operations each within an example, with results after a `=>`.
 (round 3.5)  => 4
 (floor 2.7)  => 2
 (ceil 2.1)   => 3
-(odd? 5)     => true
-(even? 5)    => false
+(odd? 5) (even? 6) (pos? 5) (neg? -5) (zero? 0)
+(null? null) (num? 123) (bool? true) (str? "hi")
+(dict? {}) (vec? []) (key? :abc) (func? +)
 
 ;Various arithmetic functions which take two or more arguments
 (** 10 2)   => 100
@@ -247,6 +256,9 @@ etc
 ;Applies a vector's items and other arguments as the arguments to a function
 (apply + [0 1 2] 3 [4 5 6])
 => 21
+
+;Returns the time in milliseconds
+(time) => 1630143983032
 
 ;Runs built-in Insitux tests
 (tests)

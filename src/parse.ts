@@ -282,6 +282,8 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
             ? { t: "num", v: toNum(op) }
             : op.startsWith(":")
             ? { t: "key", v: op }
+            : ops[op]
+            ? { t: "func", v: op }
             : { t: "str", v: op },
           args,
         ],

@@ -9,6 +9,7 @@ import {
   ends,
   flat,
   floor,
+  getTimeMs,
   has,
   isArray,
   isNum,
@@ -233,19 +234,6 @@ async function exeOp(
   }
 
   switch (op) {
-    case "version":
-      _num(insituxVersion);
-      return [];
-    case "tests":
-      {
-        const tests = await performTests();
-        const summary = tests.pop()!;
-        for (const test of tests) {
-          await exeOp("print", [{ v: test, t: "str" }], ctx, errCtx);
-        }
-        _str(summary);
-      }
-      return [];
     case "execute-last":
       return await getExe(ctx, args.pop()!, errCtx)(args);
     case "define":
@@ -312,6 +300,7 @@ async function exeOp(
     case "-":
     case "*":
     case "/":
+    case "//":
     case "**":
     case "rem":
     case "min":
@@ -325,6 +314,7 @@ async function exeOp(
           "-": (a, b) => a - b,
           "*": (a, b) => a * b,
           "/": (a, b) => a / b,
+          "//": (a, b) => floor(a / b),
           "**": (a, b) => a ** b,
           rem: (a, b) => a % b,
           min: (a, b) => min(a, b),
@@ -375,6 +365,32 @@ async function exeOp(
     case "odd?":
     case "even?":
       _boo(num(args[0]) % 2 === (op === "odd?" ? 1 : 0));
+      return [];
+    case "pos?":
+    case "neg?":
+    case "zero?": {
+      const n = num(args[0]);
+      _boo(op === "pos?" ? n > 0 : op === "neg?" ? n < 0 : !n);
+      return [];
+    }
+    case "null?":
+    case "num?":
+    case "bool?":
+    case "str?":
+    case "dict?":
+    case "vec?":
+    case "key?":
+    case "func?":
+      _boo(
+        (op === "null?" && args[0].t === "null") ||
+          (op === "num?" && args[0].t === "num") ||
+          (op === "bool?" && args[0].t === "bool") ||
+          (op === "str?" && args[0].t === "str") ||
+          (op === "dict?" && args[0].t === "dict") ||
+          (op === "vec?" && args[0].t === "vec") ||
+          (op === "key?" && args[0].t === "key") ||
+          (op === "func?" && args[0].t === "func")
+      );
       return [];
     case "has?":
       _boo(sub(str(args[0]), str(args[1])));
@@ -605,6 +621,22 @@ async function exeOp(
           .join(len(args) > 1 ? str(args[1]) : " ")
       );
       return [];
+    case "time":
+      _num(getTimeMs());
+      return [];
+    case "version":
+      _num(insituxVersion);
+      return [];
+    case "tests":
+      {
+        const tests = await performTests();
+        const summary = tests.pop()!;
+        for (const test of tests) {
+          await exeOp("print", [{ v: test, t: "str" }], ctx, errCtx);
+        }
+        _str(summary);
+      }
+      return [];
   }
 
   return [{ e: "Unexpected", m: "operation doesn't exist", errCtx }];
@@ -772,7 +804,7 @@ export async function exeFunc(
         {
           const name = value as string;
           if (ops[name]) {
-            _str(name);
+            _fun(name);
           } else if (starts(name, "$")) {
             const { value, err } = await ctx.get(substr(name, 1));
             if (err) {

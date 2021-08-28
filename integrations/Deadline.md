@@ -69,12 +69,20 @@ internal insitux functions
 #defs:index.ts
 
 (function sum a b (+ a b))
-;; keyword
+;; syntax
 ;; Defines a new function.
 
 (define variable-name 123)
-;; keyword
+;; syntax
 ;; Defines a variable for later use.
+
+(if true (print "hi") (print "bye"))
+;; syntax
+;; Tests a condition and executes either the second or third argument.
+
+(while (pos? n) (print "hi") (define n (dec n)))
+;; syntax
+;; Loops all arguments so long as the first argument is true.
 
 (print "2 + 2 = " (+ 2 2))
 ;; function
@@ -95,6 +103,10 @@ internal insitux functions
 (/ 10 5 2)
 ;; function
 ;; Divides each argument by the next in turn.
+
+(// 10 3)
+;; function
+;; Divides and retains the quotient each argument by the next in turn.
 
 (inc 123)
 ;; function
@@ -287,6 +299,54 @@ internal insitux functions
 (join [0 1 2 3])
 ;; function
 ;; Joins a vector into a string by spaces or a provided string.
+
+(time)
+;; function
+;; Returns the time in milliseconds.
+
+(pos? 5)
+;; function
+;; Tests if a number is positive.
+
+(neg? -5)
+;; function
+;; Tests if a number is negative.
+
+(zero? 0)
+;; function
+;; Tests if a value is 0.
+
+(null? null)
+;; function
+;; Tests if a value is null.
+
+(num? 123)
+;; function
+;; Tests if a value is number.
+
+(bool? true)
+;; function
+;; Tests if a value is boolean.
+
+(str? "hi")
+;; function
+;; Tests if a value is string.
+
+(dict? {})
+;; function
+;; Tests if a value is dictionary.
+
+(vec? [])
+;; function
+;; Tests if a value is vector.
+
+(key? :abc)
+;; function
+;; Tests if a value is keyword.
+
+(func? +)
+;; function
+;; Tests if a value is function.
 ```
 
 ### main.ts
