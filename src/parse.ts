@@ -24,6 +24,7 @@ type NamedTokens = {
   tokens: Token[];
   errCtx: ErrCtx;
 };
+type ParserIns = Omit<Ins, "typ"> & { typ: Ins["typ"] | "err" };
 
 function tokenise(code: string, invocationId: string) {
   const tokens: Token[] = [];
@@ -157,7 +158,7 @@ function funcise(segments: Token[][]): NamedTokens[] {
     : described;
 }
 
-function parseArg(tokens: Token[], params: string[]): Ins[] {
+function parseArg(tokens: Token[], params: string[]): ParserIns[] {
   const { typ, text, errCtx } = tokens.shift() as Token;
   switch (typ) {
     case "str":
@@ -186,15 +187,16 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
       }
       const { typ, text, errCtx } = head;
       let op = text;
+      const err = (value: string) => [<ParserIns>{ typ: "err", value, errCtx }];
       if (op === "if") {
         const cond = parseArg(tokens, params);
         if (!len(cond)) {
-          return []; //TODO: emit invalid if warning (no condition)
+          return err("must provide condition");
         }
-        const ins: Ins[] = cond;
+        const ins: ParserIns[] = cond;
         const ifT = parseArg(tokens, params);
         if (!len(ifT)) {
-          return []; //TODO: emit invalid if warning (no branches)
+          return err("must provide a branch");
         }
         ins.push({ typ: "if", value: len(ifT) + 1, errCtx });
         push(ins, ifT);
@@ -203,12 +205,12 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
           ins.push({ typ: "jmp", value: len(ifF), errCtx });
           push(ins, ifF);
           if (len(parseArg(tokens, params))) {
-            return []; //TODO: emit invalid if warning (too many branches)
+            return err("too many branches");
           }
         }
         return ins;
       } else if (op === "and" || op === "or" || op === "while") {
-        const args: Ins[][] = [];
+        const args: ParserIns[][] = [];
         let insCount = 0;
         while (true) {
           const arg = parseArg(tokens, params);
@@ -218,8 +220,8 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
           args.push(arg);
           insCount += len(arg);
         }
-        if (!len(args)) {
-          return []; //TODO: emit invalid and/or/while form
+        if (len(args) < 2) {
+          return err("requires at least two arguments");
         }
         const ins: Ins[] = [];
         if (op === "while") {
@@ -259,9 +261,6 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
       if (typ === "(") {
         tokens.unshift(head);
         const ins = parseArg(tokens, params);
-        if (!len(ins)) {
-          return []; //TODO: emit invalid form head warning (empty)
-        }
         push(headIns, ins);
         op = "execute-last";
         ++args;
@@ -352,11 +351,8 @@ function syntaxise(
   if (len(params) && !len(body)) {
     body.push(params.pop()!);
   }
-  const ins: Ins[] = [];
-  while (true) {
-    if (!len(body)) {
-      break;
-    }
+  const ins: ParserIns[] = [];
+  while (len(body)) {
     push(
       ins,
       parseArg(
@@ -365,7 +361,17 @@ function syntaxise(
       )
     );
   }
-  return { func: { name, ins } };
+  const parseErrors = ins.filter(i => i.typ === "err");
+  if (len(parseErrors)) {
+    return {
+      err: {
+        e: "Parse",
+        m: <string>parseErrors[0].value,
+        errCtx: parseErrors[0].errCtx,
+      },
+    };
+  }
+  return { func: { name, ins: <Ins[]>ins } };
 }
 
 function findParenImbalance(
