@@ -47,7 +47,7 @@ const tests: {
   out?: string;
 }[] = [
   //Basic snippets
-  { name: "Hello, world!", code: `(sort [{:age 23} {:age 24} {:age 19}] :age)`, out: `Hello, world!` },
+  { name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
   {
     name: "Say Hello, world!",
     code: `(print "Hello, world!")`,
@@ -246,8 +246,13 @@ const tests: {
   //Syntax errors
   { name: "Empty parens", code: `()`, err: ["Parse"] },
   {
-    name: "Imbalanced parens",
+    name: "Imbalanced parens 1",
     code: `(print ("hello!")`,
+    err: ["Parse"],
+  },
+  {
+    name: "Imbalanced parens 2",
+    code: `print "hello!")`,
     err: ["Parse"],
   },
   {

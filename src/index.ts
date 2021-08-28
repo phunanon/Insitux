@@ -1,4 +1,4 @@
-export const insituxVersion = 20210826;
+export const insituxVersion = 20210828;
 
 import { parse } from "./parse";
 import {

@@ -278,7 +278,11 @@ function parseArg(tokens: Token[], params: string[]): Ins[] {
       headIns.push({
         typ: ops[op] ? "op" : "exe",
         value: [
-          typ === "num" ? { t: "num", v: toNum(op) } : { t: "str", v: op },
+          typ === "num"
+            ? { t: "num", v: toNum(op) }
+            : op.startsWith(":")
+            ? { t: "key", v: op }
+            : { t: "str", v: op },
           args,
         ],
         errCtx,
@@ -369,7 +373,7 @@ function findParenImbalance(
 ): [number, number] {
   //Scan for first instance of untimely closed
   //  or last instance of unclosed open
-  const untimely = numR > numL;
+  const untimely = numR >= numL;
   const [l, r] = [untimely ? "(" : ")", untimely ? ")" : "("];
   const direction = untimely ? 1 : -1;
   for (
@@ -400,13 +404,15 @@ function errorDetect(
   const countTyp = (t: Token["typ"]) =>
     len(tokens.filter(({ typ }) => typ === t));
   const [numL, numR] = [countTyp("("), countTyp(")")];
-  if (numL !== numR) {
+  {
     const [line, col] = findParenImbalance(tokens, numL, numR);
-    errors.push({
-      e: "Parse",
-      m: `unmatched parenthesis`,
-      errCtx: { invocationId, line, col },
-    });
+    if (line + col) {
+      errors.push({
+        e: "Parse",
+        m: `unmatched parenthesis`,
+        errCtx: { invocationId, line, col },
+      });
+    }
   }
 
   //Check for double-quote imbalance
@@ -443,7 +449,7 @@ export function parse(
   invocationId: string
 ): { funcs: Funcs; errors: InvokeError[] } {
   const { tokens, stringError } = tokenise(code, invocationId);
-  const tokenErrors = errorDetect(stringError, tokens, invocationId);
+  const errors = errorDetect(stringError, tokens, invocationId);
   const segments = segment(tokens);
   const labelled = funcise(segments);
   const funcsAndErrors = labelled.map(named =>
@@ -453,14 +459,12 @@ export function parse(
       col: named.errCtx.col,
     })
   );
-  const [funcArr, errors] = partition(funcsAndErrors, fae => !!fae.err);
-  if (len(errors)) {
-    return {
-      funcs: {},
-      errors: errors.map(fae => fae.err!),
-    };
-  }
+  const [funcArr, synErrors] = partition(funcsAndErrors, fae => !!fae.err);
+  push(
+    errors,
+    synErrors.map(fae => fae.err!)
+  );
   const funcs: Funcs = {};
   funcArr.forEach(({ func }) => (funcs[func!.name] = func!));
-  return { errors: tokenErrors, funcs };
+  return { errors, funcs };
 }
