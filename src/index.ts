@@ -1,4 +1,4 @@
-export const insituxVersion = 20210828;
+export const insituxVersion = 20210829;
 
 import { parse } from "./parse";
 import {
@@ -413,18 +413,41 @@ async function exeOp(
       return [];
     }
     case "map":
+    case "for":
     case "reduce":
     case "filter":
       {
         const closure = getExe(ctx, args.shift()!, errCtx);
         const badArg =
-          op === "map"
+          op === "map" || op === "for"
             ? args.findIndex(({ t }) => t !== "vec" && t !== "str")
             : args[0].t === "str" || args[0].t === "vec"
             ? -1
             : 1;
         if (badArg !== -1) {
           return tErr(`"${args[badArg]}" is not a string or vector`);
+        }
+
+        if (op === "for") {
+          const arrays = args.map(asArray);
+          const lims = arrays.map(len);
+          const dividors = lims.map((_, i) =>
+            lims.slice(0, i + 1).reduce((sum, l) => sum * l)
+          );
+          dividors.unshift(1);
+          const array: Val[] = [];
+          for (let t = 0, lim = dividors.pop()!; t < lim; ++t) {
+            const argIdxs = dividors.map((d, i) =>
+              Math.floor((t / d) % lims[i])
+            );
+            const errors = await closure(arrays.map((a, i) => a[argIdxs[i]]));
+            if (len(errors)) {
+              return errors;
+            }
+            array.push(stack.pop()!);
+          }
+          _vec(array);
+          return [];
         }
 
         if (op === "map") {

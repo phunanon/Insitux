@@ -181,6 +181,10 @@ built-in operations each within an example, with results after a `=>`.
 (map + [0 1 2 3] [4 5 6]) => [4 5 8]
 (map str "abc" "xyz")     => ["ax" "by" "cz"]
 
+;Iterates a function over one or more vectors
+(for * [0 1 2] [1 10 100])
+=> [0 1 2 0 10 20 0 100 200]
+
 ;"Reduces" a vector into one value through a function, also accepting an initial value as its second argument
 (reduce + [1 2 3])   => 6
 (reduce + [1 2 3] 3) => 9
@@ -309,4 +313,8 @@ $test.ing         => 456
 ; Filter for vectors and strings above a certain length
 (filter 2 [[1] [:a :b :c] "hello" "hi"])
 => [[:a :b :c] "hello"]
+
+;Flatten a vector
+(apply apply vec [[0 1] 2 3 [4 5]])
+=> [0 1 2 3 4 5]
 ```

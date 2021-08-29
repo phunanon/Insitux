@@ -113,6 +113,7 @@ export const ops: {
   "has?": { exactArity: 2, argTypes: ["str", "str"] },
   idx: { exactArity: 2, argTypes: [["str", "vec"]] },
   map: { minArity: 2 },
+  for: { minArity: 2 },
   reduce: { minArity: 2 },
   filter: { minArity: 2 },
   str: {},
