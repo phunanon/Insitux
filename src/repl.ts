@@ -78,6 +78,6 @@ rl.on("line", async line => {
   }
   const errors = await invoke(ctx, line, "repl", true);
   errors.forEach(({e, m, errCtx: {line, col}}) =>
-    console.log(`${e} Error ${line}:${col}: ${m}.`));
+    console.log(`\x1b[35m${e} Error ${line}:${col}: ${m}.\x1b[0m`));
   rl.prompt();
 });

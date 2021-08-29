@@ -79,6 +79,10 @@ built-in operations each within an example, with results after a `=>`.
   (print "bye"))
 => bye
 
+;Like if, but either executes all arguments or returns null
+(when true (print-str "hi") 123)
+=> hi123
+
 ;Yields the mathematical Pi
 (pi) => 3.141592653589793
 

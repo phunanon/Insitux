@@ -188,25 +188,43 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
       const { typ, text, errCtx } = head;
       let op = text;
       const err = (value: string) => [<ParserIns>{ typ: "err", value, errCtx }];
-      if (op === "if") {
+      if (op === "if" || op === "when") {
         const cond = parseArg(tokens, params);
         if (!len(cond)) {
           return err("must provide condition");
         }
         const ins: ParserIns[] = cond;
-        const ifT = parseArg(tokens, params);
-        if (!len(ifT)) {
-          return err("must provide a branch");
-        }
-        ins.push({ typ: "if", value: len(ifT) + 1, errCtx });
-        push(ins, ifT);
-        const ifF = parseArg(tokens, params);
-        if (len(ifF)) {
-          ins.push({ typ: "jmp", value: len(ifF), errCtx });
-          push(ins, ifF);
-          if (len(parseArg(tokens, params))) {
-            return err("too many branches");
+        if (op === "if") {
+          const ifT = parseArg(tokens, params);
+          if (!len(ifT)) {
+            return err("must provide a branch");
           }
+          ins.push({ typ: "if", value: len(ifT) + 1, errCtx });
+          push(ins, ifT);
+          const ifF = parseArg(tokens, params);
+          if (len(ifF)) {
+            ins.push({ typ: "jmp", value: len(ifF), errCtx });
+            push(ins, ifF);
+            if (len(parseArg(tokens, params))) {
+              return err("too many branches");
+            }
+          } else {
+            ins.push({ typ: "jmp", value: 1, errCtx });
+            ins.push({ typ: "nul", value: undefined, errCtx });
+          }
+        } else {
+          const body: ParserIns[] = [];
+          while (true) {
+            const exp = parseArg(tokens, params);
+            if (!len(exp)) {
+              break;
+            }
+            push(body, exp);
+          }
+          ins.push({ typ: "if", value: len(body) + 1, errCtx });
+          push(ins, body);
+          ins.push({ typ: "jmp", value: 1, errCtx });
+          ins.push({ typ: "nul", value: undefined, errCtx });
         }
         return ins;
       } else if (op === "and" || op === "or" || op === "while") {

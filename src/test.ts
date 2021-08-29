@@ -58,6 +58,11 @@ const tests: {
   { name: "(1+1)+1+(1+1) = 5", code: `(+ (+ 1 1) 1 (+ 1 1))`, out: `5` },
   { name: "Conditional head", code: `((if true + -) 12 9 1)`, out: `22` },
   {
+    name: "Whens",
+    code: `[(when 123 (print "hi") 234) (when false (print "bye"))]`,
+    out: `hi\n[234 null]`,
+  },
+  {
     name: "Cond number head",
     code: `((if false 1 2) [:a :b :c])`,
     out: `:c`,

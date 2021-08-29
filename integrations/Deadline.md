@@ -78,7 +78,11 @@ internal insitux functions
 
 (if true (print "hi") (print "bye"))
 ;; syntax
-;; Tests a condition and executes either the second or third argument.
+;; Tests a condition and executes either the second or third argument (or null).
+
+(when true (print "hi") (print "bye"))
+;; syntax
+;; Tests a condition and executes its body else returns null.
 
 (while (pos? n) (print "hi") (define n (dec n)))
 ;; syntax
@@ -167,6 +171,10 @@ internal insitux functions
 (map str [0 1 2] "abc")
 ;; function
 ;; Returns a vector of calling a function with each of all the items or characters of one or more vectors or strings as arguments.
+
+(for str [0 1 2] "abc")
+;; function
+;; Returns a vector of calling a function with every combination of vector item or string characters as arguments.
 
 (reduce + [1 2 3])
 ;; function

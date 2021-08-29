@@ -23,7 +23,15 @@
 				"description": [
 					"(if true (print \"hi\") (print \"bye\"))",
 					"syntax",
-					"Tests a condition and executes either the second or third argument."
+					"Tests a condition and executes either the second or third argument (or null)."
+				]
+			},
+			{
+				"directory": "when",
+				"description": [
+					"(when true (print \"hi\") (print \"bye\"))",
+					"syntax",
+					"Tests a condition and executes its body else returns null."
 				]
 			},
 			{
@@ -196,6 +204,14 @@
 					"(map str [0 1 2] \"abc\")",
 					"function",
 					"Returns a vector of calling a function with each of all the items or characters of one or more vectors or strings as arguments."
+				]
+			},
+			{
+				"directory": "for",
+				"description": [
+					"(for str [0 1 2] \"abc\")",
+					"function",
+					"Returns a vector of calling a function with every combination of vector item or string characters as arguments."
 				]
 			},
 			{
