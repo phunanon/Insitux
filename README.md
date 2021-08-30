@@ -92,6 +92,8 @@ built-in operations each within an example, with results after a `=>`.
 (* 10 10 10) => 1000
 (/ 10 3)     => 3.333333
 (// 10 3)    => 3
+(** 2 3)     => 8
+(** 10)      => 100
 
 ;Various arithmetic and test functions which take one argument only
 (inc 100)    => 101
@@ -110,7 +112,6 @@ built-in operations each within an example, with results after a `=>`.
 (dict? {}) (vec? []) (key? :abc) (func? +)
 
 ;Various arithmetic functions which take two or more arguments
-(** 10 2)   => 100
 (rem 10 3)  => 1
 (min 1 2 3) => 1
 (max 1 2 3) => 3
@@ -262,7 +263,7 @@ etc
 (idx "Hello" "ll") => 2
 
 ;Applies a vector's items and other arguments as the arguments to a function
-(apply + [0 1 2] 3 [4 5 6])
+(.. + [0 1 2] 3 [4 5 6])
 => 21
 
 ;Returns the time in milliseconds
@@ -285,6 +286,8 @@ etc
 ```
 
 - Write decimal numbers either `0.123` or `.123`.
+
+- `args` contains a vector of arguments the function was called with
 
 - Insitux implementations are advised to support this behaviour:
 ```clj
@@ -318,7 +321,7 @@ $test.ing         => 456
 (filter 2 [[1] [:a :b :c] "hello" "hi"])
 => [[:a :b :c] "hello"]
 
-;Flatten a vector
-(apply apply vec [[0 1] 2 3 [4 5]])
+; Flatten a vector one level deep
+(.. .. vec [[0 1] 2 3 [4 5]])
 => [0 1 2 3 4 5]
 ```

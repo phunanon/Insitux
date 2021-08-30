@@ -1,4 +1,4 @@
-export const insituxVersion = 20210829;
+export const insituxVersion = 20210830;
 
 import { parse } from "./parse";
 import {
@@ -67,7 +67,7 @@ const val2str = ({ v, t }: Val): string => {
     case "null":
       return "null";
     case "func":
-      return `<${(<Func>v).name}>`;
+      return `<${v}>`;
   }
   return "?";
 };
@@ -306,8 +306,13 @@ async function exeOp(
     case "min":
     case "max":
       {
-        if (op === "-" && len(args) === 1) {
-          args.unshift({ t: "num", v: 0 });
+        if (len(args) === 1) {
+          if (op === "-") {
+            args.unshift({ t: "num", v: 0 });
+          } else if (op === "**") {
+            _num(num(args[0]) ** 2);
+            return [];
+          }
         }
         const numOps: { [op: string]: (a: number, b: number) => number } = {
           "+": (a, b) => a + b,
@@ -518,7 +523,7 @@ async function exeOp(
         _nul();
       }
       return [];
-    case "apply": {
+    case "..": {
       const closure = getExe(ctx, args.shift()!, errCtx);
       return await closure(flat(args.map(a => (a.t === "vec" ? vec(a) : [a]))));
     }
@@ -816,7 +821,9 @@ export async function exeFunc(
       case "par":
         {
           const paramIdx = value as number;
-          if (len(args) <= paramIdx) {
+          if (paramIdx === -1) {
+            _vec(args);
+          } else if (len(args) <= paramIdx) {
             _nul();
           } else {
             stack.push(args[paramIdx]);

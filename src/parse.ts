@@ -176,6 +176,8 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
         return [{ typ: "par", value: toNum(substr(text, 1)), errCtx }];
       } else if (has(params, text)) {
         return [{ typ: "par", value: params.indexOf(text), errCtx }];
+      } else if (text === "args") {
+        return [{ typ: "par", value: -1, errCtx }];
       }
       return [{ typ: "var", value: text, errCtx }];
     case "ref":

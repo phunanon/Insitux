@@ -75,7 +75,7 @@ export const ops: {
   "*": { minArity: 2, onlyNum: true },
   "/": { minArity: 2, onlyNum: true },
   "//": { minArity: 2, onlyNum: true },
-  "**": { minArity: 2, onlyNum: true },
+  "**": { minArity: 1, onlyNum: true },
   "<": { minArity: 2, onlyNum: true },
   ">": { minArity: 2, onlyNum: true },
   "<=": { minArity: 2, onlyNum: true },
@@ -120,7 +120,7 @@ export const ops: {
   "rand-num": { maxArity: 2, onlyNum: true },
   "rand-int": { maxArity: 2, onlyNum: true },
   while: {},
-  apply: { minArity: 2 },
+  "..": { minArity: 2 },
   into: {
     exactArity: 2,
     argTypes: [
