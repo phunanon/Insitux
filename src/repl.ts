@@ -25,6 +25,7 @@ const ctx: Ctx = {
   set,
   exe,
   loopBudget: 10000,
+  rangeBudget: 1000,
   callBudget: 1000,
 };
 

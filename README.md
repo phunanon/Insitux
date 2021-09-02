@@ -158,8 +158,9 @@ built-in operations each within an example, with results after a `=>`.
 
 ;Returns character from string index or item from vector index
 ;Note: the first letter/item is 0, the second is 1, etc
-(2 "Hello!")   => l
-(2 [:a :b :c]) => :c
+(2 "Hello!")    => l
+(1 [:a :b :c])  => :b
+(-1 [:a :b :c]) => :c
 
 ;Returns item if contained within vector else null
 ([0 1 2 3] 3)   => 3
@@ -202,13 +203,15 @@ built-in operations each within an example, with results after a `=>`.
   (define n (inc n)))
 => 012345
 
-;Returns the last argument
+;Returns the first argument; returns the last argument
+(val 3 2 1 (print-str "hello"))
+=> hello3
 (do (print-str "hello") 1 2 3)
 => hello3
 
 ;Returns the concatenation of vectors and dictionaries
 (into {} [0 1 2 3 4 5])         => {0 1, 2 3, 4 5}
-(into [] {:a "hi" :b "bye"})    => [:a "hi" :b "bye"]
+(into [] {:a "hi" :b "bye"})    => [[:a "hi"] [:b "bye"]]
 (into {:a 123 :b 456} {:a 456}) => {:a 456 :b 456}
 (into [1 2 3] [4 5 6])          => [1 2 3 4 5 6]
 
@@ -236,6 +239,19 @@ etc
 (sort [0 7 8 9 8 6])    => [0 6 7 8 8 9]
 (sort [0 1 8 9 65] str) => [0 1 65 8 9]
 (sort [{:a 23} {:a 24} {:a 19}] :a) => [{:a 19} {:a 23} {:a 24}]
+
+;Generates a range of numbers
+;Note: the first argument is always inclusive, second exclusive
+(range 5)      => [0 1 2 3 4]
+(range 1 5)    => [1 2 3 4]
+(range -3)     => [0 -1 -2]
+(range 0 -3)   => [0 -1 -2]
+(range 0 5 2)  => [0 2 4]
+(range 5 0 2)  => [5 3 1]
+(range 5 1)    => [5 4 3 2]
+(range 4 1 -1) => [4 3 2]
+(range 1 4 -1) => [3 2 1]
+(range 0 4 0)  => [0 1 2 3]
 
 ;Tests if a string starts with and ends with another string
 (starts-with? "Hello" "He") => true
@@ -324,4 +340,8 @@ $test.ing         => 456
 ; Flatten a vector one level deep
 (.. .. vec [[0 1] 2 3 [4 5]])
 => [0 1 2 3 4 5]
+
+; Triple every vector item
+(for * [0 1 2 3 4] [3])
+=> [0 3 6 9 12]
 ```

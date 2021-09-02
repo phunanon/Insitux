@@ -60,7 +60,7 @@ function tokenise(code: string, invocationId: string) {
       inNumber = inSymbol = false;
       continue;
     }
-    if (!inString && sub(" \t\n", c)) {
+    if (!inString && sub(" \t\n\r", c)) {
       inNumber = inSymbol = false;
       if (c === "\n") {
         ++line;

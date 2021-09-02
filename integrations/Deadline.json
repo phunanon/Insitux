@@ -239,9 +239,9 @@
 				]
 			},
 			{
-				"directory": "apply",
+				"directory": "..",
 				"description": [
-					"(apply + [0 1] 2 [3 4])",
+					"(.. + [0 1] 2 [3 4])",
 					"function",
 					"Applies a vector's items and other arguments as the arguments to a function."
 				]
@@ -572,6 +572,30 @@
 					"(func? +)",
 					"function",
 					"Tests if a value is function."
+				]
+			},
+			{
+				"directory": "do",
+				"description": [
+					"(do (print-str \"hello\") 1 2 3)",
+					"function",
+					"Returns its last argument."
+				]
+			},
+			{
+				"directory": "val",
+				"description": [
+					"(val 3 2 1 (print-str \"hello\"))",
+					"function",
+					"Returns its first argument."
+				]
+			},
+			{
+				"directory": "range",
+				"description": [
+					"(range 0 10 (print-str \"hello\"))",
+					"function",
+					"Returns its first argument."
 				]
 			}
 		]

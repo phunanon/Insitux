@@ -6,7 +6,7 @@ export type Val = {
 export type ErrCtx = { invocationId: string; line: number; col: number };
 export type InvokeError = { e: string; m: string; errCtx: ErrCtx };
 export type ExternalError = undefined | string;
-export type ValAndErr = { value: Val; err: ExternalError };
+export type ValAndErr = { value: Val; err?: ExternalError };
 
 export type Dict = {
   keys: Val[];
@@ -29,6 +29,7 @@ export type Ctx = {
   exe: (name: string, args: Val[]) => Promise<ValAndErr>;
   env: Env;
   loopBudget: number;
+  rangeBudget: number;
   callBudget: number;
 };
 
@@ -60,13 +61,13 @@ export const ops: {
     maxArity?: number;
     exactArity?: number;
     onlyNum?: boolean;
-    argTypes?: (Val["t"] | Val["t"][])[];
+    types?: (Val["t"] | Val["t"][])[];
   };
 } = {
   print: {},
   "print-str": {},
   "execute-last": {},
-  define: { exactArity: 2, argTypes: ["ref"] },
+  define: { exactArity: 2, types: ["ref"] },
   "!": { exactArity: 1 },
   "=": { minArity: 2 },
   "!=": { minArity: 2 },
@@ -108,14 +109,14 @@ export const ops: {
   tan: { exactArity: 1, onlyNum: true },
   vec: {},
   dict: {},
-  len: { exactArity: 1, argTypes: [["str", "vec", "dict"]] },
-  num: { exactArity: 1, argTypes: [["str", "num"]] },
-  "has?": { exactArity: 2, argTypes: ["str", "str"] },
-  idx: { exactArity: 2, argTypes: [["str", "vec"]] },
+  len: { exactArity: 1, types: [["str", "vec", "dict"]] },
+  num: { exactArity: 1, types: [["str", "num"]] },
+  "has?": { exactArity: 2, types: ["str", "str"] },
+  idx: { exactArity: 2, types: [["str", "vec"]] },
   map: { minArity: 2 },
   for: { minArity: 2 },
-  reduce: { minArity: 2 },
-  filter: { minArity: 2 },
+  reduce: { minArity: 2, maxArity: 3 },
+  filter: { exactArity: 2 },
   str: {},
   "rand-num": { maxArity: 2, onlyNum: true },
   "rand-int": { maxArity: 2, onlyNum: true },
@@ -123,20 +124,24 @@ export const ops: {
   "..": { minArity: 2 },
   into: {
     exactArity: 2,
-    argTypes: [
+    types: [
       ["vec", "dict"],
       ["vec", "dict"],
     ],
   },
-  sect: { minArity: 1, maxArity: 3, argTypes: [["vec", "str"], "num", "num"] },
-  reverse: { exactArity: 1, argTypes: [["vec", "str"]] },
-  sort: { minArity: 1, maxArity: 2, argTypes: ["vec"] },
-  keys: { exactArity: 1, argTypes: ["dict"] },
-  vals: { exactArity: 1, argTypes: ["dict"] },
-  "starts-with?": { exactArity: 2, argTypes: ["str", "str"] },
-  "ends-with?": { exactArity: 2, argTypes: ["str", "str"] },
-  split: { minArity: 1, maxArity: 2, argTypes: ["str", "str"] },
-  join: { minArity: 1, maxArity: 2, argTypes: ["vec", "str"] },
+  sect: { minArity: 1, maxArity: 3, types: [["vec", "str"], "num", "num"] },
+  reverse: { exactArity: 1, types: [["vec", "str"]] },
+  sort: { minArity: 1, maxArity: 2, types: ["vec"] },
+  keys: { exactArity: 1, types: ["dict"] },
+  vals: { exactArity: 1, types: ["dict"] },
+  do: { minArity: 1 },
+  val: { minArity: 1 },
+  range: { minArity: 1, maxArity: 3, types: ["num", "num", "num"] },
+  "empty?": { exactArity: 1, types: ["str", "vec", "dict"] },
+  "starts-with?": { exactArity: 2, types: ["str", "str"] },
+  "ends-with?": { exactArity: 2, types: ["str", "str"] },
+  split: { minArity: 1, maxArity: 2, types: ["str", "str"] },
+  join: { minArity: 1, maxArity: 2, types: ["vec", "str"] },
   time: { exactArity: 0 },
   version: { exactArity: 0 },
   tests: { exactArity: 0 },

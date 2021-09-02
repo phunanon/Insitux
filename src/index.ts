@@ -1,4 +1,4 @@
-export const insituxVersion = 20210830;
+export const insituxVersion = 20210902;
 
 import { parse } from "./parse";
 import {
@@ -21,7 +21,9 @@ import {
   push,
   randInt,
   randNum,
+  range,
   round,
+  sign,
   sin,
   slen,
   slice,
@@ -106,7 +108,10 @@ const asArray = ({ t, v }: Val): Val[] =>
     : t === "str"
     ? [...(v as string)].map(s => ({ t: "str", v: s }))
     : t === "dict"
-    ? flat((v as Dict).keys.map((k, i) => [k, (v as Dict).vals[i]]))
+    ? (v as Dict).keys.map((k, i) => ({
+        t: "vec",
+        v: [k, (v as Dict).vals[i]],
+      }))
     : [];
 
 const stringify = (vals: Val[]) =>
@@ -179,7 +184,7 @@ const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
 };
 
 function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
-  const { argTypes, exactArity, maxArity, minArity, onlyNum } = ops[op];
+  const { types, exactArity, maxArity, minArity, onlyNum } = ops[op];
   const aErr = (msg: string) => [
     { e: "Arity", m: `${op} needs ${msg}`, errCtx },
   ];
@@ -197,10 +202,10 @@ function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
   if (onlyNum && args.findIndex(a => a.t !== "num") !== -1) {
     return [typeErr(`numeric arguments only`, errCtx)];
   }
-  if (!argTypes) {
+  if (!types) {
     return [];
   }
-  const typeViolations = argTypes
+  const typeViolations = types
     .map(
       (need, i) =>
         i < nArg &&
@@ -423,14 +428,15 @@ async function exeOp(
     case "filter":
       {
         const closure = getExe(ctx, args.shift()!, errCtx);
+        const okT = (t: Val["t"]) => t === "vec" || t === "str" || t === "dict";
         const badArg =
           op === "map" || op === "for"
-            ? args.findIndex(({ t }) => t !== "vec" && t !== "str")
-            : args[0].t === "str" || args[0].t === "vec"
+            ? args.findIndex(({ t }) => !okT(t))
+            : okT(args[0].t)
             ? -1
-            : 1;
+            : 0;
         if (badArg !== -1) {
-          return tErr(`"${args[badArg]}" is not a string or vector`);
+          return tErr(`argument 2 must be either: string, vector, dictionary`);
         }
 
         if (op === "for") {
@@ -517,11 +523,8 @@ async function exeOp(
       }
       return [];
     case "do":
-      if (len(args)) {
-        stack.push(args.pop()!);
-      } else {
-        _nul();
-      }
+    case "val":
+      stack.push(op === "do" ? args.pop()! : args.shift()!);
       return [];
     case "..": {
       const closure = getExe(ctx, args.shift()!, errCtx);
@@ -535,7 +538,7 @@ async function exeOp(
       } else {
         if (a1v) {
           const v1 = asArray(args[1]);
-          stack.push(toDict(concat(asArray(args[0]), v1)));
+          stack.push(toDict(concat(flat(asArray(args[0]).map(vec)), v1)));
         } else {
           const { keys, vals } = dic(args[0]);
           const d1 = dic(args[1]);
@@ -625,6 +628,20 @@ async function exeOp(
       _vec(mapped.map(([v]) => v));
       return [];
     }
+    case "range": {
+      const [a, b, s] = args.map(num);
+      const edgeCase = s && s < 0 && a < b; //e.g. 1 4 -1
+      const [start, end] =
+        len(args) > 1 ? (edgeCase ? [b - 1, a - 1] : [a, b]) : [0, a];
+      const step = sign((end - start) * (s || 1)) * (s || 1);
+      const count = ceil(abs((end - start) / step));
+      if (count > ctx.rangeBudget) {
+        return [{ e: "Budget", m: "range too large", errCtx }];
+      }
+      const nums = range(count).map(n => n * step + start);
+      _vec(nums.map(v => <Val>{ t: "num", v }));
+      return [];
+    }
     case "keys":
     case "vals":
       _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
@@ -710,7 +727,7 @@ function getExe(
         return monoArityError;
       }
       if (params[0].t !== "dict") {
-        return [typeErr(`argument 1 wasn't a dict`, errCtx)];
+        return [typeErr(`argument 1 must be dictionary`, errCtx)];
       }
       stack.push(dictGet(dic(params[0]), op));
       return [];
@@ -722,23 +739,18 @@ function getExe(
         return monoArityError;
       }
       const a = params[0];
-      switch (a.t) {
-        case "str":
-          if (n >= slen(str(a))) {
-            _nul();
-          } else {
-            _str(strIdx(str(a), n));
-          }
-          break;
-        case "vec":
-          if (n >= len(vec(a))) {
-            _nul();
-          } else {
-            stack.push(vec(a)[n] as Val);
-          }
-          break;
-        default:
-          return [typeErr("argument must be string or vector", errCtx)];
+      if (a.t !== "str" && a.t !== "vec" && a.t !== "dict") {
+        return [
+          typeErr("argument must be string, vector, or dictionary", errCtx),
+        ];
+      }
+      const arr = asArray(a);
+      if (abs(n) >= len(arr)) {
+        _nul();
+      } else if (n < 0) {
+        stack.push(arr[len(arr) + n]);
+      } else {
+        stack.push(arr[n]);
       }
       return [];
     };

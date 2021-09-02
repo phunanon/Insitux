@@ -188,7 +188,7 @@ internal insitux functions
 ;; function
 ;; Concatenates its arguments into one string.
 
-(apply + [0 1] 2 [3 4])
+(.. + [0 1] 2 [3 4])
 ;; function
 ;; Applies a vector's items and other arguments as the arguments to a function.
 
@@ -355,6 +355,18 @@ internal insitux functions
 (func? +)
 ;; function
 ;; Tests if a value is function.
+
+(do (print-str "hello") 1 2 3)
+;; function
+;; Returns its last argument.
+
+(val 3 2 1 (print-str "hello"))
+;; function
+;; Returns its first argument.
+
+(range 0 10 (print-str "hello"))
+;; function
+;; Returns its first argument.
 ```
 
 ### main.ts

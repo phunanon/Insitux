@@ -1,3 +1,4 @@
 node_modules/
 .*/
-*.js*
+out/
+package-lock.json

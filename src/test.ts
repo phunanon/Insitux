@@ -137,7 +137,7 @@ const tests: {
   {
     name: "Dictionary into vector",
     code: `(into [1 2] {3 4 5 6})`,
-    out: `[1 2 3 4 5 6]`,
+    out: `[1 2 [3 4] [5 6]]`,
   },
   {
     name: "Vector into dictionary",
@@ -227,6 +227,11 @@ const tests: {
              (define n (dec n)))`,
     err: ["Budget"],
   },
+  {
+    name: "Range budget",
+    code: `(range 10000)`,
+    err: ["Budget"],
+  },
   //Complex functions
   {
     name: "Fibonacci 13",
@@ -304,6 +309,7 @@ export async function performTests(): Promise<string[]> {
         exe: (name: string, args: Val[]) => exe(state, name, args),
         env,
         loopBudget: 10000,
+        rangeBudget: 1000,
         callBudget: 1000,
       },
       code,
