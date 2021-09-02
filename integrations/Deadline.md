@@ -58,7 +58,41 @@ to define variables, use `define`:
 - 3: moderator
 - 4: admin
 
+### Examples
+
+```clj
+(print "hello world from deadline " $dl.globals.version " rev. " $dl.globals.revision)
+```
+
+```clj
+(dl.util.set_map "dl_shipment")
+```
+
 ## The API
+
+### main.ts
+
+basic shobfix environment definitions to interface with your console or provide basic functionality
+
+```clj
+#defs:main.ts
+
+(print ...)
+;; function
+;; prints supplied args to the console
+
+(clear)
+;; function
+;; clears the console
+
+(typeof arg)
+;; function
+;; returns a string type of `arg`
+
+(wait n)
+;; function
+;; alias for Luau `wait()`
+```
 
 ### dl.ts
 
@@ -184,7 +218,7 @@ deadline environment definitions to do things like set the time, change the map 
 ;; in the game
 ```
 
-## Test
+### Test
 
 Test functions
 
@@ -202,16 +236,6 @@ Test functions
 (test.shobfix_perm_error_test)
 ;; function
 ;; permission error
-```
-
-## Examples
-
-```clj
-(print "hello world from deadline " $dl.globals.version " rev. " $dl.globals.revision)
-```
-
-```clj
-(dl.util.set_map "dl_shipment")
 ```
 
 ### index.ts
@@ -524,28 +548,4 @@ internal insitux functions
 (range 0 10 (print-str "hello"))
 ;; function
 ;; Returns its first argument.
-```
-
-### main.ts
-
-basic shobfix environment definitions to interface with your console or provide basic functionality
-
-```clj
-#defs:main.ts
-
-(print ...)
-;; function
-;; prints supplied args to the console
-
-(clear)
-;; function
-;; clears the console
-
-(typeof arg)
-;; function
-;; returns a string type of `arg`
-
-(wait n)
-;; function
-;; alias for Luau `wait()`
 ```
