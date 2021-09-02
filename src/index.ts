@@ -446,8 +446,12 @@ async function exeOp(
             lims.slice(0, i + 1).reduce((sum, l) => sum * l)
           );
           dividors.unshift(1);
+          const lim = dividors.pop()!;
+          if (lim > ctx.loopBudget) {
+            return [{ e: "Budget", m: "would exceed loop budget", errCtx }];
+          }
           const array: Val[] = [];
-          for (let t = 0, lim = dividors.pop()!; t < lim; ++t) {
+          for (let t = 0; t < lim; ++t) {
             const argIdxs = dividors.map((d, i) =>
               Math.floor((t / d) % lims[i])
             );
@@ -674,7 +678,7 @@ async function exeOp(
       return [];
     case "tests":
       {
-        const tests = await performTests();
+        const tests = await performTests(!(len(args) && asBoo(args[0])));
         const summary = tests.pop()!;
         for (const test of tests) {
           await exeOp("print", [{ v: test, t: "str" }], ctx, errCtx);

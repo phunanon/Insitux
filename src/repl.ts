@@ -7,11 +7,11 @@ const env = new Map<string, Val>();
 
 async function get(key: string) {
   return env.has(key)
-  ? { value: env.get(key)!, err: undefined }
-  : {
-      value: <Val>{ v: undefined, t: "null" },
-      err: `key ${key} not found`,
-    };
+    ? { value: env.get(key)!, err: undefined }
+    : {
+        value: <Val>{ v: undefined, t: "null" },
+        err: `key ${key} not found`,
+      };
 }
 
 async function set(key: string, val: Val) {
@@ -39,18 +39,32 @@ async function exe(name: string, args: Val[]): Promise<ValAndErr> {
         process.stdout.write("\n");
       }
       break;
+    case "eval": {
+      delete ctx.env.funcs["entry"];
+      await invoker(args[0].v as string);
+      return { value: nullVal };
+    }
+    case "read": {
+      const path = args[0].v as string;
+      if (!fs.existsSync(path)) {
+        return { value: nullVal };
+      }
+      return {
+        value: { t: "str", v: fs.readFileSync(path).toString() },
+      };
+    }
     default:
       if (args.length && visStr(args[0]) && args[0].v.startsWith("$")) {
         if (args.length == 1) {
-          return await get(`${args[0].v.substr(1)}.${name}`);
+          return await get(`${args[0].v.substring(1)}.${name}`);
         } else {
-          set(`${args[0].v.substr(1)}.${name}`, args[1]);
-          return { value: args[1], err: undefined };
+          set(`${args[0].v.substring(1)}.${name}`, args[1]);
+          return { value: args[1] };
         }
       }
-      return { value: nullVal, err: "operation does not exist" };
+      return { value: nullVal, err: `operation ${name} does not exist` };
   }
-  return { value: nullVal, err: undefined };
+  return { value: nullVal };
 }
 
 const rl = readline.createInterface({
@@ -58,6 +72,9 @@ const rl = readline.createInterface({
   output: process.stdout,
   prompt: "> ",
   completer,
+  history: fs.existsSync(".repl-history")
+    ? fs.readFileSync(".repl-history").toString().split("\n").reverse()
+    : [],
 });
 
 function completer(line: string) {
@@ -72,13 +89,23 @@ function completer(line: string) {
 
 rl.prompt();
 
+async function invoker(code: string) {
+  process.stdout.write("\x1b[32m");
+  const errors = await invoke(ctx, code, "repl", true);
+  process.stdout.write("\x1b[0m");
+  errors.forEach(({ e, m, errCtx: { line, col } }) =>
+    console.log(`\x1b[35m${e} Error ${line}:${col}: ${m}.\x1b[0m`)
+  );
+}
+
 rl.on("line", async line => {
   if (line === "quit") {
     rl.close();
     return;
   }
-  const errors = await invoke(ctx, line, "repl", true);
-  errors.forEach(({e, m, errCtx: {line, col}}) =>
-    console.log(`\x1b[35m${e} Error ${line}:${col}: ${m}.\x1b[0m`));
+  if (line.trim()) {
+    fs.appendFileSync(".repl-history", `\n${line}`);
+    await invoker(line);
+  }
   rl.prompt();
 });

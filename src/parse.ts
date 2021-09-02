@@ -30,6 +30,7 @@ function tokenise(code: string, invocationId: string) {
   const tokens: Token[] = [];
   const digits = "0123456789";
   let inString = false,
+    isEscaped = false,
     inStringAt = [0, 0],
     inSymbol = false,
     inNumber = false,
@@ -46,6 +47,17 @@ function tokenise(code: string, invocationId: string) {
         ++line;
         col = 0;
       }
+      continue;
+    }
+    if (isEscaped) {
+      isEscaped = false;
+      if (inString) {
+        tokens[len(tokens) - 1].text += { n: "\n", t: "\t" }[c] || `\\${c}`;
+      }
+      continue;
+    }
+    if (c === "\\") {
+      isEscaped = true;
       continue;
     }
     if (c === '"') {

@@ -144,7 +144,7 @@ export const ops: {
   join: { minArity: 1, maxArity: 2, types: ["vec", "str"] },
   time: { exactArity: 0 },
   version: { exactArity: 0 },
-  tests: { exactArity: 0 },
+  tests: { minArity: 0, maxArity: 1, types: ["bool"] },
 };
 
 export const typeNames = {

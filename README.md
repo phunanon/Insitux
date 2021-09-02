@@ -285,8 +285,9 @@ etc
 ;Returns the time in milliseconds
 (time) => 1630143983032
 
-;Runs built-in Insitux tests
+;Runs built-in Insitux tests, with optional verbosity
 (tests)
+(tests true)
 
 ;Returns Insitux version
 (version)
@@ -301,11 +302,14 @@ etc
 (print "Hello") ;Comment at the end of lines too
 ```
 
+- Write `\"` inside of a string to represent `"`, `\n` to represent a newline, `\t` to represent a tab character
+
 - Write decimal numbers either `0.123` or `.123`.
 
 - `args` contains a vector of arguments the function was called with
 
 - Insitux implementations are advised to support this behaviour:
+
 ```clj
 ($test.ing 123)   => 123
 $test.ing         => 123

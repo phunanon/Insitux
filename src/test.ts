@@ -287,7 +287,7 @@ const tests: {
   },
 ];
 
-export async function performTests(): Promise<string[]> {
+export async function performTests(terse: boolean = true): Promise<string[]> {
   const results: {
     okErr: boolean;
     okOut: boolean;
@@ -338,7 +338,7 @@ export async function performTests(): Promise<string[]> {
   const totalMs = results.reduce((sum, { elapsedMs }) => sum + elapsedMs, 0);
   const numPassed = len(results.filter(({ okOut, okErr }) => okOut && okErr));
   return concat(
-    results.map(r => r.display),
+    results.filter(r => !terse || !r.okOut || !r.okErr).map(r => r.display),
     [`----- ${numPassed}/${len(results)} passed in ${totalMs}ms.`]
   );
 }
