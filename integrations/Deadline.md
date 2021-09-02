@@ -76,6 +76,10 @@ internal insitux functions
 ;; syntax
 ;; Defines a variable for later use.
 
+(let variable-name 123)
+;; syntax
+;; Defines a variable for later use within the same function call.
+
 (if true (print "hi") (print "bye"))
 ;; syntax
 ;; Tests a condition and executes either the second or third argument (or null).

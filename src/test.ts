@@ -62,11 +62,7 @@ const tests: {
     code: `[(when 123 (print "hi") 234) (when false (print "bye"))]`,
     out: `hi\n[234 null]`,
   },
-  {
-    name: "Cond number head",
-    code: `((if false 1 2) [:a :b :c])`,
-    out: `:c`,
-  },
+  { name: "Cond number head", code: `((if false 1 2) [:a :b :c])`, out: `:c` },
   {
     name: "and & short-circuit",
     code: `[(and true (if true null 1) true) (and 1 2 3)]`,
@@ -144,11 +140,16 @@ const tests: {
     code: `(into {[0] 1 [2] 3} [[0] 2])`,
     out: `{[0] 2, [2] 3}`,
   },
-  //Basic functions
   {
-    name: "Define with no call",
-    code: `(function func (print "Nothing."))`,
+    name: "While loop",
+    code: `(define n 5)
+           (while (< 0 n)
+             (print-str n)
+             (define n (dec n)))`,
+    out: `543215`,
   },
+  //Basic functions
+  { name: "Define with no call", code: `(function func (print "Nothing."))` },
   {
     name: "Call greet func",
     code: `(function greeting (print "Hello!")) (greeting)`,
@@ -184,42 +185,38 @@ const tests: {
   },
   {
     name: "Anonymous parameters",
-    code: `(function avg<n? (< (/ (reduce + %) (len %)) %1))
+    code: `(function avg<n? (< (/ (.. + %) (len %)) %1))
            (avg<n? [0 10 20 30 40] 5)`,
     out: `false`,
   },
   {
-    name: "While loop",
-    code: `(define n 5)
-           (while (< 0 n)
-             (print-str n)
-             (define n (dec n)))`,
-    out: `543215`,
+    name: "Call parameter",
+    code: `(function f x (x "hello")) (f print)`,
+    out: `hello\nnull`,
+  },
+  { name: "Let and retrieve", code: `(function f (let a 1) a) (f)`, out: `1` },
+  {
+    name: "Let num op and call",
+    code: `(function f (let n 0) (n [0])) (f)`,
+    out: `0`,
   },
   //Runtime errors
   {
     name: "String instead of number",
-    code: `(function avg (/ (reduce + %) (len %)))
-           (print (avg [1 2 3]))
-           (avg "Hello")`,
-    out: `2`,
+    code: `(function sum (.. + args))
+           (print (sum 2 2))
+           (sum 2 "hi")`,
+    out: `4`,
     err: ["Type"],
   },
+  { name: "Reference non-existing", code: `x`, err: ["Reference"] },
   {
-    name: "Reference non-existing",
-    code: `x`,
+    name: "Expired let retrieve",
+    code: `(function f (let a 1) a) (f) a`,
     err: ["Reference"],
   },
-  {
-    name: "Call non-existing",
-    code: `(x)`,
-    err: ["External"],
-  },
-  {
-    name: "Call budget",
-    code: `(function loop (loop)) (loop)`,
-    err: ["Budget"],
-  },
+  { name: "Call non-existing", code: `(x)`, err: ["External"] },
+  { name: "Call budget", code: `(function f (f)) (f)`, err: ["Budget"] },
   {
     name: "Loop budget",
     code: `(define n 10000)
@@ -227,11 +224,7 @@ const tests: {
              (define n (dec n)))`,
     err: ["Budget"],
   },
-  {
-    name: "Range budget",
-    code: `(range 10000)`,
-    err: ["Budget"],
-  },
+  { name: "Range budget", code: `(range 10000)`, err: ["Budget"] },
   //Complex functions
   {
     name: "Fibonacci 13",
@@ -248,43 +241,19 @@ const tests: {
     code: `[($globals.time_offset 5.5) $globals.time_offset]`,
     out: `[5.5 5.5]`,
   },
-  {
-    name: "exe",
-    code: `(test.function 123)`,
-    out: `123\nnull`,
-  },
+  { name: "exe", code: `(test.function 123)`, out: `123\nnull` },
   //Syntax errors
   { name: "Empty parens", code: `()`, err: ["Parse"] },
-  {
-    name: "Imbalanced parens 1",
-    code: `(print ("hello!")`,
-    err: ["Parse"],
-  },
-  {
-    name: "Imbalanced parens 2",
-    code: `print "hello!")`,
-    err: ["Parse"],
-  },
+  { name: "Imbalanced parens 1", code: `(print ("hello!")`, err: ["Parse"] },
+  { name: "Imbalanced parens 2", code: `print "hello!")`, err: ["Parse"] },
   {
     name: "Imbalanced quotes 1",
     code: `(print "Hello)`,
     err: ["Parse", "Parse"],
   },
-  {
-    name: "Imbalanced quotes 2",
-    code: `print "Hello")`,
-    err: ["Parse"],
-  },
-  {
-    name: "Function as op",
-    code: `(function)`,
-    err: ["Parse"],
-  },
-  {
-    name: "Function without body",
-    code: `(function func)`,
-    err: ["Parse"],
-  },
+  { name: "Imbalanced quotes 2", code: `print "Hello")`, err: ["Parse"] },
+  { name: "Function as op", code: `(function)`, err: ["Parse"] },
+  { name: "Function without body", code: `(function func)`, err: ["Parse"] },
 ];
 
 export async function performTests(terse: boolean = true): Promise<string[]> {
@@ -300,7 +269,7 @@ export async function performTests(terse: boolean = true): Promise<string[]> {
       dict: new Map<string, Val>(),
       output: "",
     };
-    const env: Env = { funcs: {}, vars: {} };
+    const env: Env = { funcs: {}, vars: {}, lets: [] };
     const startTime = getTimeMs();
     const errors = await invoke(
       {

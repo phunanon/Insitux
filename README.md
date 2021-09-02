@@ -64,9 +64,16 @@ built-in operations each within an example, with results after a `=>`.
 (print-str "world!")
 => Hello, world!
 
-;Defines a variable for later use
+;Defines a variable for later use anywhere in the program
 (define my-number 123)
 (print my-number)
+=> 123
+
+;Defines a variable for use only within one function call
+(function test
+  (let my-number 123)
+  (print my-number))
+(test)
 => 123
 
 ;Tests a condition and executes either the second or third argument

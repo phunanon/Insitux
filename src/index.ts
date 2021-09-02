@@ -245,6 +245,10 @@ async function exeOp(
       ctx.env.vars[str(args[0])] = args[1];
       stack.push(args[1]);
       return [];
+    case "let":
+      ctx.env.lets[len(ctx.env.lets) - 1][str(args[0])] = args[1];
+      stack.push(args[1]);
+      return [];
     case "str":
       stack.push({
         t: "str",
@@ -646,6 +650,9 @@ async function exeOp(
       _vec(nums.map(v => <Val>{ t: "num", v }));
       return [];
     }
+    case "empty?":
+      _boo(!len(asArray(args[0])));
+      return [];
     case "keys":
     case "vals":
       _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
@@ -707,6 +714,9 @@ function getExe(
     }
     if (str in ctx.env.vars) {
       return getExe(ctx, ctx.env.vars[str], errCtx);
+    }
+    if (str in ctx.env.lets[len(ctx.env.lets) - 1]) {
+      return getExe(ctx, ctx.env.lets[len(ctx.env.lets) - 1][str], errCtx);
     }
     if (starts(str, "$")) {
       return async (params: Val[]) => {
@@ -801,6 +811,7 @@ export async function exeFunc(
 ): Promise<InvokeError[]> {
   --ctx.callBudget;
   let savedStackLengths: number[] = [];
+  ctx.env.lets.push({});
   for (let i = 0, lim = len(func.ins); i < lim; ++i) {
     const { typ, value, errCtx } = func.ins[i];
 
@@ -859,6 +870,8 @@ export async function exeFunc(
             stack.push(value);
           } else if (name in ctx.env.vars) {
             stack.push(ctx.env.vars[name]);
+          } else if (name in ctx.env.lets[len(ctx.env.lets) - 1]) {
+            stack.push(ctx.env.lets[len(ctx.env.lets) - 1][name]);
           } else if (name in ctx.env.funcs) {
             _fun(name);
           } else {
@@ -908,6 +921,7 @@ export async function exeFunc(
         break;
     }
   }
+  ctx.env.lets.pop();
   return [];
 }
 
@@ -926,6 +940,7 @@ export async function invoke(
     return [];
   }
   const errors = await exeFunc(ctx, ctx.env.funcs["entry"], []);
+  ctx.env.lets = [];
   delete ctx.env.funcs["entry"];
   if (!len(errors) && printResult) {
     await ctx.exe("print", [{ t: "str", v: val2str(stack[len(stack) - 1]) }]);

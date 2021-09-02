@@ -19,6 +19,14 @@
 				]
 			},
 			{
+				"directory": "let",
+				"description": [
+					"(let variable-name 123)",
+					"syntax",
+					"Defines a variable for later use within the same function call."
+				]
+			},
+			{
 				"directory": "if",
 				"description": [
 					"(if true (print \"hi\") (print \"bye\"))",

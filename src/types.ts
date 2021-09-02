@@ -21,6 +21,7 @@ export type Funcs = { [key: string]: Func };
 export type Env = {
   funcs: Funcs;
   vars: { [key: string]: Val };
+  lets: { [key: string]: Val }[];
 };
 
 export type Ctx = {
@@ -68,6 +69,7 @@ export const ops: {
   "print-str": {},
   "execute-last": {},
   define: { exactArity: 2, types: ["ref"] },
+  let: { exactArity: 2, types: ["ref"] },
   "!": { exactArity: 1 },
   "=": { minArity: 2 },
   "!=": { minArity: 2 },
@@ -137,7 +139,7 @@ export const ops: {
   do: { minArity: 1 },
   val: { minArity: 1 },
   range: { minArity: 1, maxArity: 3, types: ["num", "num", "num"] },
-  "empty?": { exactArity: 1, types: ["str", "vec", "dict"] },
+  "empty?": { exactArity: 1, types: [["str", "vec", "dict"]] },
   "starts-with?": { exactArity: 2, types: ["str", "str"] },
   "ends-with?": { exactArity: 2, types: ["str", "str"] },
   split: { minArity: 1, maxArity: 2, types: ["str", "str"] },

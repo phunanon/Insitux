@@ -122,8 +122,8 @@ function tokenise(code: string, invocationId: string) {
       inSymbol = !inNumber;
       let typ: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
       if (len(tokens)) {
-        const lastToken = tokens[len(tokens) - 1];
-        if (lastToken.typ === "sym" && lastToken.text === "define") {
+        const { typ: t, text } = tokens[len(tokens) - 1];
+        if (t === "sym" && (text === "define" || text === "let")) {
           typ = "ref";
         }
       }
@@ -290,7 +290,7 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
       const headIns: Ins[] = [];
       let args = 0;
       //Head is a form
-      if (typ === "(") {
+      if (typ === "(" || has(params, head.text)) {
         tokens.unshift(head);
         const ins = parseArg(tokens, params);
         push(headIns, ins);
