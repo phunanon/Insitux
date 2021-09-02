@@ -189,7 +189,7 @@ function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
     { e: "Arity", m: `${op} needs ${msg}`, errCtx },
   ];
   const nArg = len(args);
-  if (exactArity && nArg !== exactArity) {
+  if (exactArity !== undefined && nArg !== exactArity) {
     return aErr(`exactly ${exactArity} argument${exactArity !== 1 ? "s" : ""}`);
   }
   if (minArity && !maxArity && nArg < minArity) {
@@ -801,7 +801,9 @@ function getExe(
       return [];
     };
   }
-  return async _ => [{ e: "Unexpected", m: "operation is invalid", errCtx }];
+  return async _ => [
+    { e: "Operation", m: `${val2str(op)} is an invalid operation`, errCtx },
+  ];
 }
 
 export async function exeFunc(

@@ -374,7 +374,7 @@ function syntaxise(
         err: {
           e: "Parse",
           m: "empty function body",
-          errCtx: { invocationId: errCtx.invocationId, line: 0, col: 0 },
+          errCtx,
         },
       };
     }
@@ -439,6 +439,8 @@ function errorDetect(
   invocationId: string
 ) {
   const errors: InvokeError[] = [];
+  const err = (m: string, errCtx: ErrCtx) =>
+    errors.push({ e: "Parse", m, errCtx });
 
   //Check for paren imbalance
   const countTyp = (t: Token["typ"]) =>
@@ -447,22 +449,14 @@ function errorDetect(
   {
     const [line, col] = findParenImbalance(tokens, numL, numR);
     if (line + col) {
-      errors.push({
-        e: "Parse",
-        m: `unmatched parenthesis`,
-        errCtx: { invocationId, line, col },
-      });
+      err("unmatched parenthesis", { invocationId, line, col });
     }
   }
 
   //Check for double-quote imbalance
   if (stringError) {
     const [line, col] = stringError;
-    errors.push({
-      e: "Parse",
-      m: `unmatched double quotation marks`,
-      errCtx: { invocationId, line, col },
-    });
+    err("unmatched double quotation marks", { invocationId, line, col });
   }
 
   //Check for any empty expressions
@@ -475,12 +469,9 @@ function errorDetect(
     lastWasL = tokens[t].typ === "(";
   }
   if (emptyHead) {
-    errors.push({
-      e: "Parse",
-      m: `empty expression forbidden`,
-      errCtx: emptyHead.errCtx,
-    });
+    err("empty expression forbidden", emptyHead.errCtx);
   }
+
   return errors;
 }
 

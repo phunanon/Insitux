@@ -355,4 +355,15 @@ $test.ing         => 456
 ; Triple every vector item
 (for * [0 1 2 3 4] [3])
 => [0 3 6 9 12]
+
+;Deduplicate a list
+(function -dedupe list new-list
+  (let next (if (new-list (0 list)) [] [(0 list)]))
+  (if (empty? list)
+    new-list
+    (-dedupe (sect list) (into new-list next))))
+(function dedupe list
+  (-dedupe list []))
+
+(dedupe [1 2 3 3]) => [1 2 3]
 ```

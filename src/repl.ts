@@ -2,8 +2,9 @@ import readline = require("readline");
 import fs = require("fs");
 import { invoke, symbols, visStr } from ".";
 import { Ctx, Val, ValAndErr } from "./types";
-const rf = (f: string) => fs.readFileSync(f).toString();
+import { randomUUID } from "crypto";
 const env = new Map<string, Val>();
+const invocations = new Map<string, string>();
 
 async function get(key: string) {
   return env.has(key)
@@ -34,7 +35,7 @@ async function exe(name: string, args: Val[]): Promise<ValAndErr> {
   switch (name) {
     case "print":
     case "print-str":
-      process.stdout.write(args[0].v as string);
+      process.stdout.write(`\x1b[32m${args[0].v}\x1b[0m`);
       if (name === "print") {
         process.stdout.write("\n");
       }
@@ -55,7 +56,7 @@ async function exe(name: string, args: Val[]): Promise<ValAndErr> {
     }
     default:
       if (args.length && visStr(args[0]) && args[0].v.startsWith("$")) {
-        if (args.length == 1) {
+        if (args.length === 1) {
           return await get(`${args[0].v.substring(1)}.${name}`);
         } else {
           set(`${args[0].v.substring(1)}.${name}`, args[1]);
@@ -77,8 +78,10 @@ const rl = readline.createInterface({
     : [],
 });
 
+const parensRx = /[\[\]\(\) ]/;
+
 function completer(line: string) {
-  const input = line.split(/[\(\) ]/).pop();
+  const input = line.split(parensRx).pop();
   const completions = symbols(ctx);
   if (!input) {
     return [completions, ""];
@@ -90,12 +93,23 @@ function completer(line: string) {
 rl.prompt();
 
 async function invoker(code: string) {
-  process.stdout.write("\x1b[32m");
-  const errors = await invoke(ctx, code, "repl", true);
-  process.stdout.write("\x1b[0m");
-  errors.forEach(({ e, m, errCtx: { line, col } }) =>
-    console.log(`\x1b[35m${e} Error ${line}:${col}: ${m}.\x1b[0m`)
-  );
+  const uuid = randomUUID();
+  invocations.set(uuid, code);
+  const errors = await invoke(ctx, code, uuid, true);
+  errors.forEach(({ e, m, errCtx: { line, col, invocationId } }) => {
+    const lineText = invocations.get(invocationId)!.split("\n")[line - 1];
+    const sym = lineText.substring(col - 1).split(parensRx)[0];
+    const half1 = lineText.substring(0, col - 1).trimStart();
+    process.stdout.write(`\x1b[35m${`${line}`.padEnd(4)}${half1}\x1b[31m`);
+    if (!sym) {
+      const half2 = lineText.substring(col);
+      console.log(`${lineText[col - 1]}\x1b[35m${half2}`);
+    } else {
+      const half2 = lineText.substring(col - 1 + sym.length);
+      console.log(`${sym}\x1b[35m${half2}\x1b[35m`);
+    }
+    console.log(`${e} Error: ${m}.\x1b[0m`);
+  });
 }
 
 rl.on("line", async line => {
