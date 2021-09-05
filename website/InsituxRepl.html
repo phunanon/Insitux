@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Insitux REPL</title>
+    <link rel="shortcut icon" type="image/jpg" href="../media/Insitux64.png"/>
+    <script>
+let $input, $history;
+
+async function DomKeydown({keyCode, shiftKey}) {
+  if (![13, 9].includes(keyCode) || shiftKey) {
+    return true;
+  }
+  const input = $input.value.trim();
+  setTimeout(() => {
+    $input.value = "";
+    DomInputResize($input);
+  }, 10);
+  const req = JSON.stringify({ input });
+  const obj = await fetch("https://insitux.phunanon.repl.co/exe", {
+    method: "POST",
+    body: req,
+    headers: { 'Content-Type': 'application/json' }
+  });
+  let {output, errors} = await obj.json();
+  errors = errors.map(({e, m, errCtx: {line, col}}) =>
+    `<e>${e} Error: line ${line} col ${col}: ${m}</e>\n`).join("");
+  $history.innerHTML += `<code>${input}</code>`
+    + "\n" + errors + output;
+  $history.scrollTo(0, $history.scrollHeight);
+  return false;
+}
+
+function DomLoad() {
+  $input = document.querySelector("textarea");
+  $history = document.querySelector("div");
+  $history.innerHTML += "<span>REPL. <code>Stores cookies.</code></span>\n";
+  $history.addEventListener('mouseup',(event) => {
+    if (!(getSelection()+"")) {
+      $input.focus();
+    }
+  });
+  $input.addEventListener("keydown", DomKeydown); 
+  $input.focus();
+  DomInputResize($input);
+}
+
+function DomInputResize (that) {
+  that.style.height = 0;
+  that.style.height = that.scrollHeight +'px'
+  window.scrollTo(0, document.body.scrollHeight);
+  $history.style.height = `calc(100% - ${that.style.height})`;
+}
+    </script>
+    <style>
+*:not(head) {
+  padding: 0;
+  margin: 0;
+  font-family: monospace;
+  background-color: #000;
+  color: #fff;
+}
+body, textarea {
+  font-size: 1.5rem;
+}
+div {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 1em);
+  white-space: pre-wrap;
+  overflow-y: scroll;
+}
+textarea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1em;
+  resize: none;
+  border: none;
+  outline: none;
+  color: #afa;
+}
+e {
+  color: #a00;
+}
+code {
+  color: #aaa;
+}
+img {
+  height: 3rem;
+  vertical-align: middle;
+  margin-right: .2rem;
+}
+a {
+  vertical-align: top;
+  margin-right: .5rem;
+}
+span {
+  line-height: 3.6rem;
+}
+    </style>
+  </head>
+  <body onload="DomLoad()">
+    <div><a href="https://github.com/phunanon/Insitux"><img src="../media/Insitux64.png"></a></div>
+    <textarea oninput="DomInputResize(this)"></textarea>
+  </body>
+</html>

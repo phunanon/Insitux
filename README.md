@@ -4,7 +4,7 @@
     <td><a href="https://insitux.phunanon.repl.co/">Try in online REPL</a></td>
   </tr>
   <tr>
-    <td colspan="2">A basic s-expression programming language made to be situated in tough spots.</td>
+    <td colspan="2">S-expression programming language written in portable TypeScript.</td>
   </tr>
 </table>
 
