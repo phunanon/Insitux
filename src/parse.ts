@@ -417,8 +417,8 @@ function findParenImbalance(
   const [l, r] = [untimely ? "(" : ")", untimely ? ")" : "("];
   const direction = untimely ? 1 : -1;
   for (
-    let t = 0, depth = 0;
-    untimely ? t < len(tokens) : t >= 0;
+    let lim = len(tokens), t = untimely ? 0 : lim - 1, depth = 0;
+    untimely ? t < lim : t >= 0;
     t += direction
   ) {
     const {
@@ -481,6 +481,9 @@ export function parse(
 ): { funcs: Funcs; errors: InvokeError[] } {
   const { tokens, stringError } = tokenise(code, invocationId);
   const errors = errorDetect(stringError, tokens, invocationId);
+  if (len(errors)) {
+    return { errors, funcs: {} };
+  }
   const segments = segment(tokens);
   const labelled = funcise(segments);
   const funcsAndErrors = labelled.map(named =>
