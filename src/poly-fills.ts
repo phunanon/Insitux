@@ -18,6 +18,8 @@ export const ends = (str: string, x: string): boolean => str.endsWith(x);
 export const flat = <T>(arr: T[][]): T[] => arr.flat(); //e.g. [[0], [1], []] => [0, 1]
 export const concat = <T>(a: T[], b: T[]): T[] => a.concat(b);
 export const push = <T>(arr: T[], add: T[]) => arr.push(...add);
+export const sortBy = <T>(arr: T[], by: (a: T, b: T) => number) => arr.sort(by);
+export const reverse = <T>(arr: T[]) => arr.reverse();
 export const trim = (str: string) => str.trim();
 export const padEnd = (str: string, by: number) => str.padEnd(by);
 export const randNum = (a: number, b: number) => a + Math.random() * (b - a);

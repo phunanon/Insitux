@@ -311,7 +311,7 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
         value: [
           typ === "num"
             ? { t: "num", v: toNum(op) }
-            : op.startsWith(":")
+            : starts(op, ":")
             ? { t: "key", v: op }
             : ops[op]
             ? { t: "func", v: op }

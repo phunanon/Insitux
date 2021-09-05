@@ -22,11 +22,13 @@ import {
   randInt,
   randNum,
   range,
+  reverse,
   round,
   sign,
   sin,
   slen,
   slice,
+  sortBy,
   splice,
   sqrt,
   starts,
@@ -219,7 +221,7 @@ function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
           ? false
           : `argument ${i + 1} must be ${typeNames[need]}`)
     )
-    .filter(r => r);
+    .filter(r => !!r);
   return typeViolations.map(v => typeErr(<string>v, errCtx));
 }
 
@@ -447,7 +449,7 @@ async function exeOp(
           const arrays = args.map(asArray);
           const lims = arrays.map(len);
           const dividors = lims.map((_, i) =>
-            lims.slice(0, i + 1).reduce((sum, l) => sum * l)
+            slice(lims, 0, i + 1).reduce((sum, l) => sum * l)
           );
           dividors.unshift(1);
           const lim = dividors.pop()!;
@@ -456,9 +458,7 @@ async function exeOp(
           }
           const array: Val[] = [];
           for (let t = 0; t < lim; ++t) {
-            const argIdxs = dividors.map((d, i) =>
-              Math.floor((t / d) % lims[i])
-            );
+            const argIdxs = dividors.map((d, i) => floor((t / d) % lims[i]));
             const errors = await closure(arrays.map((a, i) => a[argIdxs[i]]));
             if (len(errors)) {
               return errors;
@@ -597,9 +597,9 @@ async function exeOp(
     }
     case "reverse":
       if (args[0].t === "str") {
-        _str(stringify(asArray(args[0]).reverse()));
+        _str(stringify(reverse(asArray(args[0]))));
       } else {
-        _vec(asArray(args[0]).reverse());
+        _vec(reverse(asArray(args[0])));
       }
       return [];
     case "sort": {
@@ -629,9 +629,9 @@ async function exeOp(
         return tErr("can only sort by all number or all string");
       }
       if (visNum(mapped[0][1])) {
-        mapped.sort(([x, a], [y, b]) => (num(a) > num(b) ? 1 : -1));
+        sortBy(mapped, ([x, a], [y, b]) => (num(a) > num(b) ? 1 : -1));
       } else {
-        mapped.sort(([x, a], [y, b]) => (str(a) > str(b) ? 1 : -1));
+        sortBy(mapped, ([x, a], [y, b]) => (str(a) > str(b) ? 1 : -1));
       }
       _vec(mapped.map(([v]) => v));
       return [];
