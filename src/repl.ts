@@ -42,7 +42,7 @@ async function exe(name: string, args: Val[]): Promise<ValAndErr> {
       break;
     case "eval": {
       delete ctx.env.funcs["entry"];
-      await invoker(args[0].v as string);
+      printErrorOutput(await invoker(ctx, args[0].v as string));
       return { value: nullVal };
     }
     case "read": {
@@ -92,24 +92,40 @@ function completer(line: string) {
 
 rl.prompt();
 
-async function invoker(code: string) {
+type ErrorOutput = {
+  type: "message" | "error";
+  text: string;
+}[];
+
+function printErrorOutput(lines: ErrorOutput) {
+  const colours = { error: 31, message: 35 };
+  lines.forEach(({ type, text }) => {
+    process.stdout.write(`\x1b[${colours[type]}m${text}\x1b[0m`);
+  });
+}
+
+export async function invoker(ctx: Ctx, code: string): Promise<ErrorOutput> {
   const uuid = randomUUID();
   invocations.set(uuid, code);
   const errors = await invoke(ctx, code, uuid, true);
+  let out: ErrorOutput = [];
   errors.forEach(({ e, m, errCtx: { line, col, invocationId } }) => {
     const lineText = invocations.get(invocationId)!.split("\n")[line - 1];
     const sym = lineText.substring(col - 1).split(parensRx)[0];
     const half1 = lineText.substring(0, col - 1).trimStart();
-    process.stdout.write(`\x1b[35m${`${line}`.padEnd(4)}${half1}\x1b[31m`);
+    out.push({ type: "message", text: `${line}`.padEnd(4) + half1 });
     if (!sym) {
       const half2 = lineText.substring(col);
-      console.log(`${lineText[col - 1]}\x1b[35m${half2}`);
+      out.push({ type: "error", text: lineText[col - 1] });
+      out.push({ type: "message", text: `${half2}\n` });
     } else {
       const half2 = lineText.substring(col - 1 + sym.length);
-      console.log(`${sym}\x1b[35m${half2}\x1b[35m`);
+      out.push({ type: "error", text: sym });
+      out.push({ type: "message", text: `${half2}\n` });
     }
-    console.log(`${e} Error: ${m}.\x1b[0m`);
+    out.push({ type: "message", text: `${e} Error: ${m}.\n` });
   });
+  return out;
 }
 
 rl.on("line", async line => {
@@ -119,7 +135,7 @@ rl.on("line", async line => {
   }
   if (line.trim()) {
     fs.appendFileSync(".repl-history", `\n${line}`);
-    await invoker(line);
+    printErrorOutput(await invoker(ctx, line));
   }
   rl.prompt();
 });

@@ -23,11 +23,11 @@ async function DomKeydown({keyCode, shiftKey}) {
     body: req,
     headers: { 'Content-Type': 'application/json' }
   });
-  let {output, errors} = await obj.json();
-  errors = errors.map(({e, m, errCtx: {line, col}}) =>
-    `<e>${e} Error: line ${line} col ${col}: ${m}</e>\n`).join("");
+  let {output, errorLines} = await obj.json();
+  errorLines = errorLines.map(({type, text}) =>
+    type == "message" ? `<m>${text}</m>` : `<e>${text}</e>`).join("");
   $history.innerHTML += `<code>${input}</code>`
-    + "\n" + errors + output;
+    + "\n" + errorLines + output;
   $history.scrollTo(0, $history.scrollHeight);
   return false;
 }
@@ -72,6 +72,7 @@ div {
   height: calc(100% - 1em);
   white-space: pre-wrap;
   overflow-y: scroll;
+  color: #4a4;
 }
 textarea {
   position: fixed;
@@ -82,7 +83,9 @@ textarea {
   resize: none;
   border: none;
   outline: none;
-  color: #afa;
+}
+m {
+  color: #808;
 }
 e {
   color: #a00;
