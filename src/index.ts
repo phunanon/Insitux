@@ -1,4 +1,4 @@
-export const insituxVersion = 20210905;
+export const insituxVersion = 20210906;
 
 import { parse } from "./parse";
 import {
@@ -941,8 +941,12 @@ export async function invoke(
   if (!("entry" in ctx.env.funcs)) {
     return [];
   }
+  const { callBudget, loopBudget, rangeBudget } = ctx;
   const errors = await exeFunc(ctx, ctx.env.funcs["entry"], []);
   ctx.env.lets = [];
+  ctx.callBudget = callBudget;
+  ctx.loopBudget = loopBudget;
+  ctx.rangeBudget = rangeBudget;
   delete ctx.env.funcs["entry"];
   if (!len(errors) && printResult) {
     await ctx.exe("print", [{ t: "str", v: val2str(stack[len(stack) - 1]) }]);

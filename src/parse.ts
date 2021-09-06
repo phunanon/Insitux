@@ -2,6 +2,7 @@ import {
   concat,
   flat,
   has,
+  isNum,
   len,
   push,
   slen,
@@ -189,7 +190,7 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
         return [{ typ: "nul", value: undefined, errCtx }];
       } else if (starts(text, ":")) {
         return [{ typ: "key", value: text, errCtx }];
-      } else if (starts(text, "%")) {
+      } else if (starts(text, "%") && isNum(substr(text, 1))) {
         return [{ typ: "par", value: toNum(substr(text, 1)), errCtx }];
       } else if (has(params, text)) {
         return [{ typ: "par", value: params.indexOf(text), errCtx }];
