@@ -72,7 +72,8 @@ function tokenise(code: string, invocationId: string) {
       inNumber = inSymbol = false;
       continue;
     }
-    if (!inString && sub(" \t\n\r", c)) {
+    const isWhite = sub(" \t\n\r", c);
+    if (!inString && isWhite) {
       inNumber = inSymbol = false;
       if (c === "\n") {
         ++line;
@@ -87,9 +88,13 @@ function tokenise(code: string, invocationId: string) {
     const errCtx: ErrCtx = { invocationId, line, col };
     const isDigit = (ch: string) => sub(digits, ch);
     const isParen = sub("()[]{}", c);
-    //Allow one . per number
+    //Allow one . per number, or convert into symbol
     if (inNumber && !isDigit(c)) {
       inNumber = c === "." && !sub(tokens[len(tokens) - 1].text, ".");
+      if (!inNumber && !isParen && !isWhite) {
+        inSymbol = true;
+        tokens[len(tokens) - 1].typ = "sym";
+      }
     }
     //Stop scanning symbol if a paren
     if (inSymbol && isParen) {

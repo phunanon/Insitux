@@ -1,7 +1,7 @@
 <table>
   <tr>
     <td><img src="media/Insitux.png" alt="Insitux logo" height="32"></td>
-    <td><a href="https://insitux.phunanon.repl.co/">Try in online REPL</a></td>
+    <td><a href="https://phunanon.github.io/Insitux/website/repl">Try in online REPL</a></td>
   </tr>
   <tr>
     <td colspan="2">S-expression programming language written in portable TypeScript.</td>
@@ -356,7 +356,7 @@ $test.ing         => 456
 (for * [0 1 2 3 4] [3])
 => [0 3 6 9 12]
 
-;Deduplicate a list
+; Deduplicate a list
 (function -dedupe list new-list
   (let next (if (new-list (0 list)) [] [(0 list)]))
   (if (empty? list)
