@@ -295,8 +295,8 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
       }
       const headIns: Ins[] = [];
       let args = 0;
-      //Head is a form
-      if (typ === "(" || has(params, head.text)) {
+      //Head is a form or parameter
+      if (typ === "(" || has(params, text) || starts(text, "%")) {
         tokens.unshift(head);
         const ins = parseArg(tokens, params);
         push(headIns, ins);
