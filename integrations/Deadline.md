@@ -377,6 +377,10 @@ internal insitux functions
 ;; function
 ;; Returns the concatenation of vectors and dictionaries.
 
+(push [0 1 2] 3)
+;; function
+;; Returns a vector or dictionary with one item or key-value pair appended.
+
 (sect "Hello, world!" 1 3)
 ;; function
 ;; Returns a section of a vector or string.

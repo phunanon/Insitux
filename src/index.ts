@@ -1,4 +1,4 @@
-export const insituxVersion = 20210906;
+export const insituxVersion = 20210907;
 
 import { parse } from "./parse";
 import {
@@ -552,6 +552,18 @@ async function exeOp(
           const d1 = dic(args[1]);
           _dic({ keys: concat(keys, d1.keys), vals: concat(vals, d1.vals) });
         }
+      }
+      return [];
+    }
+    case "push": {
+      if (args[0].t === "vec") {
+        _vec(concat(asArray(args[0]), [args[1]]));
+      } else {
+        if (len(args) < 3) {
+          return [{ e: "Arity", m: `key and value both required`, errCtx }];
+        }
+        const { keys, vals } = dic(args[0]);
+        _dic({ keys: concat(keys, [args[1]]), vals: concat(vals, [args[2]]) });
       }
       return [];
     }

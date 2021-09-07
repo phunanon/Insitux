@@ -131,6 +131,7 @@ export const ops: {
       ["vec", "dict"],
     ],
   },
+  push: { minArity: 2, maxArity: 3, types: [["vec", "dict"]] },
   sect: { minArity: 1, maxArity: 3, types: [["vec", "str"], "num", "num"] },
   reverse: { exactArity: 1, types: [["vec", "str"]] },
   sort: { minArity: 1, maxArity: 2, types: ["vec"] },

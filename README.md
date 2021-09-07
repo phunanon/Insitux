@@ -222,6 +222,10 @@ built-in operations each within an example, with results after a `=>`.
 (into {:a 123 :b 456} {:a 456}) => {:a 456 :b 456}
 (into [1 2 3] [4 5 6])          => [1 2 3 4 5 6]
 
+;Returns a vector or dictionary with one item or key-value pair appended
+(push [1 2] 3)   => [1 2 3]
+(push {1 2} 3 4) => {1 2 3 4}
+
 ;Returns a section of a string or vector
 (sect "Patrick")       => "atrick"
 (sect "Patrick" 2)     => "trick"
@@ -309,11 +313,13 @@ etc
 (print "Hello") ;Comment at the end of lines too
 ```
 
-- Write `\"` inside of a string to represent `"`, `\n` to represent a newline, `\t` to represent a tab character
+- Write `\"` inside of a string to represent `"`, `\n` to represent a newline, `\t` to represent a tab character.
 
 - Write decimal numbers either `0.123` or `.123`.
 
-- `args` contains a vector of arguments the function was called with
+- `args` contains a vector of arguments the function was called with.
+
+- Parameters take precedence over lets and defines.
 
 - Insitux implementations are advised to support this behaviour:
 
@@ -357,13 +363,11 @@ $test.ing         => 456
 => [0 3 6 9 12]
 
 ; Deduplicate a list
-(function -dedupe list new-list
-  (let next (if (new-list (0 list)) [] [(0 list)]))
-  (if (empty? list)
-    new-list
-    (-dedupe (sect list) (into new-list next))))
-(function dedupe list
-  (-dedupe list []))
+(function dedupe list -out
+  (let out (or -out []))
+  (let next (if (out (0 list)) [] [(0 list)]))
+  (if (empty? list) out
+    (dedupe (sect list) (into out next))))
 
 (dedupe [1 2 3 3]) => [1 2 3]
 ```

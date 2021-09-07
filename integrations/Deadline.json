@@ -263,6 +263,14 @@
 				]
 			},
 			{
+				"directory": "push",
+				"description": [
+					"(push [0 1 2] 3)",
+					"function",
+					"Returns a vector or dictionary with one item or key-value pair appended."
+				]
+			},
+			{
 				"directory": "sect",
 				"description": [
 					"(sect \"Hello, world!\" 1 3)",
