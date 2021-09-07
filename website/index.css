@@ -71,17 +71,34 @@ li:not(:first-child) {
 examples {
   font-family: monospace;
   white-space: pre;
+  background-color: #000;
+  color: #fff;
+  font-weight: bold;
+  display: block;
+  padding: 1rem;
 }
 
 .syn-highlight i {
-  color: #080;
+  color: #0f0;
 }
 .syn-highlight op {
-  color: #008;
+  color: #aaf;
 }
-.syn-highlight num {
-  font-weight: bold;
+.syn-highlight str, .syn-highlight num {
+  color: rgb(255, 164, 111);
 }
-.syn-highlight str {
-  color: #800;
+p0 {
+  color: #21afa8;
+}
+p1 {
+  color: #dd3d65;
+}
+p2 {
+  color: #14b17a;
+}
+p3 {
+  color: #c7e564;
+}
+p4 {
+  color: #e24dc2;
 }

@@ -7,6 +7,7 @@
     <link rel="shortcut icon" type="image/jpg" href="../../media/Insitux64.png"/>
     <script>
 let $input, $history;
+const id = Date.now();
 
 async function DomKeydown({keyCode, shiftKey}) {
   if (![13, 9].includes(keyCode) || shiftKey) {
@@ -17,7 +18,7 @@ async function DomKeydown({keyCode, shiftKey}) {
     $input.value = "";
     DomInputResize($input);
   }, 10);
-  const req = JSON.stringify({ input, id: Date.now() });
+  const req = JSON.stringify({ input, id });
   const obj = await fetch("https://insitux.phunanon.repl.co", {
     method: "POST",
     body: req,
@@ -72,7 +73,7 @@ div {
   height: calc(100% - 1em);
   white-space: pre-wrap;
   overflow-y: scroll;
-  color: #4a4;
+  color: #8f8;
 }
 textarea {
   position: fixed;
@@ -85,10 +86,10 @@ textarea {
   outline: none;
 }
 m {
-  color: #a0a;
+  color: #f0f;
 }
 e {
-  color: #a00;
+  color: #f00;
 }
 img {
   height: 3rem;
