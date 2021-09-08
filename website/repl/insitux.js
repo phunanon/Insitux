@@ -25,7 +25,7 @@ async function loadJS(url) {
   document.body.appendChild(el);
 }
 
-async function initInsitux() {
+async function insituxInit() {
   await loadJS("../../out/index.js");
   await loadJS("../../out/parse.js");
   await loadJS("../../out/types.js");
@@ -34,16 +34,24 @@ async function initInsitux() {
   await loadJS("../../out/repl.js");
 }
 
-async function invokeInsitux(code, exe) {
+const insituxEnv = { funcs: {}, vars: {}, lets: [] };
+
+async function insituxGet(key) {
+  return { value: state.get(key) };
+}
+
+async function insituxSet(key, val) {
+  state.set(key, val);
+  return [];
+}
+
+async function insituxInvoke(code, exe) {
   return await invoker(
     {
-      env: { funcs: {}, vars: {}, lets: [] },
+      env: insituxEnv,
       exe,
-      get: async key => ({ value: state.get(key) }),
-      set: async (key, val) => {
-        state.set(key, val);
-        return [];
-      },
+      get: insituxGet,
+      set: insituxSet,
       rangeBudget: 1000,
       loopBudget: 10000,
       callBudget: 1000,
