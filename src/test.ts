@@ -1,6 +1,5 @@
-import { invoke } from ".";
 import { concat, getTimeMs, len, padEnd, trim } from "./poly-fills";
-import { Env, ExternalError, Val, ValAndErr } from "./types";
+import { Ctx, Env, ExternalError, InvokeError, Val, ValAndErr } from "./types";
 
 type State = { dict: Map<string, Val>; output: string };
 
@@ -14,7 +13,7 @@ async function get(state: State, key: string): Promise<ValAndErr> {
 async function set(
   state: State,
   key: string,
-  val: Val
+  val: Val,
 ): Promise<ExternalError> {
   state.dict.set(key, val);
   return undefined;
@@ -23,7 +22,7 @@ async function set(
 async function exe(
   state: State,
   name: string,
-  args: Val[]
+  args: Val[],
 ): Promise<ValAndErr> {
   const nullVal: Val = { t: "null", v: undefined };
   switch (name) {
@@ -256,7 +255,15 @@ const tests: {
   { name: "Function without body", code: `(function func)`, err: ["Parse"] },
 ];
 
-export async function performTests(terse: boolean = true): Promise<string[]> {
+export async function performTests(
+  invoke: (
+    ctx: Ctx,
+    code: string,
+    invocationId: string,
+    print: boolean,
+  ) => Promise<InvokeError[]>,
+  terse: boolean = true,
+): Promise<string[]> {
   const results: {
     okErr: boolean;
     okOut: boolean;
@@ -283,7 +290,7 @@ export async function performTests(terse: boolean = true): Promise<string[]> {
       },
       code,
       "testing",
-      true
+      true,
     );
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
     const okOut = !out || trim(state.output) === out;
@@ -294,7 +301,7 @@ export async function performTests(terse: boolean = true): Promise<string[]> {
       padEnd(`${elapsedMs}ms`, 6),
       okErr ||
         errors.map(
-          ({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`
+          ({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`,
         ),
     ];
     results.push({
@@ -308,6 +315,6 @@ export async function performTests(terse: boolean = true): Promise<string[]> {
   const numPassed = len(results.filter(({ okOut, okErr }) => okOut && okErr));
   return concat(
     results.filter(r => !terse || !r.okOut || !r.okErr).map(r => r.display),
-    [`----- ${numPassed}/${len(results)} passed in ${totalMs}ms.`]
+    [`----- ${numPassed}/${len(results)} tests passed in ${totalMs}ms.`],
   );
 }

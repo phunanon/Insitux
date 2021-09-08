@@ -2,9 +2,8 @@ import readline = require("readline");
 import fs = require("fs");
 import { invoke, symbols, visStr } from ".";
 import { Ctx, Val, ValAndErr } from "./types";
-import { randomUUID } from "crypto";
+import { getTimeMs } from "./poly-fills";
 const env = new Map<string, Val>();
-const invocations = new Map<string, string>();
 
 async function get(key: string) {
   return env.has(key)
@@ -68,6 +67,16 @@ async function exe(name: string, args: Val[]): Promise<ValAndErr> {
   return { value: nullVal };
 }
 
+function completer(line: string) {
+  const input = line.split(parensRx).pop();
+  const completions = symbols(ctx);
+  if (!input) {
+    return [completions, ""];
+  }
+  const hits = completions.filter(c => c.startsWith(input));
+  return [hits.length ? hits : completions, input];
+}
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -78,17 +87,17 @@ const rl = readline.createInterface({
     : [],
 });
 
-const parensRx = /[\[\]\(\) ]/;
-
-function completer(line: string) {
-  const input = line.split(parensRx).pop();
-  const completions = symbols(ctx);
-  if (!input) {
-    return [completions, ""];
+rl.on("line", async line => {
+  if (line === "quit") {
+    rl.close();
+    return;
   }
-  const hits = completions.filter(c => c.startsWith(input));
-  return [hits.length ? hits : completions, input];
-}
+  if (line.trim()) {
+    fs.appendFileSync(".repl-history", `\n${line}`);
+    printErrorOutput(await invoker(ctx, line));
+  }
+  rl.prompt();
+});
 
 rl.prompt();
 
@@ -104,8 +113,11 @@ function printErrorOutput(lines: ErrorOutput) {
   });
 }
 
+const invocations = new Map<string, string>();
+const parensRx = /[\[\]\(\) ]/;
+
 export async function invoker(ctx: Ctx, code: string): Promise<ErrorOutput> {
-  const uuid = randomUUID();
+  const uuid = getTimeMs().toString();
   invocations.set(uuid, code);
   const errors = await invoke(ctx, code, uuid, true);
   let out: ErrorOutput = [];
@@ -127,15 +139,3 @@ export async function invoker(ctx: Ctx, code: string): Promise<ErrorOutput> {
   });
   return out;
 }
-
-rl.on("line", async line => {
-  if (line === "quit") {
-    rl.close();
-    return;
-  }
-  if (line.trim()) {
-    fs.appendFileSync(".repl-history", `\n${line}`);
-    printErrorOutput(await invoker(ctx, line));
-  }
-  rl.prompt();
-});

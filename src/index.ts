@@ -1,4 +1,4 @@
-export const insituxVersion = 20210907;
+export const insituxVersion = 20210908;
 
 import { parse } from "./parse";
 import {
@@ -32,7 +32,6 @@ import {
   splice,
   sqrt,
   starts,
-  strIdx,
   sub,
   subIdx,
   substr,
@@ -219,7 +218,7 @@ function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
                 .join(", ")}`
           : need === args[i].t
           ? false
-          : `argument ${i + 1} must be ${typeNames[need]}`)
+          : `argument ${i + 1} must be ${typeNames[need]}`),
     )
     .filter(r => !!r);
   return typeViolations.map(v => typeErr(<string>v, errCtx));
@@ -229,7 +228,7 @@ async function exeOp(
   op: string,
   args: Val[],
   ctx: Ctx,
-  errCtx: ErrCtx
+  errCtx: ErrCtx,
 ): Promise<InvokeError[]> {
   const tErr = (msg: string) => [typeErr(msg, errCtx)];
   //Argument arity and type checks
@@ -277,7 +276,7 @@ async function exeOp(
           ? slen(str(args[0]))
           : args[0].t === "vec"
           ? len(vec(args[0]))
-          : len(dic(args[0]).keys)
+          : len(dic(args[0]).keys),
       );
       return [];
     case "num":
@@ -405,7 +404,7 @@ async function exeOp(
           (op === "dict?" && args[0].t === "dict") ||
           (op === "vec?" && args[0].t === "vec") ||
           (op === "key?" && args[0].t === "key") ||
-          (op === "func?" && args[0].t === "func")
+          (op === "func?" && args[0].t === "func"),
       );
       return [];
     case "has?":
@@ -449,7 +448,7 @@ async function exeOp(
           const arrays = args.map(asArray);
           const lims = arrays.map(len);
           const dividors = lims.map((_, i) =>
-            slice(lims, 0, i + 1).reduce((sum, l) => sum * l)
+            slice(lims, 0, i + 1).reduce((sum, l) => sum * l),
           );
           dividors.unshift(1);
           const lim = dividors.pop()!;
@@ -624,7 +623,7 @@ async function exeOp(
       if (len(args) === 1) {
         push(
           mapped,
-          src.map(v => [v, v])
+          src.map(v => [v, v]),
         );
       } else {
         const closure = getExe(ctx, args.pop()!, errCtx);
@@ -651,14 +650,14 @@ async function exeOp(
     case "range": {
       const [a, b, s] = args.map(num);
       const edgeCase = s && s < 0 && a < b; //e.g. 1 4 -1
-      const [start, end] =
+      const [x, y] =
         len(args) > 1 ? (edgeCase ? [b - 1, a - 1] : [a, b]) : [0, a];
-      const step = sign((end - start) * (s || 1)) * (s || 1);
-      const count = ceil(abs((end - start) / step));
+      const step = sign((y - x) * (s || 1)) * (s || 1);
+      const count = ceil(abs((y - x) / step));
       if (count > ctx.rangeBudget) {
         return [{ e: "Budget", m: "range too large", errCtx }];
       }
-      const nums = range(count).map(n => n * step + start);
+      const nums = range(count).map(n => n * step + x);
       _vec(nums.map(v => <Val>{ t: "num", v }));
       return [];
     }
@@ -679,14 +678,14 @@ async function exeOp(
       _vec(
         str(args[0])
           .split(len(args) > 1 ? str(args[1]) : " ")
-          .map(v => <Val>{ t: "str", v })
+          .map(v => <Val>{ t: "str", v }),
       );
       return [];
     case "join":
       _str(
         vec(args[0])
           .map(val2str)
-          .join(len(args) > 1 ? str(args[1]) : " ")
+          .join(len(args) > 1 ? str(args[1]) : " "),
       );
       return [];
     case "time":
@@ -697,7 +696,7 @@ async function exeOp(
       return [];
     case "tests":
       {
-        const tests = await performTests(!(len(args) && asBoo(args[0])));
+        const tests = await performTests(invoke, !(len(args) && asBoo(args[0])));
         const summary = tests.pop()!;
         for (const test of tests) {
           await exeOp("print", [{ v: test, t: "str" }], ctx, errCtx);
@@ -713,7 +712,7 @@ async function exeOp(
 function getExe(
   ctx: Ctx,
   op: Val,
-  errCtx: ErrCtx
+  errCtx: ErrCtx,
 ): (params: Val[]) => Promise<InvokeError[]> {
   const monoArityError = [{ e: "Arity", m: `one argument required`, errCtx }];
   if (visStr(op) || visFun(op)) {
@@ -821,7 +820,7 @@ function getExe(
 export async function exeFunc(
   ctx: Ctx,
   func: Func,
-  args: Val[]
+  args: Val[],
 ): Promise<InvokeError[]> {
   --ctx.callBudget;
   let savedStackLengths: number[] = [];
@@ -943,7 +942,7 @@ export async function invoke(
   ctx: Ctx,
   code: string,
   invocationId: string,
-  printResult = false
+  printResult = false,
 ): Promise<InvokeError[]> {
   const parsed = parse(code, invocationId);
   if (len(parsed.errors)) {
@@ -971,7 +970,7 @@ export function symbols(ctx: Ctx): string[] {
   let syms = ["function"];
   syms = concat(
     syms,
-    objKeys(ops).filter(o => o !== "execute-last")
+    objKeys(ops).filter(o => o !== "execute-last"),
   );
   syms = concat(syms, objKeys(ctx.env.funcs));
   syms = concat(syms, objKeys(ctx.env.vars));

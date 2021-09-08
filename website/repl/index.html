@@ -4,109 +4,127 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Insitux REPL</title>
-    <link rel="shortcut icon" type="image/jpg" href="../../media/Insitux64.png"/>
+    <link
+      rel="shortcut icon"
+      type="image/jpg"
+      href="../../media/Insitux64.png"
+    />
+    <script src="insitux.js"></script>
     <script>
-let $input, $history;
-const id = Date.now();
+      let $input, $history;
+      const id = Date.now();
 
-async function DomKeydown({keyCode, shiftKey}) {
-  if (![13, 9].includes(keyCode) || shiftKey) {
-    return true;
-  }
-  const input = $input.value.trim();
-  setTimeout(() => {
-    $input.value = "";
-    DomInputResize($input);
-  }, 10);
-  const req = JSON.stringify({ input, id });
-  const obj = await fetch("https://insitux.phunanon.repl.co", {
-    method: "POST",
-    body: req,
-    headers: { 'Content-Type': 'application/json' }
-  });
-  let {output, errorOutput} = await obj.json();
-  errorOutput = errorOutput.map(({type, text}) =>
-    type == "message" ? `<m>${text}</m>` : `<e>${text}</e>`).join("");
-  $history.innerHTML += `<code>${input}</code>`
-    + "\n" + errorOutput + output;
-  $history.scrollTo(0, $history.scrollHeight);
-  return false;
-}
+      async function DomKeydown({ keyCode, shiftKey }) {
+        if (![13, 9].includes(keyCode) || shiftKey) {
+          return true;
+        }
+        const input = $input.value.trim();
+        setTimeout(() => {
+          $input.value = "";
+          DomInputResize($input);
+        }, 10);
+        $history.innerHTML += `<code>${input}</code>\n`;
+        const errors = (await invokeInsitux(input, browserExe))
+          .map(({ type, text }) =>
+            type == "message" ? `<m>${text}</m>` : `<e>${text}</e>`,
+          )
+          .join("");
+        $history.innerHTML += errors;
+        $history.scrollTo(0, $history.scrollHeight);
+        return false;
+      }
 
-function DomLoad() {
-  $input = document.querySelector("textarea");
-  $history = document.querySelector("div");
-  $history.innerHTML += "<span>REPL</span>\n";
-  $history.addEventListener('mouseup',(event) => {
-    if (!(getSelection()+"")) {
-      $input.focus();
-    }
-  });
-  $input.addEventListener("keydown", DomKeydown); 
-  $input.focus();
-  DomInputResize($input);
-}
+      function historyAppend(str) {
+        $history.innerHTML += str;
+      }
 
-function DomInputResize (that) {
-  that.style.height = 0;
-  that.style.height = `calc(${that.scrollHeight}px - 1rem)`;
-  window.scrollTo(0, document.body.scrollHeight);
-  $history.style.height = `calc(100% - 1rem - ${that.style.height})`;
-}
+      function browserExe(name, args) {
+        switch (name) {
+          case "print-str":
+          case "print":
+            historyAppend(args[0].v + (name == "print" ? "\n" : ""));
+            break;
+        }
+        return { value: { t: "null", v: undefined } };
+      }
+
+      async function DomLoad() {
+        $input = document.querySelector("textarea");
+        $history = document.querySelector("div");
+        $history.innerHTML += `<a href="https://github.com/phunanon/Insitux"><img src="../../media/Insitux64.png"/></a><span>REPL</span>\n`;
+        $history.addEventListener("mouseup", event => {
+          if (!(getSelection() + "")) {
+            $input.focus();
+          }
+        });
+        $input.addEventListener("keydown", DomKeydown);
+        $input.focus();
+        DomInputResize($input);
+        await initInsitux();
+        invokeInsitux("(tests)");
+      }
+
+      function DomInputResize(that) {
+        that.style.height = 0;
+        that.style.height = `calc(${that.scrollHeight}px - 1rem)`;
+        window.scrollTo(0, document.body.scrollHeight);
+        $history.style.height = `calc(100% - 1rem - ${that.style.height})`;
+      }
     </script>
     <style>
-*:not(head) {
-  padding: 0;
-  margin: 0;
-  font-family: monospace;
-  background-color: #000;
-  color: #fff;
-}
-body, textarea {
-  font-size: 1.25rem;
-}
-div {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: calc(100% - 1em);
-  white-space: pre-wrap;
-  overflow-y: scroll;
-  color: #8f8;
-}
-textarea {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 1em;
-  resize: none;
-  border: none;
-  outline: none;
-  padding: .5rem;
-}
-m {
-  color: #f0f;
-}
-e {
-  color: #f00;
-}
-img {
-  height: 3rem;
-  margin-right: .2rem;
-}
-a {
-  margin-right: .5rem;
-}
-span {
-  position: absolute;
-  top: 1rem;
-}
+      *:not(head) {
+        padding: 0;
+        margin: 0;
+        font-family: monospace;
+        background-color: #000;
+        color: #fff;
+      }
+      body,
+      textarea {
+        font-size: 1.25rem;
+      }
+      div {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: calc(100% - 1em);
+        white-space: pre-wrap;
+        overflow-y: scroll;
+        color: #8f8;
+      }
+      textarea {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 1em;
+        resize: none;
+        border: none;
+        outline: none;
+        padding: 0.5rem;
+      }
+      m {
+        color: #f0f;
+      }
+      e {
+        color: #f00;
+      }
+      img {
+        height: 3rem;
+        margin-right: 0.2rem;
+      }
+      a {
+        margin-right: 0.5rem;
+      }
+      span {
+        position: absolute;
+        top: 1rem;
+      }
     </style>
   </head>
   <body onload="DomLoad()">
-    <div><a href="https://github.com/phunanon/Insitux"><img src="../../media/Insitux64.png"></a></div>
+    <div></div>
     <textarea oninput="DomInputResize(this)"></textarea>
   </body>
 </html>
