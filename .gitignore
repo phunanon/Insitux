@@ -1,5 +1,4 @@
 node_modules/
 .*/
-out/
 package-lock.json
 .repl-history
