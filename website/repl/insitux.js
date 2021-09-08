@@ -44,9 +44,10 @@ async function invokeInsitux(code, exe) {
         state.set(key, val);
         return [];
       },
-      callBudget: 1000,
       rangeBudget: 1000,
       loopBudget: 10000,
+      callBudget: 1000,
+      recurBudget: 10000,
     },
     code,
   );

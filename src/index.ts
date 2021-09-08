@@ -38,7 +38,7 @@ import {
   tan,
   toNum,
 } from "./poly-fills";
-import { performTests } from "./test";
+import { doTests } from "./test";
 import {
   Ctx,
   Dict,
@@ -696,7 +696,7 @@ async function exeOp(
       return [];
     case "tests":
       {
-        const tests = await performTests(invoke, !(len(args) && asBoo(args[0])));
+        const tests = await doTests(invoke, !(len(args) && asBoo(args[0])));
         const summary = tests.pop()!;
         for (const test of tests) {
           await exeOp("print", [{ v: test, t: "str" }], ctx, errCtx);
@@ -899,6 +899,18 @@ export async function exeFunc(
           const params = splice(stack, len(stack) - nArgs, nArgs);
           if (len(params) !== nArgs) {
             return [{ e: "Unexpected", m: `${op} stack depleted`, errCtx }];
+          }
+          //Tail-call optimisation
+          if (i === lim - 1 && visStr(op) && op.v === func.name) {
+            savedStackLengths = [];
+            ctx.env.lets[len(ctx.env.lets) - 1] = {};
+            i = -1;
+            args = params;
+            --ctx.recurBudget;
+            if (!ctx.recurBudget) {
+              return [{ e: "Budget", m: `recurred too many times`, errCtx }];
+            }
+            continue;
           }
           const closure = getExe(ctx, op, errCtx);
           const errors = await closure(params);

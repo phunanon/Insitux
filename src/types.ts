@@ -32,6 +32,7 @@ export type Ctx = {
   loopBudget: number;
   rangeBudget: number;
   callBudget: number;
+  recurBudget: number;
 };
 
 export type InsType =

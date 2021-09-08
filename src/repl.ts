@@ -27,6 +27,7 @@ const ctx: Ctx = {
   loopBudget: 10000,
   rangeBudget: 1000,
   callBudget: 1000,
+  recurBudget: 10000,
 };
 
 async function exe(name: string, args: Val[]): Promise<ValAndErr> {

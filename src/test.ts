@@ -234,6 +234,16 @@ const tests: {
            (fib 13)`,
     out: `233`,
   },
+  {
+    name: "dedupe (tail-call optim)",
+    code: `(function dedupe list -out
+             (let out (or -out []))
+             (let next (if (out (0 list)) [] [(0 list)]))
+             (if (empty? list) out
+                 (dedupe (sect list) (into out next))))
+           (dedupe [1 1 2 3 3 3])`,
+    out: `[1 2 3]`,
+  },
   //Test environment functions
   {
     name: "set get",
@@ -255,7 +265,7 @@ const tests: {
   { name: "Function without body", code: `(function func)`, err: ["Parse"] },
 ];
 
-export async function performTests(
+export async function doTests(
   invoke: (
     ctx: Ctx,
     code: string,
@@ -287,6 +297,7 @@ export async function performTests(
         loopBudget: 10000,
         rangeBudget: 1000,
         callBudget: 1000,
+        recurBudget: 10000,
       },
       code,
       "testing",
