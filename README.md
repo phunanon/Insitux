@@ -1,10 +1,11 @@
 <table>
   <tr>
     <td><img src="media/Insitux.png" alt="Insitux logo" height="32"></td>
+    <td><a href="https://phunanon.github.io/Insitux">Website</a></td>
     <td><a href="https://phunanon.github.io/Insitux/website/repl">Try in online REPL</a></td>
   </tr>
   <tr>
-    <td colspan="2">S-expression programming language written in portable TypeScript.</td>
+    <td colspan="3">S-expression programming language written in portable TypeScript.</td>
   </tr>
 </table>
 

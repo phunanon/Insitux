@@ -36,7 +36,7 @@ async function DomKeydown({keyCode, shiftKey}) {
 function DomLoad() {
   $input = document.querySelector("textarea");
   $history = document.querySelector("div");
-  $history.innerHTML += "<span>REPL. <code>Stores cookies.</code></span>\n";
+  $history.innerHTML += "<span>REPL</span>\n";
   $history.addEventListener('mouseup',(event) => {
     if (!(getSelection()+"")) {
       $input.focus();
@@ -49,9 +49,9 @@ function DomLoad() {
 
 function DomInputResize (that) {
   that.style.height = 0;
-  that.style.height = that.scrollHeight +'px'
+  that.style.height = `calc(${that.scrollHeight}px - 1rem)`;
   window.scrollTo(0, document.body.scrollHeight);
-  $history.style.height = `calc(100% - ${that.style.height})`;
+  $history.style.height = `calc(100% - 1rem - ${that.style.height})`;
 }
     </script>
     <style>
@@ -63,7 +63,7 @@ function DomInputResize (that) {
   color: #fff;
 }
 body, textarea {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
 }
 div {
   position: fixed;
@@ -84,6 +84,7 @@ textarea {
   resize: none;
   border: none;
   outline: none;
+  padding: .5rem;
 }
 m {
   color: #f0f;
@@ -93,15 +94,14 @@ e {
 }
 img {
   height: 3rem;
-  vertical-align: middle;
   margin-right: .2rem;
 }
 a {
-  vertical-align: top;
   margin-right: .5rem;
 }
 span {
-  line-height: 3.6rem;
+  position: absolute;
+  top: 1rem;
 }
     </style>
   </head>

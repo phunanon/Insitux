@@ -20,19 +20,16 @@ a {
   text-decoration: none;
 }
 nav {
-  display: flex;
   margin: 1rem;
-  vertical-align: top;
 }
 nav img {
   height: 4rem;
+  padding-right: 1rem;
 }
 nav h3 {
-  padding-left: 1rem;
   height: 2rem;
   display: inline-block;
   vertical-align: top;
-  line-height: 2rem;
 }
 h1 {
   font-size: 3rem;
@@ -70,7 +67,7 @@ li:not(:first-child) {
 }
 examples {
   font-family: monospace;
-  white-space: pre;
+  white-space: pre-wrap;
   background-color: #000;
   color: #fff;
   font-weight: bold;
