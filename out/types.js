@@ -5,8 +5,6 @@ exports.ops = {
     print: {},
     "print-str": {},
     "execute-last": {},
-    define: { exactArity: 2, types: ["ref"] },
-    let: { exactArity: 2, types: ["ref"] },
     "!": { exactArity: 1 },
     "=": { minArity: 2 },
     "!=": { minArity: 2 },

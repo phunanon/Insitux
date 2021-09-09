@@ -142,6 +142,9 @@ function funcise(segments) {
         : described;
 }
 function parseArg(tokens, params) {
+    if (!poly_fills_1.len(tokens)) {
+        return [];
+    }
     const { typ, text, errCtx } = tokens.shift();
     switch (typ) {
         case "str":
@@ -169,7 +172,7 @@ function parseArg(tokens, params) {
             }
             return [{ typ: "var", value: text, errCtx }];
         case "ref":
-            return [{ typ: "ref", value: text, errCtx }];
+            return [{ typ: "def", value: text, errCtx }];
         case "(": {
             const head = tokens.shift();
             if (!head) {
@@ -178,7 +181,22 @@ function parseArg(tokens, params) {
             const { typ, text, errCtx } = head;
             let op = text;
             const err = (value) => [{ typ: "err", value, errCtx }];
-            if (op === "if" || op === "when") {
+            if (op === "define" || op === "let") {
+                const def = parseArg(tokens, params);
+                const val = parseArg(tokens, params);
+                if (!poly_fills_1.len(def) || !poly_fills_1.len(val) || poly_fills_1.len(parseArg(tokens, params))) {
+                    return err("must provide reference name and value only");
+                }
+                return [
+                    ...val,
+                    {
+                        typ: op === "let" ? "let" : "def",
+                        value: def[0].value,
+                        errCtx,
+                    },
+                ];
+            }
+            else if (op === "if" || op === "when") {
                 const cond = parseArg(tokens, params);
                 if (!poly_fills_1.len(cond)) {
                     return err("must provide condition");
@@ -236,13 +254,12 @@ function parseArg(tokens, params) {
                 }
                 const ins = [];
                 if (op === "while") {
-                    insCount += 3; //+1 for the if op, +2 for the sav and res ops
+                    insCount += 2; //+1 for the if ins, +1 for the pop ins
                     const head = args.shift();
                     poly_fills_1.push(ins, head);
                     ins.push({ typ: "if", value: insCount - poly_fills_1.len(head), errCtx });
-                    ins.push({ typ: "sav", errCtx });
                     args.forEach(as => poly_fills_1.push(ins, as));
-                    ins.push({ typ: "res", errCtx });
+                    ins.push({ typ: "pop", value: poly_fills_1.len(args), errCtx });
                     ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
                     return ins;
                 }

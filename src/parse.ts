@@ -25,7 +25,7 @@ type NamedTokens = {
   tokens: Token[];
   errCtx: ErrCtx;
 };
-type ParserIns = Omit<Ins, "typ"> & { typ: Ins["typ"] | "err" };
+type ParserIns = Omit<Ins, "typ"> & { typ: Ins["typ"] | "def" | "err" };
 
 function tokenise(code: string, invocationId: string) {
   const tokens: Token[] = [];
@@ -177,6 +177,9 @@ function funcise(segments: Token[][]): NamedTokens[] {
 }
 
 function parseArg(tokens: Token[], params: string[]): ParserIns[] {
+  if (!len(tokens)) {
+    return [];
+  }
   const { typ, text, errCtx } = tokens.shift() as Token;
   switch (typ) {
     case "str":
@@ -199,7 +202,7 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
       }
       return [{ typ: "var", value: text, errCtx }];
     case "ref":
-      return [{ typ: "ref", value: text, errCtx }];
+      return [{ typ: "def", value: text, errCtx }];
     case "(": {
       const head = tokens.shift();
       if (!head) {
@@ -208,7 +211,21 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
       const { typ, text, errCtx } = head;
       let op = text;
       const err = (value: string) => [<ParserIns>{ typ: "err", value, errCtx }];
-      if (op === "if" || op === "when") {
+      if (op === "define" || op === "let") {
+        const def = parseArg(tokens, params);
+        const val = parseArg(tokens, params);
+        if (!len(def) || !len(val) || len(parseArg(tokens, params))) {
+          return err("must provide reference name and value only");
+        }
+        return [
+          ...val,
+          {
+            typ: op === "let" ? "let" : "def",
+            value: def[0].value,
+            errCtx,
+          },
+        ];
+      } else if (op === "if" || op === "when") {
         const cond = parseArg(tokens, params);
         if (!len(cond)) {
           return err("must provide condition");
@@ -263,13 +280,12 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
         }
         const ins: Ins[] = [];
         if (op === "while") {
-          insCount += 3; //+1 for the if op, +2 for the sav and res ops
+          insCount += 2; //+1 for the if ins, +1 for the pop ins
           const head = args.shift()!;
           push(ins, head);
           ins.push({ typ: "if", value: insCount - len(head), errCtx });
-          ins.push({ typ: "sav", errCtx });
           args.forEach(as => push(ins, as));
-          ins.push({ typ: "res", errCtx });
+          ins.push({ typ: "pop", value: len(args), errCtx });
           ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
           return ins;
         }
@@ -334,7 +350,7 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
 
 function partitionWhen<T>(
   array: T[],
-  predicate: (item: T) => boolean
+  predicate: (item: T) => boolean,
 ): [T[], T[]] {
   const a: T[] = [],
     b: T[] = [];
@@ -354,7 +370,7 @@ function partition<T>(array: T[], predicate: (item: T) => boolean): [T[], T[]] {
 
 function syntaxise(
   { name, tokens }: NamedTokens,
-  errCtx: ErrCtx
+  errCtx: ErrCtx,
 ): {
   func?: Func;
   err?: InvokeError;
@@ -395,8 +411,8 @@ function syntaxise(
       ins,
       parseArg(
         body,
-        params.map(p => p.text)
-      )
+        params.map(p => p.text),
+      ),
     );
   }
   const parseErrors = ins.filter(i => i.typ === "err");
@@ -415,7 +431,7 @@ function syntaxise(
 function findParenImbalance(
   tokens: Token[],
   numL: number,
-  numR: number
+  numR: number,
 ): [number, number] {
   //Scan for first instance of untimely closed
   //  or last instance of unclosed open
@@ -442,7 +458,7 @@ function findParenImbalance(
 function errorDetect(
   stringError: number[] | undefined,
   tokens: Token[],
-  invocationId: string
+  invocationId: string,
 ) {
   const errors: InvokeError[] = [];
   const err = (m: string, errCtx: ErrCtx) =>
@@ -483,7 +499,7 @@ function errorDetect(
 
 export function parse(
   code: string,
-  invocationId: string
+  invocationId: string,
 ): { funcs: Funcs; errors: InvokeError[] } {
   const { tokens, stringError } = tokenise(code, invocationId);
   const errors = errorDetect(stringError, tokens, invocationId);
@@ -497,12 +513,12 @@ export function parse(
       invocationId,
       line: named.errCtx.line,
       col: named.errCtx.col,
-    })
+    }),
   );
   const [funcArr, synErrors] = partition(funcsAndErrors, fae => !!fae.err);
   push(
     errors,
-    synErrors.map(fae => fae.err!)
+    synErrors.map(fae => fae.err!),
   );
   const funcs: Funcs = {};
   funcArr.forEach(({ func }) => (funcs[func!.name] = func!));

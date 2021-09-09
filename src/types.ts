@@ -42,15 +42,15 @@ export type InsType =
   | "str"
   | "key"
   | "par"
-  | "ref"
+  | "def"
+  | "let"
   | "var"
   | "op"
   | "exe"
   | "if"
   | "jmp" //Inexpensive jump
   | "loo" //Expensive jump
-  | "sav" //Save stack length
-  | "res" //Restore stack length
+  | "pop" //Truncate stack
   | "or";
 export type Ins = {
   typ: InsType;
@@ -70,8 +70,6 @@ export const ops: {
   print: {},
   "print-str": {},
   "execute-last": {},
-  define: { exactArity: 2, types: ["ref"] },
-  let: { exactArity: 2, types: ["ref"] },
   "!": { exactArity: 1 },
   "=": { minArity: 2 },
   "!=": { minArity: 2 },

@@ -242,14 +242,6 @@ async function exeOp(
   switch (op) {
     case "execute-last":
       return await getExe(ctx, args.pop()!, errCtx)(args);
-    case "define":
-      ctx.env.vars[str(args[0])] = args[1];
-      stack.push(args[1]);
-      return [];
-    case "let":
-      ctx.env.lets[len(ctx.env.lets) - 1][str(args[0])] = args[1];
-      stack.push(args[1]);
-      return [];
     case "str":
       stack.push({
         t: "str",
@@ -823,7 +815,6 @@ export async function exeFunc(
   args: Val[],
 ): Promise<InvokeError[]> {
   --ctx.callBudget;
-  let savedStackLengths: number[] = [];
   ctx.env.lets.push({});
   for (let i = 0, lim = len(func.ins); i < lim; ++i) {
     const { typ, value, errCtx } = func.ins[i];
@@ -855,8 +846,12 @@ export async function exeFunc(
       case "key":
         _key(value as string);
         break;
-      case "ref":
-        _ref(value as string);
+      case "def":
+        ctx.env.vars[value as string] = stack[len(stack) - 1];
+        break;
+      case "let":
+        ctx.env.lets[len(ctx.env.lets) - 1][value as string] =
+          stack[len(stack) - 1];
         break;
       case "par":
         {
@@ -902,7 +897,6 @@ export async function exeFunc(
           }
           //Tail-call optimisation
           if (i === lim - 1 && visStr(op) && op.v === func.name) {
-            savedStackLengths = [];
             ctx.env.lets[len(ctx.env.lets) - 1] = {};
             i = -1;
             args = params;
@@ -938,14 +932,8 @@ export async function exeFunc(
         i += value as number;
         --ctx.loopBudget;
         break;
-      case "sav":
-        savedStackLengths.push(len(stack));
-        break;
-      case "res":
-        {
-          const numDel = len(stack) - savedStackLengths.pop()!;
-          splice(stack, len(stack) - numDel, numDel);
-        }
+      case "pop":
+        splice(stack, len(stack) - (value as number), value as number);
         break;
     }
   }

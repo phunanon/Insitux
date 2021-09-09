@@ -177,14 +177,6 @@ async function exeOp(op, args, ctx, errCtx) {
     switch (op) {
         case "execute-last":
             return await getExe(ctx, args.pop(), errCtx)(args);
-        case "define":
-            ctx.env.vars[str(args[0])] = args[1];
-            stack.push(args[1]);
-            return [];
-        case "let":
-            ctx.env.lets[poly_fills_1.len(ctx.env.lets) - 1][str(args[0])] = args[1];
-            stack.push(args[1]);
-            return [];
         case "str":
             stack.push({
                 t: "str",
@@ -745,7 +737,6 @@ function getExe(ctx, op, errCtx) {
 }
 async function exeFunc(ctx, func, args) {
     --ctx.callBudget;
-    let savedStackLengths = [];
     ctx.env.lets.push({});
     for (let i = 0, lim = poly_fills_1.len(func.ins); i < lim; ++i) {
         const { typ, value, errCtx } = func.ins[i];
@@ -775,8 +766,12 @@ async function exeFunc(ctx, func, args) {
             case "key":
                 _key(value);
                 break;
-            case "ref":
-                _ref(value);
+            case "def":
+                ctx.env.vars[value] = stack[poly_fills_1.len(stack) - 1];
+                break;
+            case "let":
+                ctx.env.lets[poly_fills_1.len(ctx.env.lets) - 1][value] =
+                    stack[poly_fills_1.len(stack) - 1];
                 break;
             case "par":
                 {
@@ -829,7 +824,6 @@ async function exeFunc(ctx, func, args) {
                     }
                     //Tail-call optimisation
                     if (i === lim - 1 && exports.visStr(op) && op.v === func.name) {
-                        savedStackLengths = [];
                         ctx.env.lets[poly_fills_1.len(ctx.env.lets) - 1] = {};
                         i = -1;
                         args = params;
@@ -866,14 +860,8 @@ async function exeFunc(ctx, func, args) {
                 i += value;
                 --ctx.loopBudget;
                 break;
-            case "sav":
-                savedStackLengths.push(poly_fills_1.len(stack));
-                break;
-            case "res":
-                {
-                    const numDel = poly_fills_1.len(stack) - savedStackLengths.pop();
-                    poly_fills_1.splice(stack, poly_fills_1.len(stack) - numDel, numDel);
-                }
+            case "pop":
+                poly_fills_1.splice(stack, poly_fills_1.len(stack) - value, value);
                 break;
         }
     }

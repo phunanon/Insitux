@@ -25,7 +25,7 @@ const ctx = {
     exe,
     loopBudget: 10000,
     rangeBudget: 1000,
-    callBudget: 1000,
+    callBudget: 100000000,
     recurBudget: 10000,
 };
 async function exe(name, args) {
