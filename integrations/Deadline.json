@@ -930,6 +930,17 @@
 				]
 			},
 			{
+				"directory": "dl.events.on_chat_message",
+				"description": [
+					"(function sent sender channel contents (print sender \" \" channel \" \" contents))",
+					"(dl.events.on_chat_message.connect sent)",
+					"(wait 5)",
+					"(dl.events.on_chat_message.kill sent)",
+					"shobfix event",
+					"fires whenever a player uses the chat"
+				]
+			},
+			{
 				"directory": "$dl.util.message",
 				"description": [
 					"(print $dl.util.message message)",
