@@ -439,17 +439,17 @@ async function exeOp(
         if (op === "for") {
           const arrays = args.map(asArray);
           const lims = arrays.map(len);
-          const dividors = lims.map((_, i) =>
+          const divisors = lims.map((_, i) =>
             slice(lims, 0, i + 1).reduce((sum, l) => sum * l),
           );
-          dividors.unshift(1);
-          const lim = dividors.pop()!;
+          divisors.unshift(1);
+          const lim = divisors.pop()!;
           if (lim > ctx.loopBudget) {
             return [{ e: "Budget", m: "would exceed loop budget", errCtx }];
           }
           const array: Val[] = [];
           for (let t = 0; t < lim; ++t) {
-            const argIdxs = dividors.map((d, i) => floor((t / d) % lims[i]));
+            const argIdxs = divisors.map((d, i) => floor((t / d) % lims[i]));
             const errors = await closure(arrays.map((a, i) => a[argIdxs[i]]));
             if (len(errors)) {
               return errors;
@@ -696,6 +696,18 @@ async function exeOp(
         _str(summary);
       }
       return [];
+    case "eval": {
+      delete ctx.env.funcs["entry"];
+      const sLen = len(stack);
+      const errors = await parseAndExe(ctx, str(args[0]), errCtx.invocationId);
+      if (len(errors)) {
+        return [{ e: "Eval", m: "error within evaluated code", errCtx }];
+      }
+      if (sLen === len(stack)) {
+        _nul();
+      }
+      return [];
+    }
   }
 
   return [{ e: "Unexpected", m: "operation doesn't exist", errCtx }];
@@ -941,11 +953,10 @@ export async function exeFunc(
   return [];
 }
 
-export async function invoke(
+async function parseAndExe(
   ctx: Ctx,
   code: string,
   invocationId: string,
-  printResult = false,
 ): Promise<InvokeError[]> {
   const parsed = parse(code, invocationId);
   if (len(parsed.errors)) {
@@ -955,14 +966,23 @@ export async function invoke(
   if (!("entry" in ctx.env.funcs)) {
     return [];
   }
+  return await exeFunc(ctx, ctx.env.funcs["entry"], []);
+}
+
+export async function invoke(
+  ctx: Ctx,
+  code: string,
+  invocationId: string,
+  printResult = false,
+): Promise<InvokeError[]> {
   const { callBudget, loopBudget, rangeBudget } = ctx;
-  const errors = await exeFunc(ctx, ctx.env.funcs["entry"], []);
+  const errors = await parseAndExe(ctx, code, invocationId);
   ctx.env.lets = [];
   ctx.callBudget = callBudget;
   ctx.loopBudget = loopBudget;
   ctx.rangeBudget = rangeBudget;
   delete ctx.env.funcs["entry"];
-  if (!len(errors) && printResult) {
+  if (!len(errors) && printResult && len(stack)) {
     await ctx.exe("print", [{ t: "str", v: val2str(stack[len(stack) - 1]) }]);
   }
   stack = [];

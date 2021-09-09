@@ -552,4 +552,8 @@ internal insitux functions
 (range 0 10 (print-str "hello"))
 ;; function
 ;; Returns its first argument.
+
+(eval "(+ 2 2)")
+;; function
+;; Evaluates a string as Insitux code, returning any values returned or null.
 ```

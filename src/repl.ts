@@ -40,11 +40,6 @@ async function exe(name: string, args: Val[]): Promise<ValAndErr> {
         process.stdout.write("\n");
       }
       break;
-    case "eval": {
-      delete ctx.env.funcs["entry"];
-      printErrorOutput(await invoker(ctx, args[0].v as string));
-      return { value: nullVal };
-    }
     case "read": {
       const path = args[0].v as string;
       if (!fs.existsSync(path)) {
@@ -55,12 +50,15 @@ async function exe(name: string, args: Val[]): Promise<ValAndErr> {
       };
     }
     default:
-      if (args.length && visStr(args[0]) && args[0].v.startsWith("$")) {
-        if (args.length === 1) {
-          return await get(`${args[0].v.substring(1)}.${name}`);
-        } else {
-          set(`${args[0].v.substring(1)}.${name}`, args[1]);
-          return { value: args[1] };
+      if (args.length) {
+        const a = args[0];
+        if (visStr(a) && a.v.startsWith("$")) {
+          if (args.length === 1) {
+            return await get(`${a.v.substring(1)}.${name}`);
+          } else {
+            await set(`${a.v.substring(1)}.${name}`, args[1]);
+            return { value: args[1] };
+          }
         }
       }
       return { value: nullVal, err: `operation ${name} does not exist` };

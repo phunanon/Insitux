@@ -369,15 +369,15 @@ async function exeOp(op, args, ctx, errCtx) {
                 if (op === "for") {
                     const arrays = args.map(asArray);
                     const lims = arrays.map(poly_fills_1.len);
-                    const dividors = lims.map((_, i) => poly_fills_1.slice(lims, 0, i + 1).reduce((sum, l) => sum * l));
-                    dividors.unshift(1);
-                    const lim = dividors.pop();
+                    const divisors = lims.map((_, i) => poly_fills_1.slice(lims, 0, i + 1).reduce((sum, l) => sum * l));
+                    divisors.unshift(1);
+                    const lim = divisors.pop();
                     if (lim > ctx.loopBudget) {
                         return [{ e: "Budget", m: "would exceed loop budget", errCtx }];
                     }
                     const array = [];
                     for (let t = 0; t < lim; ++t) {
-                        const argIdxs = dividors.map((d, i) => poly_fills_1.floor((t / d) % lims[i]));
+                        const argIdxs = divisors.map((d, i) => poly_fills_1.floor((t / d) % lims[i]));
                         const errors = await closure(arrays.map((a, i) => a[argIdxs[i]]));
                         if (poly_fills_1.len(errors)) {
                             return errors;
@@ -620,6 +620,18 @@ async function exeOp(op, args, ctx, errCtx) {
                 _str(summary);
             }
             return [];
+        case "eval": {
+            delete ctx.env.funcs["entry"];
+            const sLen = poly_fills_1.len(stack);
+            const errors = await parseAndExe(ctx, str(args[0]), errCtx.invocationId);
+            if (poly_fills_1.len(errors)) {
+                return [{ e: "Eval", m: "error within evaluated code", errCtx }];
+            }
+            if (sLen === poly_fills_1.len(stack)) {
+                _nul();
+            }
+            return [];
+        }
     }
     return [{ e: "Unexpected", m: "operation doesn't exist", errCtx }];
 }
@@ -869,7 +881,7 @@ async function exeFunc(ctx, func, args) {
     return [];
 }
 exports.exeFunc = exeFunc;
-async function invoke(ctx, code, invocationId, printResult = false) {
+async function parseAndExe(ctx, code, invocationId) {
     const parsed = parse_1.parse(code, invocationId);
     if (poly_fills_1.len(parsed.errors)) {
         return parsed.errors;
@@ -878,14 +890,17 @@ async function invoke(ctx, code, invocationId, printResult = false) {
     if (!("entry" in ctx.env.funcs)) {
         return [];
     }
+    return await exeFunc(ctx, ctx.env.funcs["entry"], []);
+}
+async function invoke(ctx, code, invocationId, printResult = false) {
     const { callBudget, loopBudget, rangeBudget } = ctx;
-    const errors = await exeFunc(ctx, ctx.env.funcs["entry"], []);
+    const errors = await parseAndExe(ctx, code, invocationId);
     ctx.env.lets = [];
     ctx.callBudget = callBudget;
     ctx.loopBudget = loopBudget;
     ctx.rangeBudget = rangeBudget;
     delete ctx.env.funcs["entry"];
-    if (!poly_fills_1.len(errors) && printResult) {
+    if (!poly_fills_1.len(errors) && printResult && poly_fills_1.len(stack)) {
         await ctx.exe("print", [{ t: "str", v: val2str(stack[poly_fills_1.len(stack) - 1]) }]);
     }
     stack = [];

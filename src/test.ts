@@ -161,7 +161,7 @@ const tests: {
   },
   {
     name: "Call identity funcs",
-    code: `(function id1 %)
+    code: `(function id1 #)
            (function id2 x x)
            [(id1 123) (id2 456)]`,
     out: `[123 456]`,
@@ -184,7 +184,7 @@ const tests: {
   },
   {
     name: "Anonymous parameters",
-    code: `(function avg<n? (< (/ (.. + %) (len %)) %1))
+    code: `(function avg<n? (< (/ (.. + #) (len #)) #1))
            (avg<n? [0 10 20 30 40] 5)`,
     out: `false`,
   },

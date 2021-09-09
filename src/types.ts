@@ -148,6 +148,7 @@ export const ops: {
   time: { exactArity: 0 },
   version: { exactArity: 0 },
   tests: { minArity: 0, maxArity: 1, types: ["bool"] },
+  eval: { exactArity: 1, types: ["str"] },
 };
 
 export const typeNames = {

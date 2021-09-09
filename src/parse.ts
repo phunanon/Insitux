@@ -193,7 +193,7 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
         return [{ typ: "nul", value: undefined, errCtx }];
       } else if (starts(text, ":")) {
         return [{ typ: "key", value: text, errCtx }];
-      } else if (starts(text, "%") && isNum(substr(text, 1))) {
+      } else if (starts(text, "#") && isNum(substr(text, 1))) {
         return [{ typ: "par", value: toNum(substr(text, 1)), errCtx }];
       } else if (has(params, text)) {
         return [{ typ: "par", value: params.indexOf(text), errCtx }];
@@ -304,7 +304,7 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
       const headIns: Ins[] = [];
       let args = 0;
       //Head is a form or parameter
-      if (typ === "(" || has(params, text) || starts(text, "%")) {
+      if (typ === "(" || has(params, text) || starts(text, "#")) {
         tokens.unshift(head);
         const ins = parseArg(tokens, params);
         push(headIns, ins);
@@ -380,7 +380,7 @@ function syntaxise(
   }
   if (len(body) && body[0].typ === ")") {
     if (len(params)) {
-      //In the case of e.g. (function f %)
+      //In the case of e.g. (function f #)
       body.unshift(params.shift()!);
     } else {
       //In the case of e.g. (function name)

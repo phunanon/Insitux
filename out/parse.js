@@ -161,7 +161,7 @@ function parseArg(tokens, params) {
             else if (poly_fills_1.starts(text, ":")) {
                 return [{ typ: "key", value: text, errCtx }];
             }
-            else if (poly_fills_1.starts(text, "%") && poly_fills_1.isNum(poly_fills_1.substr(text, 1))) {
+            else if (poly_fills_1.starts(text, "#") && poly_fills_1.isNum(poly_fills_1.substr(text, 1))) {
                 return [{ typ: "par", value: poly_fills_1.toNum(poly_fills_1.substr(text, 1)), errCtx }];
             }
             else if (poly_fills_1.has(params, text)) {
@@ -279,7 +279,7 @@ function parseArg(tokens, params) {
             const headIns = [];
             let args = 0;
             //Head is a form or parameter
-            if (typ === "(" || poly_fills_1.has(params, text) || poly_fills_1.starts(text, "%")) {
+            if (typ === "(" || poly_fills_1.has(params, text) || poly_fills_1.starts(text, "#")) {
                 tokens.unshift(head);
                 const ins = parseArg(tokens, params);
                 poly_fills_1.push(headIns, ins);
@@ -341,7 +341,7 @@ function syntaxise({ name, tokens }, errCtx) {
     }
     if (poly_fills_1.len(body) && body[0].typ === ")") {
         if (poly_fills_1.len(params)) {
-            //In the case of e.g. (function f %)
+            //In the case of e.g. (function f #)
             body.unshift(params.shift());
         }
         else {

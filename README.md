@@ -303,6 +303,9 @@ etc
 
 ;Returns Insitux version
 (version)
+
+;Evaluates a string as Insitux code, returning any values returned or null
+(eval "(+ 2 2)") => 4
 ```
 
 ### Miscellaneous
@@ -319,6 +322,9 @@ etc
 - Write decimal numbers either `0.123` or `.123`.
 
 - `args` contains a vector of arguments the function was called with.
+
+- Arguments can also be accessed through `#0`, `#1`, `#2`, etc, with `#` the same as `#0`
+  - Accessing too high a number will return `null` 
 
 - Parameters take precedence over lets and defines.
 
