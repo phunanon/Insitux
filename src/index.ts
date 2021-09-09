@@ -1,4 +1,4 @@
-export const insituxVersion = 20210908;
+export const insituxVersion = 20210909;
 
 import { parse } from "./parse";
 import {
@@ -932,6 +932,9 @@ export async function exeFunc(
         }
         break;
       case "jmp":
+        i += value as number;
+        break;
+      case "loo":
         i += value as number;
         --ctx.loopBudget;
         break;

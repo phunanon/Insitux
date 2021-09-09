@@ -47,7 +47,8 @@ export type InsType =
   | "op"
   | "exe"
   | "if"
-  | "jmp"
+  | "jmp" //Inexpensive jump
+  | "loo" //Expensive jump
   | "sav" //Save stack length
   | "res" //Restore stack length
   | "or";

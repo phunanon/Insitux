@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.symbols = exports.invoke = exports.exeFunc = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
-exports.insituxVersion = 20210908;
+exports.insituxVersion = 20210909;
 const parse_1 = require("./parse");
 const poly_fills_1 = require("./poly-fills");
 const test_1 = require("./test");
@@ -860,6 +860,9 @@ async function exeFunc(ctx, func, args) {
                 }
                 break;
             case "jmp":
+                i += value;
+                break;
+            case "loo":
                 i += value;
                 --ctx.loopBudget;
                 break;

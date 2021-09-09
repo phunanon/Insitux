@@ -270,7 +270,7 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
           ins.push({ typ: "sav", errCtx });
           args.forEach(as => push(ins, as));
           ins.push({ typ: "res", errCtx });
-          ins.push({ typ: "jmp", value: -(insCount + 1), errCtx });
+          ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
           return ins;
         }
         insCount += len(args); //+1 for each if/or ins

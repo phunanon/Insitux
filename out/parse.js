@@ -243,7 +243,7 @@ function parseArg(tokens, params) {
                     ins.push({ typ: "sav", errCtx });
                     args.forEach(as => poly_fills_1.push(ins, as));
                     ins.push({ typ: "res", errCtx });
-                    ins.push({ typ: "jmp", value: -(insCount + 1), errCtx });
+                    ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
                     return ins;
                 }
                 insCount += poly_fills_1.len(args); //+1 for each if/or ins
