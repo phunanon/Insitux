@@ -129,7 +129,7 @@ function tokenise(code: string, invocationId: string) {
       let typ: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
       if (len(tokens)) {
         const { typ: t, text } = tokens[len(tokens) - 1];
-        if (t === "sym" && (text === "define" || text === "let")) {
+        if (t === "sym" && (text === "var" || text === "let")) {
           typ = "ref";
         }
       }
@@ -200,7 +200,7 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
       } else if (text === "args") {
         return [{ typ: "par", value: -1, errCtx }];
       }
-      return [{ typ: "var", value: text, errCtx }];
+      return [{ typ: "ref", value: text, errCtx }];
     case "ref":
       return [{ typ: "def", value: text, errCtx }];
     case "(": {
@@ -211,20 +211,12 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
       const { typ, text, errCtx } = head;
       let op = text;
       const err = (value: string) => [<ParserIns>{ typ: "err", value, errCtx }];
-      if (op === "define" || op === "let") {
-        const def = parseArg(tokens, params);
-        const val = parseArg(tokens, params);
+      if (op === "var" || op === "let") {
+        const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
         if (!len(def) || !len(val) || len(parseArg(tokens, params))) {
           return err("must provide reference name and value only");
         }
-        return [
-          ...val,
-          {
-            typ: op === "let" ? "let" : "def",
-            value: def[0].value,
-            errCtx,
-          },
-        ];
+        return [...val, { typ: op, value: def[0].value, errCtx }];
       } else if (op === "if" || op === "when") {
         const cond = parseArg(tokens, params);
         if (!len(cond)) {

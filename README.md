@@ -42,7 +42,7 @@ operations called _functions_. An example:
 
 ```clj
 (function say-hello name
-  (define greeting "Hello")
+  (var greeting "Hello")
   (print greeting ", " name "!"))
 ```
 
@@ -66,7 +66,7 @@ built-in operations each within an example, with results after a `=>`.
 => Hello, world!
 
 ;Defines a variable for later use anywhere in the program
-(define my-number 123)
+(var my-number 123)
 (print my-number)
 => 123
 
@@ -205,10 +205,10 @@ built-in operations each within an example, with results after a `=>`.
 
 ;Continues looping until condition becomes false
 ;Note: also returns the final value, in this case `0`
-(define n 0)
+(var n 0)
 (while (< n 5)
   (print n)
-  (define n (inc n)))
+  (var n (inc n)))
 => 012345
 
 ;Returns the first argument; returns the last argument
@@ -278,7 +278,7 @@ etc
 (join [1 2 3] ", ") => "1, 2, 3"
 
 ;Returns the keys and values of a dictionary
-(define d {0 1 :a "hello" "hi" 123})
+(var d {0 1 :a "hello" "hi" 123})
 (keys d) => [0 :a "hi"]
 (vals d) => [1 "hello" 123]
 
@@ -373,7 +373,7 @@ $test.ing         => 456
 (dedupe [1 2 3 3]) => [1 2 3]
 
 ; Time an operation
-(define report [(time) (fib 35) (time)])
+(var report [(time) (fib 35) (time)])
 (str (1 report) " took " (- (2 report) (0 report)) "ms")
 => "9227465 took 55436ms"
 ```

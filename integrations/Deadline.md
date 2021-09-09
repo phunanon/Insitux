@@ -46,7 +46,7 @@ to get values, add $ to treat them like a "get" function when supplied as argume
 to define variables, use `define`:
 
 ```clj
-(define hi 0.5)
+(var hi 0.5)
 (print hi)
 ;; prints hi (0.5)
 ```
@@ -249,7 +249,7 @@ internal insitux functions
 ;; syntax
 ;; Defines a new function.
 
-(define variable-name 123)
+(var variable-name 123)
 ;; syntax
 ;; Defines a variable for later use.
 
@@ -265,7 +265,7 @@ internal insitux functions
 ;; syntax
 ;; Tests a condition and executes its body else returns null.
 
-(while (pos? n) (print "hi") (define n (dec n)))
+(while (pos? n) (print "hi") (var n (dec n)))
 ;; syntax
 ;; Loops all arguments so long as the first argument is true.
 
@@ -361,7 +361,7 @@ internal insitux functions
 ;; function
 ;; Calls a function repeatedly with each vector item or string character and the result from the previous function result.
 
-(while (< n 5) (do-something) (define n (inc n)))
+(while (< n 5) (do-something) (var n (inc n)))
 ;; function
 ;; Runs expressions until its condition (first argument) is false.
 

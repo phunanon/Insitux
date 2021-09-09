@@ -11,9 +11,9 @@
 				]
 			},
 			{
-				"directory": "define",
+				"directory": "var",
 				"description": [
-					"(define variable-name 123)",
+					"(var variable-name 123)",
 					"syntax",
 					"Defines a variable for later use."
 				]
@@ -45,7 +45,7 @@
 			{
 				"directory": "while",
 				"description": [
-					"(while (pos? n) (print \"hi\") (define n (dec n)))",
+					"(while (pos? n) (print \"hi\") (var n (dec n)))",
 					"syntax",
 					"Loops all arguments so long as the first argument is true."
 				]
@@ -233,7 +233,7 @@
 			{
 				"directory": "while",
 				"description": [
-					"(while (< n 5) (do-something) (define n (inc n)))",
+					"(while (< n 5) (do-something) (var n (inc n)))",
 					"function",
 					"Runs expressions until its condition (first argument) is false."
 				]

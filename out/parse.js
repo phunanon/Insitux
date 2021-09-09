@@ -98,7 +98,7 @@ function tokenise(code, invocationId) {
             let typ = inSymbol ? "sym" : "num";
             if (poly_fills_1.len(tokens)) {
                 const { typ: t, text } = tokens[poly_fills_1.len(tokens) - 1];
-                if (t === "sym" && (text === "define" || text === "let")) {
+                if (t === "sym" && (text === "var" || text === "let")) {
                     typ = "ref";
                 }
             }
@@ -170,7 +170,7 @@ function parseArg(tokens, params) {
             else if (text === "args") {
                 return [{ typ: "par", value: -1, errCtx }];
             }
-            return [{ typ: "var", value: text, errCtx }];
+            return [{ typ: "ref", value: text, errCtx }];
         case "ref":
             return [{ typ: "def", value: text, errCtx }];
         case "(": {
@@ -181,20 +181,12 @@ function parseArg(tokens, params) {
             const { typ, text, errCtx } = head;
             let op = text;
             const err = (value) => [{ typ: "err", value, errCtx }];
-            if (op === "define" || op === "let") {
-                const def = parseArg(tokens, params);
-                const val = parseArg(tokens, params);
+            if (op === "var" || op === "let") {
+                const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
                 if (!poly_fills_1.len(def) || !poly_fills_1.len(val) || poly_fills_1.len(parseArg(tokens, params))) {
                     return err("must provide reference name and value only");
                 }
-                return [
-                    ...val,
-                    {
-                        typ: op === "let" ? "let" : "def",
-                        value: def[0].value,
-                        errCtx,
-                    },
-                ];
+                return [...val, { typ: op, value: def[0].value, errCtx }];
             }
             else if (op === "if" || op === "when") {
                 const cond = parseArg(tokens, params);

@@ -846,7 +846,7 @@ export async function exeFunc(
       case "key":
         _key(value as string);
         break;
-      case "def":
+      case "var":
         ctx.env.vars[value as string] = stack[len(stack) - 1];
         break;
       case "let":
@@ -865,7 +865,7 @@ export async function exeFunc(
           }
         }
         break;
-      case "var":
+      case "ref":
         {
           const name = value as string;
           if (ops[name]) {

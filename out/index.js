@@ -766,7 +766,7 @@ async function exeFunc(ctx, func, args) {
             case "key":
                 _key(value);
                 break;
-            case "def":
+            case "var":
                 ctx.env.vars[value] = stack[poly_fills_1.len(stack) - 1];
                 break;
             case "let":
@@ -787,7 +787,7 @@ async function exeFunc(ctx, func, args) {
                     }
                 }
                 break;
-            case "var":
+            case "ref":
                 {
                     const name = value;
                     if (types_1.ops[name]) {

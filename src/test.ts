@@ -98,13 +98,13 @@ const tests: {
             (= [0 [1]] [0 [1]])]`,
     out: `[false true false false true]`,
   },
-  { name: "Define and retrieve", code: `(define a 1) a`, out: `1` },
-  { name: "Define and add", code: `(define a 1) (inc a)`, out: `2` },
-  { name: "Define op and call", code: `(define f +) (f 2 2)`, out: `4` },
-  { name: "Define vec and call", code: `(define f [1]) (f 1)`, out: `1` },
+  { name: "Define and retrieve", code: `(var a 1) a`, out: `1` },
+  { name: "Define and add", code: `(var a 1) (inc a)`, out: `2` },
+  { name: "Define op and call", code: `(var f +) (f 2 2)`, out: `4` },
+  { name: "Define vec and call", code: `(var f [1]) (f 1)`, out: `1` },
   {
     name: "Define num op and call",
-    code: `(define f 1) (f [:a :b :c])`,
+    code: `(var f 1) (f [:a :b :c])`,
     out: `:b`,
   },
   { name: "Print simple vector", code: `[1 2 3]`, out: `[1 2 3]` },
@@ -141,10 +141,10 @@ const tests: {
   },
   {
     name: "While loop",
-    code: `(define n 5)
+    code: `(var n 5)
            (while (< 0 n)
              (print-str n)
-             (define n (dec n)))`,
+             (var n (dec n)))`,
     out: `543215`,
   },
   //Basic functions
@@ -179,7 +179,7 @@ const tests: {
   },
   {
     name: "Define func and call",
-    code: `(function func a b (+ a b)) (define f func) (f 2 2)`,
+    code: `(function func a b (+ a b)) (var f func) (f 2 2)`,
     out: `4`,
   },
   {
@@ -218,9 +218,9 @@ const tests: {
   { name: "Call budget", code: `(function f (f)) (f)`, err: ["Budget"] },
   {
     name: "Loop budget",
-    code: `(define n 10000)
+    code: `(var n 10000)
            (while (< 0 n)
-             (define n (dec n)))`,
+             (var n (dec n)))`,
     err: ["Budget"],
   },
   { name: "Range budget", code: `(range 10000)`, err: ["Budget"] },
