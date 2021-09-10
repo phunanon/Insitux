@@ -160,8 +160,9 @@ built-in operations each within an example, with results after a `=>`.
      [:a :b "c"])
 => "Hello, world! Welcome 2 my app. [:a :b c]"
 
-;Returns a string parsed into a number
+;Returns a string parsed into a number, or null
 (num "123") => 123
+(num "abc") => null
 
 ;Returns character from string index or item from vector index
 ;Note: the first letter/item is 0, the second is 1, etc

@@ -281,31 +281,24 @@ async function exeOp(
       );
       return [];
     case "num":
-      if (!isNum(args[0].v)) {
-        return [
-          {
-            e: "Convert",
-            m: `"${args[0].v}" could not be parsed as a number`,
-            errCtx,
-          },
-        ];
+      if (isNum(args[0].v)) {
+        _num(toNum(args[0].v));
+      } else {
+        _nul();
       }
-      _num(toNum(args[0].v));
       return [];
     case "!":
       _boo(!asBoo(args[0]));
       return [];
     case "=":
     case "!=":
-      {
-        for (let i = 1, lim = len(args); i < lim; ++i) {
-          if (isEqual(args[i - 1], args[i]) !== (op === "=")) {
-            _boo(false);
-            return [];
-          }
+      for (let i = 1, lim = len(args); i < lim; ++i) {
+        if (isEqual(args[i - 1], args[i]) !== (op === "=")) {
+          _boo(false);
+          return [];
         }
-        _boo(true);
       }
+      _boo(true);
       return [];
     case "-":
       _num(
@@ -654,9 +647,14 @@ async function exeOp(
         len(args) > 1 ? (edgeCase ? [b - 1, a - 1] : [a, b]) : [0, a];
       const step = sign((y - x) * (s || 1)) * (s || 1);
       const count = ceil(abs((y - x) / step));
-      if (count > ctx.rangeBudget) {
-        return [{ e: "Budget", m: "range too large", errCtx }];
+      if (!count) {
+        _vec([]);
+        return [];
       }
+      if (count > ctx.rangeBudget) {
+        return [{ e: "Budget", m: "range budget depleted", errCtx }];
+      }
+      ctx.rangeBudget -= count;
       const nums = range(count).map(n => n * step + x);
       _vec(nums.map(v => <Val>{ t: "num", v }));
       return [];
@@ -983,10 +981,11 @@ export async function invoke(
   invocationId: string,
   printResult = false,
 ): Promise<InvokeError[]> {
-  const { callBudget, loopBudget, rangeBudget } = ctx;
+  const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   const errors = await parseAndExe(ctx, code, invocationId);
   ctx.env.lets = [];
   ctx.callBudget = callBudget;
+  ctx.recurBudget = recurBudget;
   ctx.loopBudget = loopBudget;
   ctx.rangeBudget = rangeBudget;
   delete ctx.env.funcs["entry"];
