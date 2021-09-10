@@ -1,0 +1,32 @@
+{
+  "name": "insitux",
+  "version": "0.0.1",
+  "description": "S-expression programming language written in portable TypeScript.",
+  "main": "webpack.config.js",
+  "dependencies": {
+    "readline": "^1.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^16.9.1",
+    "ts-loader": "^9.2.5",
+    "typescript": "^4.3.5",
+    "webpack": "^5.52.1",
+    "webpack-cli": "^4.8.0"
+  },
+  "scripts": {
+    "node": "webpack --env target=node",
+    "web": "webpack --env target=web",
+    "node-watch": "webpack --env target=node --watch",
+    "web-watch": "webpack --env target=web --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phunanon/Insitux.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/phunanon/Insitux/issues"
+  },
+  "homepage": "https://phunanon.github.io/Insitux/"
+}

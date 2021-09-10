@@ -9,79 +9,8 @@
       type="image/jpg"
       href="../../media/Insitux64.png"
     />
-    <script src="insitux.js"></script>
-    <script>
-      let $input, $history;
-      const id = Date.now();
-
-      async function DomKeydown({ keyCode, shiftKey }) {
-        if (![13, 9].includes(keyCode) || shiftKey) {
-          return true;
-        }
-        const input = $input.value.trim();
-        setTimeout(() => {
-          $input.value = "";
-          DomInputResize($input);
-        }, 10);
-        $history.innerHTML += `<code>${input}</code>\n`;
-        const errors = (await insituxInvoke(input, browserExe))
-          .map(({ type, text }) =>
-            type == "message" ? `<m>${text}</m>` : `<e>${text}</e>`,
-          )
-          .join("");
-        $history.innerHTML += errors;
-        $history.scrollTo(0, $history.scrollHeight);
-        return false;
-      }
-
-      function historyAppend(str) {
-        $history.innerHTML += str;
-      }
-
-      async function browserExe(name, args) {
-        const nullVal = { t: "null", v: undefined };
-        switch (name) {
-          case "print-str":
-          case "print":
-            historyAppend(args[0].v + (name == "print" ? "\n" : ""));
-            break;
-          default:
-            if (args.length && visStr(args[0]) && args[0].v.startsWith("$")) {
-              if (args.length === 1) {
-                return await get(`${args[0].v.substring(1)}.${name}`);
-              } else {
-                set(`${args[0].v.substring(1)}.${name}`, args[1]);
-                return { value: args[1] };
-              }
-            }
-            return { value: nullVal, err: `operation ${name} does not exist` };
-        }
-        return { value: nullVal };
-      }
-
-      async function DomLoad() {
-        $input = document.querySelector("textarea");
-        $history = document.querySelector("div");
-        $history.innerHTML += `<a href="https://github.com/phunanon/Insitux"><img src="../../media/Insitux64.png"/></a><span>REPL</span>\n`;
-        $history.addEventListener("mouseup", event => {
-          if (!(getSelection() + "")) {
-            $input.focus();
-          }
-        });
-        $input.addEventListener("keydown", DomKeydown);
-        $input.focus();
-        DomInputResize($input);
-        await insituxInit();
-        await insituxInvoke("(tests)", browserExe);
-      }
-
-      function DomInputResize(that) {
-        that.style.height = 0;
-        that.style.height = `calc(${that.scrollHeight}px - 1rem)`;
-        window.scrollTo(0, document.body.scrollHeight);
-        $history.style.height = `calc(100% - 1rem - ${that.style.height})`;
-      }
-    </script>
+    <script src="../../out/insitux.js"></script>
+    <script src="index.js"></script>
     <style>
       *:not(head) {
         padding: 0;

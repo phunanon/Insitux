@@ -10,5 +10,6 @@
     "strict": true,
     "noImplicitAny": true,
     "sourceMap": true,
+    "types": ["node"],
   }
 }

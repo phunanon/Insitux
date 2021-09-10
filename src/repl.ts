@@ -1,8 +1,8 @@
 import readline = require("readline");
 import fs = require("fs");
-import { invoke, symbols, visStr } from ".";
+import { symbols, visStr } from ".";
 import { Ctx, Val, ValAndErr } from "./types";
-import { getTimeMs } from "./poly-fills";
+import { ErrorOutput, invoker, parensRx } from "./invoker";
 const env = new Map<string, Val>();
 
 async function get(key: string) {
@@ -100,41 +100,9 @@ rl.on("line", async line => {
 
 rl.prompt();
 
-type ErrorOutput = {
-  type: "message" | "error";
-  text: string;
-}[];
-
 function printErrorOutput(lines: ErrorOutput) {
   const colours = { error: 31, message: 35 };
   lines.forEach(({ type, text }) => {
     process.stdout.write(`\x1b[${colours[type]}m${text}\x1b[0m`);
   });
-}
-
-const invocations = new Map<string, string>();
-const parensRx = /[\[\]\(\) ]/;
-
-export async function invoker(ctx: Ctx, code: string): Promise<ErrorOutput> {
-  const uuid = getTimeMs().toString();
-  invocations.set(uuid, code);
-  const errors = await invoke(ctx, code, uuid, true);
-  let out: ErrorOutput = [];
-  errors.forEach(({ e, m, errCtx: { line, col, invocationId } }) => {
-    const lineText = invocations.get(invocationId)!.split("\n")[line - 1];
-    const sym = lineText.substring(col - 1).split(parensRx)[0];
-    const half1 = lineText.substring(0, col - 1).trimStart();
-    out.push({ type: "message", text: `${line}`.padEnd(4) + half1 });
-    if (!sym) {
-      const half2 = lineText.substring(col);
-      out.push({ type: "error", text: lineText[col - 1] });
-      out.push({ type: "message", text: `${half2}\n` });
-    } else {
-      const half2 = lineText.substring(col - 1 + sym.length);
-      out.push({ type: "error", text: sym });
-      out.push({ type: "message", text: `${half2}\n` });
-    }
-    out.push({ type: "message", text: `${e} Error: ${m}.\n` });
-  });
-  return out;
 }
