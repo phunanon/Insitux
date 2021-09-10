@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.symbols = exports.invoke = exports.exeFunc = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
-exports.insituxVersion = 20210909;
+exports.insituxVersion = 20210910;
 const parse_1 = require("./parse");
 const poly_fills_1 = require("./poly-fills");
 const test_1 = require("./test");
@@ -129,24 +129,34 @@ const dictSet = ({ keys, vals }, key, val) => {
 };
 function exeOpViolations(op, args, errCtx) {
     const { types, exactArity, maxArity, minArity, onlyNum } = types_1.ops[op];
-    const aErr = (msg) => [
-        { e: "Arity", m: `${op} needs ${msg}`, errCtx },
+    const aErr = (msg, amount) => [
+        {
+            e: "Arity",
+            m: `${op} needs ${msg} argument${amount !== 1 ? "s" : ""}`,
+            errCtx,
+        },
     ];
     const nArg = poly_fills_1.len(args);
-    if (exactArity !== undefined && nArg !== exactArity) {
-        return aErr(`exactly ${exactArity} argument${exactArity !== 1 ? "s" : ""}`);
+    if (exactArity !== undefined) {
+        if (nArg !== exactArity) {
+            return aErr(`exactly ${exactArity}`, exactArity);
+        }
     }
-    if (minArity && !maxArity && nArg < minArity) {
-        return aErr(`at least ${minArity} argument${minArity !== 1 ? "s" : ""}`);
+    else {
+        if (minArity && !maxArity && nArg < minArity) {
+            return aErr(`at least ${minArity}`, minArity);
+        }
+        else if (!minArity && maxArity && nArg > maxArity) {
+            return aErr(`at most ${maxArity}`, maxArity);
+        }
+        else if (minArity && maxArity && (nArg < minArity || nArg > maxArity)) {
+            return aErr(`between ${minArity} and ${maxArity}`, maxArity);
+        }
     }
-    else if (!minArity && maxArity && nArg > maxArity) {
-        return aErr(`at most ${maxArity} argument${maxArity !== 1 ? "s" : ""}`);
-    }
-    else if (minArity && maxArity && (nArg < minArity || nArg > maxArity)) {
-        return aErr(`between ${minArity} and ${maxArity} arguments`);
-    }
-    if (onlyNum && args.findIndex(a => a.t !== "num") !== -1) {
-        return [typeErr(`numeric arguments only`, errCtx)];
+    if (onlyNum) {
+        return args.findIndex(a => a.t !== "num") !== -1
+            ? [typeErr(`numeric arguments only`, errCtx)]
+            : [];
     }
     if (!types) {
         return [];
@@ -231,60 +241,56 @@ async function exeOp(op, args, ctx, errCtx) {
                 _boo(true);
             }
             return [];
-        case "+":
         case "-":
-        case "*":
-        case "/":
-        case "//":
+            _num(poly_fills_1.len(args) === 1
+                ? -num(args[0])
+                : args.map(num).reduce((sum, n) => sum - n));
+            return [];
         case "**":
+            _num(num(args[0]) ** (poly_fills_1.len(args) === 1 ? 2 : num(args[1])));
+            return [];
+        case "+":
+            _num(args.map(num).reduce((sum, n) => sum + n));
+            return [];
+        case "*":
+            _num(args.map(num).reduce((sum, n) => sum * n));
+            return [];
+        case "/":
+            _num(args.map(num).reduce((sum, n) => sum / n));
+            return [];
+        case "//":
+            _num(args.map(num).reduce((sum, n) => poly_fills_1.floor(sum / n)));
+            return [];
         case "rem":
+            _num(args.map(num).reduce((sum, n) => sum % n));
+            return [];
         case "min":
+            _num(args.map(num).reduce((sum, n) => poly_fills_1.min(sum, n)));
+            return [];
         case "max":
-            {
-                if (poly_fills_1.len(args) === 1) {
-                    if (op === "-") {
-                        args.unshift({ t: "num", v: 0 });
-                    }
-                    else if (op === "**") {
-                        _num(num(args[0]) ** 2);
-                        return [];
-                    }
-                }
-                const numOps = {
-                    "+": (a, b) => a + b,
-                    "-": (a, b) => a - b,
-                    "*": (a, b) => a * b,
-                    "/": (a, b) => a / b,
-                    "//": (a, b) => poly_fills_1.floor(a / b),
-                    "**": (a, b) => a ** b,
-                    rem: (a, b) => a % b,
-                    min: (a, b) => poly_fills_1.min(a, b),
-                    max: (a, b) => poly_fills_1.max(a, b),
-                };
-                const f = numOps[op];
-                _num(args.map(({ v }) => v).reduce((sum, n) => f(sum, n)));
-            }
+            _num(args.map(num).reduce((sum, n) => poly_fills_1.max(sum, n)));
             return [];
         case "<":
         case ">":
         case "<=":
         case ">=":
             for (let i = 1, lim = poly_fills_1.len(args); i < lim; ++i) {
-                const [a, b] = [num(args[i - 1]), num(args[i])];
-                if ((op === "<" && a < b) ||
-                    (op === ">" && a > b) ||
-                    (op === "<=" && a <= b) ||
-                    (op === ">=" && a >= b)) {
-                    continue;
+                const [a, b] = [args[i - 1].v, args[i].v];
+                if ((op === "<" && a >= b) ||
+                    (op === ">" && a <= b) ||
+                    (op === "<=" && a > b) ||
+                    (op === ">=" && a < b)) {
+                    _boo(false);
+                    return [];
                 }
-                _boo(false);
-                return [];
             }
             _boo(true);
             return [];
         case "inc":
+            _num(args[0].v + 1);
+            return [];
         case "dec":
-            _num(num(args[0]) + (op === "inc" ? 1 : -1));
+            _num(args[0].v - 1);
             return [];
         case "abs":
             _num(poly_fills_1.abs(num(args[0])));

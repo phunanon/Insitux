@@ -1,4 +1,4 @@
-export const insituxVersion = 20210909;
+export const insituxVersion = 20210910;
 
 import { parse } from "./parse";
 import {
@@ -186,22 +186,31 @@ const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
 
 function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
   const { types, exactArity, maxArity, minArity, onlyNum } = ops[op];
-  const aErr = (msg: string) => [
-    { e: "Arity", m: `${op} needs ${msg}`, errCtx },
+  const aErr = (msg: string, amount: number) => [
+    <InvokeError>{
+      e: "Arity",
+      m: `${op} needs ${msg} argument${amount !== 1 ? "s" : ""}`,
+      errCtx,
+    },
   ];
   const nArg = len(args);
-  if (exactArity !== undefined && nArg !== exactArity) {
-    return aErr(`exactly ${exactArity} argument${exactArity !== 1 ? "s" : ""}`);
+  if (exactArity !== undefined) {
+    if (nArg !== exactArity) {
+      return aErr(`exactly ${exactArity}`, exactArity);
+    }
+  } else {
+    if (minArity && !maxArity && nArg < minArity) {
+      return aErr(`at least ${minArity}`, minArity);
+    } else if (!minArity && maxArity && nArg > maxArity) {
+      return aErr(`at most ${maxArity}`, maxArity);
+    } else if (minArity && maxArity && (nArg < minArity || nArg > maxArity)) {
+      return aErr(`between ${minArity} and ${maxArity}`, maxArity);
+    }
   }
-  if (minArity && !maxArity && nArg < minArity) {
-    return aErr(`at least ${minArity} argument${minArity !== 1 ? "s" : ""}`);
-  } else if (!minArity && maxArity && nArg > maxArity) {
-    return aErr(`at most ${maxArity} argument${maxArity !== 1 ? "s" : ""}`);
-  } else if (minArity && maxArity && (nArg < minArity || nArg > maxArity)) {
-    return aErr(`between ${minArity} and ${maxArity} arguments`);
-  }
-  if (onlyNum && args.findIndex(a => a.t !== "num") !== -1) {
-    return [typeErr(`numeric arguments only`, errCtx)];
+  if (onlyNum) {
+    return args.findIndex(a => a.t !== "num") !== -1
+      ? [typeErr(`numeric arguments only`, errCtx)]
+      : [];
   }
   if (!types) {
     return [];
@@ -298,61 +307,60 @@ async function exeOp(
         _boo(true);
       }
       return [];
-    case "+":
     case "-":
-    case "*":
-    case "/":
-    case "//":
+      _num(
+        len(args) === 1
+          ? -num(args[0])
+          : args.map(num).reduce((sum, n) => sum - n),
+      );
+      return [];
     case "**":
+      _num(num(args[0]) ** (len(args) === 1 ? 2 : num(args[1])));
+      return [];
+    case "+":
+      _num(args.map(num).reduce((sum, n) => sum + n));
+      return [];
+    case "*":
+      _num(args.map(num).reduce((sum, n) => sum * n));
+      return [];
+    case "/":
+      _num(args.map(num).reduce((sum, n) => sum / n));
+      return [];
+    case "//":
+      _num(args.map(num).reduce((sum, n) => floor(sum / n)));
+      return [];
     case "rem":
+      _num(args.map(num).reduce((sum, n) => sum % n));
+      return [];
     case "min":
+      _num(args.map(num).reduce((sum, n) => min(sum, n)));
+      return [];
     case "max":
-      {
-        if (len(args) === 1) {
-          if (op === "-") {
-            args.unshift({ t: "num", v: 0 });
-          } else if (op === "**") {
-            _num(num(args[0]) ** 2);
-            return [];
-          }
-        }
-        const numOps: { [op: string]: (a: number, b: number) => number } = {
-          "+": (a, b) => a + b,
-          "-": (a, b) => a - b,
-          "*": (a, b) => a * b,
-          "/": (a, b) => a / b,
-          "//": (a, b) => floor(a / b),
-          "**": (a, b) => a ** b,
-          rem: (a, b) => a % b,
-          min: (a, b) => min(a, b),
-          max: (a, b) => max(a, b),
-        };
-        const f = numOps[op];
-        _num(args.map(({ v }) => <number>v).reduce((sum, n) => f(sum, n)));
-      }
+      _num(args.map(num).reduce((sum, n) => max(sum, n)));
       return [];
     case "<":
     case ">":
     case "<=":
     case ">=":
       for (let i = 1, lim = len(args); i < lim; ++i) {
-        const [a, b] = [num(args[i - 1]), num(args[i])];
+        const [a, b] = [<number>args[i - 1].v, <number>args[i].v];
         if (
-          (op === "<" && a < b) ||
-          (op === ">" && a > b) ||
-          (op === "<=" && a <= b) ||
-          (op === ">=" && a >= b)
+          (op === "<" && a >= b) ||
+          (op === ">" && a <= b) ||
+          (op === "<=" && a > b) ||
+          (op === ">=" && a < b)
         ) {
-          continue;
+          _boo(false);
+          return [];
         }
-        _boo(false);
-        return [];
       }
       _boo(true);
       return [];
     case "inc":
+      _num(<number>args[0].v + 1);
+      return [];
     case "dec":
-      _num(num(args[0]) + (op === "inc" ? 1 : -1));
+      _num(<number>args[0].v - 1);
       return [];
     case "abs":
       _num(abs(num(args[0])));

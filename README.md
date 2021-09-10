@@ -109,8 +109,7 @@ built-in operations each within an example, with results after a `=>`.
 (abs -123)   => 123
 (sin (pi))   => ~0
 (cos (pi))   => -1
-(tan (* 45 (/ (pi) 180)))
-=> ~1
+(tan (* 45 (/ (pi) 180))) => ~1
 (sqrt 25)    => 5
 (round 3.5)  => 4
 (floor 2.7)  => 2
