@@ -14,10 +14,10 @@
     "webpack-cli": "^4.8.0"
   },
   "scripts": {
-    "node": "webpack --env target=node",
-    "web": "webpack --env target=web",
-    "node-watch": "webpack --env target=node --watch",
-    "web-watch": "webpack --env target=web --watch"
+    "node": "webpack --env target=node --mode=production",
+    "web": "webpack --env target=web --mode=production",
+    "node-watch": "webpack --env target=node --mode=production --watch",
+    "web-watch": "webpack --env target=web --mode=production --watch"
   },
   "repository": {
     "type": "git",

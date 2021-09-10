@@ -17,6 +17,10 @@ module.exports = ({ target }) => {
     resolve: {
       extensions: [".ts"],
     },
+    optimization: {
+      minimize: isWeb,
+    },
+    ...(isWeb ? {} : { devtool: "source-map" }),
     output: isWeb
       ? {
           filename: "insitux.js",

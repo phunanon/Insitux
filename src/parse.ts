@@ -145,7 +145,7 @@ function segment(tokens: Token[]): Token[][] {
   let depth = 0;
   tokens.forEach(token => {
     segments[len(segments) - 1].push(token);
-    depth += toNum(token.text === "(") - toNum(token.text === ")");
+    depth += toNum(token.typ === "(") - toNum(token.typ === ")");
     if (depth === 0) {
       segments.push([]);
     }
@@ -380,8 +380,8 @@ function syntaxise(
   }
   if (len(body) && body[0].typ === ")") {
     if (len(params)) {
-      //In the case of e.g. (function f #)
-      body.unshift(params.shift()!);
+      //In the case of e.g. (function f #) or (function x y z)
+      body.unshift(params.pop()!);
     } else {
       //In the case of e.g. (function name)
       return {

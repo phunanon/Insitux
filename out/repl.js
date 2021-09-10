@@ -1,1 +1,2055 @@
-(()=>{"use strict";var e={607:(e,t,n)=>{Object.defineProperty(t,"__esModule",{value:!0}),t.symbols=t.invoke=t.exeFunc=t.visKey=t.visFun=t.visDic=t.visVec=t.visNum=t.visStr=t.insituxVersion=void 0,t.insituxVersion=20210910;const r=n(306),s=n(17),a=n(127),o=n(699),i=({v:e,t})=>{switch(t){case"bool":case"num":return`${e}`;case"str":case"key":return e;case"vec":return`[${e.map((e=>i(e))).join(" ")}]`;case"dict":{const{keys:t,vals:n}=e,[r,s]=[t.map(i),n.map(i)];return`{${r.map(((e,t)=>`${e} ${s[t]}`)).join(", ")}}`}case"null":return"null";case"func":return`<${e}>`}return"?"};let c=[];const u=e=>c.push({t:"bool",v:e}),l=e=>c.push({t:"num",v:e}),p=(e="")=>c.push({t:"str",v:e}),m=(e=[])=>c.push({t:"vec",v:e}),d=e=>c.push({t:"dict",v:e}),f=()=>c.push({t:"null",v:void 0}),y=e=>c.push({t:"func",v:e}),v=({v:e})=>e,x=({v:e})=>e,h=({v:e})=>e,b=({v:e})=>e,g=({t:e,v:t})=>"bool"===e?t:"null"!==e;t.visStr=e=>"str"===e.t,t.visNum=e=>"num"===e.t,t.visVec=e=>"vec"===e.t,t.visDic=e=>"dict"===e.t,t.visFun=e=>"func"===e.t,t.visKey=e=>"key"===e.t;const A=({t:e,v:t})=>"vec"===e?(0,s.slice)(t):"str"===e?[...t].map((e=>({t:"str",v:e}))):"dict"===e?t.keys.map(((e,n)=>({t:"vec",v:[e,t.vals[n]]}))):[],k=e=>e.reduce(((e,t)=>e+i(t)),""),C=e=>{(0,s.len)(e)%2==1&&e.pop();const t=e.filter(((e,t)=>t%2==0)),n=e.filter(((e,t)=>t%2==1)),r=[],a=[];return t.forEach(((e,t)=>{const s=r.findIndex((t=>$(t,e)));-1===s?(r.push(e),a.push(n[t])):a[s]=n[t]})),{t:"dict",v:{keys:r,vals:a}}},w=(e,t)=>({e:"Type",m:e,errCtx:t}),N=(e,t)=>(0,s.len)(e)===(0,s.len)(t)&&!e.some(((e,n)=>!$(e,t[n]))),$=(e,t)=>e.t===t.t&&"num"===e.t?v(e)===v(t):"str"===e.t||"key"===e.t?x(e)===x(t):"vec"===e.t?N(h(e),h(t)):"dict"===e.t&&((e,t)=>{const[n,r]=[b(e),b(t)];return(0,s.len)(n.keys)===(0,s.len)(r.keys)&&N(n.keys,r.keys)})(e,t),B=({keys:e,vals:t},n)=>{const r=e.findIndex((e=>$(e,n)));return-1===r?{t:"null",v:void 0}:t[r]};async function M(e,n,r,y){const N=e=>[w(e,y)];{const t=function(e,t,n){const{types:r,exactArity:a,maxArity:i,minArity:c,onlyNum:u}=o.ops[e],l=(t,r)=>[{e:"Arity",m:`${e} needs ${t} argument${1!==r?"s":""}`,errCtx:n}],p=(0,s.len)(t);if(void 0!==a){if(p!==a)return l(`exactly ${a}`,a)}else{if(c&&!i&&p<c)return l(`at least ${c}`,c);if(!c&&i&&p>i)return l(`at most ${i}`,i);if(c&&i&&(p<c||p>i))return l(`between ${c} and ${i}`,i)}return u?-1!==t.findIndex((e=>"num"!==e.t))?[w("numeric arguments only",n)]:[]:r?r.map(((e,n)=>n<p&&((0,s.isArray)(e)?!(0,s.has)(e,t[n].t)&&`argument ${n+1} must be either: ${e.map((e=>o.typeNames[e])).join(", ")}`:e!==t[n].t&&`argument ${n+1} must be ${o.typeNames[e]}`))).filter((e=>!!e)).map((e=>w(e,n))):[]}(e,n,y);if((0,s.len)(t))return t}switch(e){case"execute-last":return await I(r,n.pop(),y)(n);case"str":return c.push({t:"str",v:k(n)}),[];case"print":case"print-str":return r.exe(e,[{t:"str",v:k(n)}]),f(),[];case"vec":return m(n),[];case"dict":return c.push(C(n)),[];case"len":return l("str"===n[0].t?(0,s.slen)(x(n[0])):"vec"===n[0].t?(0,s.len)(h(n[0])):(0,s.len)(b(n[0]).keys)),[];case"num":return(0,s.isNum)(n[0].v)?l((0,s.toNum)(n[0].v)):f(),[];case"!":return u(!g(n[0])),[];case"=":case"!=":for(let t=1,r=(0,s.len)(n);t<r;++t)if($(n[t-1],n[t])!==("="===e))return u(!1),[];return u(!0),[];case"-":return l(1===(0,s.len)(n)?-v(n[0]):n.map(v).reduce(((e,t)=>e-t))),[];case"**":return l(v(n[0])**(1===(0,s.len)(n)?2:v(n[1]))),[];case"+":return l(n.map(v).reduce(((e,t)=>e+t))),[];case"*":return l(n.map(v).reduce(((e,t)=>e*t))),[];case"/":return l(n.map(v).reduce(((e,t)=>e/t))),[];case"//":return l(n.map(v).reduce(((e,t)=>(0,s.floor)(e/t)))),[];case"rem":return l(n.map(v).reduce(((e,t)=>e%t))),[];case"min":return l(n.map(v).reduce(((e,t)=>(0,s.min)(e,t)))),[];case"max":return l(n.map(v).reduce(((e,t)=>(0,s.max)(e,t)))),[];case"<":case">":case"<=":case">=":for(let t=1,r=(0,s.len)(n);t<r;++t){const[r,s]=[n[t-1].v,n[t].v];if("<"===e&&r>=s||">"===e&&r<=s||"<="===e&&r>s||">="===e&&r<s)return u(!1),[]}return u(!0),[];case"inc":return l(n[0].v+1),[];case"dec":return l(n[0].v-1),[];case"abs":return l((0,s.abs)(v(n[0]))),[];case"pi":return l(s.pi),[];case"sin":case"cos":case"tan":case"sqrt":case"round":case"floor":case"ceil":return l({sin:s.sin,cos:s.cos,tan:s.tan,sqrt:s.sqrt,round:s.round,floor:s.floor,ceil:s.ceil}[e](v(n[0]))),[];case"odd?":case"even?":return u(v(n[0])%2==("odd?"===e?1:0)),[];case"pos?":case"neg?":case"zero?":{const t=v(n[0]);return u("pos?"===e?t>0:"neg?"===e?t<0:!t),[]}case"null?":case"num?":case"bool?":case"str?":case"dict?":case"vec?":case"key?":case"func?":return u("null?"===e&&"null"===n[0].t||"num?"===e&&"num"===n[0].t||"bool?"===e&&"bool"===n[0].t||"str?"===e&&"str"===n[0].t||"dict?"===e&&"dict"===n[0].t||"vec?"===e&&"vec"===n[0].t||"key?"===e&&"key"===n[0].t||"func?"===e&&"func"===n[0].t),[];case"has?":return u((0,s.sub)(x(n[0]),x(n[1]))),[];case"idx":{let e=-1;if("str"===n[0].t){if("str"!==n[1].t)return N("strings can only contain strings");e=(0,s.subIdx)(x(n[0]),x(n[1]))}else"vec"===n[0].t&&(e=h(n[0]).findIndex((e=>$(e,n[1]))));return-1===e?f():l(e),[]}case"map":case"for":case"reduce":case"filter":{const t=I(r,n.shift(),y),a=e=>"vec"===e||"str"===e||"dict"===e;if(-1!==("map"===e||"for"===e?n.findIndex((({t:e})=>!a(e))):a(n[0].t)?-1:0))return N("argument 2 must be either: string, vector, dictionary");if("for"===e){const e=n.map(A),a=e.map(s.len),o=a.map(((e,t)=>(0,s.slice)(a,0,t+1).reduce(((e,t)=>e*t))));o.unshift(1);const i=o.pop();if(i>r.loopBudget)return[{e:"Budget",m:"would exceed loop budget",errCtx:y}];const u=[];for(let n=0;n<i;++n){const r=o.map(((e,t)=>(0,s.floor)(n/e%a[t]))),i=await t(e.map(((e,t)=>e[r[t]])));if((0,s.len)(i))return i;u.push(c.pop())}return m(u),[]}if("map"===e){const e=n.map(A),r=(0,s.min)(...e.map((e=>(0,s.len)(e)))),a=[];for(let n=0;n<r;++n){const r=await t(e.map((e=>e[n])));if((0,s.len)(r))return r;a.push(c.pop())}return m(a),[]}const o=A(n.shift());if("filter"===e){const e=[];for(let n=0,r=(0,s.len)(o);n<r;++n){const r=await t([o[n]]);if((0,s.len)(r))return r;g(c.pop())&&e.push(o[n])}return m(e),[]}if((0,s.len)(o)<2)return(0,s.push)(c,o),[];let i=((0,s.len)(n)?n:o).shift();for(let e=0,n=(0,s.len)(o);e<n;++e){const n=await t([i,o[e]]);if((0,s.len)(n))return n;i=c.pop()}c.push(i)}return[];case"rand-int":case"rand-num":{const t=(0,s.len)(n),[r,a]=[t<2?0:v(n[0]),0===t?1+(0,s.toNum)("rand-int"===e):v(1===t?n[0]:n[1])];l("rand-int"===e?(0,s.randInt)(r,a):(0,s.randNum)(r,a))}return[];case"do":case"val":return c.push("do"===e?n.pop():n.shift()),[];case"..":{const e=I(r,n.shift(),y);return await e((0,s.flat)(n.map((e=>"vec"===e.t?h(e):[e]))))}case"into":{const e="vec"===n[0].t,t="vec"===n[1].t;if(e)m((0,s.concat)(h(n[0]),t?h(n[1]):A(n[1])));else if(t){const e=A(n[1]);c.push(C((0,s.concat)((0,s.flat)(A(n[0]).map(h)),e)))}else{const{keys:e,vals:t}=b(n[0]),r=b(n[1]);d({keys:(0,s.concat)(e,r.keys),vals:(0,s.concat)(t,r.vals)})}return[]}case"push":if("vec"===n[0].t)m((0,s.concat)(A(n[0]),[n[1]]));else{if((0,s.len)(n)<3)return[{e:"Arity",m:"key and value both required",errCtx:y}];const{keys:e,vals:t}=b(n[0]);d({keys:(0,s.concat)(e,[n[1]]),vals:(0,s.concat)(t,[n[2]])})}return[];case"sect":{const e=n[0],t="vec"===e.t,r=t?(0,s.len)(h(e)):(0,s.slen)(x(e));let a=0,o=r;switch((0,s.len)(n)){case 1:a=1;break;case 2:{const e=v(n[1]);e<0?o+=e:a+=e;break}case 3:{const e=v(n[1]),t=v(n[2]);a=e<0?r+e+(t<0?t:0):a+e,o=(t<0?o:a)+t;break}}return a=(0,s.max)(a,0),o=(0,s.min)(o,r),a>o?((t?m:p)(),[]):(t?m((0,s.slice)(h(e),a,o)):p((0,s.substr)(x(n[0]),a,o-a)),[])}case"reverse":return"str"===n[0].t?p(k((0,s.reverse)(A(n[0])))):m((0,s.reverse)(A(n[0]))),[];case"sort":{if(!(0,s.len)(h(n[0])))return m(),[];const e=A(n[0]),a=[];if(1===(0,s.len)(n))(0,s.push)(a,e.map((e=>[e,e])));else{const t=I(r,n.pop(),y);for(let n=0,r=(0,s.len)(e);n<r;++n){const r=await t([e[n]]);if((0,s.len)(r))return r;a.push([e[n],c.pop()])}}const o=a[0][1].t;return a.some((([e,{t}])=>t!==o||!(0,s.has)(["num","str"],t)))?N("can only sort by all number or all string"):((0,t.visNum)(a[0][1])?(0,s.sortBy)(a,(([e,t],[n,r])=>v(t)>v(r)?1:-1)):(0,s.sortBy)(a,(([e,t],[n,r])=>x(t)>x(r)?1:-1)),m(a.map((([e])=>e))),[])}case"range":{const[e,t,a]=n.map(v),o=a&&a<0&&e<t,[i,c]=(0,s.len)(n)>1?o?[t-1,e-1]:[e,t]:[0,e],u=(0,s.sign)((c-i)*(a||1))*(a||1),l=(0,s.ceil)((0,s.abs)((c-i)/u));if(!l)return m([]),[];if(l>r.rangeBudget)return[{e:"Budget",m:"range budget depleted",errCtx:y}];r.rangeBudget-=l;const p=(0,s.range)(l).map((e=>e*u+i));return m(p.map((e=>({t:"num",v:e})))),[]}case"empty?":return u(!(0,s.len)(A(n[0]))),[];case"keys":case"vals":return m(b(n[0])["keys"===e?"keys":"vals"]),[];case"starts-with?":return u((0,s.starts)(x(n[0]),x(n[1]))),[];case"ends-with?":return u((0,s.ends)(x(n[0]),x(n[1]))),[];case"split":return m(x(n[0]).split((0,s.len)(n)>1?x(n[1]):" ").map((e=>({t:"str",v:e})))),[];case"join":return p(h(n[0]).map(i).join((0,s.len)(n)>1?x(n[1]):" ")),[];case"time":return l((0,s.getTimeMs)()),[];case"version":return l(t.insituxVersion),[];case"tests":{const e=await(0,a.doTests)(j,!((0,s.len)(n)&&g(n[0]))),t=e.pop();for(const t of e)await M("print",[{v:t,t:"str"}],r,y);p(t)}return[];case"eval":{delete r.env.funcs.entry;const e=(0,s.len)(c),t=await P(r,x(n[0]),y.invocationId);return(0,s.len)(t)?[{e:"Eval",m:"error within evaluated code",errCtx:y}]:(e===(0,s.len)(c)&&f(),[])}}return[{e:"Unexpected",m:"operation doesn't exist",errCtx:y}]}function I(e,n,r){const a=[{e:"Arity",m:"one argument required",errCtx:r}];if((0,t.visStr)(n)||(0,t.visFun)(n)){const t=n.v;return o.ops[t]?n=>M(t,n,e,r):t in e.env.funcs?n=>E(e,e.env.funcs[t],n):t in e.env.vars?I(e,e.env.vars[t],r):t in e.env.lets[(0,s.len)(e.env.lets)-1]?I(e,e.env.lets[(0,s.len)(e.env.lets)-1][t],r):(0,s.starts)(t,"$")?async n=>{if(!(0,s.len)(n))return a;const o=await e.set((0,s.substr)(t,1),n[0]);return c.push(n[0]),o?[{e:"External",m:o,errCtx:r}]:[]}:async n=>{const{err:s,value:a}=await e.exe(t,n);return s||c.push(a),s?[{e:"External",m:s,errCtx:r}]:[]}}if((0,t.visKey)(n))return async e=>(0,s.len)(e)?"dict"!==e[0].t?[w("argument 1 must be dictionary",r)]:(c.push(B(b(e[0]),n)),[]):a;if((0,t.visNum)(n)){const e=n.v;return async t=>{if(!(0,s.len)(t))return a;const n=t[0];if("str"!==n.t&&"vec"!==n.t&&"dict"!==n.t)return[w("argument must be string, vector, or dictionary",r)];const o=A(n);return(0,s.abs)(e)>=(0,s.len)(o)?f():e<0?c.push(o[(0,s.len)(o)+e]):c.push(o[e]),[]}}if((0,t.visVec)(n)){const{v:e}=n;return async t=>{if(!(0,s.len)(t))return a;const n=e.find((e=>$(e,t[0])));return n?c.push(n):f(),[]}}if((0,t.visDic)(n)){const e=n.v;return async t=>{if(1===(0,s.len)(t))c.push(B(e,t[0]));else{if(2!==(0,s.len)(t))return[{e:"Arity",m:"dict as operation takes one or two arguments",errCtx:r}];c.push((({keys:e,vals:t},n,r)=>{const[a,o]=[(0,s.slice)(e),(0,s.slice)(t)],i=e.findIndex((e=>$(e,n)));return-1!==i?o[i]=r:(a.push(n),o.push(r)),{t:"dict",v:{keys:a,vals:o}}})(e,t[0],t[1]))}return[]}}return async e=>[{e:"Operation",m:`${i(n)} is an invalid operation`,errCtx:r}]}async function E(e,n,r){--e.callBudget,e.env.lets.push({});for(let i=0,d=(0,s.len)(n.ins);i<d;++i){const{typ:v,value:x,errCtx:h}=n.ins[i],b=e.loopBudget<1;if(b||e.callBudget<1)return[{e:"Budget",m:(b?"looped":"called")+" too many times",errCtx:h}];switch(v){case"nul":f();break;case"boo":u(x);break;case"num":l(x);break;case"str":p(x);break;case"key":a=x,c.push({t:"key",v:a});break;case"var":e.env.vars[x]=c[(0,s.len)(c)-1];break;case"let":e.env.lets[(0,s.len)(e.env.lets)-1][x]=c[(0,s.len)(c)-1];break;case"par":{const e=x;-1===e?m(r):(0,s.len)(r)<=e?f():c.push(r[e])}break;case"ref":{const t=x;if(o.ops[t])y(t);else if((0,s.starts)(t,"$")){const{value:n,err:r}=await e.get((0,s.substr)(t,1));if(r)return[{e:"External",m:r,errCtx:h}];c.push(n)}else if(t in e.env.vars)c.push(e.env.vars[t]);else if(t in e.env.lets[(0,s.len)(e.env.lets)-1])c.push(e.env.lets[(0,s.len)(e.env.lets)-1][t]);else{if(!(t in e.env.funcs))return[{e:"Reference",m:`"${t}" did not exist`,errCtx:h}];y(t)}}break;case"op":case"exe":{let[a,o]=x;const u=(0,s.splice)(c,(0,s.len)(c)-o,o);if((0,s.len)(u)!==o)return[{e:"Unexpected",m:`${a} stack depleted`,errCtx:h}];if(i===d-1&&(0,t.visStr)(a)&&a.v===n.name){if(e.env.lets[(0,s.len)(e.env.lets)-1]={},i=-1,r=u,--e.recurBudget,!e.recurBudget)return[{e:"Budget",m:"recurred too many times",errCtx:h}];continue}const l=I(e,a,h),p=await l(u);if((0,s.len)(p))return p}break;case"or":g(c[(0,s.len)(c)-1])?i+=x:c.pop();break;case"if":g(c.pop())||(i+=x);break;case"jmp":i+=x;break;case"loo":i+=x,--e.loopBudget;break;case"pop":(0,s.splice)(c,(0,s.len)(c)-x,x)}}var a;return e.env.lets.pop(),[]}async function P(e,t,n){const a=(0,r.parse)(t,n);return(0,s.len)(a.errors)?a.errors:(e.env.funcs={...e.env.funcs,...a.funcs},"entry"in e.env.funcs?await E(e,e.env.funcs.entry,[]):[])}async function j(e,t,n,r=!1){const{callBudget:a,loopBudget:o,recurBudget:u,rangeBudget:l}=e,p=await P(e,t,n);return e.env.lets=[],e.callBudget=a,e.recurBudget=u,e.loopBudget=o,e.rangeBudget=l,delete e.env.funcs.entry,!(0,s.len)(p)&&r&&(0,s.len)(c)&&await e.exe("print",[{t:"str",v:i(c[(0,s.len)(c)-1])}]),c=[],p}t.exeFunc=E,t.invoke=j,t.symbols=function(e){let t=["function"];return t=(0,s.concat)(t,(0,s.objKeys)(o.ops).filter((e=>"execute-last"!==e))),t=(0,s.concat)(t,(0,s.objKeys)(e.env.funcs)),t=(0,s.concat)(t,(0,s.objKeys)(e.env.vars)),t}},669:(e,t,n)=>{Object.defineProperty(t,"__esModule",{value:!0}),t.invoker=t.parensRx=void 0;const r=n(607),s=n(17),a=new Map;t.parensRx=/[\[\]\(\) ]/,t.invoker=async function(e,n){const o=(0,s.getTimeMs)().toString();a.set(o,n);const i=await(0,r.invoke)(e,n,o,!0);let c=[];return i.forEach((({e,m:n,errCtx:{line:r,col:o,invocationId:i}})=>{const u=a.get(i).split("\n")[r-1],l=(0,s.substr)(u,o-1).split(t.parensRx)[0],p=(0,s.trimStart)((0,s.substr)(u,0,o-1));if(c.push({type:"message",text:(0,s.padEnd)(`${r}`,4)+p}),l){const e=(0,s.substr)(u,o-1+l.length);c.push({type:"error",text:l}),c.push({type:"message",text:`${e}\n`})}else{const e=(0,s.substr)(u,o);c.push({type:"error",text:u[o-1]}),c.push({type:"message",text:`${e}\n`})}c.push({type:"message",text:`${e} Error: ${n}.\n`})})),c}},306:(e,t,n)=>{Object.defineProperty(t,"__esModule",{value:!0}),t.parse=void 0;const r=n(17),s=n(699);function a(e,t){if(!(0,r.len)(e))return[];const{typ:n,text:o,errCtx:i}=e.shift();switch(n){case"str":return[{typ:"str",value:o,errCtx:i}];case"num":return[{typ:"num",value:(0,r.toNum)(o),errCtx:i}];case"sym":return"true"===o||"false"===o?[{typ:"boo",value:"true"===o,errCtx:i}]:"null"===o?[{typ:"nul",value:void 0,errCtx:i}]:(0,r.starts)(o,":")?[{typ:"key",value:o,errCtx:i}]:(0,r.starts)(o,"#")&&(0,r.isNum)((0,r.substr)(o,1))?[{typ:"par",value:(0,r.toNum)((0,r.substr)(o,1)),errCtx:i}]:(0,r.has)(t,o)?[{typ:"par",value:t.indexOf(o),errCtx:i}]:"args"===o?[{typ:"par",value:-1,errCtx:i}]:[{typ:"ref",value:o,errCtx:i}];case"ref":return[{typ:"def",value:o,errCtx:i}];case"(":{const n=e.shift();if(!n)break;const{typ:o,text:i,errCtx:c}=n;let u=i;const l=e=>[{typ:"err",value:e,errCtx:c}];if("var"===u||"let"===u){const[n,s]=[a(e,t),a(e,t)];return(0,r.len)(n)&&(0,r.len)(s)&&!(0,r.len)(a(e,t))?[...s,{typ:u,value:n[0].value,errCtx:c}]:l("must provide reference name and value only")}if("if"===u||"when"===u){const n=a(e,t);if(!(0,r.len)(n))return l("must provide condition");const s=n;if("if"===u){const n=a(e,t);if(!(0,r.len)(n))return l("must provide a branch");s.push({typ:"if",value:(0,r.len)(n)+1,errCtx:c}),(0,r.push)(s,n);const o=a(e,t);if((0,r.len)(o)){if(s.push({typ:"jmp",value:(0,r.len)(o),errCtx:c}),(0,r.push)(s,o),(0,r.len)(a(e,t)))return l("too many branches")}else s.push({typ:"jmp",value:1,errCtx:c}),s.push({typ:"nul",value:void 0,errCtx:c})}else{const n=[];for(;;){const s=a(e,t);if(!(0,r.len)(s))break;(0,r.push)(n,s)}s.push({typ:"if",value:(0,r.len)(n)+1,errCtx:c}),(0,r.push)(s,n),s.push({typ:"jmp",value:1,errCtx:c}),s.push({typ:"nul",value:void 0,errCtx:c})}return s}if("and"===u||"or"===u||"while"===u){const n=[];let s=0;for(;;){const o=a(e,t);if(!(0,r.len)(o))break;n.push(o),s+=(0,r.len)(o)}if((0,r.len)(n)<2)return l("requires at least two arguments");const o=[];if("while"===u){s+=2;const e=n.shift();return(0,r.push)(o,e),o.push({typ:"if",value:s-(0,r.len)(e),errCtx:c}),n.forEach((e=>(0,r.push)(o,e))),o.push({typ:"pop",value:(0,r.len)(n),errCtx:c}),o.push({typ:"loo",value:-(s+1),errCtx:c}),o}s+=(0,r.len)(n),s+=(0,r.toNum)("and"===u);const i="and"===u?"if":"or";for(let e=0;e<(0,r.len)(n);++e)(0,r.push)(o,n[e]),s-=(0,r.len)(n[e]),o.push({typ:i,value:s,errCtx:c}),--s;return"and"===u?(0,r.push)(o,[{typ:"boo",value:!0,errCtx:c},{typ:"jmp",value:1,errCtx:c},{typ:"boo",value:!1,errCtx:c}]):o.push({typ:"boo",value:!1,errCtx:c}),o}const p=[];let m=0;if("("===o||(0,r.has)(t,i)||(0,r.starts)(i,"#")){e.unshift(n);const s=a(e,t);(0,r.push)(p,s),u="execute-last",++m}const d=[];for(;(0,r.len)(e);){const n=a(e,t);if(!(0,r.len)(n))break;++m,(0,r.push)(d,n)}return p.push({typ:s.ops[u]?"op":"exe",value:["num"===o?{t:"num",v:(0,r.toNum)(u)}:(0,r.starts)(u,":")?{t:"key",v:u}:s.ops[u]?{t:"func",v:u}:{t:"str",v:u},m],errCtx:c}),[...d,...p]}}return[]}t.parse=function(e,t){const{tokens:n,stringError:s}=function(e,t){const n=[];let s=!1,a=!1,o=[0,0],i=!1,c=!1,u=!1,l=1,p=0;for(let m=0,d=(0,r.slen)(e);m<d;++m){const f=(0,r.strIdx)(e,m),y=m+1!==d?(0,r.strIdx)(e,m+1):"";if(++p,u){"\n"===f&&(u=!1,++l,p=0);continue}if(a){a=!1,s&&(n[(0,r.len)(n)-1].text+={n:"\n",t:"\t"}[f]||`\\${f}`);continue}if("\\"===f){a=!0;continue}if('"'===f){(s=!s)&&(o=[l,p],n.push({typ:"str",text:"",errCtx:{invocationId:t,line:l,col:p}})),c=i=!1;continue}const v=(0,r.sub)(" \t\n\r",f);if(!s&&v){c=i=!1,"\n"===f&&(++l,p=0);continue}if(!s&&";"===f){u=!0;continue}const x={invocationId:t,line:l,col:p},h=e=>(0,r.sub)("0123456789",e),b=(0,r.sub)("()[]{}",f);if(c&&!h(f)&&(c="."===f&&!(0,r.sub)(n[(0,r.len)(n)-1].text,"."),c||b||v||(i=!0,n[(0,r.len)(n)-1].typ="sym")),i&&b&&(i=!1),!s&&!i&&!c){if(b){const e={"[":"(","{":"(","(":"(",")":")","}":")","]":")"}[f];n.push({typ:e,text:e,errCtx:x}),"["===f?n.push({typ:"sym",text:"vec",errCtx:x}):"{"===f&&n.push({typ:"sym",text:"dict",errCtx:x});continue}c=h(f)||"."===f&&h(y)||"-"===f&&(h(y)||"."===y),i=!c;let e=i?"sym":"num";if((0,r.len)(n)){const{typ:t,text:s}=n[(0,r.len)(n)-1];"sym"!==t||"var"!==s&&"let"!==s||(e="ref")}n.push({typ:e,text:"",errCtx:x})}n[(0,r.len)(n)-1].text+=f}return{tokens:n,stringError:s?o:void 0}}(e,t),o=function(e,t,n){const s=[],a=(e,t)=>s.push({e:"Parse",m:e,errCtx:t}),o=e=>(0,r.len)(t.filter((({typ:t})=>t===e))),[i,c]=[o("("),o(")")];{const[e,s]=function(e,t,n){const s=n>=t,[a,o]=[s?"(":")",s?")":"("],i=s?1:-1;for(let t=(0,r.len)(e),n=s?0:t-1,c=0;s?n<t:n>=0;n+=i){const{typ:t,errCtx:{line:s,col:i}}=e[n];if(c+=(0,r.toNum)(t===a)-(0,r.toNum)(t===o),c<0)return[s,i]}return[0,0]}(t,i,c);e+s&&a("unmatched parenthesis",{invocationId:n,line:e,col:s})}if(e){const[t,r]=e;a("unmatched double quotation marks",{invocationId:n,line:t,col:r})}let u;for(let e=0,n=!1;e<(0,r.len)(t);++e){if(n&&")"===t[e].typ){u=t[e];break}n="("===t[e].typ}return u&&a("empty expression forbidden",u.errCtx),s}(s,n,t);if((0,r.len)(o))return{errors:o,funcs:{}};const i=function(e){const t=e=>(0,r.len)(e)>1&&"sym"===e[1].typ&&"function"===e[1].text,n=e.filter((e=>t(e))),s=(0,r.flat)(e.filter((e=>!t(e)))),a=n.map((e=>({name:e[2].text,tokens:(0,r.slice)(e,3),errCtx:e[2].errCtx})));return(0,r.len)(s)?(0,r.concat)(a,[{name:"entry",tokens:s,errCtx:s[0].errCtx}]):a}(function(e){const t=[[]];let n=0;return e.forEach((e=>{t[(0,r.len)(t)-1].push(e),n+=(0,r.toNum)("("===e.text)-(0,r.toNum)(")"===e.text),0===n&&t.push([])})),t}(n)).map((e=>function({name:e,tokens:t},n){const[s,o]=function(e,t){const n=[],s=[];for(let t=0,a=!1;t<(0,r.len)(e);++t)a||(a="sym"!==e[t].typ),(a?s:n).push(e[t]);return[n,s]}(t);if(!(0,r.len)(s)&&!(0,r.len)(o))return{err:{e:"Parse",m:"empty function body",errCtx:n}};if((0,r.len)(o)&&")"===o[0].typ){if(!(0,r.len)(s))return{err:{e:"Parse",m:"empty function body",errCtx:n}};o.unshift(s.shift())}(0,r.len)(s)&&!(0,r.len)(o)&&o.push(s.pop());const i=[];for(;(0,r.len)(o);)(0,r.push)(i,a(o,s.map((e=>e.text))));const c=i.filter((e=>"err"===e.typ));return(0,r.len)(c)?{err:{e:"Parse",m:c[0].value,errCtx:c[0].errCtx}}:{func:{name:e,ins:i}}}(e,{invocationId:t,line:e.errCtx.line,col:e.errCtx.col}))),[c,u]=function(e,t){const n=[],r=[];return e.forEach((e=>{return(t=e,t.err?r:n).push(e);var t})),[n,r]}(i);(0,r.push)(o,u.map((e=>e.err)));const l={};return c.forEach((({func:e})=>l[e.name]=e)),{errors:o,funcs:l}}},17:(e,t)=>{Object.defineProperty(t,"__esModule",{value:!0}),t.pi=t.sign=t.ceil=t.floor=t.round=t.sqrt=t.tan=t.cos=t.sin=t.max=t.min=t.abs=t.getTimeMs=t.objKeys=t.range=t.randInt=t.randNum=t.padEnd=t.trimStart=t.trim=t.reverse=t.sortBy=t.push=t.concat=t.flat=t.ends=t.starts=t.has=t.subIdx=t.sub=t.strIdx=t.substr=t.isArray=t.isNum=t.slen=t.len=t.splice=t.slice=t.toNum=void 0,t.toNum=e=>Number(e),t.slice=(e,t,n)=>e.slice(t,n),t.splice=(e,t,n)=>e.splice(t,n),t.len=e=>e.length,t.slen=e=>e.length,t.isNum=e=>!Number.isNaN(Number(e)),t.isArray=e=>Array.isArray(e),t.substr=(e,t,n)=>e.substring(t,n?t+n:e.length),t.strIdx=(e,t)=>e[t],t.sub=(e,t)=>e.includes(t),t.subIdx=(e,t)=>e.indexOf(t),t.has=(e,t)=>e.includes(t),t.starts=(e,t)=>e.startsWith(t),t.ends=(e,t)=>e.endsWith(t),t.flat=e=>e.flat(),t.concat=(e,t)=>e.concat(t),t.push=(e,t)=>e.push(...t),t.sortBy=(e,t)=>e.sort(t),t.reverse=e=>e.reverse(),t.trim=e=>e.trim(),t.trimStart=e=>e.trimStart(),t.padEnd=(e,t)=>e.padEnd(t),t.randNum=(e,t)=>e+Math.random()*(t-e),t.randInt=(e,n)=>Math.floor((0,t.randNum)(e,n)),t.range=e=>[...Array(e).keys()],t.objKeys=e=>Object.keys(e),t.getTimeMs=()=>(new Date).getTime(),t.abs=Math.abs,t.min=Math.min,t.max=Math.max,t.sin=Math.sin,t.cos=Math.cos,t.tan=Math.tan,t.sqrt=Math.sqrt,t.round=Math.round,t.floor=Math.floor,t.ceil=Math.ceil,t.sign=Math.sign,t.pi=Math.PI},127:(e,t,n)=>{Object.defineProperty(t,"__esModule",{value:!0}),t.doTests=void 0;const r=n(17);async function s(e,t){return e.dict.has(t)?{value:e.dict.get(t),err:void 0}:{value:{t:"null",v:void 0},err:`"${t} not found.`}}async function a(e,t,n){e.dict.set(t,n)}async function o(e,t,n){const r={t:"null",v:void 0};switch(t){case"print-str":e.output+=n[0].v;break;case"print":case"test.function":e.output+=n[0].v+"\n";break;default:return{value:r,err:"operation does not exist"}}return{value:r,err:void 0}}const i=[{name:"Hello, world!",code:'"Hello, world!"',out:"Hello, world!"},{name:"Say Hello, world!",code:'(print "Hello, world!")',out:"Hello, world!\nnull"},{name:"1 + 1 = 2",code:"(+ 1 1)",out:"2"},{name:"Negate 1 = -1",code:"(- 1)",out:"-1"},{name:"(1+1)+1+(1+1) = 5",code:"(+ (+ 1 1) 1 (+ 1 1))",out:"5"},{name:"Conditional head",code:"((if true + -) 12 9 1)",out:"22"},{name:"Whens",code:'[(when 123 (print "hi") 234) (when false (print "bye"))]',out:"hi\n[234 null]"},{name:"Cond number head",code:"((if false 1 2) [:a :b :c])",out:":c"},{name:"and & short-circuit",code:"[(and true (if true null 1) true) (and 1 2 3)]",out:"[false true]"},{name:"or & short-circuit",code:'[(or true (print "hello") 1) (or false (print-str "-> ") 1)]',out:"-> [true 1]"},{name:"String retrieve",code:'(2 "Hello")',out:"l"},{name:"Vector retrieve",code:"(2 [:a :b :c :d])",out:":c"},{name:"Key as operation",code:'(:age {:name "Patrick" :age 24})',out:"24"},{name:"Dictionary as op 1",code:'({"name" "Patrick" "age" 24} "age")',out:"24"},{name:"Dictionary as op 2",code:'({"name" "Patrick"} "age" 24)',out:"{name Patrick, age 24}"},{name:"Equalities",code:'[(= 1 2 1)\n            (!= 1 2 1)\n            (= "Hello" "hello")\n            (!= "world" "world")\n            (= [0 [1]] [0 [1]])]',out:"[false true false false true]"},{name:"Define and retrieve",code:"(var a 1) a",out:"1"},{name:"Define and add",code:"(var a 1) (inc a)",out:"2"},{name:"Define op and call",code:"(var f +) (f 2 2)",out:"4"},{name:"Define vec and call",code:"(var f [1]) (f 1)",out:"1"},{name:"Define num op and call",code:"(var f 1) (f [:a :b :c])",out:":b"},{name:"Print simple vector",code:"[1 2 3]",out:"[1 2 3]"},{name:"Sum vector of numbers",code:"[(reduce + [1 2 3]) (reduce + [1 2 3] 3)]",out:"[6 9]"},{name:"Sum vectors of numbers",code:"(map + [1 2 3] [1 2 3 4])",out:"[2 4 6]"},{name:"Filter by integer",code:'(filter 2 [[1] [:a :b :c] "hello" "hi"])',out:"[[:a :b :c] hello]"},{name:"Comments, short decimal",code:';((print "Hello")\n           .456',out:"0.456"},{name:"Dictionary into vector",code:"(into [1 2] {3 4 5 6})",out:"[1 2 [3 4] [5 6]]"},{name:"Vector into dictionary",code:"(into {[0] 1 [2] 3} [[0] 2])",out:"{[0] 2, [2] 3}"},{name:"While loop",code:"(var n 5)\n           (while (< 0 n)\n             (print-str n)\n             (var n (dec n)))",out:"543215"},{name:"Define with no call",code:'(function func (print "Nothing."))'},{name:"Call greet func",code:'(function greeting (print "Hello!")) (greeting)',out:"Hello!\nnull"},{name:"Call const value func",code:"(function const 123) (const)",out:"123"},{name:"Call identity funcs",code:"(function id1 #)\n           (function id2 x x)\n           [(id1 123) (id2 456)]",out:"[123 456]"},{name:"Call greet with name",code:'(function greeting name (print "Hello, " name "!"))\n           (greeting "Patrick")',out:"Hello, Patrick!\nnull"},{name:"Call with too few args",code:"(function func a b c [a b c]) (func 1 2)",out:"[1 2 null]"},{name:"Define func and call",code:"(function func a b (+ a b)) (var f func) (f 2 2)",out:"4"},{name:"Anonymous parameters",code:"(function avg<n? (< (/ (.. + #) (len #)) #1))\n           (avg<n? [0 10 20 30 40] 5)",out:"false"},{name:"Call parameter",code:'(function f x (x "hello")) (f print)',out:"hello\nnull"},{name:"Let and retrieve",code:"(function f (let a 1) a) (f)",out:"1"},{name:"Let num op and call",code:"(function f (let n 0) (n [0])) (f)",out:"0"},{name:"String instead of number",code:'(function sum (.. + args))\n           (print (sum 2 2))\n           (sum 2 "hi")',out:"4",err:["Type"]},{name:"Reference non-existing",code:"x",err:["Reference"]},{name:"Expired let retrieve",code:"(function f (let a 1) a) (f) a",err:["Reference"]},{name:"Call non-existing",code:"(x)",err:["External"]},{name:"Call budget",code:"(function f (f)) (f)",err:["Budget"]},{name:"Loop budget",code:"(var n 10000)\n           (while (< 0 n)\n             (var n (dec n)))",err:["Budget"]},{name:"Range budget",code:"(range 10000)",err:["Budget"]},{name:"Fibonacci 13",code:"(function fib n\n             (if (< n 2) n\n               (+ (fib (dec n))\n                  (fib (- n 2)))))\n           (fib 13)",out:"233"},{name:"dedupe (tail-call optim)",code:"(function dedupe list -out\n             (let out (or -out []))\n             (let next (if (out (0 list)) [] [(0 list)]))\n             (if (empty? list) out\n                 (dedupe (sect list) (into out next))))\n           (dedupe [1 1 2 3 3 3])",out:"[1 2 3]"},{name:"set get",code:"[($globals.time_offset 5.5) $globals.time_offset]",out:"[5.5 5.5]"},{name:"exe",code:"(test.function 123)",out:"123\nnull"},{name:"Empty parens",code:"()",err:["Parse"]},{name:"Imbalanced parens 1",code:'(print ("hello!")',err:["Parse"]},{name:"Imbalanced parens 2",code:'print "hello!")',err:["Parse"]},{name:"Imbalanced quotes 1",code:'(print "Hello)',err:["Parse","Parse"]},{name:"Imbalanced quotes 2",code:'print "Hello")',err:["Parse"]},{name:"Function as op",code:"(function)",err:["Parse"]},{name:"Function without body",code:"(function func)",err:["Parse"]}];t.doTests=async function(e,t=!0){const n=[];for(let t=0;t<(0,r.len)(i);++t){const{name:c,code:u,err:l,out:p}=i[t],m={dict:new Map,output:""},d={funcs:{},vars:{},lets:[]},f=(0,r.getTimeMs)(),y=await e({get:e=>s(m,e),set:(e,t)=>a(m,e,t),exe:(e,t)=>o(m,e,t),env:d,loopBudget:1e4,rangeBudget:1e3,callBudget:1e3,recurBudget:1e4},u,"testing",!0),v=(l||[]).join()===y.map((({e})=>e)).join(),x=!p||(0,r.trim)(m.output)===p,h=(0,r.getTimeMs)()-f,[b,g,A,k]=[(0,r.padEnd)(`${t+1}`,3),(0,r.padEnd)(c,24),(0,r.padEnd)(`${h}ms`,6),v||y.map((({e,m:t,errCtx:{line:n,col:r}})=>`${e} ${n}:${r}: ${t}`))];n.push({okErr:v,okOut:x,elapsedMs:h,display:`${b} ${g} ${A} ${x} ${k}`})}const c=n.reduce(((e,{elapsedMs:t})=>e+t),0),u=(0,r.len)(n.filter((({okOut:e,okErr:t})=>e&&t)));return(0,r.concat)(n.filter((e=>!t||!e.okOut||!e.okErr)).map((e=>e.display)),[`----- ${u}/${(0,r.len)(n)} tests passed in ${c}ms.`])}},699:(e,t)=>{Object.defineProperty(t,"__esModule",{value:!0}),t.typeNames=t.ops=void 0,t.ops={print:{},"print-str":{},"execute-last":{},"!":{exactArity:1},"=":{minArity:2},"!=":{minArity:2},"+":{minArity:2,onlyNum:!0},"-":{minArity:1,onlyNum:!0},"*":{minArity:2,onlyNum:!0},"/":{minArity:2,onlyNum:!0},"//":{minArity:2,onlyNum:!0},"**":{minArity:1,onlyNum:!0},"<":{minArity:2,onlyNum:!0},">":{minArity:2,onlyNum:!0},"<=":{minArity:2,onlyNum:!0},">=":{minArity:2,onlyNum:!0},inc:{exactArity:1,onlyNum:!0},dec:{exactArity:1,onlyNum:!0},min:{minArity:2,onlyNum:!0},max:{minArity:2,onlyNum:!0},abs:{exactArity:1,onlyNum:!0},sqrt:{exactArity:1,onlyNum:!0},round:{exactArity:1,onlyNum:!0},floor:{exactArity:1,onlyNum:!0},ceil:{exactArity:1,onlyNum:!0},"odd?":{exactArity:1,onlyNum:!0},"even?":{exactArity:1,onlyNum:!0},"pos?":{exactArity:1,onlyNum:!0},"neg?":{exactArity:1,onlyNum:!0},"zero?":{exactArity:1,onlyNum:!0},"null?":{exactArity:1},"num?":{exactArity:1},"bool?":{exactArity:1},"str?":{exactArity:1},"vec?":{exactArity:1},"dict?":{exactArity:1},"key?":{exactArity:1},"func?":{exactArity:1},rem:{minArity:2,onlyNum:!0},sin:{exactArity:1,onlyNum:!0},cos:{exactArity:1,onlyNum:!0},tan:{exactArity:1,onlyNum:!0},vec:{},dict:{},len:{exactArity:1,types:[["str","vec","dict"]]},num:{exactArity:1,types:[["str","num"]]},"has?":{exactArity:2,types:["str","str"]},idx:{exactArity:2,types:[["str","vec"]]},map:{minArity:2},for:{minArity:2},reduce:{minArity:2,maxArity:3},filter:{exactArity:2},str:{},"rand-num":{maxArity:2,onlyNum:!0},"rand-int":{maxArity:2,onlyNum:!0},while:{},"..":{minArity:2},into:{exactArity:2,types:[["vec","dict"],["vec","dict"]]},push:{minArity:2,maxArity:3,types:[["vec","dict"]]},sect:{minArity:1,maxArity:3,types:[["vec","str"],"num","num"]},reverse:{exactArity:1,types:[["vec","str"]]},sort:{minArity:1,maxArity:2,types:["vec"]},keys:{exactArity:1,types:["dict"]},vals:{exactArity:1,types:["dict"]},do:{minArity:1},val:{minArity:1},range:{minArity:1,maxArity:3,types:["num","num","num"]},"empty?":{exactArity:1,types:[["str","vec","dict"]]},"starts-with?":{exactArity:2,types:["str","str"]},"ends-with?":{exactArity:2,types:["str","str"]},split:{minArity:1,maxArity:2,types:["str","str"]},join:{minArity:1,maxArity:2,types:["vec","str"]},time:{exactArity:0},version:{exactArity:0},tests:{minArity:0,maxArity:1,types:["bool"]},eval:{exactArity:1,types:["str"]}},t.typeNames={null:"null",str:"string",num:"number",bool:"boolean",key:"keyword",ref:"reference",vec:"vector",dict:"dictionary",func:"function"}},147:e=>{e.exports=require("fs")},521:e=>{e.exports=require("readline")}},t={};function n(r){var s=t[r];if(void 0!==s)return s.exports;var a=t[r]={exports:{}};return e[r](a,a.exports,n),a.exports}(()=>{const e=n(521),t=n(147),r=n(607),s=n(669),a=new Map;async function o(e){return a.has(e)?{value:a.get(e),err:void 0}:{value:{v:void 0,t:"null"},err:`key ${e} not found`}}async function i(e,t){a.set(e,t)}const c={env:{funcs:{},vars:{},lets:[]},get:o,set:i,exe:async function(e,n){const s={v:void 0,t:"null"};switch(e){case"print":case"print-str":process.stdout.write(`[32m${n[0].v}[0m`),"print"===e&&process.stdout.write("\n");break;case"read":{const e=n[0].v;return t.existsSync(e)?{value:{t:"str",v:t.readFileSync(e).toString()}}:{value:s}}default:if(n.length){const t=n[0];if((0,r.visStr)(t)&&t.v.startsWith("$"))return 1===n.length?await o(`${t.v.substring(1)}.${e}`):(await i(`${t.v.substring(1)}.${e}`,n[1]),{value:n[1]})}return{value:s,err:`operation ${e} does not exist`}}return{value:s}},loopBudget:1e4,rangeBudget:1e3,callBudget:1e8,recurBudget:1e4},u=e.createInterface({input:process.stdin,output:process.stdout,prompt:"> ",completer:function(e){const t=e.split(s.parensRx).pop(),n=(0,r.symbols)(c);if(!t)return[n,""];const a=n.filter((e=>e.startsWith(t)));return[a.length?a:n,t]},history:t.existsSync(".repl-history")?t.readFileSync(".repl-history").toString().split("\n").reverse():[]});u.on("line",(async e=>{"quit"!==e?(e.trim()&&(t.appendFileSync(".repl-history",`\n${e}`),function(e){const t={error:31,message:35};e.forEach((({type:e,text:n})=>{process.stdout.write(`[${t[e]}m${n}[0m`)}))}(await(0,s.invoker)(c,e))),u.prompt()):u.close()})),u.prompt()})()})();
+/******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+/******/ 	var __webpack_modules__ = ({
+
+/***/ 607:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.symbols = exports.invoke = exports.exeFunc = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
+exports.insituxVersion = 20210910;
+const parse_1 = __webpack_require__(306);
+const poly_fills_1 = __webpack_require__(17);
+const test_1 = __webpack_require__(127);
+const types_1 = __webpack_require__(699);
+const val2str = ({ v, t }) => {
+    switch (t) {
+        case "bool":
+            return `${v}`;
+        case "num":
+            return `${v}`;
+        case "str":
+        case "key":
+            return v;
+        case "vec":
+            return `[${v.map(v => val2str(v)).join(" ")}]`;
+        case "dict": {
+            const { keys, vals } = v;
+            const [ks, vs] = [keys.map(val2str), vals.map(val2str)];
+            const entries = ks.map((k, i) => `${k} ${vs[i]}`);
+            return `{${entries.join(", ")}}`;
+        }
+        case "null":
+            return "null";
+        case "func":
+            return `<${v}>`;
+    }
+    return "?";
+};
+let stack = [];
+const _boo = (v) => stack.push({ t: "bool", v });
+const _num = (v) => stack.push({ t: "num", v });
+const _str = (v = "") => stack.push({ t: "str", v });
+const _key = (v) => stack.push({ t: "key", v });
+const _vec = (v = []) => stack.push({ t: "vec", v });
+const _dic = (v) => stack.push({ t: "dict", v });
+const _ref = (v) => stack.push({ t: "ref", v });
+const _nul = () => stack.push({ t: "null", v: undefined });
+const _fun = (v) => stack.push({ t: "func", v });
+const num = ({ v }) => v;
+const str = ({ v }) => v;
+const vec = ({ v }) => v;
+const dic = ({ v }) => v;
+const asBoo = ({ t, v }) => (t === "bool" ? v : t !== "null");
+const visStr = (val) => val.t === "str";
+exports.visStr = visStr;
+const visNum = (val) => val.t === "num";
+exports.visNum = visNum;
+const visVec = (val) => val.t === "vec";
+exports.visVec = visVec;
+const visDic = (val) => val.t === "dict";
+exports.visDic = visDic;
+const visFun = (val) => val.t === "func";
+exports.visFun = visFun;
+const visKey = (val) => val.t === "key";
+exports.visKey = visKey;
+const asArray = ({ t, v }) => t === "vec"
+    ? (0, poly_fills_1.slice)(v)
+    : t === "str"
+        ? [...v].map(s => ({ t: "str", v: s }))
+        : t === "dict"
+            ? v.keys.map((k, i) => ({
+                t: "vec",
+                v: [k, v.vals[i]],
+            }))
+            : [];
+const stringify = (vals) => vals.reduce((cat, v) => cat + val2str(v), "");
+const toDict = (args) => {
+    if ((0, poly_fills_1.len)(args) % 2 === 1) {
+        args.pop();
+    }
+    const keys = args.filter((_, i) => i % 2 === 0);
+    const vals = args.filter((_, i) => i % 2 === 1);
+    const ddKeys = [], ddVals = [];
+    keys.forEach((key, i) => {
+        const existingIdx = ddKeys.findIndex(k => isEqual(k, key));
+        if (existingIdx === -1) {
+            ddKeys.push(key);
+            ddVals.push(vals[i]);
+        }
+        else {
+            ddVals[existingIdx] = vals[i];
+        }
+    });
+    return {
+        t: "dict",
+        v: { keys: ddKeys, vals: ddVals },
+    };
+};
+const typeErr = (m, errCtx) => ({
+    e: "Type",
+    m,
+    errCtx,
+});
+const isVecEqual = (a, b) => (0, poly_fills_1.len)(a) === (0, poly_fills_1.len)(b) && !a.some((x, i) => !isEqual(x, b[i]));
+const isDictEqual = (a, b) => {
+    const [ad, bd] = [dic(a), dic(b)];
+    return (0, poly_fills_1.len)(ad.keys) === (0, poly_fills_1.len)(bd.keys) && isVecEqual(ad.keys, bd.keys);
+};
+const isEqual = (a, b) => {
+    return a.t === b.t && a.t === "num"
+        ? num(a) === num(b)
+        : a.t === "str" || a.t === "key"
+            ? str(a) === str(b)
+            : a.t === "vec"
+                ? isVecEqual(vec(a), vec(b))
+                : a.t === "dict"
+                    ? isDictEqual(a, b)
+                    : false;
+};
+const dictGet = ({ keys, vals }, key) => {
+    const idx = keys.findIndex(k => isEqual(k, key));
+    return idx === -1 ? { t: "null", v: undefined } : vals[idx];
+};
+const dictSet = ({ keys, vals }, key, val) => {
+    const [nKeys, nVals] = [(0, poly_fills_1.slice)(keys), (0, poly_fills_1.slice)(vals)];
+    const idx = keys.findIndex(k => isEqual(k, key));
+    if (idx !== -1) {
+        nVals[idx] = val;
+    }
+    else {
+        nKeys.push(key);
+        nVals.push(val);
+    }
+    return { t: "dict", v: { keys: nKeys, vals: nVals } };
+};
+function exeOpViolations(op, args, errCtx) {
+    const { types, exactArity, maxArity, minArity, onlyNum } = types_1.ops[op];
+    const aErr = (msg, amount) => [
+        {
+            e: "Arity",
+            m: `${op} needs ${msg} argument${amount !== 1 ? "s" : ""}`,
+            errCtx,
+        },
+    ];
+    const nArg = (0, poly_fills_1.len)(args);
+    if (exactArity !== undefined) {
+        if (nArg !== exactArity) {
+            return aErr(`exactly ${exactArity}`, exactArity);
+        }
+    }
+    else {
+        if (minArity && !maxArity && nArg < minArity) {
+            return aErr(`at least ${minArity}`, minArity);
+        }
+        else if (!minArity && maxArity && nArg > maxArity) {
+            return aErr(`at most ${maxArity}`, maxArity);
+        }
+        else if (minArity && maxArity && (nArg < minArity || nArg > maxArity)) {
+            return aErr(`between ${minArity} and ${maxArity}`, maxArity);
+        }
+    }
+    if (onlyNum) {
+        return args.findIndex(a => a.t !== "num") !== -1
+            ? [typeErr(`numeric arguments only`, errCtx)]
+            : [];
+    }
+    if (!types) {
+        return [];
+    }
+    const typeViolations = types
+        .map((need, i) => i < nArg &&
+        ((0, poly_fills_1.isArray)(need)
+            ? (0, poly_fills_1.has)(need, args[i].t)
+                ? false
+                : `argument ${i + 1} must be either: ${need
+                    .map(t => types_1.typeNames[t])
+                    .join(", ")}`
+            : need === args[i].t
+                ? false
+                : `argument ${i + 1} must be ${types_1.typeNames[need]}`))
+        .filter(r => !!r);
+    return typeViolations.map(v => typeErr(v, errCtx));
+}
+async function exeOp(op, args, ctx, errCtx) {
+    const tErr = (msg) => [typeErr(msg, errCtx)];
+    //Argument arity and type checks
+    {
+        const violations = exeOpViolations(op, args, errCtx);
+        if ((0, poly_fills_1.len)(violations)) {
+            return violations;
+        }
+    }
+    switch (op) {
+        case "execute-last":
+            return await getExe(ctx, args.pop(), errCtx)(args);
+        case "str":
+            stack.push({
+                t: "str",
+                v: stringify(args),
+            });
+            return [];
+        case "print":
+        case "print-str":
+            {
+                ctx.exe(op, [{ t: "str", v: stringify(args) }]);
+                _nul();
+            }
+            return [];
+        case "vec":
+            _vec(args);
+            return [];
+        case "dict": {
+            stack.push(toDict(args));
+            return [];
+        }
+        case "len":
+            _num(args[0].t === "str"
+                ? (0, poly_fills_1.slen)(str(args[0]))
+                : args[0].t === "vec"
+                    ? (0, poly_fills_1.len)(vec(args[0]))
+                    : (0, poly_fills_1.len)(dic(args[0]).keys));
+            return [];
+        case "num":
+            if ((0, poly_fills_1.isNum)(args[0].v)) {
+                _num((0, poly_fills_1.toNum)(args[0].v));
+            }
+            else {
+                _nul();
+            }
+            return [];
+        case "!":
+            _boo(!asBoo(args[0]));
+            return [];
+        case "=":
+        case "!=":
+            for (let i = 1, lim = (0, poly_fills_1.len)(args); i < lim; ++i) {
+                if (isEqual(args[i - 1], args[i]) !== (op === "=")) {
+                    _boo(false);
+                    return [];
+                }
+            }
+            _boo(true);
+            return [];
+        case "-":
+            _num((0, poly_fills_1.len)(args) === 1
+                ? -num(args[0])
+                : args.map(num).reduce((sum, n) => sum - n));
+            return [];
+        case "**":
+            _num(num(args[0]) ** ((0, poly_fills_1.len)(args) === 1 ? 2 : num(args[1])));
+            return [];
+        case "+":
+            _num(args.map(num).reduce((sum, n) => sum + n));
+            return [];
+        case "*":
+            _num(args.map(num).reduce((sum, n) => sum * n));
+            return [];
+        case "/":
+            _num(args.map(num).reduce((sum, n) => sum / n));
+            return [];
+        case "//":
+            _num(args.map(num).reduce((sum, n) => (0, poly_fills_1.floor)(sum / n)));
+            return [];
+        case "rem":
+            _num(args.map(num).reduce((sum, n) => sum % n));
+            return [];
+        case "min":
+            _num(args.map(num).reduce((sum, n) => (0, poly_fills_1.min)(sum, n)));
+            return [];
+        case "max":
+            _num(args.map(num).reduce((sum, n) => (0, poly_fills_1.max)(sum, n)));
+            return [];
+        case "<":
+        case ">":
+        case "<=":
+        case ">=":
+            for (let i = 1, lim = (0, poly_fills_1.len)(args); i < lim; ++i) {
+                const [a, b] = [args[i - 1].v, args[i].v];
+                if ((op === "<" && a >= b) ||
+                    (op === ">" && a <= b) ||
+                    (op === "<=" && a > b) ||
+                    (op === ">=" && a < b)) {
+                    _boo(false);
+                    return [];
+                }
+            }
+            _boo(true);
+            return [];
+        case "inc":
+            _num(args[0].v + 1);
+            return [];
+        case "dec":
+            _num(args[0].v - 1);
+            return [];
+        case "abs":
+            _num((0, poly_fills_1.abs)(num(args[0])));
+            return [];
+        case "pi":
+            _num(poly_fills_1.pi);
+            return [];
+        case "sin":
+        case "cos":
+        case "tan":
+        case "sqrt":
+        case "round":
+        case "floor":
+        case "ceil":
+            _num({ sin: poly_fills_1.sin, cos: poly_fills_1.cos, tan: poly_fills_1.tan, sqrt: poly_fills_1.sqrt, round: poly_fills_1.round, floor: poly_fills_1.floor, ceil: poly_fills_1.ceil }[op](num(args[0])));
+            return [];
+        case "odd?":
+        case "even?":
+            _boo(num(args[0]) % 2 === (op === "odd?" ? 1 : 0));
+            return [];
+        case "pos?":
+        case "neg?":
+        case "zero?": {
+            const n = num(args[0]);
+            _boo(op === "pos?" ? n > 0 : op === "neg?" ? n < 0 : !n);
+            return [];
+        }
+        case "null?":
+        case "num?":
+        case "bool?":
+        case "str?":
+        case "dict?":
+        case "vec?":
+        case "key?":
+        case "func?":
+            _boo((op === "null?" && args[0].t === "null") ||
+                (op === "num?" && args[0].t === "num") ||
+                (op === "bool?" && args[0].t === "bool") ||
+                (op === "str?" && args[0].t === "str") ||
+                (op === "dict?" && args[0].t === "dict") ||
+                (op === "vec?" && args[0].t === "vec") ||
+                (op === "key?" && args[0].t === "key") ||
+                (op === "func?" && args[0].t === "func"));
+            return [];
+        case "has?":
+            _boo((0, poly_fills_1.sub)(str(args[0]), str(args[1])));
+            return [];
+        case "idx": {
+            let i = -1;
+            if (args[0].t === "str") {
+                if (args[1].t !== "str") {
+                    return tErr("strings can only contain strings");
+                }
+                i = (0, poly_fills_1.subIdx)(str(args[0]), str(args[1]));
+            }
+            else if (args[0].t === "vec") {
+                i = vec(args[0]).findIndex(a => isEqual(a, args[1]));
+            }
+            if (i === -1) {
+                _nul();
+            }
+            else {
+                _num(i);
+            }
+            return [];
+        }
+        case "map":
+        case "for":
+        case "reduce":
+        case "filter":
+            {
+                const closure = getExe(ctx, args.shift(), errCtx);
+                const okT = (t) => t === "vec" || t === "str" || t === "dict";
+                const badArg = op === "map" || op === "for"
+                    ? args.findIndex(({ t }) => !okT(t))
+                    : okT(args[0].t)
+                        ? -1
+                        : 0;
+                if (badArg !== -1) {
+                    return tErr(`argument 2 must be either: string, vector, dictionary`);
+                }
+                if (op === "for") {
+                    const arrays = args.map(asArray);
+                    const lims = arrays.map(poly_fills_1.len);
+                    const divisors = lims.map((_, i) => (0, poly_fills_1.slice)(lims, 0, i + 1).reduce((sum, l) => sum * l));
+                    divisors.unshift(1);
+                    const lim = divisors.pop();
+                    if (lim > ctx.loopBudget) {
+                        return [{ e: "Budget", m: "would exceed loop budget", errCtx }];
+                    }
+                    const array = [];
+                    for (let t = 0; t < lim; ++t) {
+                        const argIdxs = divisors.map((d, i) => (0, poly_fills_1.floor)((t / d) % lims[i]));
+                        const errors = await closure(arrays.map((a, i) => a[argIdxs[i]]));
+                        if ((0, poly_fills_1.len)(errors)) {
+                            return errors;
+                        }
+                        array.push(stack.pop());
+                    }
+                    _vec(array);
+                    return [];
+                }
+                if (op === "map") {
+                    const arrays = args.map(asArray);
+                    const shortest = (0, poly_fills_1.min)(...arrays.map(a => (0, poly_fills_1.len)(a)));
+                    const array = [];
+                    for (let i = 0; i < shortest; ++i) {
+                        const errors = await closure(arrays.map(a => a[i]));
+                        if ((0, poly_fills_1.len)(errors)) {
+                            return errors;
+                        }
+                        array.push(stack.pop());
+                    }
+                    _vec(array);
+                    return [];
+                }
+                const array = asArray(args.shift());
+                if (op === "filter") {
+                    const filtered = [];
+                    for (let i = 0, lim = (0, poly_fills_1.len)(array); i < lim; ++i) {
+                        const errors = await closure([array[i]]);
+                        if ((0, poly_fills_1.len)(errors)) {
+                            return errors;
+                        }
+                        if (asBoo(stack.pop())) {
+                            filtered.push(array[i]);
+                        }
+                    }
+                    _vec(filtered);
+                    return [];
+                }
+                if ((0, poly_fills_1.len)(array) < 2) {
+                    (0, poly_fills_1.push)(stack, array);
+                    return [];
+                }
+                let reduction = ((0, poly_fills_1.len)(args) ? args : array).shift();
+                for (let i = 0, lim = (0, poly_fills_1.len)(array); i < lim; ++i) {
+                    const errors = await closure([reduction, array[i]]);
+                    if ((0, poly_fills_1.len)(errors)) {
+                        return errors;
+                    }
+                    reduction = stack.pop();
+                }
+                stack.push(reduction);
+            }
+            return [];
+        case "rand-int":
+        case "rand-num":
+            {
+                const nArgs = (0, poly_fills_1.len)(args);
+                const [a, b] = [
+                    nArgs < 2 ? 0 : num(args[0]),
+                    nArgs === 0
+                        ? 1 + (0, poly_fills_1.toNum)(op === "rand-int")
+                        : nArgs === 1
+                            ? num(args[0])
+                            : num(args[1]),
+                ];
+                _num(op === "rand-int" ? (0, poly_fills_1.randInt)(a, b) : (0, poly_fills_1.randNum)(a, b));
+            }
+            return [];
+        case "do":
+        case "val":
+            stack.push(op === "do" ? args.pop() : args.shift());
+            return [];
+        case "..": {
+            const closure = getExe(ctx, args.shift(), errCtx);
+            return await closure((0, poly_fills_1.flat)(args.map(a => (a.t === "vec" ? vec(a) : [a]))));
+        }
+        case "into": {
+            const a0v = args[0].t === "vec";
+            const a1v = args[1].t === "vec";
+            if (a0v) {
+                _vec((0, poly_fills_1.concat)(vec(args[0]), a1v ? vec(args[1]) : asArray(args[1])));
+            }
+            else {
+                if (a1v) {
+                    const v1 = asArray(args[1]);
+                    stack.push(toDict((0, poly_fills_1.concat)((0, poly_fills_1.flat)(asArray(args[0]).map(vec)), v1)));
+                }
+                else {
+                    const { keys, vals } = dic(args[0]);
+                    const d1 = dic(args[1]);
+                    _dic({ keys: (0, poly_fills_1.concat)(keys, d1.keys), vals: (0, poly_fills_1.concat)(vals, d1.vals) });
+                }
+            }
+            return [];
+        }
+        case "push": {
+            if (args[0].t === "vec") {
+                _vec((0, poly_fills_1.concat)(asArray(args[0]), [args[1]]));
+            }
+            else {
+                if ((0, poly_fills_1.len)(args) < 3) {
+                    return [{ e: "Arity", m: `key and value both required`, errCtx }];
+                }
+                const { keys, vals } = dic(args[0]);
+                _dic({ keys: (0, poly_fills_1.concat)(keys, [args[1]]), vals: (0, poly_fills_1.concat)(vals, [args[2]]) });
+            }
+            return [];
+        }
+        case "sect": {
+            const v = args[0];
+            const isVec = v.t === "vec";
+            const vlen = isVec ? (0, poly_fills_1.len)(vec(v)) : (0, poly_fills_1.slen)(str(v));
+            let a = 0, b = vlen;
+            switch ((0, poly_fills_1.len)(args)) {
+                case 1:
+                    a = 1;
+                    break;
+                case 2: {
+                    const del = num(args[1]);
+                    if (del < 0) {
+                        b += del;
+                    }
+                    else {
+                        a += del;
+                    }
+                    break;
+                }
+                case 3: {
+                    const skip = num(args[1]);
+                    const take = num(args[2]);
+                    a = skip < 0 ? vlen + skip + (take < 0 ? take : 0) : a + skip;
+                    b = (take < 0 ? b : a) + take;
+                    break;
+                }
+            }
+            a = (0, poly_fills_1.max)(a, 0);
+            b = (0, poly_fills_1.min)(b, vlen);
+            if (a > b) {
+                (isVec ? _vec : _str)();
+                return [];
+            }
+            if (isVec) {
+                _vec((0, poly_fills_1.slice)(vec(v), a, b));
+            }
+            else {
+                _str((0, poly_fills_1.substr)(str(args[0]), a, b - a));
+            }
+            return [];
+        }
+        case "reverse":
+            if (args[0].t === "str") {
+                _str(stringify((0, poly_fills_1.reverse)(asArray(args[0]))));
+            }
+            else {
+                _vec((0, poly_fills_1.reverse)(asArray(args[0])));
+            }
+            return [];
+        case "sort": {
+            if (!(0, poly_fills_1.len)(vec(args[0]))) {
+                _vec();
+                return [];
+            }
+            const src = asArray(args[0]);
+            const mapped = [];
+            if ((0, poly_fills_1.len)(args) === 1) {
+                (0, poly_fills_1.push)(mapped, src.map(v => [v, v]));
+            }
+            else {
+                const closure = getExe(ctx, args.pop(), errCtx);
+                for (let i = 0, lim = (0, poly_fills_1.len)(src); i < lim; ++i) {
+                    const errors = await closure([src[i]]);
+                    if ((0, poly_fills_1.len)(errors)) {
+                        return errors;
+                    }
+                    mapped.push([src[i], stack.pop()]);
+                }
+            }
+            const okT = mapped[0][1].t;
+            if (mapped.some(([_, { t }]) => t !== okT || !(0, poly_fills_1.has)(["num", "str"], t))) {
+                return tErr("can only sort by all number or all string");
+            }
+            if ((0, exports.visNum)(mapped[0][1])) {
+                (0, poly_fills_1.sortBy)(mapped, ([x, a], [y, b]) => (num(a) > num(b) ? 1 : -1));
+            }
+            else {
+                (0, poly_fills_1.sortBy)(mapped, ([x, a], [y, b]) => (str(a) > str(b) ? 1 : -1));
+            }
+            _vec(mapped.map(([v]) => v));
+            return [];
+        }
+        case "range": {
+            const [a, b, s] = args.map(num);
+            const edgeCase = s && s < 0 && a < b; //e.g. 1 4 -1
+            const [x, y] = (0, poly_fills_1.len)(args) > 1 ? (edgeCase ? [b - 1, a - 1] : [a, b]) : [0, a];
+            const step = (0, poly_fills_1.sign)((y - x) * (s || 1)) * (s || 1);
+            const count = (0, poly_fills_1.ceil)((0, poly_fills_1.abs)((y - x) / step));
+            if (!count) {
+                _vec([]);
+                return [];
+            }
+            if (count > ctx.rangeBudget) {
+                return [{ e: "Budget", m: "range budget depleted", errCtx }];
+            }
+            ctx.rangeBudget -= count;
+            const nums = (0, poly_fills_1.range)(count).map(n => n * step + x);
+            _vec(nums.map(v => ({ t: "num", v })));
+            return [];
+        }
+        case "empty?":
+            _boo(!(0, poly_fills_1.len)(asArray(args[0])));
+            return [];
+        case "keys":
+        case "vals":
+            _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
+            return [];
+        case "starts-with?":
+            _boo((0, poly_fills_1.starts)(str(args[0]), str(args[1])));
+            return [];
+        case "ends-with?":
+            _boo((0, poly_fills_1.ends)(str(args[0]), str(args[1])));
+            return [];
+        case "split":
+            _vec(str(args[0])
+                .split((0, poly_fills_1.len)(args) > 1 ? str(args[1]) : " ")
+                .map(v => ({ t: "str", v })));
+            return [];
+        case "join":
+            _str(vec(args[0])
+                .map(val2str)
+                .join((0, poly_fills_1.len)(args) > 1 ? str(args[1]) : " "));
+            return [];
+        case "time":
+            _num((0, poly_fills_1.getTimeMs)());
+            return [];
+        case "version":
+            _num(exports.insituxVersion);
+            return [];
+        case "tests":
+            {
+                const tests = await (0, test_1.doTests)(invoke, !((0, poly_fills_1.len)(args) && asBoo(args[0])));
+                const summary = tests.pop();
+                for (const test of tests) {
+                    await exeOp("print", [{ v: test, t: "str" }], ctx, errCtx);
+                }
+                _str(summary);
+            }
+            return [];
+        case "eval": {
+            delete ctx.env.funcs["entry"];
+            const sLen = (0, poly_fills_1.len)(stack);
+            const errors = await parseAndExe(ctx, str(args[0]), errCtx.invocationId);
+            if ((0, poly_fills_1.len)(errors)) {
+                return [{ e: "Eval", m: "error within evaluated code", errCtx }];
+            }
+            if (sLen === (0, poly_fills_1.len)(stack)) {
+                _nul();
+            }
+            return [];
+        }
+    }
+    return [{ e: "Unexpected", m: "operation doesn't exist", errCtx }];
+}
+function getExe(ctx, op, errCtx) {
+    const monoArityError = [{ e: "Arity", m: `one argument required`, errCtx }];
+    if ((0, exports.visStr)(op) || (0, exports.visFun)(op)) {
+        const str = op.v;
+        if (types_1.ops[str]) {
+            return (params) => exeOp(str, params, ctx, errCtx);
+        }
+        if (str in ctx.env.funcs) {
+            return (params) => exeFunc(ctx, ctx.env.funcs[str], params);
+        }
+        if (str in ctx.env.vars) {
+            return getExe(ctx, ctx.env.vars[str], errCtx);
+        }
+        if (str in ctx.env.lets[(0, poly_fills_1.len)(ctx.env.lets) - 1]) {
+            return getExe(ctx, ctx.env.lets[(0, poly_fills_1.len)(ctx.env.lets) - 1][str], errCtx);
+        }
+        if ((0, poly_fills_1.starts)(str, "$")) {
+            return async (params) => {
+                if (!(0, poly_fills_1.len)(params)) {
+                    return monoArityError;
+                }
+                const err = await ctx.set((0, poly_fills_1.substr)(str, 1), params[0]);
+                stack.push(params[0]);
+                return err ? [{ e: "External", m: err, errCtx }] : [];
+            };
+        }
+        return async (params) => {
+            const { err, value } = await ctx.exe(str, params);
+            if (!err) {
+                stack.push(value);
+            }
+            return err ? [{ e: "External", m: err, errCtx }] : [];
+        };
+    }
+    else if ((0, exports.visKey)(op)) {
+        return async (params) => {
+            if (!(0, poly_fills_1.len)(params)) {
+                return monoArityError;
+            }
+            if (params[0].t !== "dict") {
+                return [typeErr(`argument 1 must be dictionary`, errCtx)];
+            }
+            stack.push(dictGet(dic(params[0]), op));
+            return [];
+        };
+    }
+    else if ((0, exports.visNum)(op)) {
+        const n = op.v;
+        return async (params) => {
+            if (!(0, poly_fills_1.len)(params)) {
+                return monoArityError;
+            }
+            const a = params[0];
+            if (a.t !== "str" && a.t !== "vec" && a.t !== "dict") {
+                return [
+                    typeErr("argument must be string, vector, or dictionary", errCtx),
+                ];
+            }
+            const arr = asArray(a);
+            if ((0, poly_fills_1.abs)(n) >= (0, poly_fills_1.len)(arr)) {
+                _nul();
+            }
+            else if (n < 0) {
+                stack.push(arr[(0, poly_fills_1.len)(arr) + n]);
+            }
+            else {
+                stack.push(arr[n]);
+            }
+            return [];
+        };
+    }
+    else if ((0, exports.visVec)(op)) {
+        const { v } = op;
+        return async (params) => {
+            if (!(0, poly_fills_1.len)(params)) {
+                return monoArityError;
+            }
+            const found = v.find(val => isEqual(val, params[0]));
+            if (found) {
+                stack.push(found);
+            }
+            else {
+                _nul();
+            }
+            return [];
+        };
+    }
+    else if ((0, exports.visDic)(op)) {
+        const dict = op.v;
+        return async (params) => {
+            if ((0, poly_fills_1.len)(params) === 1) {
+                stack.push(dictGet(dict, params[0]));
+            }
+            else if ((0, poly_fills_1.len)(params) === 2) {
+                stack.push(dictSet(dict, params[0], params[1]));
+            }
+            else {
+                return [
+                    {
+                        e: "Arity",
+                        m: `dict as operation takes one or two arguments`,
+                        errCtx,
+                    },
+                ];
+            }
+            return [];
+        };
+    }
+    return async (_) => [
+        { e: "Operation", m: `${val2str(op)} is an invalid operation`, errCtx },
+    ];
+}
+async function exeFunc(ctx, func, args) {
+    --ctx.callBudget;
+    ctx.env.lets.push({});
+    for (let i = 0, lim = (0, poly_fills_1.len)(func.ins); i < lim; ++i) {
+        const { typ, value, errCtx } = func.ins[i];
+        const tooManyLoops = ctx.loopBudget < 1;
+        if (tooManyLoops || ctx.callBudget < 1) {
+            return [
+                {
+                    e: "Budget",
+                    m: `${tooManyLoops ? "looped" : "called"} too many times`,
+                    errCtx,
+                },
+            ];
+        }
+        switch (typ) {
+            case "nul":
+                _nul();
+                break;
+            case "boo":
+                _boo(value);
+                break;
+            case "num":
+                _num(value);
+                break;
+            case "str":
+                _str(value);
+                break;
+            case "key":
+                _key(value);
+                break;
+            case "var":
+                ctx.env.vars[value] = stack[(0, poly_fills_1.len)(stack) - 1];
+                break;
+            case "let":
+                ctx.env.lets[(0, poly_fills_1.len)(ctx.env.lets) - 1][value] =
+                    stack[(0, poly_fills_1.len)(stack) - 1];
+                break;
+            case "par":
+                {
+                    const paramIdx = value;
+                    if (paramIdx === -1) {
+                        _vec(args);
+                    }
+                    else if ((0, poly_fills_1.len)(args) <= paramIdx) {
+                        _nul();
+                    }
+                    else {
+                        stack.push(args[paramIdx]);
+                    }
+                }
+                break;
+            case "ref":
+                {
+                    const name = value;
+                    if (types_1.ops[name]) {
+                        _fun(name);
+                    }
+                    else if ((0, poly_fills_1.starts)(name, "$")) {
+                        const { value, err } = await ctx.get((0, poly_fills_1.substr)(name, 1));
+                        if (err) {
+                            return [{ e: "External", m: err, errCtx }];
+                        }
+                        stack.push(value);
+                    }
+                    else if (name in ctx.env.vars) {
+                        stack.push(ctx.env.vars[name]);
+                    }
+                    else if (name in ctx.env.lets[(0, poly_fills_1.len)(ctx.env.lets) - 1]) {
+                        stack.push(ctx.env.lets[(0, poly_fills_1.len)(ctx.env.lets) - 1][name]);
+                    }
+                    else if (name in ctx.env.funcs) {
+                        _fun(name);
+                    }
+                    else {
+                        return [{ e: "Reference", m: `"${name}" did not exist`, errCtx }];
+                    }
+                }
+                break;
+            case "op":
+            case "exe":
+                {
+                    let [op, nArgs] = value;
+                    const params = (0, poly_fills_1.splice)(stack, (0, poly_fills_1.len)(stack) - nArgs, nArgs);
+                    if ((0, poly_fills_1.len)(params) !== nArgs) {
+                        return [{ e: "Unexpected", m: `${op} stack depleted`, errCtx }];
+                    }
+                    //Tail-call optimisation
+                    if (i === lim - 1 && (0, exports.visStr)(op) && op.v === func.name) {
+                        ctx.env.lets[(0, poly_fills_1.len)(ctx.env.lets) - 1] = {};
+                        i = -1;
+                        args = params;
+                        --ctx.recurBudget;
+                        if (!ctx.recurBudget) {
+                            return [{ e: "Budget", m: `recurred too many times`, errCtx }];
+                        }
+                        continue;
+                    }
+                    const closure = getExe(ctx, op, errCtx);
+                    const errors = await closure(params);
+                    if ((0, poly_fills_1.len)(errors)) {
+                        return errors;
+                    }
+                }
+                break;
+            case "or":
+                if (asBoo(stack[(0, poly_fills_1.len)(stack) - 1])) {
+                    i += value;
+                }
+                else {
+                    stack.pop();
+                }
+                break;
+            case "if":
+                if (!asBoo(stack.pop())) {
+                    i += value;
+                }
+                break;
+            case "jmp":
+                i += value;
+                break;
+            case "loo":
+                i += value;
+                --ctx.loopBudget;
+                break;
+            case "pop":
+                (0, poly_fills_1.splice)(stack, (0, poly_fills_1.len)(stack) - value, value);
+                break;
+        }
+    }
+    ctx.env.lets.pop();
+    return [];
+}
+exports.exeFunc = exeFunc;
+async function parseAndExe(ctx, code, invocationId) {
+    const parsed = (0, parse_1.parse)(code, invocationId);
+    if ((0, poly_fills_1.len)(parsed.errors)) {
+        return parsed.errors;
+    }
+    ctx.env.funcs = { ...ctx.env.funcs, ...parsed.funcs };
+    if (!("entry" in ctx.env.funcs)) {
+        return [];
+    }
+    return await exeFunc(ctx, ctx.env.funcs["entry"], []);
+}
+async function invoke(ctx, code, invocationId, printResult = false) {
+    const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
+    const errors = await parseAndExe(ctx, code, invocationId);
+    ctx.env.lets = [];
+    ctx.callBudget = callBudget;
+    ctx.recurBudget = recurBudget;
+    ctx.loopBudget = loopBudget;
+    ctx.rangeBudget = rangeBudget;
+    delete ctx.env.funcs["entry"];
+    if (!(0, poly_fills_1.len)(errors) && printResult && (0, poly_fills_1.len)(stack)) {
+        await ctx.exe("print", [{ t: "str", v: val2str(stack[(0, poly_fills_1.len)(stack) - 1]) }]);
+    }
+    stack = [];
+    return errors;
+}
+exports.invoke = invoke;
+function symbols(ctx) {
+    let syms = ["function"];
+    syms = (0, poly_fills_1.concat)(syms, (0, poly_fills_1.objKeys)(types_1.ops).filter(o => o !== "execute-last"));
+    syms = (0, poly_fills_1.concat)(syms, (0, poly_fills_1.objKeys)(ctx.env.funcs));
+    syms = (0, poly_fills_1.concat)(syms, (0, poly_fills_1.objKeys)(ctx.env.vars));
+    return syms;
+}
+exports.symbols = symbols;
+
+
+/***/ }),
+
+/***/ 669:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.invoker = exports.parensRx = void 0;
+const _1 = __webpack_require__(607);
+const poly_fills_1 = __webpack_require__(17);
+const invocations = new Map();
+exports.parensRx = /[\[\]\(\) ]/;
+async function invoker(ctx, code) {
+    const uuid = (0, poly_fills_1.getTimeMs)().toString();
+    invocations.set(uuid, code);
+    const errors = await (0, _1.invoke)(ctx, code, uuid, true);
+    let out = [];
+    errors.forEach(({ e, m, errCtx: { line, col, invocationId } }) => {
+        const lineText = invocations.get(invocationId).split("\n")[line - 1];
+        const sym = (0, poly_fills_1.substr)(lineText, col - 1).split(exports.parensRx)[0];
+        const half1 = (0, poly_fills_1.trimStart)((0, poly_fills_1.substr)(lineText, 0, col - 1));
+        out.push({ type: "message", text: (0, poly_fills_1.padEnd)(`${line}`, 4) + half1 });
+        if (!sym) {
+            const half2 = (0, poly_fills_1.substr)(lineText, col);
+            out.push({ type: "error", text: lineText[col - 1] });
+            out.push({ type: "message", text: `${half2}\n` });
+        }
+        else {
+            const half2 = (0, poly_fills_1.substr)(lineText, col - 1 + sym.length);
+            out.push({ type: "error", text: sym });
+            out.push({ type: "message", text: `${half2}\n` });
+        }
+        out.push({ type: "message", text: `${e} Error: ${m}.\n` });
+    });
+    return out;
+}
+exports.invoker = invoker;
+
+
+/***/ }),
+
+/***/ 306:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.parse = void 0;
+const poly_fills_1 = __webpack_require__(17);
+const types_1 = __webpack_require__(699);
+function tokenise(code, invocationId) {
+    const tokens = [];
+    const digits = "0123456789";
+    let inString = false, isEscaped = false, inStringAt = [0, 0], inSymbol = false, inNumber = false, inComment = false, line = 1, col = 0;
+    for (let i = 0, l = (0, poly_fills_1.slen)(code); i < l; ++i) {
+        const c = (0, poly_fills_1.strIdx)(code, i), nextCh = i + 1 !== l ? (0, poly_fills_1.strIdx)(code, i + 1) : "";
+        ++col;
+        if (inComment) {
+            if (c === "\n") {
+                inComment = false;
+                ++line;
+                col = 0;
+            }
+            continue;
+        }
+        if (isEscaped) {
+            isEscaped = false;
+            if (inString) {
+                tokens[(0, poly_fills_1.len)(tokens) - 1].text += { n: "\n", t: "\t" }[c] || `\\${c}`;
+            }
+            continue;
+        }
+        if (c === "\\") {
+            isEscaped = true;
+            continue;
+        }
+        if (c === '"') {
+            if ((inString = !inString)) {
+                inStringAt = [line, col];
+                tokens.push({
+                    typ: "str",
+                    text: "",
+                    errCtx: { invocationId, line, col },
+                });
+            }
+            inNumber = inSymbol = false;
+            continue;
+        }
+        const isWhite = (0, poly_fills_1.sub)(" \t\n\r", c);
+        if (!inString && isWhite) {
+            inNumber = inSymbol = false;
+            if (c === "\n") {
+                ++line;
+                col = 0;
+            }
+            continue;
+        }
+        if (!inString && c === ";") {
+            inComment = true;
+            continue;
+        }
+        const errCtx = { invocationId, line, col };
+        const isDigit = (ch) => (0, poly_fills_1.sub)(digits, ch);
+        const isParen = (0, poly_fills_1.sub)("()[]{}", c);
+        //Allow one . per number, or convert into symbol
+        if (inNumber && !isDigit(c)) {
+            inNumber = c === "." && !(0, poly_fills_1.sub)(tokens[(0, poly_fills_1.len)(tokens) - 1].text, ".");
+            if (!inNumber && !isParen && !isWhite) {
+                inSymbol = true;
+                tokens[(0, poly_fills_1.len)(tokens) - 1].typ = "sym";
+            }
+        }
+        //Stop scanning symbol if a paren
+        if (inSymbol && isParen) {
+            inSymbol = false;
+        }
+        //If we just finished concatenating a token
+        if (!inString && !inSymbol && !inNumber) {
+            if (isParen) {
+                const parens = {
+                    "[": "(",
+                    "{": "(",
+                    "(": "(",
+                    ")": ")",
+                    "}": ")",
+                    "]": ")",
+                };
+                const text = parens[c];
+                tokens.push({ typ: text, text, errCtx });
+                if (c === "[") {
+                    tokens.push({ typ: "sym", text: "vec", errCtx });
+                }
+                else if (c === "{") {
+                    tokens.push({ typ: "sym", text: "dict", errCtx });
+                }
+                continue;
+            }
+            inNumber =
+                isDigit(c) ||
+                    (c === "." && isDigit(nextCh)) ||
+                    (c === "-" && (isDigit(nextCh) || nextCh === "."));
+            inSymbol = !inNumber;
+            let typ = inSymbol ? "sym" : "num";
+            if ((0, poly_fills_1.len)(tokens)) {
+                const { typ: t, text } = tokens[(0, poly_fills_1.len)(tokens) - 1];
+                if (t === "sym" && (text === "var" || text === "let")) {
+                    typ = "ref";
+                }
+            }
+            tokens.push({ typ, text: "", errCtx });
+        }
+        tokens[(0, poly_fills_1.len)(tokens) - 1].text += c;
+    }
+    return { tokens, stringError: inString ? inStringAt : undefined };
+}
+function segment(tokens) {
+    const segments = [[]];
+    let depth = 0;
+    tokens.forEach(token => {
+        segments[(0, poly_fills_1.len)(segments) - 1].push(token);
+        depth += (0, poly_fills_1.toNum)(token.typ === "(") - (0, poly_fills_1.toNum)(token.typ === ")");
+        if (depth === 0) {
+            segments.push([]);
+        }
+    });
+    return segments;
+}
+function funcise(segments) {
+    const isFunc = (segment) => (0, poly_fills_1.len)(segment) > 1 &&
+        segment[1].typ === "sym" &&
+        segment[1].text === "function";
+    const funcs = segments.filter(t => isFunc(t));
+    const entries = (0, poly_fills_1.flat)(segments.filter(t => !isFunc(t)));
+    const described = funcs.map(tokens => ({
+        name: tokens[2].text,
+        tokens: (0, poly_fills_1.slice)(tokens, 3),
+        errCtx: tokens[2].errCtx,
+    }));
+    return (0, poly_fills_1.len)(entries)
+        ? (0, poly_fills_1.concat)(described, [
+            {
+                name: "entry",
+                tokens: entries,
+                errCtx: entries[0].errCtx,
+            },
+        ])
+        : described;
+}
+function parseArg(tokens, params) {
+    if (!(0, poly_fills_1.len)(tokens)) {
+        return [];
+    }
+    const { typ, text, errCtx } = tokens.shift();
+    switch (typ) {
+        case "str":
+            return [{ typ: "str", value: text, errCtx }];
+        case "num":
+            return [{ typ: "num", value: (0, poly_fills_1.toNum)(text), errCtx }];
+        case "sym":
+            if (text === "true" || text === "false") {
+                return [{ typ: "boo", value: text === "true", errCtx }];
+            }
+            else if (text === "null") {
+                return [{ typ: "nul", value: undefined, errCtx }];
+            }
+            else if ((0, poly_fills_1.starts)(text, ":")) {
+                return [{ typ: "key", value: text, errCtx }];
+            }
+            else if ((0, poly_fills_1.starts)(text, "#") && (0, poly_fills_1.isNum)((0, poly_fills_1.substr)(text, 1))) {
+                return [{ typ: "par", value: (0, poly_fills_1.toNum)((0, poly_fills_1.substr)(text, 1)), errCtx }];
+            }
+            else if ((0, poly_fills_1.has)(params, text)) {
+                return [{ typ: "par", value: params.indexOf(text), errCtx }];
+            }
+            else if (text === "args") {
+                return [{ typ: "par", value: -1, errCtx }];
+            }
+            return [{ typ: "ref", value: text, errCtx }];
+        case "ref":
+            return [{ typ: "def", value: text, errCtx }];
+        case "(": {
+            const head = tokens.shift();
+            if (!head) {
+                break;
+            }
+            const { typ, text, errCtx } = head;
+            let op = text;
+            const err = (value) => [{ typ: "err", value, errCtx }];
+            if (op === "var" || op === "let") {
+                const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
+                if (!(0, poly_fills_1.len)(def) || !(0, poly_fills_1.len)(val) || (0, poly_fills_1.len)(parseArg(tokens, params))) {
+                    return err("must provide reference name and value only");
+                }
+                return [...val, { typ: op, value: def[0].value, errCtx }];
+            }
+            else if (op === "if" || op === "when") {
+                const cond = parseArg(tokens, params);
+                if (!(0, poly_fills_1.len)(cond)) {
+                    return err("must provide condition");
+                }
+                const ins = cond;
+                if (op === "if") {
+                    const ifT = parseArg(tokens, params);
+                    if (!(0, poly_fills_1.len)(ifT)) {
+                        return err("must provide a branch");
+                    }
+                    ins.push({ typ: "if", value: (0, poly_fills_1.len)(ifT) + 1, errCtx });
+                    (0, poly_fills_1.push)(ins, ifT);
+                    const ifF = parseArg(tokens, params);
+                    if ((0, poly_fills_1.len)(ifF)) {
+                        ins.push({ typ: "jmp", value: (0, poly_fills_1.len)(ifF), errCtx });
+                        (0, poly_fills_1.push)(ins, ifF);
+                        if ((0, poly_fills_1.len)(parseArg(tokens, params))) {
+                            return err("too many branches");
+                        }
+                    }
+                    else {
+                        ins.push({ typ: "jmp", value: 1, errCtx });
+                        ins.push({ typ: "nul", value: undefined, errCtx });
+                    }
+                }
+                else {
+                    const body = [];
+                    while (true) {
+                        const exp = parseArg(tokens, params);
+                        if (!(0, poly_fills_1.len)(exp)) {
+                            break;
+                        }
+                        (0, poly_fills_1.push)(body, exp);
+                    }
+                    ins.push({ typ: "if", value: (0, poly_fills_1.len)(body) + 1, errCtx });
+                    (0, poly_fills_1.push)(ins, body);
+                    ins.push({ typ: "jmp", value: 1, errCtx });
+                    ins.push({ typ: "nul", value: undefined, errCtx });
+                }
+                return ins;
+            }
+            else if (op === "and" || op === "or" || op === "while") {
+                const args = [];
+                let insCount = 0;
+                while (true) {
+                    const arg = parseArg(tokens, params);
+                    if (!(0, poly_fills_1.len)(arg)) {
+                        break;
+                    }
+                    args.push(arg);
+                    insCount += (0, poly_fills_1.len)(arg);
+                }
+                if ((0, poly_fills_1.len)(args) < 2) {
+                    return err("requires at least two arguments");
+                }
+                const ins = [];
+                if (op === "while") {
+                    insCount += 2; //+1 for the if ins, +1 for the pop ins
+                    const head = args.shift();
+                    (0, poly_fills_1.push)(ins, head);
+                    ins.push({ typ: "if", value: insCount - (0, poly_fills_1.len)(head), errCtx });
+                    args.forEach(as => (0, poly_fills_1.push)(ins, as));
+                    ins.push({ typ: "pop", value: (0, poly_fills_1.len)(args), errCtx });
+                    ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
+                    return ins;
+                }
+                insCount += (0, poly_fills_1.len)(args); //+1 for each if/or ins
+                insCount += (0, poly_fills_1.toNum)(op === "and");
+                const typ = op === "and" ? "if" : "or";
+                for (let a = 0; a < (0, poly_fills_1.len)(args); ++a) {
+                    (0, poly_fills_1.push)(ins, args[a]);
+                    insCount -= (0, poly_fills_1.len)(args[a]);
+                    ins.push({ typ, value: insCount, errCtx });
+                    --insCount;
+                }
+                if (op === "and") {
+                    (0, poly_fills_1.push)(ins, [
+                        { typ: "boo", value: true, errCtx },
+                        { typ: "jmp", value: 1, errCtx },
+                        { typ: "boo", value: false, errCtx },
+                    ]);
+                }
+                else {
+                    ins.push({ typ: "boo", value: false, errCtx });
+                }
+                return ins;
+            }
+            const headIns = [];
+            let args = 0;
+            //Head is a form or parameter
+            if (typ === "(" || (0, poly_fills_1.has)(params, text) || (0, poly_fills_1.starts)(text, "#")) {
+                tokens.unshift(head);
+                const ins = parseArg(tokens, params);
+                (0, poly_fills_1.push)(headIns, ins);
+                op = "execute-last";
+                ++args;
+            }
+            const body = [];
+            while ((0, poly_fills_1.len)(tokens)) {
+                const parsed = parseArg(tokens, params);
+                if (!(0, poly_fills_1.len)(parsed)) {
+                    break;
+                }
+                ++args;
+                (0, poly_fills_1.push)(body, parsed);
+            }
+            headIns.push({
+                typ: types_1.ops[op] ? "op" : "exe",
+                value: [
+                    typ === "num"
+                        ? { t: "num", v: (0, poly_fills_1.toNum)(op) }
+                        : (0, poly_fills_1.starts)(op, ":")
+                            ? { t: "key", v: op }
+                            : types_1.ops[op]
+                                ? { t: "func", v: op }
+                                : { t: "str", v: op },
+                    args,
+                ],
+                errCtx,
+            });
+            return [...body, ...headIns];
+        }
+    }
+    return [];
+}
+function partitionWhen(array, predicate) {
+    const a = [], b = [];
+    for (let i = 0, isB = false; i < (0, poly_fills_1.len)(array); ++i) {
+        isB || (isB = predicate(array[i]));
+        (isB ? b : a).push(array[i]);
+    }
+    return [a, b];
+}
+function partition(array, predicate) {
+    const a = [], b = [];
+    array.forEach(x => (predicate(x) ? b : a).push(x));
+    return [a, b];
+}
+function syntaxise({ name, tokens }, errCtx) {
+    const [params, body] = partitionWhen(tokens, t => t.typ !== "sym");
+    //In the case of e.g. (function)
+    if (!(0, poly_fills_1.len)(params) && !(0, poly_fills_1.len)(body)) {
+        return {
+            err: {
+                e: "Parse",
+                m: "empty function body",
+                errCtx,
+            },
+        };
+    }
+    if ((0, poly_fills_1.len)(body) && body[0].typ === ")") {
+        if ((0, poly_fills_1.len)(params)) {
+            //In the case of e.g. (function f #) or (function x y z)
+            body.unshift(params.pop());
+        }
+        else {
+            //In the case of e.g. (function name)
+            return {
+                err: {
+                    e: "Parse",
+                    m: "empty function body",
+                    errCtx,
+                },
+            };
+        }
+    }
+    //In the case of e.g. (function entry x y z)
+    if ((0, poly_fills_1.len)(params) && !(0, poly_fills_1.len)(body)) {
+        body.push(params.pop());
+    }
+    const ins = [];
+    while ((0, poly_fills_1.len)(body)) {
+        (0, poly_fills_1.push)(ins, parseArg(body, params.map(p => p.text)));
+    }
+    const parseErrors = ins.filter(i => i.typ === "err");
+    if ((0, poly_fills_1.len)(parseErrors)) {
+        return {
+            err: {
+                e: "Parse",
+                m: parseErrors[0].value,
+                errCtx: parseErrors[0].errCtx,
+            },
+        };
+    }
+    return { func: { name, ins: ins } };
+}
+function findParenImbalance(tokens, numL, numR) {
+    //Scan for first instance of untimely closed
+    //  or last instance of unclosed open
+    const untimely = numR >= numL;
+    const [l, r] = [untimely ? "(" : ")", untimely ? ")" : "("];
+    const direction = untimely ? 1 : -1;
+    for (let lim = (0, poly_fills_1.len)(tokens), t = untimely ? 0 : lim - 1, depth = 0; untimely ? t < lim : t >= 0; t += direction) {
+        const { typ, errCtx: { line, col }, } = tokens[t];
+        depth += (0, poly_fills_1.toNum)(typ === l) - (0, poly_fills_1.toNum)(typ === r);
+        if (depth < 0) {
+            return [line, col];
+        }
+    }
+    return [0, 0];
+}
+function errorDetect(stringError, tokens, invocationId) {
+    const errors = [];
+    const err = (m, errCtx) => errors.push({ e: "Parse", m, errCtx });
+    //Check for paren imbalance
+    const countTyp = (t) => (0, poly_fills_1.len)(tokens.filter(({ typ }) => typ === t));
+    const [numL, numR] = [countTyp("("), countTyp(")")];
+    {
+        const [line, col] = findParenImbalance(tokens, numL, numR);
+        if (line + col) {
+            err("unmatched parenthesis", { invocationId, line, col });
+        }
+    }
+    //Check for double-quote imbalance
+    if (stringError) {
+        const [line, col] = stringError;
+        err("unmatched double quotation marks", { invocationId, line, col });
+    }
+    //Check for any empty expressions
+    let emptyHead;
+    for (let t = 0, lastWasL = false; t < (0, poly_fills_1.len)(tokens); ++t) {
+        if (lastWasL && tokens[t].typ === ")") {
+            emptyHead = tokens[t];
+            break;
+        }
+        lastWasL = tokens[t].typ === "(";
+    }
+    if (emptyHead) {
+        err("empty expression forbidden", emptyHead.errCtx);
+    }
+    return errors;
+}
+function parse(code, invocationId) {
+    const { tokens, stringError } = tokenise(code, invocationId);
+    const errors = errorDetect(stringError, tokens, invocationId);
+    if ((0, poly_fills_1.len)(errors)) {
+        return { errors, funcs: {} };
+    }
+    const segments = segment(tokens);
+    const labelled = funcise(segments);
+    const funcsAndErrors = labelled.map(named => syntaxise(named, {
+        invocationId,
+        line: named.errCtx.line,
+        col: named.errCtx.col,
+    }));
+    const [funcArr, synErrors] = partition(funcsAndErrors, fae => !!fae.err);
+    (0, poly_fills_1.push)(errors, synErrors.map(fae => fae.err));
+    const funcs = {};
+    funcArr.forEach(({ func }) => (funcs[func.name] = func));
+    return { errors, funcs };
+}
+exports.parse = parse;
+
+
+/***/ }),
+
+/***/ 17:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.pi = exports.sign = exports.ceil = exports.floor = exports.round = exports.sqrt = exports.tan = exports.cos = exports.sin = exports.max = exports.min = exports.abs = exports.getTimeMs = exports.objKeys = exports.range = exports.randInt = exports.randNum = exports.padEnd = exports.trimStart = exports.trim = exports.reverse = exports.sortBy = exports.push = exports.concat = exports.flat = exports.ends = exports.starts = exports.has = exports.subIdx = exports.sub = exports.strIdx = exports.substr = exports.isArray = exports.isNum = exports.slen = exports.len = exports.splice = exports.slice = exports.toNum = void 0;
+const toNum = (x) => Number(x);
+exports.toNum = toNum;
+const slice = (arr, start, end) => arr.slice(start, end);
+exports.slice = slice;
+const splice = (arr, start, numDel) => arr.splice(start, numDel);
+exports.splice = splice;
+const len = (arr) => arr.length;
+exports.len = len;
+const slen = (str) => str.length;
+exports.slen = slen;
+const isNum = (x) => !Number.isNaN(Number(x));
+exports.isNum = isNum;
+const isArray = (x) => Array.isArray(x);
+exports.isArray = isArray;
+const substr = (str, start, length) => str.substring(start, length ? start + length : str.length);
+exports.substr = substr;
+const strIdx = (str, idx) => str[idx];
+exports.strIdx = strIdx;
+const sub = (x, s) => x.includes(s);
+exports.sub = sub;
+const subIdx = (x, s) => x.indexOf(s);
+exports.subIdx = subIdx;
+const has = (x, y) => x.includes(y);
+exports.has = has;
+const starts = (str, x) => str.startsWith(x);
+exports.starts = starts;
+const ends = (str, x) => str.endsWith(x);
+exports.ends = ends;
+const flat = (arr) => arr.flat(); //e.g. [[0], [1], []] => [0, 1]
+exports.flat = flat;
+const concat = (a, b) => a.concat(b);
+exports.concat = concat;
+const push = (arr, add) => arr.push(...add);
+exports.push = push;
+const sortBy = (arr, by) => arr.sort(by);
+exports.sortBy = sortBy;
+const reverse = (arr) => arr.reverse();
+exports.reverse = reverse;
+const trim = (str) => str.trim();
+exports.trim = trim;
+const trimStart = (str) => str.trimStart();
+exports.trimStart = trimStart;
+const padEnd = (str, by) => str.padEnd(by);
+exports.padEnd = padEnd;
+const randNum = (a, b) => a + Math.random() * (b - a);
+exports.randNum = randNum;
+const randInt = (a, b) => Math.floor((0, exports.randNum)(a, b));
+exports.randInt = randInt;
+const range = (len) => [...Array(len).keys()];
+exports.range = range;
+const objKeys = (x) => Object.keys(x);
+exports.objKeys = objKeys;
+const getTimeMs = () => new Date().getTime();
+exports.getTimeMs = getTimeMs;
+exports.abs = Math.abs;
+exports.min = Math.min;
+exports.max = Math.max;
+exports.sin = Math.sin;
+exports.cos = Math.cos;
+exports.tan = Math.tan;
+exports.sqrt = Math.sqrt;
+exports.round = Math.round;
+exports.floor = Math.floor;
+exports.ceil = Math.ceil;
+exports.sign = Math.sign;
+exports.pi = Math.PI;
+
+
+/***/ }),
+
+/***/ 127:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.doTests = void 0;
+const poly_fills_1 = __webpack_require__(17);
+async function get(state, key) {
+    if (!state.dict.has(key)) {
+        return { value: { t: "null", v: undefined }, err: `"${key} not found.` };
+    }
+    return { value: state.dict.get(key), err: undefined };
+}
+async function set(state, key, val) {
+    state.dict.set(key, val);
+    return undefined;
+}
+async function exe(state, name, args) {
+    const nullVal = { t: "null", v: undefined };
+    switch (name) {
+        case "print-str":
+            state.output += args[0].v;
+            break;
+        case "print":
+        case "test.function":
+            state.output += args[0].v + "\n";
+            break;
+        default:
+            return { value: nullVal, err: "operation does not exist" };
+    }
+    return { value: nullVal, err: undefined };
+}
+const tests = [
+    //Basic snippets
+    { name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
+    {
+        name: "Say Hello, world!",
+        code: `(print "Hello, world!")`,
+        out: `Hello, world!\nnull`,
+    },
+    { name: "1 + 1 = 2", code: `(+ 1 1)`, out: `2` },
+    { name: "Negate 1 = -1", code: `(- 1)`, out: `-1` },
+    { name: "(1+1)+1+(1+1) = 5", code: `(+ (+ 1 1) 1 (+ 1 1))`, out: `5` },
+    { name: "Conditional head", code: `((if true + -) 12 9 1)`, out: `22` },
+    {
+        name: "Whens",
+        code: `[(when 123 (print "hi") 234) (when false (print "bye"))]`,
+        out: `hi\n[234 null]`,
+    },
+    { name: "Cond number head", code: `((if false 1 2) [:a :b :c])`, out: `:c` },
+    {
+        name: "and & short-circuit",
+        code: `[(and true (if true null 1) true) (and 1 2 3)]`,
+        out: `[false true]`,
+    },
+    {
+        name: "or & short-circuit",
+        code: `[(or true (print "hello") 1) (or false (print-str "-> ") 1)]`,
+        out: `-> [true 1]`,
+    },
+    { name: "String retrieve", code: `(2 "Hello")`, out: `l` },
+    { name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },
+    {
+        name: "Key as operation",
+        code: `(:age {:name "Patrick" :age 24})`,
+        out: `24`,
+    },
+    {
+        name: "Dictionary as op 1",
+        code: `({"name" "Patrick" "age" 24} "age")`,
+        out: `24`,
+    },
+    {
+        name: "Dictionary as op 2",
+        code: `({"name" "Patrick"} "age" 24)`,
+        out: `{name Patrick, age 24}`,
+    },
+    {
+        name: "Equalities",
+        code: `[(= 1 2 1)
+            (!= 1 2 1)
+            (= "Hello" "hello")
+            (!= "world" "world")
+            (= [0 [1]] [0 [1]])]`,
+        out: `[false true false false true]`,
+    },
+    { name: "Define and retrieve", code: `(var a 1) a`, out: `1` },
+    { name: "Define and add", code: `(var a 1) (inc a)`, out: `2` },
+    { name: "Define op and call", code: `(var f +) (f 2 2)`, out: `4` },
+    { name: "Define vec and call", code: `(var f [1]) (f 1)`, out: `1` },
+    {
+        name: "Define num op and call",
+        code: `(var f 1) (f [:a :b :c])`,
+        out: `:b`,
+    },
+    { name: "Print simple vector", code: `[1 2 3]`, out: `[1 2 3]` },
+    {
+        name: "Sum vector of numbers",
+        code: `[(reduce + [1 2 3]) (reduce + [1 2 3] 3)]`,
+        out: `[6 9]`,
+    },
+    {
+        name: "Sum vectors of numbers",
+        code: `(map + [1 2 3] [1 2 3 4])`,
+        out: `[2 4 6]`,
+    },
+    {
+        name: "Filter by integer",
+        code: `(filter 2 [[1] [:a :b :c] "hello" "hi"])`,
+        out: `[[:a :b :c] hello]`,
+    },
+    {
+        name: "Comments, short decimal",
+        code: `;((print "Hello")
+           .456`,
+        out: `0.456`,
+    },
+    {
+        name: "Dictionary into vector",
+        code: `(into [1 2] {3 4 5 6})`,
+        out: `[1 2 [3 4] [5 6]]`,
+    },
+    {
+        name: "Vector into dictionary",
+        code: `(into {[0] 1 [2] 3} [[0] 2])`,
+        out: `{[0] 2, [2] 3}`,
+    },
+    {
+        name: "While loop",
+        code: `(var n 5)
+           (while (< 0 n)
+             (print-str n)
+             (var n (dec n)))`,
+        out: `543215`,
+    },
+    //Basic functions
+    { name: "Define with no call", code: `(function func (print "Nothing."))` },
+    {
+        name: "Call greet func",
+        code: `(function greeting (print "Hello!")) (greeting)`,
+        out: `Hello!\nnull`,
+    },
+    {
+        name: "Call const value func",
+        code: `(function const 123) (const)`,
+        out: `123`,
+    },
+    {
+        name: "Call identity funcs",
+        code: `(function id1 #)
+           (function id2 x x)
+           [(id1 123) (id2 456)]`,
+        out: `[123 456]`,
+    },
+    {
+        name: "Call greet with name",
+        code: `(function greeting name (print "Hello, " name "!"))
+           (greeting "Patrick")`,
+        out: `Hello, Patrick!\nnull`,
+    },
+    {
+        name: "Call with too few args",
+        code: `(function func a b c [a b c]) (func 1 2)`,
+        out: `[1 2 null]`,
+    },
+    {
+        name: "Define func and call",
+        code: `(function func a b (+ a b)) (var f func) (f 2 2)`,
+        out: `4`,
+    },
+    {
+        name: "Anonymous parameters",
+        code: `(function avg<n? (< (/ (.. + #) (len #)) #1))
+           (avg<n? [0 10 20 30 40] 5)`,
+        out: `false`,
+    },
+    {
+        name: "Call parameter",
+        code: `(function f x (x "hello")) (f print)`,
+        out: `hello\nnull`,
+    },
+    { name: "Let and retrieve", code: `(function f (let a 1) a) (f)`, out: `1` },
+    {
+        name: "Let num op and call",
+        code: `(function f (let n 0) (n [0])) (f)`,
+        out: `0`,
+    },
+    //Runtime errors
+    {
+        name: "String instead of number",
+        code: `(function sum (.. + args))
+           (print (sum 2 2))
+           (sum 2 "hi")`,
+        out: `4`,
+        err: ["Type"],
+    },
+    { name: "Reference non-existing", code: `x`, err: ["Reference"] },
+    {
+        name: "Expired let retrieve",
+        code: `(function f (let a 1) a) (f) a`,
+        err: ["Reference"],
+    },
+    { name: "Call non-existing", code: `(x)`, err: ["External"] },
+    { name: "Call budget", code: `(function f (f)) (f)`, err: ["Budget"] },
+    {
+        name: "Loop budget",
+        code: `(var n 10000)
+           (while (< 0 n)
+             (var n (dec n)))`,
+        err: ["Budget"],
+    },
+    { name: "Range budget", code: `(range 10000)`, err: ["Budget"] },
+    //Complex functions
+    {
+        name: "Fibonacci 13",
+        code: `(function fib n
+             (if (< n 2) n
+               (+ (fib (dec n))
+                  (fib (- n 2)))))
+           (fib 13)`,
+        out: `233`,
+    },
+    {
+        name: "dedupe (tail-call optim)",
+        code: `(function dedupe list -out
+             (let out (or -out []))
+             (let next (if (out (0 list)) [] [(0 list)]))
+             (if (empty? list) out
+                 (dedupe (sect list) (into out next))))
+           (dedupe [1 1 2 3 3 3])`,
+        out: `[1 2 3]`,
+    },
+    //Test environment functions
+    {
+        name: "set get",
+        code: `[($globals.time_offset 5.5) $globals.time_offset]`,
+        out: `[5.5 5.5]`,
+    },
+    { name: "exe", code: `(test.function 123)`, out: `123\nnull` },
+    //Syntax errors
+    { name: "Empty parens", code: `()`, err: ["Parse"] },
+    { name: "Imbalanced parens 1", code: `(print ("hello!")`, err: ["Parse"] },
+    { name: "Imbalanced parens 2", code: `print "hello!")`, err: ["Parse"] },
+    {
+        name: "Imbalanced quotes 1",
+        code: `(print "Hello)`,
+        err: ["Parse", "Parse"],
+    },
+    { name: "Imbalanced quotes 2", code: `print "Hello")`, err: ["Parse"] },
+    { name: "Function as op", code: `(function)`, err: ["Parse"] },
+    { name: "Function without body", code: `(function func)`, err: ["Parse"] },
+];
+async function doTests(invoke, terse = true) {
+    const results = [];
+    for (let t = 0; t < (0, poly_fills_1.len)(tests); ++t) {
+        const { name, code, err, out } = tests[t];
+        const state = {
+            dict: new Map(),
+            output: "",
+        };
+        const env = { funcs: {}, vars: {}, lets: [] };
+        const startTime = (0, poly_fills_1.getTimeMs)();
+        const errors = await invoke({
+            get: (key) => get(state, key),
+            set: (key, val) => set(state, key, val),
+            exe: (name, args) => exe(state, name, args),
+            env,
+            loopBudget: 10000,
+            rangeBudget: 1000,
+            callBudget: 1000,
+            recurBudget: 10000,
+        }, code, "testing", true);
+        const okErr = (err || []).join() === errors.map(({ e }) => e).join();
+        const okOut = !out || (0, poly_fills_1.trim)(state.output) === out;
+        const elapsedMs = (0, poly_fills_1.getTimeMs)() - startTime;
+        const [testNum, testName, testElapsed, testErrors] = [
+            (0, poly_fills_1.padEnd)(`${t + 1}`, 3),
+            (0, poly_fills_1.padEnd)(name, 24),
+            (0, poly_fills_1.padEnd)(`${elapsedMs}ms`, 6),
+            okErr ||
+                errors.map(({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`),
+        ];
+        results.push({
+            okErr,
+            okOut,
+            elapsedMs,
+            display: `${testNum} ${testName} ${testElapsed} ${okOut} ${testErrors}`,
+        });
+    }
+    const totalMs = results.reduce((sum, { elapsedMs }) => sum + elapsedMs, 0);
+    const numPassed = (0, poly_fills_1.len)(results.filter(({ okOut, okErr }) => okOut && okErr));
+    return (0, poly_fills_1.concat)(results.filter(r => !terse || !r.okOut || !r.okErr).map(r => r.display), [`----- ${numPassed}/${(0, poly_fills_1.len)(results)} tests passed in ${totalMs}ms.`]);
+}
+exports.doTests = doTests;
+
+
+/***/ }),
+
+/***/ 699:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.typeNames = exports.ops = void 0;
+exports.ops = {
+    print: {},
+    "print-str": {},
+    "execute-last": {},
+    "!": { exactArity: 1 },
+    "=": { minArity: 2 },
+    "!=": { minArity: 2 },
+    "+": { minArity: 2, onlyNum: true },
+    "-": { minArity: 1, onlyNum: true },
+    "*": { minArity: 2, onlyNum: true },
+    "/": { minArity: 2, onlyNum: true },
+    "//": { minArity: 2, onlyNum: true },
+    "**": { minArity: 1, onlyNum: true },
+    "<": { minArity: 2, onlyNum: true },
+    ">": { minArity: 2, onlyNum: true },
+    "<=": { minArity: 2, onlyNum: true },
+    ">=": { minArity: 2, onlyNum: true },
+    inc: { exactArity: 1, onlyNum: true },
+    dec: { exactArity: 1, onlyNum: true },
+    min: { minArity: 2, onlyNum: true },
+    max: { minArity: 2, onlyNum: true },
+    abs: { exactArity: 1, onlyNum: true },
+    sqrt: { exactArity: 1, onlyNum: true },
+    round: { exactArity: 1, onlyNum: true },
+    floor: { exactArity: 1, onlyNum: true },
+    ceil: { exactArity: 1, onlyNum: true },
+    "odd?": { exactArity: 1, onlyNum: true },
+    "even?": { exactArity: 1, onlyNum: true },
+    "pos?": { exactArity: 1, onlyNum: true },
+    "neg?": { exactArity: 1, onlyNum: true },
+    "zero?": { exactArity: 1, onlyNum: true },
+    "null?": { exactArity: 1 },
+    "num?": { exactArity: 1 },
+    "bool?": { exactArity: 1 },
+    "str?": { exactArity: 1 },
+    "vec?": { exactArity: 1 },
+    "dict?": { exactArity: 1 },
+    "key?": { exactArity: 1 },
+    "func?": { exactArity: 1 },
+    rem: { minArity: 2, onlyNum: true },
+    sin: { exactArity: 1, onlyNum: true },
+    cos: { exactArity: 1, onlyNum: true },
+    tan: { exactArity: 1, onlyNum: true },
+    vec: {},
+    dict: {},
+    len: { exactArity: 1, types: [["str", "vec", "dict"]] },
+    num: { exactArity: 1, types: [["str", "num"]] },
+    "has?": { exactArity: 2, types: ["str", "str"] },
+    idx: { exactArity: 2, types: [["str", "vec"]] },
+    map: { minArity: 2 },
+    for: { minArity: 2 },
+    reduce: { minArity: 2, maxArity: 3 },
+    filter: { exactArity: 2 },
+    str: {},
+    "rand-num": { maxArity: 2, onlyNum: true },
+    "rand-int": { maxArity: 2, onlyNum: true },
+    while: {},
+    "..": { minArity: 2 },
+    into: {
+        exactArity: 2,
+        types: [
+            ["vec", "dict"],
+            ["vec", "dict"],
+        ],
+    },
+    push: { minArity: 2, maxArity: 3, types: [["vec", "dict"]] },
+    sect: { minArity: 1, maxArity: 3, types: [["vec", "str"], "num", "num"] },
+    reverse: { exactArity: 1, types: [["vec", "str"]] },
+    sort: { minArity: 1, maxArity: 2, types: ["vec"] },
+    keys: { exactArity: 1, types: ["dict"] },
+    vals: { exactArity: 1, types: ["dict"] },
+    do: { minArity: 1 },
+    val: { minArity: 1 },
+    range: { minArity: 1, maxArity: 3, types: ["num", "num", "num"] },
+    "empty?": { exactArity: 1, types: [["str", "vec", "dict"]] },
+    "starts-with?": { exactArity: 2, types: ["str", "str"] },
+    "ends-with?": { exactArity: 2, types: ["str", "str"] },
+    split: { minArity: 1, maxArity: 2, types: ["str", "str"] },
+    join: { minArity: 1, maxArity: 2, types: ["vec", "str"] },
+    time: { exactArity: 0 },
+    version: { exactArity: 0 },
+    tests: { minArity: 0, maxArity: 1, types: ["bool"] },
+    eval: { exactArity: 1, types: ["str"] },
+};
+exports.typeNames = {
+    null: "null",
+    str: "string",
+    num: "number",
+    bool: "boolean",
+    key: "keyword",
+    ref: "reference",
+    vec: "vector",
+    dict: "dictionary",
+    func: "function",
+};
+
+
+/***/ }),
+
+/***/ 147:
+/***/ ((module) => {
+
+module.exports = require("fs");
+
+/***/ }),
+
+/***/ 521:
+/***/ ((module) => {
+
+module.exports = require("readline");
+
+/***/ })
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+(() => {
+var exports = __webpack_exports__;
+var __webpack_unused_export__;
+
+__webpack_unused_export__ = ({ value: true });
+const readline = __webpack_require__(521);
+const fs = __webpack_require__(147);
+const _1 = __webpack_require__(607);
+const invoker_1 = __webpack_require__(669);
+const env = new Map();
+async function get(key) {
+    return env.has(key)
+        ? { value: env.get(key), err: undefined }
+        : {
+            value: { v: undefined, t: "null" },
+            err: `key ${key} not found`,
+        };
+}
+async function set(key, val) {
+    env.set(key, val);
+    return undefined;
+}
+const ctx = {
+    env: { funcs: {}, vars: {}, lets: [] },
+    get,
+    set,
+    exe,
+    loopBudget: 10000,
+    rangeBudget: 1000,
+    callBudget: 100000000,
+    recurBudget: 10000,
+};
+async function exe(name, args) {
+    const nullVal = { v: undefined, t: "null" };
+    switch (name) {
+        case "print":
+        case "print-str":
+            process.stdout.write(`\x1b[32m${args[0].v}\x1b[0m`);
+            if (name === "print") {
+                process.stdout.write("\n");
+            }
+            break;
+        case "read": {
+            const path = args[0].v;
+            if (!fs.existsSync(path)) {
+                return { value: nullVal };
+            }
+            return {
+                value: { t: "str", v: fs.readFileSync(path).toString() },
+            };
+        }
+        default:
+            if (args.length) {
+                const a = args[0];
+                if ((0, _1.visStr)(a) && a.v.startsWith("$")) {
+                    if (args.length === 1) {
+                        return await get(`${a.v.substring(1)}.${name}`);
+                    }
+                    else {
+                        await set(`${a.v.substring(1)}.${name}`, args[1]);
+                        return { value: args[1] };
+                    }
+                }
+            }
+            return { value: nullVal, err: `operation ${name} does not exist` };
+    }
+    return { value: nullVal };
+}
+function completer(line) {
+    const input = line.split(invoker_1.parensRx).pop();
+    const completions = (0, _1.symbols)(ctx);
+    if (!input) {
+        return [completions, ""];
+    }
+    const hits = completions.filter(c => c.startsWith(input));
+    return [hits.length ? hits : completions, input];
+}
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: "> ",
+    completer,
+    history: fs.existsSync(".repl-history")
+        ? fs.readFileSync(".repl-history").toString().split("\n").reverse()
+        : [],
+});
+rl.on("line", async (line) => {
+    if (line === "quit") {
+        rl.close();
+        return;
+    }
+    if (line.trim()) {
+        fs.appendFileSync(".repl-history", `\n${line}`);
+        printErrorOutput(await (0, invoker_1.invoker)(ctx, line));
+    }
+    rl.prompt();
+});
+rl.prompt();
+function printErrorOutput(lines) {
+    const colours = { error: 31, message: 35 };
+    lines.forEach(({ type, text }) => {
+        process.stdout.write(`\x1b[${colours[type]}m${text}\x1b[0m`);
+    });
+}
+
+})();
+
+/******/ })()
+;
+//# sourceMappingURL=repl.js.map
