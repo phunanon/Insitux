@@ -613,14 +613,6 @@
 					"function",
 					"Returns its first argument."
 				]
-			},
-			{
-				"directory": "eval",
-				"description": [
-					"(eval \"(+ 2 2)\")",
-					"function",
-					"Evaluates a string as Insitux code, returning any values returned or null."
-				]
 			}
 		]
 	},
@@ -629,6 +621,14 @@
 			"basic shobfix environment definitions to interface with your console or provide basic functionality"
 		],
 		"list": [
+			{
+				"directory": "load",
+				"description": [
+					"(load \"link\")",
+					"function",
+					"loads the code provided by website from `link`"
+				]
+			},
 			{
 				"directory": "print",
 				"description": [
