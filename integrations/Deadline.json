@@ -858,6 +858,22 @@
 				]
 			},
 			{
+				"directory": "$dl.globals.enable_projectile_debug",
+				"description": [
+					"(print $dl.globals.enable_projectile_debug)",
+					"bool value",
+					"enables projectile debug lines"
+				]
+			},
+						{
+				"directory": "$dl.globals.enable_debug_overlay_ingame",
+				"description": [
+					"(print $dl.globals.enable_debug_overlay_ingame)",
+					"bool value",
+					"enables shobfix logger when spawned in"
+				]
+			},
+			{
 				"directory": "$dl.globals.day_cycle_speed",
 				"description": [
 					"(print $dl.globals.day_cycle_speed)",
