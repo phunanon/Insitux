@@ -8,7 +8,7 @@
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.symbols = exports.invoke = exports.exeFunc = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
-exports.insituxVersion = 20210910;
+exports.insituxVersion = 20210911;
 const parse_1 = __webpack_require__(306);
 const poly_fills_1 = __webpack_require__(17);
 const test_1 = __webpack_require__(127);
@@ -1138,7 +1138,11 @@ function parseArg(tokens, params) {
                 return [{ typ: "key", value: text, errCtx }];
             }
             else if ((0, poly_fills_1.starts)(text, "#") && (0, poly_fills_1.isNum)((0, poly_fills_1.substr)(text, 1))) {
-                return [{ typ: "par", value: (0, poly_fills_1.toNum)((0, poly_fills_1.substr)(text, 1)), errCtx }];
+                const value = (0, poly_fills_1.toNum)((0, poly_fills_1.substr)(text, 1));
+                if (value < 0) {
+                    return [{ typ: "nul", errCtx }];
+                }
+                return [{ typ: "par", value, errCtx }];
             }
             else if ((0, poly_fills_1.has)(params, text)) {
                 return [{ typ: "par", value: params.indexOf(text), errCtx }];

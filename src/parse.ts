@@ -194,7 +194,11 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
       } else if (starts(text, ":")) {
         return [{ typ: "key", value: text, errCtx }];
       } else if (starts(text, "#") && isNum(substr(text, 1))) {
-        return [{ typ: "par", value: toNum(substr(text, 1)), errCtx }];
+        const value = toNum(substr(text, 1));
+        if (value < 0) {
+          return [{typ: "nul", errCtx}];
+        }
+        return [{ typ: "par", value, errCtx }];
       } else if (has(params, text)) {
         return [{ typ: "par", value: params.indexOf(text), errCtx }];
       } else if (text === "args") {
