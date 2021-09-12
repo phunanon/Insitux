@@ -269,6 +269,10 @@ internal insitux functions
 ;; syntax
 ;; Loops all arguments so long as the first argument is true.
 
+(function f (return 123) (print "hello"))
+;; syntax
+;; Returns its last argument early from a function.
+
 (print "2 + 2 = " (+ 2 2))
 ;; function
 ;; Prints a line of text, joining its arguments together.
@@ -555,5 +559,5 @@ internal insitux functions
 
 (eval "(+ 2 2)")
 ;; function
-;; Evaluates a string as Insitux code, returning any values returned or null.
+;; Evaluates a string as code, returning any values returned or null.
 ```

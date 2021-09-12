@@ -936,6 +936,10 @@ export async function exeFunc(
       case "pop":
         splice(stack, len(stack) - (value as number), value as number);
         break;
+      case "ret":
+        splice(stack, 0, len(stack) - 1);
+        i = lim;
+        break;
     }
   }
   ctx.env.lets.pop();

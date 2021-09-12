@@ -914,6 +914,10 @@ async function exeFunc(ctx, func, args) {
             case "pop":
                 splice(stack, len(stack) - value, value);
                 break;
+            case "ret":
+                splice(stack, 0, len(stack) - 1);
+                i = lim;
+                break;
         }
     }
     ctx.env.lets.pop();
@@ -1305,6 +1309,9 @@ function parseArg(tokens, params) {
                 ++args;
                 push(body, parsed);
             }
+            if (op === "return") {
+                return [...body, { typ: "ret", errCtx }];
+            }
             headIns.push({
                 typ: types_1.ops[op] ? "op" : "exe",
                 value: [
@@ -1477,7 +1484,7 @@ const isNum = (x) => !Number.isNaN(Number(x));
 exports.isNum = isNum;
 const isArray = (x) => Array.isArray(x);
 exports.isArray = isArray;
-const substr = (str, start, length) => str.substring(start, length ? start + length : str.length);
+const substr = (str, start, length) => str.substring(start, start + (length ?? str.length));
 exports.substr = substr;
 const strIdx = (str, idx) => str[idx];
 exports.strIdx = strIdx;
@@ -1624,7 +1631,7 @@ const tests = [
     { name: "Define op and call", code: `(var f +) (f 2 2)`, out: `4` },
     { name: "Define vec and call", code: `(var f [1]) (f 1)`, out: `1` },
     {
-        name: "Define num op and call",
+        name: "Define num and call",
         code: `(var f 1) (f [:a :b :c])`,
         out: `:b`,
     },
@@ -1720,6 +1727,11 @@ const tests = [
         name: "Let num op and call",
         code: `(function f (let n 0) (n [0])) (f)`,
         out: `0`,
+    },
+    {
+        name: "Explicit return",
+        code: `(function f (return 123) (print 456)) (f)`,
+        out: `123`,
     },
     //Runtime errors
     {

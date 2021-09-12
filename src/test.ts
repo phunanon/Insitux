@@ -103,7 +103,7 @@ const tests: {
   { name: "Define op and call", code: `(var f +) (f 2 2)`, out: `4` },
   { name: "Define vec and call", code: `(var f [1]) (f 1)`, out: `1` },
   {
-    name: "Define num op and call",
+    name: "Define num and call",
     code: `(var f 1) (f [:a :b :c])`,
     out: `:b`,
   },
@@ -199,6 +199,11 @@ const tests: {
     name: "Let num op and call",
     code: `(function f (let n 0) (n [0])) (f)`,
     out: `0`,
+  },
+  {
+    name: "Explicit return",
+    code: `(function f (return 123) (print 456)) (f)`,
+    out: `123`,
   },
   //Runtime errors
   {

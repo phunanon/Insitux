@@ -51,6 +51,14 @@
 				]
 			},
 			{
+				"directory": "return",
+				"description": [
+					"(function f (return 123) (print \"hello\"))",
+					"syntax",
+					"Returns its last argument early from a function."
+				]
+			},
+			{
 				"directory": "print",
 				"description": [
 					"(print \"2 + 2 = \" (+ 2 2))",
@@ -612,6 +620,14 @@
 					"(range 0 10 (print-str \"hello\"))",
 					"function",
 					"Returns its first argument."
+				]
+			},
+			{
+				"directory": "eval",
+				"description": [
+					"(eval \"(+ 2 2)\")",
+					"function",
+					"Evaluates a string as code, returning any values returned or null."
 				]
 			}
 		]

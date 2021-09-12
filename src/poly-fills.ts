@@ -8,7 +8,7 @@ export const slen = (str: string): number => str.length;
 export const isNum = (x: unknown): x is number => !Number.isNaN(Number(x));
 export const isArray = <T>(x: unknown): x is T[] => Array.isArray(x);
 export const substr = (str: string, start: number, length?: number): string =>
-  str.substring(start, length ? start + length : str.length);
+  str.substring(start, start + (length ?? str.length));
 export const strIdx = (str: string, idx: number): string => str[idx];
 export const sub = (x: string, s: string): boolean => x.includes(s);
 export const subIdx = (x: string, s: string) => x.indexOf(s);

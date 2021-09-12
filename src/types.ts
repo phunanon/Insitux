@@ -51,7 +51,8 @@ export type InsType =
   | "jmp" //Inexpensive jump
   | "loo" //Expensive jump
   | "pop" //Truncate stack
-  | "or";
+  | "or"
+  | "ret";
 export type Ins = {
   typ: InsType;
   value?: unknown;

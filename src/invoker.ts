@@ -1,5 +1,5 @@
 import { invoke } from ".";
-import { getTimeMs, padEnd, substr, trim, trimStart } from "./poly-fills";
+import { getTimeMs, padEnd, substr, trimStart } from "./poly-fills";
 import { Ctx } from "./types";
 
 export type ErrorOutput = {

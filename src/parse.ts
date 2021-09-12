@@ -313,6 +313,9 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
         ++args;
         push(body, parsed);
       }
+      if (op === "return") {
+        return [...body, {typ: "ret", errCtx}];
+      }
       headIns.push({
         typ: ops[op] ? "op" : "exe",
         value: [

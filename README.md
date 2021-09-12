@@ -299,6 +299,12 @@ etc
 (idx [1 2 3 4] 3)  => 2
 (idx "Hello" "ll") => 2
 
+;Returns its last argument early from a function with a value
+(function f
+  (return 123)
+  (print "hello"))
+(f) => 123
+
 ;Applies a vector's items and other arguments as the arguments to a function
 (.. + [0 1 2] 3 [4 5 6])
 => 21
@@ -313,7 +319,7 @@ etc
 ;Returns Insitux version
 (version)
 
-;Evaluates a string as Insitux code, returning any values returned or null
+;Evaluates a string as code, returning any values returned or null
 (eval "(+ 2 2)") => 4
 ```
 
