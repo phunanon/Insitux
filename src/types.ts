@@ -89,7 +89,7 @@ export const ops: {
   min: { minArity: 2, onlyNum: true },
   max: { minArity: 2, onlyNum: true },
   abs: { exactArity: 1, onlyNum: true },
-  pi: {exactArity: 0},
+  pi: { exactArity: 0 },
   sqrt: { exactArity: 1, onlyNum: true },
   round: { exactArity: 1, onlyNum: true },
   floor: { exactArity: 1, onlyNum: true },
@@ -164,3 +164,5 @@ export const typeNames = {
   dict: "dictionary",
   func: "function",
 };
+
+export const assertUnreachable = (_x: never): never => <never>0;

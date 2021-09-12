@@ -26,6 +26,7 @@ const val2str = ({ v, t }) => {
             return `${v}`;
         case "str":
         case "key":
+        case "ref":
             return v;
         case "vec":
             return `[${v.map(v => val2str(v)).join(" ")}]`;
@@ -40,7 +41,7 @@ const val2str = ({ v, t }) => {
         case "func":
             return `<${v}>`;
     }
-    return "?";
+    return (0, types_1.assertUnreachable)(t);
 };
 let stack = [];
 const _boo = (v) => stack.push({ t: "bool", v });
@@ -49,7 +50,6 @@ const _str = (v = "") => stack.push({ t: "str", v });
 const _key = (v) => stack.push({ t: "key", v });
 const _vec = (v = []) => stack.push({ t: "vec", v });
 const _dic = (v) => stack.push({ t: "dict", v });
-const _ref = (v) => stack.push({ t: "ref", v });
 const _nul = () => stack.push({ t: "null", v: undefined });
 const _fun = (v) => stack.push({ t: "func", v });
 const num = ({ v }) => v;
@@ -115,15 +115,25 @@ const isDictEqual = (a, b) => {
     return len(ad.keys) === len(bd.keys) && isVecEqual(ad.keys, bd.keys);
 };
 const isEqual = (a, b) => {
-    return a.t === b.t && a.t === "num"
-        ? num(a) === num(b)
-        : a.t === "str" || a.t === "key"
-            ? str(a) === str(b)
-            : a.t === "vec"
-                ? isVecEqual(vec(a), vec(b))
-                : a.t === "dict"
-                    ? isDictEqual(a, b)
-                    : false;
+    const { t } = a;
+    switch (t) {
+        case "null":
+            return true;
+        case "bool":
+            return a.v === b.v;
+        case "num":
+            return num(a) === num(b);
+        case "vec":
+            return isVecEqual(vec(a), vec(b));
+        case "dict":
+            return isDictEqual(a, b);
+        case "str":
+        case "ref":
+        case "key":
+        case "func":
+            return str(a) === str(b);
+    }
+    return (0, types_1.assertUnreachable)(t);
 };
 const dictGet = ({ keys, vals }, key) => {
     const idx = keys.findIndex(k => isEqual(k, key));
@@ -918,6 +928,8 @@ async function exeFunc(ctx, func, args) {
                 splice(stack, 0, len(stack) - 1);
                 i = lim;
                 break;
+            default:
+                (0, types_1.assertUnreachable)(typ);
         }
     }
     ctx.env.lets.pop();
@@ -1013,6 +1025,7 @@ const { concat, has, flat, push, slice } = pf;
 const { slen, starts, sub, substr, strIdx } = pf;
 const { isNum, len, toNum } = pf;
 const types_1 = __webpack_require__(699);
+const types_2 = __webpack_require__(699);
 function tokenise(code, invocationId) {
     const tokens = [];
     const digits = "0123456789";
@@ -1151,6 +1164,149 @@ function funcise(segments) {
         ])
         : described;
 }
+function parseForm(tokens, params) {
+    const head = tokens.shift();
+    if (!head) {
+        return [];
+    }
+    const { typ, text, errCtx } = head;
+    let op = text;
+    const err = (value) => [{ typ: "err", value, errCtx }];
+    if (op === "var" || op === "let") {
+        const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
+        if (!len(def) || !len(val) || len(parseArg(tokens, params))) {
+            return err("must provide reference name and value only");
+        }
+        return [...val, { typ: op, value: def[0].value, errCtx }];
+    }
+    else if (op === "if" || op === "when") {
+        const cond = parseArg(tokens, params);
+        if (!len(cond)) {
+            return err("must provide condition");
+        }
+        const ins = cond;
+        if (op === "if") {
+            const ifT = parseArg(tokens, params);
+            if (!len(ifT)) {
+                return err("must provide a branch");
+            }
+            ins.push({ typ: "if", value: len(ifT) + 1, errCtx });
+            push(ins, ifT);
+            const ifF = parseArg(tokens, params);
+            if (len(ifF)) {
+                ins.push({ typ: "jmp", value: len(ifF), errCtx });
+                push(ins, ifF);
+                if (len(parseArg(tokens, params))) {
+                    return err("too many branches");
+                }
+            }
+            else {
+                ins.push({ typ: "jmp", value: 1, errCtx });
+                ins.push({ typ: "nul", value: undefined, errCtx });
+            }
+        }
+        else {
+            const body = [];
+            while (true) {
+                const exp = parseArg(tokens, params);
+                if (!len(exp)) {
+                    break;
+                }
+                push(body, exp);
+            }
+            ins.push({ typ: "if", value: len(body) + 1, errCtx });
+            push(ins, body);
+            ins.push({ typ: "jmp", value: 1, errCtx });
+            ins.push({ typ: "nul", value: undefined, errCtx });
+        }
+        return ins;
+    }
+    else if (op === "and" || op === "or" || op === "while") {
+        const args = [];
+        let insCount = 0;
+        while (true) {
+            const arg = parseArg(tokens, params);
+            if (!len(arg)) {
+                break;
+            }
+            args.push(arg);
+            insCount += len(arg);
+        }
+        if (len(args) < 2) {
+            return err("requires at least two arguments");
+        }
+        const ins = [];
+        if (op === "while") {
+            insCount += 2; //+1 for the if ins, +1 for the pop ins
+            const head = args.shift();
+            push(ins, head);
+            ins.push({ typ: "if", value: insCount - len(head), errCtx });
+            args.forEach(as => push(ins, as));
+            ins.push({ typ: "pop", value: len(args), errCtx });
+            ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
+            return ins;
+        }
+        insCount += len(args); //+1 for each if/or ins
+        insCount += toNum(op === "and");
+        const typ = op === "and" ? "if" : "or";
+        for (let a = 0; a < len(args); ++a) {
+            push(ins, args[a]);
+            insCount -= len(args[a]);
+            ins.push({ typ, value: insCount, errCtx });
+            --insCount;
+        }
+        if (op === "and") {
+            push(ins, [
+                { typ: "boo", value: true, errCtx },
+                { typ: "jmp", value: 1, errCtx },
+                { typ: "boo", value: false, errCtx },
+            ]);
+        }
+        else {
+            ins.push({ typ: "boo", value: false, errCtx });
+        }
+        return ins;
+    }
+    const headIns = [];
+    let args = 0;
+    //Head is a form or parameter
+    if (typ === "(" || has(params, text) || starts(text, "#")) {
+        tokens.unshift(head);
+        const ins = parseArg(tokens, params);
+        push(headIns, ins);
+        op = "execute-last";
+        ++args;
+    }
+    const body = [];
+    while (len(tokens)) {
+        const parsed = parseArg(tokens, params);
+        if (!len(parsed)) {
+            break;
+        }
+        ++args;
+        push(body, parsed);
+    }
+    if (op === "return") {
+        return [...body, { typ: "ret", errCtx }];
+    }
+    headIns.push({
+        typ: types_1.ops[op] ? "op" : "exe",
+        value: [
+            typ === "num"
+                ? { t: "num", v: toNum(op) }
+                : starts(op, ":")
+                    ? { t: "key", v: op }
+                    : types_1.ops[op]
+                        ? { t: "func", v: op }
+                        : op === "true" || op === "false"
+                            ? { t: "bool", v: op === "true" }
+                            : { t: "str", v: op },
+            args,
+        ],
+        errCtx,
+    });
+    return [...body, ...headIns];
+}
 function parseArg(tokens, params) {
     if (!len(tokens)) {
         return [];
@@ -1187,151 +1343,13 @@ function parseArg(tokens, params) {
             return [{ typ: "ref", value: text, errCtx }];
         case "ref":
             return [{ typ: "def", value: text, errCtx }];
-        case "(": {
-            const head = tokens.shift();
-            if (!head) {
-                break;
-            }
-            const { typ, text, errCtx } = head;
-            let op = text;
-            const err = (value) => [{ typ: "err", value, errCtx }];
-            if (op === "var" || op === "let") {
-                const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
-                if (!len(def) || !len(val) || len(parseArg(tokens, params))) {
-                    return err("must provide reference name and value only");
-                }
-                return [...val, { typ: op, value: def[0].value, errCtx }];
-            }
-            else if (op === "if" || op === "when") {
-                const cond = parseArg(tokens, params);
-                if (!len(cond)) {
-                    return err("must provide condition");
-                }
-                const ins = cond;
-                if (op === "if") {
-                    const ifT = parseArg(tokens, params);
-                    if (!len(ifT)) {
-                        return err("must provide a branch");
-                    }
-                    ins.push({ typ: "if", value: len(ifT) + 1, errCtx });
-                    push(ins, ifT);
-                    const ifF = parseArg(tokens, params);
-                    if (len(ifF)) {
-                        ins.push({ typ: "jmp", value: len(ifF), errCtx });
-                        push(ins, ifF);
-                        if (len(parseArg(tokens, params))) {
-                            return err("too many branches");
-                        }
-                    }
-                    else {
-                        ins.push({ typ: "jmp", value: 1, errCtx });
-                        ins.push({ typ: "nul", value: undefined, errCtx });
-                    }
-                }
-                else {
-                    const body = [];
-                    while (true) {
-                        const exp = parseArg(tokens, params);
-                        if (!len(exp)) {
-                            break;
-                        }
-                        push(body, exp);
-                    }
-                    ins.push({ typ: "if", value: len(body) + 1, errCtx });
-                    push(ins, body);
-                    ins.push({ typ: "jmp", value: 1, errCtx });
-                    ins.push({ typ: "nul", value: undefined, errCtx });
-                }
-                return ins;
-            }
-            else if (op === "and" || op === "or" || op === "while") {
-                const args = [];
-                let insCount = 0;
-                while (true) {
-                    const arg = parseArg(tokens, params);
-                    if (!len(arg)) {
-                        break;
-                    }
-                    args.push(arg);
-                    insCount += len(arg);
-                }
-                if (len(args) < 2) {
-                    return err("requires at least two arguments");
-                }
-                const ins = [];
-                if (op === "while") {
-                    insCount += 2; //+1 for the if ins, +1 for the pop ins
-                    const head = args.shift();
-                    push(ins, head);
-                    ins.push({ typ: "if", value: insCount - len(head), errCtx });
-                    args.forEach(as => push(ins, as));
-                    ins.push({ typ: "pop", value: len(args), errCtx });
-                    ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
-                    return ins;
-                }
-                insCount += len(args); //+1 for each if/or ins
-                insCount += toNum(op === "and");
-                const typ = op === "and" ? "if" : "or";
-                for (let a = 0; a < len(args); ++a) {
-                    push(ins, args[a]);
-                    insCount -= len(args[a]);
-                    ins.push({ typ, value: insCount, errCtx });
-                    --insCount;
-                }
-                if (op === "and") {
-                    push(ins, [
-                        { typ: "boo", value: true, errCtx },
-                        { typ: "jmp", value: 1, errCtx },
-                        { typ: "boo", value: false, errCtx },
-                    ]);
-                }
-                else {
-                    ins.push({ typ: "boo", value: false, errCtx });
-                }
-                return ins;
-            }
-            const headIns = [];
-            let args = 0;
-            //Head is a form or parameter
-            if (typ === "(" || has(params, text) || starts(text, "#")) {
-                tokens.unshift(head);
-                const ins = parseArg(tokens, params);
-                push(headIns, ins);
-                op = "execute-last";
-                ++args;
-            }
-            const body = [];
-            while (len(tokens)) {
-                const parsed = parseArg(tokens, params);
-                if (!len(parsed)) {
-                    break;
-                }
-                ++args;
-                push(body, parsed);
-            }
-            if (op === "return") {
-                return [...body, { typ: "ret", errCtx }];
-            }
-            headIns.push({
-                typ: types_1.ops[op] ? "op" : "exe",
-                value: [
-                    typ === "num"
-                        ? { t: "num", v: toNum(op) }
-                        : starts(op, ":")
-                            ? { t: "key", v: op }
-                            : types_1.ops[op]
-                                ? { t: "func", v: op }
-                                : op === "true" || op === "false"
-                                    ? { t: "bool", v: op === "true" }
-                                    : { t: "str", v: op },
-                    args,
-                ],
-                errCtx,
-            });
-            return [...body, ...headIns];
-        }
+        case "(":
+            return parseForm(tokens, params);
+        case ")":
+            return [];
+        default:
+            return (0, types_2.assertUnreachable)(typ);
     }
-    return [];
 }
 function partitionWhen(array, predicate) {
     const a = [], b = [];
@@ -1849,7 +1867,7 @@ exports.doTests = doTests;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.typeNames = exports.ops = void 0;
+exports.assertUnreachable = exports.typeNames = exports.ops = void 0;
 exports.ops = {
     print: {},
     "print-str": {},
@@ -1946,6 +1964,8 @@ exports.typeNames = {
     dict: "dictionary",
     func: "function",
 };
+const assertUnreachable = (_x) => 0;
+exports.assertUnreachable = assertUnreachable;
 
 
 /***/ }),

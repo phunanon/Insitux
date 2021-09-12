@@ -3,6 +3,7 @@ const { concat, has, flat, push, slice } = pf;
 const { slen, starts, sub, substr, strIdx } = pf;
 const { isNum, len, toNum } = pf;
 import { ErrCtx, Func, Funcs, Ins, InvokeError, ops } from "./types";
+import { assertUnreachable } from "./types";
 
 type Token = {
   typ: "str" | "num" | "sym" | "ref" | "(" | ")";
@@ -165,6 +166,145 @@ function funcise(segments: Token[][]): NamedTokens[] {
     : described;
 }
 
+function parseForm(tokens: Token[], params: string[]): ParserIns[] {
+  const head = tokens.shift();
+  if (!head) {
+    return [];
+  }
+  const { typ, text, errCtx } = head;
+  let op = text;
+  const err = (value: string) => [<ParserIns>{ typ: "err", value, errCtx }];
+  if (op === "var" || op === "let") {
+    const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
+    if (!len(def) || !len(val) || len(parseArg(tokens, params))) {
+      return err("must provide reference name and value only");
+    }
+    return [...val, { typ: op, value: def[0].value, errCtx }];
+  } else if (op === "if" || op === "when") {
+    const cond = parseArg(tokens, params);
+    if (!len(cond)) {
+      return err("must provide condition");
+    }
+    const ins: ParserIns[] = cond;
+    if (op === "if") {
+      const ifT = parseArg(tokens, params);
+      if (!len(ifT)) {
+        return err("must provide a branch");
+      }
+      ins.push({ typ: "if", value: len(ifT) + 1, errCtx });
+      push(ins, ifT);
+      const ifF = parseArg(tokens, params);
+      if (len(ifF)) {
+        ins.push({ typ: "jmp", value: len(ifF), errCtx });
+        push(ins, ifF);
+        if (len(parseArg(tokens, params))) {
+          return err("too many branches");
+        }
+      } else {
+        ins.push({ typ: "jmp", value: 1, errCtx });
+        ins.push({ typ: "nul", value: undefined, errCtx });
+      }
+    } else {
+      const body: ParserIns[] = [];
+      while (true) {
+        const exp = parseArg(tokens, params);
+        if (!len(exp)) {
+          break;
+        }
+        push(body, exp);
+      }
+      ins.push({ typ: "if", value: len(body) + 1, errCtx });
+      push(ins, body);
+      ins.push({ typ: "jmp", value: 1, errCtx });
+      ins.push({ typ: "nul", value: undefined, errCtx });
+    }
+    return ins;
+  } else if (op === "and" || op === "or" || op === "while") {
+    const args: ParserIns[][] = [];
+    let insCount = 0;
+    while (true) {
+      const arg = parseArg(tokens, params);
+      if (!len(arg)) {
+        break;
+      }
+      args.push(arg);
+      insCount += len(arg);
+    }
+    if (len(args) < 2) {
+      return err("requires at least two arguments");
+    }
+    const ins: Ins[] = [];
+    if (op === "while") {
+      insCount += 2; //+1 for the if ins, +1 for the pop ins
+      const head = args.shift()!;
+      push(ins, head);
+      ins.push({ typ: "if", value: insCount - len(head), errCtx });
+      args.forEach(as => push(ins, as));
+      ins.push({ typ: "pop", value: len(args), errCtx });
+      ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
+      return ins;
+    }
+    insCount += len(args); //+1 for each if/or ins
+    insCount += toNum(op === "and");
+    const typ = op === "and" ? "if" : "or";
+    for (let a = 0; a < len(args); ++a) {
+      push(ins, args[a]);
+      insCount -= len(args[a]);
+      ins.push({ typ, value: insCount, errCtx });
+      --insCount;
+    }
+    if (op === "and") {
+      push(ins, [
+        { typ: "boo", value: true, errCtx },
+        { typ: "jmp", value: 1, errCtx },
+        { typ: "boo", value: false, errCtx },
+      ]);
+    } else {
+      ins.push({ typ: "boo", value: false, errCtx });
+    }
+    return ins;
+  }
+  const headIns: Ins[] = [];
+  let args = 0;
+  //Head is a form or parameter
+  if (typ === "(" || has(params, text) || starts(text, "#")) {
+    tokens.unshift(head);
+    const ins = parseArg(tokens, params);
+    push(headIns, ins);
+    op = "execute-last";
+    ++args;
+  }
+  const body: Ins[] = [];
+  while (len(tokens)) {
+    const parsed = parseArg(tokens, params);
+    if (!len(parsed)) {
+      break;
+    }
+    ++args;
+    push(body, parsed);
+  }
+  if (op === "return") {
+    return [...body, { typ: "ret", errCtx }];
+  }
+  headIns.push({
+    typ: ops[op] ? "op" : "exe",
+    value: [
+      typ === "num"
+        ? { t: "num", v: toNum(op) }
+        : starts(op, ":")
+        ? { t: "key", v: op }
+        : ops[op]
+        ? { t: "func", v: op }
+        : op === "true" || op === "false"
+        ? { t: "bool", v: op === "true" }
+        : { t: "str", v: op },
+      args,
+    ],
+    errCtx,
+  });
+  return [...body, ...headIns];
+}
+
 function parseArg(tokens: Token[], params: string[]): ParserIns[] {
   if (!len(tokens)) {
     return [];
@@ -196,146 +336,13 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
       return [{ typ: "ref", value: text, errCtx }];
     case "ref":
       return [{ typ: "def", value: text, errCtx }];
-    case "(": {
-      const head = tokens.shift();
-      if (!head) {
-        break;
-      }
-      const { typ, text, errCtx } = head;
-      let op = text;
-      const err = (value: string) => [<ParserIns>{ typ: "err", value, errCtx }];
-      if (op === "var" || op === "let") {
-        const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
-        if (!len(def) || !len(val) || len(parseArg(tokens, params))) {
-          return err("must provide reference name and value only");
-        }
-        return [...val, { typ: op, value: def[0].value, errCtx }];
-      } else if (op === "if" || op === "when") {
-        const cond = parseArg(tokens, params);
-        if (!len(cond)) {
-          return err("must provide condition");
-        }
-        const ins: ParserIns[] = cond;
-        if (op === "if") {
-          const ifT = parseArg(tokens, params);
-          if (!len(ifT)) {
-            return err("must provide a branch");
-          }
-          ins.push({ typ: "if", value: len(ifT) + 1, errCtx });
-          push(ins, ifT);
-          const ifF = parseArg(tokens, params);
-          if (len(ifF)) {
-            ins.push({ typ: "jmp", value: len(ifF), errCtx });
-            push(ins, ifF);
-            if (len(parseArg(tokens, params))) {
-              return err("too many branches");
-            }
-          } else {
-            ins.push({ typ: "jmp", value: 1, errCtx });
-            ins.push({ typ: "nul", value: undefined, errCtx });
-          }
-        } else {
-          const body: ParserIns[] = [];
-          while (true) {
-            const exp = parseArg(tokens, params);
-            if (!len(exp)) {
-              break;
-            }
-            push(body, exp);
-          }
-          ins.push({ typ: "if", value: len(body) + 1, errCtx });
-          push(ins, body);
-          ins.push({ typ: "jmp", value: 1, errCtx });
-          ins.push({ typ: "nul", value: undefined, errCtx });
-        }
-        return ins;
-      } else if (op === "and" || op === "or" || op === "while") {
-        const args: ParserIns[][] = [];
-        let insCount = 0;
-        while (true) {
-          const arg = parseArg(tokens, params);
-          if (!len(arg)) {
-            break;
-          }
-          args.push(arg);
-          insCount += len(arg);
-        }
-        if (len(args) < 2) {
-          return err("requires at least two arguments");
-        }
-        const ins: Ins[] = [];
-        if (op === "while") {
-          insCount += 2; //+1 for the if ins, +1 for the pop ins
-          const head = args.shift()!;
-          push(ins, head);
-          ins.push({ typ: "if", value: insCount - len(head), errCtx });
-          args.forEach(as => push(ins, as));
-          ins.push({ typ: "pop", value: len(args), errCtx });
-          ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
-          return ins;
-        }
-        insCount += len(args); //+1 for each if/or ins
-        insCount += toNum(op === "and");
-        const typ = op === "and" ? "if" : "or";
-        for (let a = 0; a < len(args); ++a) {
-          push(ins, args[a]);
-          insCount -= len(args[a]);
-          ins.push({ typ, value: insCount, errCtx });
-          --insCount;
-        }
-        if (op === "and") {
-          push(ins, [
-            { typ: "boo", value: true, errCtx },
-            { typ: "jmp", value: 1, errCtx },
-            { typ: "boo", value: false, errCtx },
-          ]);
-        } else {
-          ins.push({ typ: "boo", value: false, errCtx });
-        }
-        return ins;
-      }
-      const headIns: Ins[] = [];
-      let args = 0;
-      //Head is a form or parameter
-      if (typ === "(" || has(params, text) || starts(text, "#")) {
-        tokens.unshift(head);
-        const ins = parseArg(tokens, params);
-        push(headIns, ins);
-        op = "execute-last";
-        ++args;
-      }
-      const body: Ins[] = [];
-      while (len(tokens)) {
-        const parsed = parseArg(tokens, params);
-        if (!len(parsed)) {
-          break;
-        }
-        ++args;
-        push(body, parsed);
-      }
-      if (op === "return") {
-        return [...body, {typ: "ret", errCtx}];
-      }
-      headIns.push({
-        typ: ops[op] ? "op" : "exe",
-        value: [
-          typ === "num"
-            ? { t: "num", v: toNum(op) }
-            : starts(op, ":")
-            ? { t: "key", v: op }
-            : ops[op]
-            ? { t: "func", v: op }
-            : op === "true" || op === "false"
-            ? { t: "bool", v: op === "true" }
-            : { t: "str", v: op },
-          args,
-        ],
-        errCtx,
-      });
-      return [...body, ...headIns];
-    }
+    case "(":
+      return parseForm(tokens, params);
+    case ")":
+      return [];
+    default:
+      return assertUnreachable(typ);
   }
-  return [];
 }
 
 function partitionWhen<T>(

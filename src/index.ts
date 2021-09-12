@@ -7,7 +7,7 @@ const { ends, slen, starts, sub, subIdx, substr } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isArray, isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
-import { ops, typeNames } from "./types";
+import { assertUnreachable, ops, typeNames } from "./types";
 import { Ctx, Dict, ErrCtx, Func, InvokeError, Val } from "./types";
 
 const val2str = ({ v, t }: Val): string => {
@@ -18,6 +18,7 @@ const val2str = ({ v, t }: Val): string => {
       return `${v as number}`;
     case "str":
     case "key":
+    case "ref":
       return v as string;
     case "vec":
       return `[${(v as Val[]).map(v => val2str(v)).join(" ")}]`;
@@ -32,7 +33,7 @@ const val2str = ({ v, t }: Val): string => {
     case "func":
       return `<${v}>`;
   }
-  return "?";
+  return assertUnreachable(t);
 };
 
 let stack: Val[] = [];
@@ -42,7 +43,6 @@ const _str = (v: string = "") => stack.push({ t: "str", v });
 const _key = (v: string) => stack.push({ t: "key", v });
 const _vec = (v: Val[] = []) => stack.push({ t: "vec", v });
 const _dic = (v: Dict) => stack.push({ t: "dict", v });
-const _ref = (v: string) => stack.push({ t: "ref", v });
 const _nul = () => stack.push({ t: "null", v: undefined });
 const _fun = (v: string) => stack.push({ t: "func", v });
 const num = ({ v }: Val) => v as number;
@@ -118,15 +118,25 @@ const isDictEqual = (a: Val, b: Val): boolean => {
 };
 
 const isEqual = (a: Val, b: Val) => {
-  return a.t === b.t && a.t === "num"
-    ? num(a) === num(b)
-    : a.t === "str" || a.t === "key"
-    ? str(a) === str(b)
-    : a.t === "vec"
-    ? isVecEqual(vec(a), vec(b))
-    : a.t === "dict"
-    ? isDictEqual(a, b)
-    : false;
+  const { t } = a;
+  switch (t) {
+    case "null":
+      return true;
+    case "bool":
+      return a.v === b.v;
+    case "num":
+      return num(a) === num(b);
+    case "vec":
+      return isVecEqual(vec(a), vec(b));
+    case "dict":
+      return isDictEqual(a, b);
+    case "str":
+    case "ref":
+    case "key":
+    case "func":
+      return str(a) === str(b);
+  }
+  return assertUnreachable(t);
 };
 
 const dictGet = ({ keys, vals }: Dict, key: Val) => {
@@ -940,6 +950,8 @@ export async function exeFunc(
         splice(stack, 0, len(stack) - 1);
         i = lim;
         break;
+      default:
+        assertUnreachable(typ);
     }
   }
   ctx.env.lets.pop();
