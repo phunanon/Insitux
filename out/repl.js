@@ -7,10 +7,15 @@
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.symbols = exports.invoke = exports.exeFunc = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
-exports.insituxVersion = 20210911;
+exports.symbols = exports.invoke = exports.exeFunc = exports.visBoo = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
+exports.insituxVersion = 20210912;
 const parse_1 = __webpack_require__(306);
-const poly_fills_1 = __webpack_require__(17);
+const pf = __webpack_require__(17);
+const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
+const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
+const { ends, slen, starts, sub, subIdx, substr } = pf;
+const { getTimeMs, randInt, randNum } = pf;
+const { isArray, isNum, len, objKeys, range, toNum } = pf;
 const test_1 = __webpack_require__(127);
 const types_1 = __webpack_require__(699);
 const val2str = ({ v, t }) => {
@@ -64,8 +69,10 @@ const visFun = (val) => val.t === "func";
 exports.visFun = visFun;
 const visKey = (val) => val.t === "key";
 exports.visKey = visKey;
+const visBoo = (val) => val.t == "bool";
+exports.visBoo = visBoo;
 const asArray = ({ t, v }) => t === "vec"
-    ? (0, poly_fills_1.slice)(v)
+    ? slice(v)
     : t === "str"
         ? [...v].map(s => ({ t: "str", v: s }))
         : t === "dict"
@@ -76,7 +83,7 @@ const asArray = ({ t, v }) => t === "vec"
             : [];
 const stringify = (vals) => vals.reduce((cat, v) => cat + val2str(v), "");
 const toDict = (args) => {
-    if ((0, poly_fills_1.len)(args) % 2 === 1) {
+    if (len(args) % 2 === 1) {
         args.pop();
     }
     const keys = args.filter((_, i) => i % 2 === 0);
@@ -102,10 +109,10 @@ const typeErr = (m, errCtx) => ({
     m,
     errCtx,
 });
-const isVecEqual = (a, b) => (0, poly_fills_1.len)(a) === (0, poly_fills_1.len)(b) && !a.some((x, i) => !isEqual(x, b[i]));
+const isVecEqual = (a, b) => len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
 const isDictEqual = (a, b) => {
     const [ad, bd] = [dic(a), dic(b)];
-    return (0, poly_fills_1.len)(ad.keys) === (0, poly_fills_1.len)(bd.keys) && isVecEqual(ad.keys, bd.keys);
+    return len(ad.keys) === len(bd.keys) && isVecEqual(ad.keys, bd.keys);
 };
 const isEqual = (a, b) => {
     return a.t === b.t && a.t === "num"
@@ -123,7 +130,7 @@ const dictGet = ({ keys, vals }, key) => {
     return idx === -1 ? { t: "null", v: undefined } : vals[idx];
 };
 const dictSet = ({ keys, vals }, key, val) => {
-    const [nKeys, nVals] = [(0, poly_fills_1.slice)(keys), (0, poly_fills_1.slice)(vals)];
+    const [nKeys, nVals] = [slice(keys), slice(vals)];
     const idx = keys.findIndex(k => isEqual(k, key));
     if (idx !== -1) {
         nVals[idx] = val;
@@ -143,7 +150,7 @@ function exeOpViolations(op, args, errCtx) {
             errCtx,
         },
     ];
-    const nArg = (0, poly_fills_1.len)(args);
+    const nArg = len(args);
     if (exactArity !== undefined) {
         if (nArg !== exactArity) {
             return aErr(`exactly ${exactArity}`, exactArity);
@@ -170,8 +177,8 @@ function exeOpViolations(op, args, errCtx) {
     }
     const typeViolations = types
         .map((need, i) => i < nArg &&
-        ((0, poly_fills_1.isArray)(need)
-            ? (0, poly_fills_1.has)(need, args[i].t)
+        (isArray(need)
+            ? has(need, args[i].t)
                 ? false
                 : `argument ${i + 1} must be either: ${need
                     .map(t => types_1.typeNames[t])
@@ -187,7 +194,7 @@ async function exeOp(op, args, ctx, errCtx) {
     //Argument arity and type checks
     {
         const violations = exeOpViolations(op, args, errCtx);
-        if ((0, poly_fills_1.len)(violations)) {
+        if (len(violations)) {
             return violations;
         }
     }
@@ -216,14 +223,14 @@ async function exeOp(op, args, ctx, errCtx) {
         }
         case "len":
             _num(args[0].t === "str"
-                ? (0, poly_fills_1.slen)(str(args[0]))
+                ? slen(str(args[0]))
                 : args[0].t === "vec"
-                    ? (0, poly_fills_1.len)(vec(args[0]))
-                    : (0, poly_fills_1.len)(dic(args[0]).keys));
+                    ? len(vec(args[0]))
+                    : len(dic(args[0]).keys));
             return [];
         case "num":
-            if ((0, poly_fills_1.isNum)(args[0].v)) {
-                _num((0, poly_fills_1.toNum)(args[0].v));
+            if (isNum(args[0].v)) {
+                _num(toNum(args[0].v));
             }
             else {
                 _nul();
@@ -234,7 +241,7 @@ async function exeOp(op, args, ctx, errCtx) {
             return [];
         case "=":
         case "!=":
-            for (let i = 1, lim = (0, poly_fills_1.len)(args); i < lim; ++i) {
+            for (let i = 1, lim = len(args); i < lim; ++i) {
                 if (isEqual(args[i - 1], args[i]) !== (op === "=")) {
                     _boo(false);
                     return [];
@@ -243,12 +250,12 @@ async function exeOp(op, args, ctx, errCtx) {
             _boo(true);
             return [];
         case "-":
-            _num((0, poly_fills_1.len)(args) === 1
+            _num(len(args) === 1
                 ? -num(args[0])
                 : args.map(num).reduce((sum, n) => sum - n));
             return [];
         case "**":
-            _num(num(args[0]) ** ((0, poly_fills_1.len)(args) === 1 ? 2 : num(args[1])));
+            _num(num(args[0]) ** (len(args) === 1 ? 2 : num(args[1])));
             return [];
         case "+":
             _num(args.map(num).reduce((sum, n) => sum + n));
@@ -260,22 +267,22 @@ async function exeOp(op, args, ctx, errCtx) {
             _num(args.map(num).reduce((sum, n) => sum / n));
             return [];
         case "//":
-            _num(args.map(num).reduce((sum, n) => (0, poly_fills_1.floor)(sum / n)));
+            _num(args.map(num).reduce((sum, n) => floor(sum / n)));
             return [];
         case "rem":
             _num(args.map(num).reduce((sum, n) => sum % n));
             return [];
         case "min":
-            _num(args.map(num).reduce((sum, n) => (0, poly_fills_1.min)(sum, n)));
+            _num(args.map(num).reduce((sum, n) => min(sum, n)));
             return [];
         case "max":
-            _num(args.map(num).reduce((sum, n) => (0, poly_fills_1.max)(sum, n)));
+            _num(args.map(num).reduce((sum, n) => max(sum, n)));
             return [];
         case "<":
         case ">":
         case "<=":
         case ">=":
-            for (let i = 1, lim = (0, poly_fills_1.len)(args); i < lim; ++i) {
+            for (let i = 1, lim = len(args); i < lim; ++i) {
                 const [a, b] = [args[i - 1].v, args[i].v];
                 if ((op === "<" && a >= b) ||
                     (op === ">" && a <= b) ||
@@ -294,10 +301,10 @@ async function exeOp(op, args, ctx, errCtx) {
             _num(args[0].v - 1);
             return [];
         case "abs":
-            _num((0, poly_fills_1.abs)(num(args[0])));
+            _num(abs(num(args[0])));
             return [];
         case "pi":
-            _num(poly_fills_1.pi);
+            _num(pi);
             return [];
         case "sin":
         case "cos":
@@ -306,7 +313,7 @@ async function exeOp(op, args, ctx, errCtx) {
         case "round":
         case "floor":
         case "ceil":
-            _num({ sin: poly_fills_1.sin, cos: poly_fills_1.cos, tan: poly_fills_1.tan, sqrt: poly_fills_1.sqrt, round: poly_fills_1.round, floor: poly_fills_1.floor, ceil: poly_fills_1.ceil }[op](num(args[0])));
+            _num({ sin, cos, tan, sqrt, round, floor, ceil }[op](num(args[0])));
             return [];
         case "odd?":
         case "even?":
@@ -337,7 +344,7 @@ async function exeOp(op, args, ctx, errCtx) {
                 (op === "func?" && args[0].t === "func"));
             return [];
         case "has?":
-            _boo((0, poly_fills_1.sub)(str(args[0]), str(args[1])));
+            _boo(sub(str(args[0]), str(args[1])));
             return [];
         case "idx": {
             let i = -1;
@@ -345,7 +352,7 @@ async function exeOp(op, args, ctx, errCtx) {
                 if (args[1].t !== "str") {
                     return tErr("strings can only contain strings");
                 }
-                i = (0, poly_fills_1.subIdx)(str(args[0]), str(args[1]));
+                i = subIdx(str(args[0]), str(args[1]));
             }
             else if (args[0].t === "vec") {
                 i = vec(args[0]).findIndex(a => isEqual(a, args[1]));
@@ -375,8 +382,8 @@ async function exeOp(op, args, ctx, errCtx) {
                 }
                 if (op === "for") {
                     const arrays = args.map(asArray);
-                    const lims = arrays.map(poly_fills_1.len);
-                    const divisors = lims.map((_, i) => (0, poly_fills_1.slice)(lims, 0, i + 1).reduce((sum, l) => sum * l));
+                    const lims = arrays.map(len);
+                    const divisors = lims.map((_, i) => slice(lims, 0, i + 1).reduce((sum, l) => sum * l));
                     divisors.unshift(1);
                     const lim = divisors.pop();
                     if (lim > ctx.loopBudget) {
@@ -384,9 +391,9 @@ async function exeOp(op, args, ctx, errCtx) {
                     }
                     const array = [];
                     for (let t = 0; t < lim; ++t) {
-                        const argIdxs = divisors.map((d, i) => (0, poly_fills_1.floor)((t / d) % lims[i]));
+                        const argIdxs = divisors.map((d, i) => floor((t / d) % lims[i]));
                         const errors = await closure(arrays.map((a, i) => a[argIdxs[i]]));
-                        if ((0, poly_fills_1.len)(errors)) {
+                        if (len(errors)) {
                             return errors;
                         }
                         array.push(stack.pop());
@@ -396,11 +403,11 @@ async function exeOp(op, args, ctx, errCtx) {
                 }
                 if (op === "map") {
                     const arrays = args.map(asArray);
-                    const shortest = (0, poly_fills_1.min)(...arrays.map(a => (0, poly_fills_1.len)(a)));
+                    const shortest = min(...arrays.map(a => len(a)));
                     const array = [];
                     for (let i = 0; i < shortest; ++i) {
                         const errors = await closure(arrays.map(a => a[i]));
-                        if ((0, poly_fills_1.len)(errors)) {
+                        if (len(errors)) {
                             return errors;
                         }
                         array.push(stack.pop());
@@ -411,9 +418,9 @@ async function exeOp(op, args, ctx, errCtx) {
                 const array = asArray(args.shift());
                 if (op === "filter") {
                     const filtered = [];
-                    for (let i = 0, lim = (0, poly_fills_1.len)(array); i < lim; ++i) {
+                    for (let i = 0, lim = len(array); i < lim; ++i) {
                         const errors = await closure([array[i]]);
-                        if ((0, poly_fills_1.len)(errors)) {
+                        if (len(errors)) {
                             return errors;
                         }
                         if (asBoo(stack.pop())) {
@@ -423,14 +430,14 @@ async function exeOp(op, args, ctx, errCtx) {
                     _vec(filtered);
                     return [];
                 }
-                if ((0, poly_fills_1.len)(array) < 2) {
-                    (0, poly_fills_1.push)(stack, array);
+                if (len(array) < 2) {
+                    push(stack, array);
                     return [];
                 }
-                let reduction = ((0, poly_fills_1.len)(args) ? args : array).shift();
-                for (let i = 0, lim = (0, poly_fills_1.len)(array); i < lim; ++i) {
+                let reduction = (len(args) ? args : array).shift();
+                for (let i = 0, lim = len(array); i < lim; ++i) {
                     const errors = await closure([reduction, array[i]]);
-                    if ((0, poly_fills_1.len)(errors)) {
+                    if (len(errors)) {
                         return errors;
                     }
                     reduction = stack.pop();
@@ -439,18 +446,18 @@ async function exeOp(op, args, ctx, errCtx) {
             }
             return [];
         case "rand-int":
-        case "rand-num":
+        case "rand":
             {
-                const nArgs = (0, poly_fills_1.len)(args);
+                const nArgs = len(args);
                 const [a, b] = [
                     nArgs < 2 ? 0 : num(args[0]),
                     nArgs === 0
-                        ? 1 + (0, poly_fills_1.toNum)(op === "rand-int")
+                        ? 1 + toNum(op === "rand-int")
                         : nArgs === 1
                             ? num(args[0])
                             : num(args[1]),
                 ];
-                _num(op === "rand-int" ? (0, poly_fills_1.randInt)(a, b) : (0, poly_fills_1.randNum)(a, b));
+                _num(op === "rand-int" ? randInt(a, b) : randNum(a, b));
             }
             return [];
         case "do":
@@ -459,46 +466,46 @@ async function exeOp(op, args, ctx, errCtx) {
             return [];
         case "..": {
             const closure = getExe(ctx, args.shift(), errCtx);
-            return await closure((0, poly_fills_1.flat)(args.map(a => (a.t === "vec" ? vec(a) : [a]))));
+            return await closure(flat(args.map(a => (a.t === "vec" ? vec(a) : [a]))));
         }
         case "into": {
             const a0v = args[0].t === "vec";
             const a1v = args[1].t === "vec";
             if (a0v) {
-                _vec((0, poly_fills_1.concat)(vec(args[0]), a1v ? vec(args[1]) : asArray(args[1])));
+                _vec(concat(vec(args[0]), a1v ? vec(args[1]) : asArray(args[1])));
             }
             else {
                 if (a1v) {
                     const v1 = asArray(args[1]);
-                    stack.push(toDict((0, poly_fills_1.concat)((0, poly_fills_1.flat)(asArray(args[0]).map(vec)), v1)));
+                    stack.push(toDict(concat(flat(asArray(args[0]).map(vec)), v1)));
                 }
                 else {
                     const { keys, vals } = dic(args[0]);
                     const d1 = dic(args[1]);
-                    _dic({ keys: (0, poly_fills_1.concat)(keys, d1.keys), vals: (0, poly_fills_1.concat)(vals, d1.vals) });
+                    _dic({ keys: concat(keys, d1.keys), vals: concat(vals, d1.vals) });
                 }
             }
             return [];
         }
         case "push": {
             if (args[0].t === "vec") {
-                _vec((0, poly_fills_1.concat)(asArray(args[0]), [args[1]]));
+                _vec(concat(asArray(args[0]), [args[1]]));
             }
             else {
-                if ((0, poly_fills_1.len)(args) < 3) {
+                if (len(args) < 3) {
                     return [{ e: "Arity", m: `key and value both required`, errCtx }];
                 }
                 const { keys, vals } = dic(args[0]);
-                _dic({ keys: (0, poly_fills_1.concat)(keys, [args[1]]), vals: (0, poly_fills_1.concat)(vals, [args[2]]) });
+                _dic({ keys: concat(keys, [args[1]]), vals: concat(vals, [args[2]]) });
             }
             return [];
         }
         case "sect": {
             const v = args[0];
             const isVec = v.t === "vec";
-            const vlen = isVec ? (0, poly_fills_1.len)(vec(v)) : (0, poly_fills_1.slen)(str(v));
+            const vlen = isVec ? len(vec(v)) : slen(str(v));
             let a = 0, b = vlen;
-            switch ((0, poly_fills_1.len)(args)) {
+            switch (len(args)) {
                 case 1:
                     a = 1;
                     break;
@@ -520,57 +527,57 @@ async function exeOp(op, args, ctx, errCtx) {
                     break;
                 }
             }
-            a = (0, poly_fills_1.max)(a, 0);
-            b = (0, poly_fills_1.min)(b, vlen);
+            a = max(a, 0);
+            b = min(b, vlen);
             if (a > b) {
                 (isVec ? _vec : _str)();
                 return [];
             }
             if (isVec) {
-                _vec((0, poly_fills_1.slice)(vec(v), a, b));
+                _vec(slice(vec(v), a, b));
             }
             else {
-                _str((0, poly_fills_1.substr)(str(args[0]), a, b - a));
+                _str(substr(str(args[0]), a, b - a));
             }
             return [];
         }
         case "reverse":
             if (args[0].t === "str") {
-                _str(stringify((0, poly_fills_1.reverse)(asArray(args[0]))));
+                _str(stringify(reverse(asArray(args[0]))));
             }
             else {
-                _vec((0, poly_fills_1.reverse)(asArray(args[0])));
+                _vec(reverse(asArray(args[0])));
             }
             return [];
         case "sort": {
-            if (!(0, poly_fills_1.len)(vec(args[0]))) {
+            if (!len(vec(args[0]))) {
                 _vec();
                 return [];
             }
             const src = asArray(args[0]);
             const mapped = [];
-            if ((0, poly_fills_1.len)(args) === 1) {
-                (0, poly_fills_1.push)(mapped, src.map(v => [v, v]));
+            if (len(args) === 1) {
+                push(mapped, src.map(v => [v, v]));
             }
             else {
                 const closure = getExe(ctx, args.pop(), errCtx);
-                for (let i = 0, lim = (0, poly_fills_1.len)(src); i < lim; ++i) {
+                for (let i = 0, lim = len(src); i < lim; ++i) {
                     const errors = await closure([src[i]]);
-                    if ((0, poly_fills_1.len)(errors)) {
+                    if (len(errors)) {
                         return errors;
                     }
                     mapped.push([src[i], stack.pop()]);
                 }
             }
             const okT = mapped[0][1].t;
-            if (mapped.some(([_, { t }]) => t !== okT || !(0, poly_fills_1.has)(["num", "str"], t))) {
+            if (mapped.some(([_, { t }]) => t !== okT || !has(["num", "str"], t))) {
                 return tErr("can only sort by all number or all string");
             }
             if ((0, exports.visNum)(mapped[0][1])) {
-                (0, poly_fills_1.sortBy)(mapped, ([x, a], [y, b]) => (num(a) > num(b) ? 1 : -1));
+                sortBy(mapped, ([x, a], [y, b]) => (num(a) > num(b) ? 1 : -1));
             }
             else {
-                (0, poly_fills_1.sortBy)(mapped, ([x, a], [y, b]) => (str(a) > str(b) ? 1 : -1));
+                sortBy(mapped, ([x, a], [y, b]) => (str(a) > str(b) ? 1 : -1));
             }
             _vec(mapped.map(([v]) => v));
             return [];
@@ -578,9 +585,9 @@ async function exeOp(op, args, ctx, errCtx) {
         case "range": {
             const [a, b, s] = args.map(num);
             const edgeCase = s && s < 0 && a < b; //e.g. 1 4 -1
-            const [x, y] = (0, poly_fills_1.len)(args) > 1 ? (edgeCase ? [b - 1, a - 1] : [a, b]) : [0, a];
-            const step = (0, poly_fills_1.sign)((y - x) * (s || 1)) * (s || 1);
-            const count = (0, poly_fills_1.ceil)((0, poly_fills_1.abs)((y - x) / step));
+            const [x, y] = len(args) > 1 ? (edgeCase ? [b - 1, a - 1] : [a, b]) : [0, a];
+            const step = sign((y - x) * (s || 1)) * (s || 1);
+            const count = ceil(abs((y - x) / step));
             if (!count) {
                 _vec([]);
                 return [];
@@ -589,42 +596,42 @@ async function exeOp(op, args, ctx, errCtx) {
                 return [{ e: "Budget", m: "range budget depleted", errCtx }];
             }
             ctx.rangeBudget -= count;
-            const nums = (0, poly_fills_1.range)(count).map(n => n * step + x);
+            const nums = range(count).map(n => n * step + x);
             _vec(nums.map(v => ({ t: "num", v })));
             return [];
         }
         case "empty?":
-            _boo(!(0, poly_fills_1.len)(asArray(args[0])));
+            _boo(!len(asArray(args[0])));
             return [];
         case "keys":
         case "vals":
             _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
             return [];
         case "starts-with?":
-            _boo((0, poly_fills_1.starts)(str(args[0]), str(args[1])));
+            _boo(starts(str(args[0]), str(args[1])));
             return [];
         case "ends-with?":
-            _boo((0, poly_fills_1.ends)(str(args[0]), str(args[1])));
+            _boo(ends(str(args[0]), str(args[1])));
             return [];
         case "split":
             _vec(str(args[0])
-                .split((0, poly_fills_1.len)(args) > 1 ? str(args[1]) : " ")
+                .split(len(args) > 1 ? str(args[1]) : " ")
                 .map(v => ({ t: "str", v })));
             return [];
         case "join":
             _str(vec(args[0])
                 .map(val2str)
-                .join((0, poly_fills_1.len)(args) > 1 ? str(args[1]) : " "));
+                .join(len(args) > 1 ? str(args[1]) : " "));
             return [];
         case "time":
-            _num((0, poly_fills_1.getTimeMs)());
+            _num(getTimeMs());
             return [];
         case "version":
             _num(exports.insituxVersion);
             return [];
         case "tests":
             {
-                const tests = await (0, test_1.doTests)(invoke, !((0, poly_fills_1.len)(args) && asBoo(args[0])));
+                const tests = await (0, test_1.doTests)(invoke, !(len(args) && asBoo(args[0])));
                 const summary = tests.pop();
                 for (const test of tests) {
                     await exeOp("print", [{ v: test, t: "str" }], ctx, errCtx);
@@ -634,12 +641,12 @@ async function exeOp(op, args, ctx, errCtx) {
             return [];
         case "eval": {
             delete ctx.env.funcs["entry"];
-            const sLen = (0, poly_fills_1.len)(stack);
+            const sLen = len(stack);
             const errors = await parseAndExe(ctx, str(args[0]), errCtx.invocationId);
-            if ((0, poly_fills_1.len)(errors)) {
+            if (len(errors)) {
                 return [{ e: "Eval", m: "error within evaluated code", errCtx }];
             }
-            if (sLen === (0, poly_fills_1.len)(stack)) {
+            if (sLen === len(stack)) {
                 _nul();
             }
             return [];
@@ -660,15 +667,15 @@ function getExe(ctx, op, errCtx) {
         if (str in ctx.env.vars) {
             return getExe(ctx, ctx.env.vars[str], errCtx);
         }
-        if (str in ctx.env.lets[(0, poly_fills_1.len)(ctx.env.lets) - 1]) {
-            return getExe(ctx, ctx.env.lets[(0, poly_fills_1.len)(ctx.env.lets) - 1][str], errCtx);
+        if (str in ctx.env.lets[len(ctx.env.lets) - 1]) {
+            return getExe(ctx, ctx.env.lets[len(ctx.env.lets) - 1][str], errCtx);
         }
-        if ((0, poly_fills_1.starts)(str, "$")) {
+        if (starts(str, "$")) {
             return async (params) => {
-                if (!(0, poly_fills_1.len)(params)) {
+                if (!len(params)) {
                     return monoArityError;
                 }
-                const err = await ctx.set((0, poly_fills_1.substr)(str, 1), params[0]);
+                const err = await ctx.set(substr(str, 1), params[0]);
                 stack.push(params[0]);
                 return err ? [{ e: "External", m: err, errCtx }] : [];
             };
@@ -683,7 +690,7 @@ function getExe(ctx, op, errCtx) {
     }
     else if ((0, exports.visKey)(op)) {
         return async (params) => {
-            if (!(0, poly_fills_1.len)(params)) {
+            if (!len(params)) {
                 return monoArityError;
             }
             if (params[0].t !== "dict") {
@@ -696,7 +703,7 @@ function getExe(ctx, op, errCtx) {
     else if ((0, exports.visNum)(op)) {
         const n = op.v;
         return async (params) => {
-            if (!(0, poly_fills_1.len)(params)) {
+            if (!len(params)) {
                 return monoArityError;
             }
             const a = params[0];
@@ -706,11 +713,11 @@ function getExe(ctx, op, errCtx) {
                 ];
             }
             const arr = asArray(a);
-            if ((0, poly_fills_1.abs)(n) >= (0, poly_fills_1.len)(arr)) {
+            if (abs(n) >= len(arr)) {
                 _nul();
             }
             else if (n < 0) {
-                stack.push(arr[(0, poly_fills_1.len)(arr) + n]);
+                stack.push(arr[len(arr) + n]);
             }
             else {
                 stack.push(arr[n]);
@@ -721,7 +728,7 @@ function getExe(ctx, op, errCtx) {
     else if ((0, exports.visVec)(op)) {
         const { v } = op;
         return async (params) => {
-            if (!(0, poly_fills_1.len)(params)) {
+            if (!len(params)) {
                 return monoArityError;
             }
             const found = v.find(val => isEqual(val, params[0]));
@@ -737,21 +744,41 @@ function getExe(ctx, op, errCtx) {
     else if ((0, exports.visDic)(op)) {
         const dict = op.v;
         return async (params) => {
-            if ((0, poly_fills_1.len)(params) === 1) {
+            if (len(params) === 1) {
                 stack.push(dictGet(dict, params[0]));
             }
-            else if ((0, poly_fills_1.len)(params) === 2) {
+            else if (len(params) === 2) {
                 stack.push(dictSet(dict, params[0], params[1]));
             }
             else {
                 return [
                     {
                         e: "Arity",
-                        m: `dict as operation takes one or two arguments`,
+                        m: "dict as operation takes one or two arguments only",
                         errCtx,
                     },
                 ];
             }
+            return [];
+        };
+    }
+    else if ((0, exports.visBoo)(op)) {
+        const cond = op.v;
+        return async (params) => {
+            if (!len(params) || len(params) > 2) {
+                return [
+                    {
+                        e: "Arity",
+                        m: "boolean as operation takes one or two arguments only",
+                        errCtx,
+                    },
+                ];
+            }
+            stack.push(cond
+                ? params[0]
+                : len(params) > 1
+                    ? params[1]
+                    : { t: "null", v: undefined });
             return [];
         };
     }
@@ -762,7 +789,7 @@ function getExe(ctx, op, errCtx) {
 async function exeFunc(ctx, func, args) {
     --ctx.callBudget;
     ctx.env.lets.push({});
-    for (let i = 0, lim = (0, poly_fills_1.len)(func.ins); i < lim; ++i) {
+    for (let i = 0, lim = len(func.ins); i < lim; ++i) {
         const { typ, value, errCtx } = func.ins[i];
         const tooManyLoops = ctx.loopBudget < 1;
         if (tooManyLoops || ctx.callBudget < 1) {
@@ -791,11 +818,11 @@ async function exeFunc(ctx, func, args) {
                 _key(value);
                 break;
             case "var":
-                ctx.env.vars[value] = stack[(0, poly_fills_1.len)(stack) - 1];
+                ctx.env.vars[value] = stack[len(stack) - 1];
                 break;
             case "let":
-                ctx.env.lets[(0, poly_fills_1.len)(ctx.env.lets) - 1][value] =
-                    stack[(0, poly_fills_1.len)(stack) - 1];
+                ctx.env.lets[len(ctx.env.lets) - 1][value] =
+                    stack[len(stack) - 1];
                 break;
             case "par":
                 {
@@ -803,7 +830,7 @@ async function exeFunc(ctx, func, args) {
                     if (paramIdx === -1) {
                         _vec(args);
                     }
-                    else if ((0, poly_fills_1.len)(args) <= paramIdx) {
+                    else if (len(args) <= paramIdx) {
                         _nul();
                     }
                     else {
@@ -817,8 +844,8 @@ async function exeFunc(ctx, func, args) {
                     if (types_1.ops[name]) {
                         _fun(name);
                     }
-                    else if ((0, poly_fills_1.starts)(name, "$")) {
-                        const { value, err } = await ctx.get((0, poly_fills_1.substr)(name, 1));
+                    else if (starts(name, "$")) {
+                        const { value, err } = await ctx.get(substr(name, 1));
                         if (err) {
                             return [{ e: "External", m: err, errCtx }];
                         }
@@ -827,8 +854,8 @@ async function exeFunc(ctx, func, args) {
                     else if (name in ctx.env.vars) {
                         stack.push(ctx.env.vars[name]);
                     }
-                    else if (name in ctx.env.lets[(0, poly_fills_1.len)(ctx.env.lets) - 1]) {
-                        stack.push(ctx.env.lets[(0, poly_fills_1.len)(ctx.env.lets) - 1][name]);
+                    else if (name in ctx.env.lets[len(ctx.env.lets) - 1]) {
+                        stack.push(ctx.env.lets[len(ctx.env.lets) - 1][name]);
                     }
                     else if (name in ctx.env.funcs) {
                         _fun(name);
@@ -842,13 +869,13 @@ async function exeFunc(ctx, func, args) {
             case "exe":
                 {
                     let [op, nArgs] = value;
-                    const params = (0, poly_fills_1.splice)(stack, (0, poly_fills_1.len)(stack) - nArgs, nArgs);
-                    if ((0, poly_fills_1.len)(params) !== nArgs) {
+                    const params = splice(stack, len(stack) - nArgs, nArgs);
+                    if (len(params) !== nArgs) {
                         return [{ e: "Unexpected", m: `${op} stack depleted`, errCtx }];
                     }
                     //Tail-call optimisation
                     if (i === lim - 1 && (0, exports.visStr)(op) && op.v === func.name) {
-                        ctx.env.lets[(0, poly_fills_1.len)(ctx.env.lets) - 1] = {};
+                        ctx.env.lets[len(ctx.env.lets) - 1] = {};
                         i = -1;
                         args = params;
                         --ctx.recurBudget;
@@ -859,13 +886,13 @@ async function exeFunc(ctx, func, args) {
                     }
                     const closure = getExe(ctx, op, errCtx);
                     const errors = await closure(params);
-                    if ((0, poly_fills_1.len)(errors)) {
+                    if (len(errors)) {
                         return errors;
                     }
                 }
                 break;
             case "or":
-                if (asBoo(stack[(0, poly_fills_1.len)(stack) - 1])) {
+                if (asBoo(stack[len(stack) - 1])) {
                     i += value;
                 }
                 else {
@@ -885,7 +912,7 @@ async function exeFunc(ctx, func, args) {
                 --ctx.loopBudget;
                 break;
             case "pop":
-                (0, poly_fills_1.splice)(stack, (0, poly_fills_1.len)(stack) - value, value);
+                splice(stack, len(stack) - value, value);
                 break;
         }
     }
@@ -895,7 +922,7 @@ async function exeFunc(ctx, func, args) {
 exports.exeFunc = exeFunc;
 async function parseAndExe(ctx, code, invocationId) {
     const parsed = (0, parse_1.parse)(code, invocationId);
-    if ((0, poly_fills_1.len)(parsed.errors)) {
+    if (len(parsed.errors)) {
         return parsed.errors;
     }
     ctx.env.funcs = { ...ctx.env.funcs, ...parsed.funcs };
@@ -913,8 +940,8 @@ async function invoke(ctx, code, invocationId, printResult = false) {
     ctx.loopBudget = loopBudget;
     ctx.rangeBudget = rangeBudget;
     delete ctx.env.funcs["entry"];
-    if (!(0, poly_fills_1.len)(errors) && printResult && (0, poly_fills_1.len)(stack)) {
-        await ctx.exe("print", [{ t: "str", v: val2str(stack[(0, poly_fills_1.len)(stack) - 1]) }]);
+    if (!len(errors) && printResult && len(stack)) {
+        await ctx.exe("print", [{ t: "str", v: val2str(stack[len(stack) - 1]) }]);
     }
     stack = [];
     return errors;
@@ -922,9 +949,9 @@ async function invoke(ctx, code, invocationId, printResult = false) {
 exports.invoke = invoke;
 function symbols(ctx) {
     let syms = ["function"];
-    syms = (0, poly_fills_1.concat)(syms, (0, poly_fills_1.objKeys)(types_1.ops).filter(o => o !== "execute-last"));
-    syms = (0, poly_fills_1.concat)(syms, (0, poly_fills_1.objKeys)(ctx.env.funcs));
-    syms = (0, poly_fills_1.concat)(syms, (0, poly_fills_1.objKeys)(ctx.env.vars));
+    syms = concat(syms, objKeys(types_1.ops).filter(o => o !== "execute-last"));
+    syms = concat(syms, objKeys(ctx.env.funcs));
+    syms = concat(syms, objKeys(ctx.env.vars));
     return syms;
 }
 exports.symbols = symbols;
@@ -977,14 +1004,17 @@ exports.invoker = invoker;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parse = void 0;
-const poly_fills_1 = __webpack_require__(17);
+const pf = __webpack_require__(17);
+const { concat, has, flat, push, slice } = pf;
+const { slen, starts, sub, substr, strIdx } = pf;
+const { isNum, len, toNum } = pf;
 const types_1 = __webpack_require__(699);
 function tokenise(code, invocationId) {
     const tokens = [];
     const digits = "0123456789";
     let inString = false, isEscaped = false, inStringAt = [0, 0], inSymbol = false, inNumber = false, inComment = false, line = 1, col = 0;
-    for (let i = 0, l = (0, poly_fills_1.slen)(code); i < l; ++i) {
-        const c = (0, poly_fills_1.strIdx)(code, i), nextCh = i + 1 !== l ? (0, poly_fills_1.strIdx)(code, i + 1) : "";
+    for (let i = 0, l = slen(code); i < l; ++i) {
+        const c = strIdx(code, i), nextCh = i + 1 !== l ? strIdx(code, i + 1) : "";
         ++col;
         if (inComment) {
             if (c === "\n") {
@@ -997,7 +1027,7 @@ function tokenise(code, invocationId) {
         if (isEscaped) {
             isEscaped = false;
             if (inString) {
-                tokens[(0, poly_fills_1.len)(tokens) - 1].text += { n: "\n", t: "\t" }[c] || `\\${c}`;
+                tokens[len(tokens) - 1].text += { n: "\n", t: "\t" }[c] || `\\${c}`;
             }
             continue;
         }
@@ -1017,7 +1047,7 @@ function tokenise(code, invocationId) {
             inNumber = inSymbol = false;
             continue;
         }
-        const isWhite = (0, poly_fills_1.sub)(" \t\n\r", c);
+        const isWhite = sub(" \t\n\r", c);
         if (!inString && isWhite) {
             inNumber = inSymbol = false;
             if (c === "\n") {
@@ -1031,14 +1061,14 @@ function tokenise(code, invocationId) {
             continue;
         }
         const errCtx = { invocationId, line, col };
-        const isDigit = (ch) => (0, poly_fills_1.sub)(digits, ch);
-        const isParen = (0, poly_fills_1.sub)("()[]{}", c);
+        const isDigit = (ch) => sub(digits, ch);
+        const isParen = sub("()[]{}", c);
         //Allow one . per number, or convert into symbol
         if (inNumber && !isDigit(c)) {
-            inNumber = c === "." && !(0, poly_fills_1.sub)(tokens[(0, poly_fills_1.len)(tokens) - 1].text, ".");
+            inNumber = c === "." && !sub(tokens[len(tokens) - 1].text, ".");
             if (!inNumber && !isParen && !isWhite) {
                 inSymbol = true;
-                tokens[(0, poly_fills_1.len)(tokens) - 1].typ = "sym";
+                tokens[len(tokens) - 1].typ = "sym";
             }
         }
         //Stop scanning symbol if a paren
@@ -1072,15 +1102,15 @@ function tokenise(code, invocationId) {
                     (c === "-" && (isDigit(nextCh) || nextCh === "."));
             inSymbol = !inNumber;
             let typ = inSymbol ? "sym" : "num";
-            if ((0, poly_fills_1.len)(tokens)) {
-                const { typ: t, text } = tokens[(0, poly_fills_1.len)(tokens) - 1];
+            if (len(tokens)) {
+                const { typ: t, text } = tokens[len(tokens) - 1];
                 if (t === "sym" && (text === "var" || text === "let")) {
                     typ = "ref";
                 }
             }
             tokens.push({ typ, text: "", errCtx });
         }
-        tokens[(0, poly_fills_1.len)(tokens) - 1].text += c;
+        tokens[len(tokens) - 1].text += c;
     }
     return { tokens, stringError: inString ? inStringAt : undefined };
 }
@@ -1088,8 +1118,8 @@ function segment(tokens) {
     const segments = [[]];
     let depth = 0;
     tokens.forEach(token => {
-        segments[(0, poly_fills_1.len)(segments) - 1].push(token);
-        depth += (0, poly_fills_1.toNum)(token.typ === "(") - (0, poly_fills_1.toNum)(token.typ === ")");
+        segments[len(segments) - 1].push(token);
+        depth += toNum(token.typ === "(") - toNum(token.typ === ")");
         if (depth === 0) {
             segments.push([]);
         }
@@ -1097,18 +1127,18 @@ function segment(tokens) {
     return segments;
 }
 function funcise(segments) {
-    const isFunc = (segment) => (0, poly_fills_1.len)(segment) > 1 &&
+    const isFunc = (segment) => len(segment) > 1 &&
         segment[1].typ === "sym" &&
         segment[1].text === "function";
     const funcs = segments.filter(t => isFunc(t));
-    const entries = (0, poly_fills_1.flat)(segments.filter(t => !isFunc(t)));
+    const entries = flat(segments.filter(t => !isFunc(t)));
     const described = funcs.map(tokens => ({
         name: tokens[2].text,
-        tokens: (0, poly_fills_1.slice)(tokens, 3),
+        tokens: slice(tokens, 3),
         errCtx: tokens[2].errCtx,
     }));
-    return (0, poly_fills_1.len)(entries)
-        ? (0, poly_fills_1.concat)(described, [
+    return len(entries)
+        ? concat(described, [
             {
                 name: "entry",
                 tokens: entries,
@@ -1118,7 +1148,7 @@ function funcise(segments) {
         : described;
 }
 function parseArg(tokens, params) {
-    if (!(0, poly_fills_1.len)(tokens)) {
+    if (!len(tokens)) {
         return [];
     }
     const { typ, text, errCtx } = tokens.shift();
@@ -1126,7 +1156,7 @@ function parseArg(tokens, params) {
         case "str":
             return [{ typ: "str", value: text, errCtx }];
         case "num":
-            return [{ typ: "num", value: (0, poly_fills_1.toNum)(text), errCtx }];
+            return [{ typ: "num", value: toNum(text), errCtx }];
         case "sym":
             if (text === "true" || text === "false") {
                 return [{ typ: "boo", value: text === "true", errCtx }];
@@ -1134,17 +1164,17 @@ function parseArg(tokens, params) {
             else if (text === "null") {
                 return [{ typ: "nul", value: undefined, errCtx }];
             }
-            else if ((0, poly_fills_1.starts)(text, ":")) {
+            else if (starts(text, ":")) {
                 return [{ typ: "key", value: text, errCtx }];
             }
-            else if ((0, poly_fills_1.starts)(text, "#") && (0, poly_fills_1.isNum)((0, poly_fills_1.substr)(text, 1))) {
-                const value = (0, poly_fills_1.toNum)((0, poly_fills_1.substr)(text, 1));
+            else if (starts(text, "#") && isNum(substr(text, 1))) {
+                const value = toNum(substr(text, 1));
                 if (value < 0) {
                     return [{ typ: "nul", errCtx }];
                 }
                 return [{ typ: "par", value, errCtx }];
             }
-            else if ((0, poly_fills_1.has)(params, text)) {
+            else if (has(params, text)) {
                 return [{ typ: "par", value: params.indexOf(text), errCtx }];
             }
             else if (text === "args") {
@@ -1163,29 +1193,29 @@ function parseArg(tokens, params) {
             const err = (value) => [{ typ: "err", value, errCtx }];
             if (op === "var" || op === "let") {
                 const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
-                if (!(0, poly_fills_1.len)(def) || !(0, poly_fills_1.len)(val) || (0, poly_fills_1.len)(parseArg(tokens, params))) {
+                if (!len(def) || !len(val) || len(parseArg(tokens, params))) {
                     return err("must provide reference name and value only");
                 }
                 return [...val, { typ: op, value: def[0].value, errCtx }];
             }
             else if (op === "if" || op === "when") {
                 const cond = parseArg(tokens, params);
-                if (!(0, poly_fills_1.len)(cond)) {
+                if (!len(cond)) {
                     return err("must provide condition");
                 }
                 const ins = cond;
                 if (op === "if") {
                     const ifT = parseArg(tokens, params);
-                    if (!(0, poly_fills_1.len)(ifT)) {
+                    if (!len(ifT)) {
                         return err("must provide a branch");
                     }
-                    ins.push({ typ: "if", value: (0, poly_fills_1.len)(ifT) + 1, errCtx });
-                    (0, poly_fills_1.push)(ins, ifT);
+                    ins.push({ typ: "if", value: len(ifT) + 1, errCtx });
+                    push(ins, ifT);
                     const ifF = parseArg(tokens, params);
-                    if ((0, poly_fills_1.len)(ifF)) {
-                        ins.push({ typ: "jmp", value: (0, poly_fills_1.len)(ifF), errCtx });
-                        (0, poly_fills_1.push)(ins, ifF);
-                        if ((0, poly_fills_1.len)(parseArg(tokens, params))) {
+                    if (len(ifF)) {
+                        ins.push({ typ: "jmp", value: len(ifF), errCtx });
+                        push(ins, ifF);
+                        if (len(parseArg(tokens, params))) {
                             return err("too many branches");
                         }
                     }
@@ -1198,13 +1228,13 @@ function parseArg(tokens, params) {
                     const body = [];
                     while (true) {
                         const exp = parseArg(tokens, params);
-                        if (!(0, poly_fills_1.len)(exp)) {
+                        if (!len(exp)) {
                             break;
                         }
-                        (0, poly_fills_1.push)(body, exp);
+                        push(body, exp);
                     }
-                    ins.push({ typ: "if", value: (0, poly_fills_1.len)(body) + 1, errCtx });
-                    (0, poly_fills_1.push)(ins, body);
+                    ins.push({ typ: "if", value: len(body) + 1, errCtx });
+                    push(ins, body);
                     ins.push({ typ: "jmp", value: 1, errCtx });
                     ins.push({ typ: "nul", value: undefined, errCtx });
                 }
@@ -1215,37 +1245,37 @@ function parseArg(tokens, params) {
                 let insCount = 0;
                 while (true) {
                     const arg = parseArg(tokens, params);
-                    if (!(0, poly_fills_1.len)(arg)) {
+                    if (!len(arg)) {
                         break;
                     }
                     args.push(arg);
-                    insCount += (0, poly_fills_1.len)(arg);
+                    insCount += len(arg);
                 }
-                if ((0, poly_fills_1.len)(args) < 2) {
+                if (len(args) < 2) {
                     return err("requires at least two arguments");
                 }
                 const ins = [];
                 if (op === "while") {
                     insCount += 2; //+1 for the if ins, +1 for the pop ins
                     const head = args.shift();
-                    (0, poly_fills_1.push)(ins, head);
-                    ins.push({ typ: "if", value: insCount - (0, poly_fills_1.len)(head), errCtx });
-                    args.forEach(as => (0, poly_fills_1.push)(ins, as));
-                    ins.push({ typ: "pop", value: (0, poly_fills_1.len)(args), errCtx });
+                    push(ins, head);
+                    ins.push({ typ: "if", value: insCount - len(head), errCtx });
+                    args.forEach(as => push(ins, as));
+                    ins.push({ typ: "pop", value: len(args), errCtx });
                     ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
                     return ins;
                 }
-                insCount += (0, poly_fills_1.len)(args); //+1 for each if/or ins
-                insCount += (0, poly_fills_1.toNum)(op === "and");
+                insCount += len(args); //+1 for each if/or ins
+                insCount += toNum(op === "and");
                 const typ = op === "and" ? "if" : "or";
-                for (let a = 0; a < (0, poly_fills_1.len)(args); ++a) {
-                    (0, poly_fills_1.push)(ins, args[a]);
-                    insCount -= (0, poly_fills_1.len)(args[a]);
+                for (let a = 0; a < len(args); ++a) {
+                    push(ins, args[a]);
+                    insCount -= len(args[a]);
                     ins.push({ typ, value: insCount, errCtx });
                     --insCount;
                 }
                 if (op === "and") {
-                    (0, poly_fills_1.push)(ins, [
+                    push(ins, [
                         { typ: "boo", value: true, errCtx },
                         { typ: "jmp", value: 1, errCtx },
                         { typ: "boo", value: false, errCtx },
@@ -1259,32 +1289,34 @@ function parseArg(tokens, params) {
             const headIns = [];
             let args = 0;
             //Head is a form or parameter
-            if (typ === "(" || (0, poly_fills_1.has)(params, text) || (0, poly_fills_1.starts)(text, "#")) {
+            if (typ === "(" || has(params, text) || starts(text, "#")) {
                 tokens.unshift(head);
                 const ins = parseArg(tokens, params);
-                (0, poly_fills_1.push)(headIns, ins);
+                push(headIns, ins);
                 op = "execute-last";
                 ++args;
             }
             const body = [];
-            while ((0, poly_fills_1.len)(tokens)) {
+            while (len(tokens)) {
                 const parsed = parseArg(tokens, params);
-                if (!(0, poly_fills_1.len)(parsed)) {
+                if (!len(parsed)) {
                     break;
                 }
                 ++args;
-                (0, poly_fills_1.push)(body, parsed);
+                push(body, parsed);
             }
             headIns.push({
                 typ: types_1.ops[op] ? "op" : "exe",
                 value: [
                     typ === "num"
-                        ? { t: "num", v: (0, poly_fills_1.toNum)(op) }
-                        : (0, poly_fills_1.starts)(op, ":")
+                        ? { t: "num", v: toNum(op) }
+                        : starts(op, ":")
                             ? { t: "key", v: op }
                             : types_1.ops[op]
                                 ? { t: "func", v: op }
-                                : { t: "str", v: op },
+                                : op === "true" || op === "false"
+                                    ? { t: "bool", v: op === "true" }
+                                    : { t: "str", v: op },
                     args,
                 ],
                 errCtx,
@@ -1296,7 +1328,7 @@ function parseArg(tokens, params) {
 }
 function partitionWhen(array, predicate) {
     const a = [], b = [];
-    for (let i = 0, isB = false; i < (0, poly_fills_1.len)(array); ++i) {
+    for (let i = 0, isB = false; i < len(array); ++i) {
         isB || (isB = predicate(array[i]));
         (isB ? b : a).push(array[i]);
     }
@@ -1310,7 +1342,7 @@ function partition(array, predicate) {
 function syntaxise({ name, tokens }, errCtx) {
     const [params, body] = partitionWhen(tokens, t => t.typ !== "sym");
     //In the case of e.g. (function)
-    if (!(0, poly_fills_1.len)(params) && !(0, poly_fills_1.len)(body)) {
+    if (!len(params) && !len(body)) {
         return {
             err: {
                 e: "Parse",
@@ -1319,8 +1351,8 @@ function syntaxise({ name, tokens }, errCtx) {
             },
         };
     }
-    if ((0, poly_fills_1.len)(body) && body[0].typ === ")") {
-        if ((0, poly_fills_1.len)(params)) {
+    if (len(body) && body[0].typ === ")") {
+        if (len(params)) {
             //In the case of e.g. (function f #) or (function x y z)
             body.unshift(params.pop());
         }
@@ -1336,15 +1368,15 @@ function syntaxise({ name, tokens }, errCtx) {
         }
     }
     //In the case of e.g. (function entry x y z)
-    if ((0, poly_fills_1.len)(params) && !(0, poly_fills_1.len)(body)) {
+    if (len(params) && !len(body)) {
         body.push(params.pop());
     }
     const ins = [];
-    while ((0, poly_fills_1.len)(body)) {
-        (0, poly_fills_1.push)(ins, parseArg(body, params.map(p => p.text)));
+    while (len(body)) {
+        push(ins, parseArg(body, params.map(p => p.text)));
     }
     const parseErrors = ins.filter(i => i.typ === "err");
-    if ((0, poly_fills_1.len)(parseErrors)) {
+    if (len(parseErrors)) {
         return {
             err: {
                 e: "Parse",
@@ -1361,9 +1393,9 @@ function findParenImbalance(tokens, numL, numR) {
     const untimely = numR >= numL;
     const [l, r] = [untimely ? "(" : ")", untimely ? ")" : "("];
     const direction = untimely ? 1 : -1;
-    for (let lim = (0, poly_fills_1.len)(tokens), t = untimely ? 0 : lim - 1, depth = 0; untimely ? t < lim : t >= 0; t += direction) {
+    for (let lim = len(tokens), t = untimely ? 0 : lim - 1, depth = 0; untimely ? t < lim : t >= 0; t += direction) {
         const { typ, errCtx: { line, col }, } = tokens[t];
-        depth += (0, poly_fills_1.toNum)(typ === l) - (0, poly_fills_1.toNum)(typ === r);
+        depth += toNum(typ === l) - toNum(typ === r);
         if (depth < 0) {
             return [line, col];
         }
@@ -1374,7 +1406,7 @@ function errorDetect(stringError, tokens, invocationId) {
     const errors = [];
     const err = (m, errCtx) => errors.push({ e: "Parse", m, errCtx });
     //Check for paren imbalance
-    const countTyp = (t) => (0, poly_fills_1.len)(tokens.filter(({ typ }) => typ === t));
+    const countTyp = (t) => len(tokens.filter(({ typ }) => typ === t));
     const [numL, numR] = [countTyp("("), countTyp(")")];
     {
         const [line, col] = findParenImbalance(tokens, numL, numR);
@@ -1389,7 +1421,7 @@ function errorDetect(stringError, tokens, invocationId) {
     }
     //Check for any empty expressions
     let emptyHead;
-    for (let t = 0, lastWasL = false; t < (0, poly_fills_1.len)(tokens); ++t) {
+    for (let t = 0, lastWasL = false; t < len(tokens); ++t) {
         if (lastWasL && tokens[t].typ === ")") {
             emptyHead = tokens[t];
             break;
@@ -1404,7 +1436,7 @@ function errorDetect(stringError, tokens, invocationId) {
 function parse(code, invocationId) {
     const { tokens, stringError } = tokenise(code, invocationId);
     const errors = errorDetect(stringError, tokens, invocationId);
-    if ((0, poly_fills_1.len)(errors)) {
+    if (len(errors)) {
         return { errors, funcs: {} };
     }
     const segments = segment(tokens);
@@ -1415,7 +1447,7 @@ function parse(code, invocationId) {
         col: named.errCtx.col,
     }));
     const [funcArr, synErrors] = partition(funcsAndErrors, fae => !!fae.err);
-    (0, poly_fills_1.push)(errors, synErrors.map(fae => fae.err));
+    push(errors, synErrors.map(fae => fae.err));
     const funcs = {};
     funcArr.forEach(({ func }) => (funcs[func.name] = func));
     return { errors, funcs };
@@ -1597,6 +1629,7 @@ const tests = [
         out: `:b`,
     },
     { name: "Print simple vector", code: `[1 2 3]`, out: `[1 2 3]` },
+    { name: "Boolean select", code: `[(true 1 2) (false 1)]`, out: `[1 null]` },
     {
         name: "Sum vector of numbers",
         code: `[(reduce + [1 2 3]) (reduce + [1 2 3] 3)]`,
@@ -1827,6 +1860,7 @@ exports.ops = {
     min: { minArity: 2, onlyNum: true },
     max: { minArity: 2, onlyNum: true },
     abs: { exactArity: 1, onlyNum: true },
+    pi: { exactArity: 0 },
     sqrt: { exactArity: 1, onlyNum: true },
     round: { exactArity: 1, onlyNum: true },
     floor: { exactArity: 1, onlyNum: true },
@@ -1859,7 +1893,7 @@ exports.ops = {
     reduce: { minArity: 2, maxArity: 3 },
     filter: { exactArity: 2 },
     str: {},
-    "rand-num": { maxArity: 2, onlyNum: true },
+    rand: { maxArity: 2, onlyNum: true },
     "rand-int": { maxArity: 2, onlyNum: true },
     while: {},
     "..": { minArity: 2 },

@@ -181,13 +181,22 @@ built-in operations each within an example, with results after a `=>`.
 ;Associates a new key and value in a dictionary
 ({:a 2 :b 3} :c 4) => {:a 2 :b 3 :c 4}
 
+;Returns either its first or second argument, or null
+;Note: unlike `if` or `when`, all arguments are evaluated regardless of condition
+(true 1 2)  => 1
+(false 1 2) => 2
+(let b true)
+(b :a :b)   => :a
+(true 5)    => 5
+(false 5)   => null
+
 ;Either a random whole number (integer) or decimal number
 [(rand-int) (rand-int)]  might be [0 0], [0 1], [1 0], [1 1]
 (rand-int 10)            any integer from 0 to 9
 (rand-int 10 20)         any integer from 10 to 20
-(rand-num)               any decimal between 0 and 1
-(rand-num 100)           any decimal between 0 and 100
-(rand-num -10 10)        any decimal between -10 and 10
+(rand)                   any decimal between 0 and 1
+(rand 100)               any decimal between 0 and 100
+(rand -10 10)            any decimal between -10 and 10
 
 ;"Maps" a function over one or more vectors
 ;Note that it only iterates by the minimum number of vector items
@@ -324,7 +333,8 @@ etc
 - `args` contains a vector of arguments the function was called with.
 
 - Arguments can also be accessed through `#0`, `#1`, `#2`, etc, with `#` the same as `#0`
-  - Accessing too high a number will return `null` 
+
+  - Accessing too high a number will return `null`
 
 - Parameters take precedence over lets and defines.
 

@@ -108,6 +108,7 @@ const tests: {
     out: `:b`,
   },
   { name: "Print simple vector", code: `[1 2 3]`, out: `[1 2 3]` },
+  { name: "Boolean select", code: `[(true 1 2) (false 1)]`, out: `[1 null]` },
   {
     name: "Sum vector of numbers",
     code: `[(reduce + [1 2 3]) (reduce + [1 2 3] 3)]`,

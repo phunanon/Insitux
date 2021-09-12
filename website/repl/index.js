@@ -33,7 +33,7 @@ async function browserExe(name, args) {
       historyAppend(args[0].v + (name == "print" ? "\n" : ""));
       break;
     default:
-      if (args.length && visStr(args[0]) && args[0].v.startsWith("$")) {
+      if (args.length && args[0].t == "str" && args[0].v.startsWith("$")) {
         if (args.length === 1) {
           return await get(`${args[0].v.substring(1)}.${name}`);
         } else {

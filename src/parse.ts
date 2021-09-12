@@ -1,18 +1,7 @@
-import {
-  concat,
-  flat,
-  has,
-  isNum,
-  len,
-  push,
-  slen,
-  slice,
-  starts,
-  strIdx,
-  sub,
-  substr,
-  toNum,
-} from "./poly-fills";
+import * as pf from "./poly-fills";
+const { concat, has, flat, push, slice } = pf;
+const { slen, starts, sub, substr, strIdx } = pf;
+const { isNum, len, toNum } = pf;
 import { ErrCtx, Func, Funcs, Ins, InvokeError, ops } from "./types";
 
 type Token = {
@@ -196,7 +185,7 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
       } else if (starts(text, "#") && isNum(substr(text, 1))) {
         const value = toNum(substr(text, 1));
         if (value < 0) {
-          return [{typ: "nul", errCtx}];
+          return [{ typ: "nul", errCtx }];
         }
         return [{ typ: "par", value, errCtx }];
       } else if (has(params, text)) {
@@ -333,6 +322,8 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
             ? { t: "key", v: op }
             : ops[op]
             ? { t: "func", v: op }
+            : op === "true" || op === "false"
+            ? { t: "bool", v: op === "true" }
             : { t: "str", v: op },
           args,
         ],

@@ -197,9 +197,9 @@
 				]
 			},
 			{
-				"directory": "rand-num",
+				"directory": "rand",
 				"description": [
-					"(rand-num)",
+					"(rand)",
 					"function",
 					"Returns a random number between 0 and 1.",
 					"Or, provided one argument a random number between 0 and that.",

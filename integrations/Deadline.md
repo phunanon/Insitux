@@ -343,7 +343,7 @@ internal insitux functions
 ;; Or, provided no arguments a random 0 or 1.
 ;; Or, provided one argument a random whole number between 0 and that.
 
-(rand-num)
+(rand)
 ;; function
 ;; Returns a random number between 0 and 1.
 ;; Or, provided one argument a random number between 0 and that.

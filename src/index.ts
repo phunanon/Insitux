@@ -1,54 +1,14 @@
-export const insituxVersion = 20210911;
-
+export const insituxVersion = 20210912;
 import { parse } from "./parse";
-import {
-  abs,
-  ceil,
-  concat,
-  cos,
-  ends,
-  flat,
-  floor,
-  getTimeMs,
-  has,
-  isArray,
-  isNum,
-  len,
-  max,
-  min,
-  objKeys,
-  pi,
-  push,
-  randInt,
-  randNum,
-  range,
-  reverse,
-  round,
-  sign,
-  sin,
-  slen,
-  slice,
-  sortBy,
-  splice,
-  sqrt,
-  starts,
-  sub,
-  subIdx,
-  substr,
-  tan,
-  toNum,
-} from "./poly-fills";
+import * as pf from "./poly-fills";
+const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
+const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
+const { ends, slen, starts, sub, subIdx, substr } = pf;
+const { getTimeMs, randInt, randNum } = pf;
+const { isArray, isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
-import {
-  Ctx,
-  Dict,
-  ErrCtx,
-  Func,
-  InvokeError,
-  ops,
-  typeNames,
-  Val,
-} from "./types";
+import { ops, typeNames } from "./types";
+import { Ctx, Dict, ErrCtx, Func, InvokeError, Val } from "./types";
 
 const val2str = ({ v, t }: Val): string => {
   switch (t) {
@@ -102,6 +62,8 @@ export const visFun = (val: Val): val is { t: "func"; v: string } =>
   val.t === "func";
 export const visKey = (val: Val): val is { t: "key"; v: string } =>
   val.t === "key";
+export const visBoo = (val: Val): val is { t: "bool"; v: boolean } =>
+  val.t == "bool";
 
 const asArray = ({ t, v }: Val): Val[] =>
   t === "vec"
@@ -508,7 +470,7 @@ async function exeOp(
       }
       return [];
     case "rand-int":
-    case "rand-num":
+    case "rand":
       {
         const nArgs = len(args);
         const [a, b] = [
@@ -814,11 +776,32 @@ function getExe(
         return [
           {
             e: "Arity",
-            m: `dict as operation takes one or two arguments`,
+            m: "dict as operation takes one or two arguments only",
             errCtx,
           },
         ];
       }
+      return [];
+    };
+  } else if (visBoo(op)) {
+    const cond = op.v;
+    return async (params: Val[]) => {
+      if (!len(params) || len(params) > 2) {
+        return [
+          {
+            e: "Arity",
+            m: "boolean as operation takes one or two arguments only",
+            errCtx,
+          },
+        ];
+      }
+      stack.push(
+        cond
+          ? params[0]
+          : len(params) > 1
+          ? params[1]
+          : { t: "null", v: undefined },
+      );
       return [];
     };
   }
