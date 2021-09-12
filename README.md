@@ -3,9 +3,10 @@
     <td><img src="media/Insitux.png" alt="Insitux logo" height="32"></td>
     <td><a href="https://phunanon.github.io/Insitux">Website</a></td>
     <td><a href="https://phunanon.github.io/Insitux/website/repl">Try in online REPL</a></td>
+    <td><a href="https://discord.gg/w3Fc4YZ9Qw">Join on Discord</a> <img src="website/DiscordLogo.png" alt="Insitux logo" height="16"></td>
   </tr>
   <tr>
-    <td colspan="3">S-expression programming language written in portable TypeScript.</td>
+    <td colspan="4">S-expression scripting language written in portable TypeScript.</td>
   </tr>
 </table>
 
