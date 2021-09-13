@@ -22,6 +22,8 @@ export const sortBy = <T>(arr: T[], by: (a: T, b: T) => number) => arr.sort(by);
 export const reverse = <T>(arr: T[]) => arr.reverse();
 export const trim = (str: string) => str.trim();
 export const trimStart = (str: string) => str.trimStart();
+export const lowerCase = (str: string) => str.toLowerCase();
+export const upperCase = (str: string) => str.toUpperCase();
 export const padEnd = (str: string, by: number) => str.padEnd(by);
 export const randNum = (a: number, b: number) => a + Math.random() * (b - a);
 export const randInt = (a: number, b: number) => Math.floor(randNum(a, b));

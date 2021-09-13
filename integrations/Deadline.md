@@ -489,6 +489,14 @@ internal insitux functions
 ;; function
 ;; Tests if a string ends with another string.
 
+(lower-case "HELLO")
+;; function
+;; Returns a string made entirely lower-case.
+
+(lower-case "hello")
+;; function
+;; Returns a string made entirely upper-case.
+
 (split "hello" "e")
 ;; function
 ;; Splits a string into a vector by space or a provided string.

@@ -8,12 +8,12 @@
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.symbols = exports.invoke = exports.exeFunc = exports.visBoo = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
-exports.insituxVersion = 20210912;
+exports.insituxVersion = 20210913;
 const parse_1 = __webpack_require__(306);
 const pf = __webpack_require__(17);
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
 const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
-const { ends, slen, starts, sub, subIdx, substr } = pf;
+const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isArray, isNum, len, objKeys, range, toNum } = pf;
 const test_1 = __webpack_require__(127);
@@ -617,12 +617,6 @@ async function exeOp(op, args, ctx, errCtx) {
         case "vals":
             _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
             return [];
-        case "starts-with?":
-            _boo(starts(str(args[0]), str(args[1])));
-            return [];
-        case "ends-with?":
-            _boo(ends(str(args[0]), str(args[1])));
-            return [];
         case "split":
             _vec(str(args[0])
                 .split(len(args) > 1 ? str(args[1]) : " ")
@@ -632,6 +626,18 @@ async function exeOp(op, args, ctx, errCtx) {
             _str(vec(args[0])
                 .map(val2str)
                 .join(len(args) > 1 ? str(args[1]) : " "));
+            return [];
+        case "starts-with?":
+            _boo(starts(str(args[0]), str(args[1])));
+            return [];
+        case "ends-with?":
+            _boo(ends(str(args[0]), str(args[1])));
+            return [];
+        case "upper-case":
+            _str(upperCase(str(args[0])));
+            return [];
+        case "lower-case":
+            _str(lowerCase(str(args[0])));
             return [];
         case "time":
             _num(getTimeMs());
@@ -1487,7 +1493,7 @@ exports.parse = parse;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.pi = exports.sign = exports.ceil = exports.floor = exports.round = exports.sqrt = exports.tan = exports.cos = exports.sin = exports.max = exports.min = exports.abs = exports.getTimeMs = exports.objKeys = exports.range = exports.randInt = exports.randNum = exports.padEnd = exports.trimStart = exports.trim = exports.reverse = exports.sortBy = exports.push = exports.concat = exports.flat = exports.ends = exports.starts = exports.has = exports.subIdx = exports.sub = exports.strIdx = exports.substr = exports.isArray = exports.isNum = exports.slen = exports.len = exports.splice = exports.slice = exports.toNum = void 0;
+exports.pi = exports.sign = exports.ceil = exports.floor = exports.round = exports.sqrt = exports.tan = exports.cos = exports.sin = exports.max = exports.min = exports.abs = exports.getTimeMs = exports.objKeys = exports.range = exports.randInt = exports.randNum = exports.padEnd = exports.upperCase = exports.lowerCase = exports.trimStart = exports.trim = exports.reverse = exports.sortBy = exports.push = exports.concat = exports.flat = exports.ends = exports.starts = exports.has = exports.subIdx = exports.sub = exports.strIdx = exports.substr = exports.isArray = exports.isNum = exports.slen = exports.len = exports.splice = exports.slice = exports.toNum = void 0;
 const toNum = (x) => Number(x);
 exports.toNum = toNum;
 const slice = (arr, start, end) => arr.slice(start, end);
@@ -1530,6 +1536,10 @@ const trim = (str) => str.trim();
 exports.trim = trim;
 const trimStart = (str) => str.trimStart();
 exports.trimStart = trimStart;
+const lowerCase = (str) => str.toLowerCase();
+exports.lowerCase = lowerCase;
+const upperCase = (str) => str.toUpperCase();
+exports.upperCase = upperCase;
 const padEnd = (str, by) => str.padEnd(by);
 exports.padEnd = padEnd;
 const randNum = (a, b) => a + Math.random() * (b - a);
@@ -1944,10 +1954,12 @@ exports.ops = {
     val: { minArity: 1 },
     range: { minArity: 1, maxArity: 3, types: ["num", "num", "num"] },
     "empty?": { exactArity: 1, types: [["str", "vec", "dict"]] },
-    "starts-with?": { exactArity: 2, types: ["str", "str"] },
-    "ends-with?": { exactArity: 2, types: ["str", "str"] },
     split: { minArity: 1, maxArity: 2, types: ["str", "str"] },
     join: { minArity: 1, maxArity: 2, types: ["vec", "str"] },
+    "starts-with?": { exactArity: 2, types: ["str", "str"] },
+    "ends-with?": { exactArity: 2, types: ["str", "str"] },
+    "lower-case": { exactArity: 1, types: ["str"] },
+    "upper-case": { exactArity: 1, types: ["str"] },
     time: { exactArity: 0 },
     version: { exactArity: 0 },
     tests: { minArity: 0, maxArity: 1, types: ["bool"] },

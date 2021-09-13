@@ -275,10 +275,6 @@ etc
 (range 1 4 -1) => [3 2 1]
 (range 0 4 0)  => [0 1 2 3]
 
-;Tests if a string starts with and ends with another string
-(starts-with? "Hello" "He") => true
-(ends-with? "Hello" "Lo")   => false
-
 ;Splits a string by spaces or provided delimiting string
 (split "Hello" "e") => ["H" "llo"]
 (split "hi hi!")    => ["hi" "hi!"]
@@ -286,6 +282,14 @@ etc
 ;Joins a vector by spaces or provided string
 (join [1 2 3])      => "1 2 3"
 (join [1 2 3] ", ") => "1, 2, 3"
+
+;Tests if a string starts with and ends with another string
+(starts-with? "Hello" "He") => true
+(ends-with? "Hello" "Lo")   => false
+
+;Returns a string made entirely upper- or lower-case
+(upper-case "hEllo") => "HELLO"
+(lower-case "HeLlO") => "hello"
 
 ;Returns the keys and values of a dictionary
 (var d {0 1 :a "hello" "hi" 123})

@@ -487,6 +487,22 @@
 				]
 			},
 			{
+				"directory": "lower-case",
+				"description": [
+					"(lower-case \"HELLO\")",
+					"function",
+					"Returns a string made entirely lower-case."
+				]
+			},
+			{
+				"directory": "upper-case",
+				"description": [
+					"(lower-case \"hello\")",
+					"function",
+					"Returns a string made entirely upper-case."
+				]
+			},
+			{
 				"directory": "split",
 				"description": [
 					"(split \"hello\" \"e\")",

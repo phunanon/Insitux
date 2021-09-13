@@ -1,9 +1,9 @@
-export const insituxVersion = 20210912;
+export const insituxVersion = 20210913;
 import { parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
 const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
-const { ends, slen, starts, sub, subIdx, substr } = pf;
+const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isArray, isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
@@ -638,12 +638,6 @@ async function exeOp(
     case "vals":
       _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
       return [];
-    case "starts-with?":
-      _boo(starts(str(args[0]), str(args[1])));
-      return [];
-    case "ends-with?":
-      _boo(ends(str(args[0]), str(args[1])));
-      return [];
     case "split":
       _vec(
         str(args[0])
@@ -657,6 +651,18 @@ async function exeOp(
           .map(val2str)
           .join(len(args) > 1 ? str(args[1]) : " "),
       );
+      return [];
+    case "starts-with?":
+      _boo(starts(str(args[0]), str(args[1])));
+      return [];
+    case "ends-with?":
+      _boo(ends(str(args[0]), str(args[1])));
+      return [];
+    case "upper-case":
+      _str(upperCase(str(args[0])));
+      return [];
+    case "lower-case":
+      _str(lowerCase(str(args[0])));
       return [];
     case "time":
       _num(getTimeMs());
