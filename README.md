@@ -307,11 +307,11 @@ etc
 (idx [1 2 3 4] 3)  => 2
 (idx "Hello" "ll") => 2
 
-;Returns its last argument early from a function with a value
-(function f
-  (return 123)
-  (print "hello"))
+;Returns its last argument early from a function with a value, or null
+(function f (return 123) (print "hello"))
 (f) => 123
+(function f (return) (print "hi"))
+(f) => null
 
 ;Applies a vector's items and other arguments as the arguments to a function
 (.. + [0 1 2] 3 [4 5 6])

@@ -989,7 +989,11 @@ export async function exeFunc(
         splice(stack, len(stack) - (value as number), value as number);
         break;
       case "ret":
-        splice(stack, 0, len(stack) - 1);
+        if (value as boolean) {
+          splice(stack, 0, len(stack) - 1);
+        } else {
+          _nul();
+        }
         i = lim;
         break;
       default:

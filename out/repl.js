@@ -959,7 +959,12 @@ async function exeFunc(ctx, func, args) {
                 splice(stack, len(stack) - value, value);
                 break;
             case "ret":
-                splice(stack, 0, len(stack) - 1);
+                if (value) {
+                    splice(stack, 0, len(stack) - 1);
+                }
+                else {
+                    _nul();
+                }
                 i = lim;
                 break;
             default:
@@ -1322,7 +1327,7 @@ function parseForm(tokens, params) {
         push(body, parsed);
     }
     if (op === "return") {
-        return [...body, { typ: "ret", errCtx }];
+        return [...body, { typ: "ret", value: !!len(body), errCtx }];
     }
     headIns.push({
         typ: types_1.ops[op] ? "op" : "exe",

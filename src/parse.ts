@@ -285,7 +285,7 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
     push(body, parsed);
   }
   if (op === "return") {
-    return [...body, { typ: "ret", errCtx }];
+    return [...body, { typ: "ret", value: !!len(body), errCtx }];
   }
   headIns.push({
     typ: ops[op] ? "op" : "exe",
