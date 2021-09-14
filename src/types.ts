@@ -124,7 +124,7 @@ export const ops: {
   map: { minArity: 2 },
   for: { minArity: 2 },
   reduce: { minArity: 2, maxArity: 3 },
-  filter: { exactArity: 2 },
+  filter: { minArity: 2 },
   str: {},
   rand: { maxArity: 2, onlyNum: true },
   "rand-int": { maxArity: 2, onlyNum: true },

@@ -448,6 +448,7 @@ internal insitux functions
 (push [0 1 2] 3)
 ;; function
 ;; Returns a vector or dictionary with one item or key-value pair appended.
+;; Or, removes a key from a dictionary.
 
 (sect "Hello, world!" 1 3)
 ;; function
@@ -460,6 +461,10 @@ internal insitux functions
 (to-num "123")
 ;; function
 ;; Converts a string to a number.
+
+(to-key "hello")
+;; function
+;; Converts a string or number into a keyword.
 
 (keys {0 1 2 3})
 ;; function
@@ -483,7 +488,7 @@ internal insitux functions
 
 (filter odd? [0 1 2 3])
 ;; function
-;; Filters a vector or string by a function.
+;; Filters a vector or string by a function, optionally passing extra arguments.
 
 (reverse [0 1 2 3])
 ;; function

@@ -483,7 +483,7 @@ async function exeOp(
         if (op === "filter") {
           const filtered: Val[] = [];
           for (let i = 0, lim = len(array); i < lim; ++i) {
-            const errors = await closure([array[i]]);
+            const errors = await closure([array[i], ...args]);
             if (len(errors)) {
               return errors;
             }

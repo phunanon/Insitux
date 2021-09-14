@@ -484,7 +484,7 @@
 				"description": [
 					"(filter odd? [0 1 2 3])",
 					"function",
-					"Filters a vector or string by a function."
+					"Filters a vector or string by a function, optionally passing extra arguments."
 				]
 			},
 			{

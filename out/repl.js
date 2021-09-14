@@ -456,7 +456,7 @@ async function exeOp(op, args, ctx, errCtx) {
                 if (op === "filter") {
                     const filtered = [];
                     for (let i = 0, lim = len(array); i < lim; ++i) {
-                        const errors = await closure([array[i]]);
+                        const errors = await closure([array[i], ...args]);
                         if (len(errors)) {
                             return errors;
                         }
@@ -1987,7 +1987,7 @@ exports.ops = {
     map: { minArity: 2 },
     for: { minArity: 2 },
     reduce: { minArity: 2, maxArity: 3 },
-    filter: { exactArity: 2 },
+    filter: { minArity: 2 },
     str: {},
     rand: { maxArity: 2, onlyNum: true },
     "rand-int": { maxArity: 2, onlyNum: true },
