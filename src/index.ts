@@ -1,9 +1,11 @@
-export const insituxVersion = 20210913;
+export const insituxVersion = 20210914;
 import { parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
+const { logn, log2, log10 } = pf;
 const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
 const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
+const { trim, trimStart, trimEnd } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isArray, isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
@@ -180,27 +182,33 @@ function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
     }
   }
   if (onlyNum) {
-    return args.findIndex(a => a.t !== "num") !== -1
-      ? [typeErr(`numeric arguments only`, errCtx)]
-      : [];
+    const nonNumArgIdx = args.findIndex(a => a.t !== "num");
+    if (nonNumArgIdx === -1) {
+      return [];
+    }
+    const typeName = typeNames[args[nonNumArgIdx].t];
+    return [typeErr(`numeric arguments only, not ${typeName}`, errCtx)];
   }
   if (!types) {
     return [];
   }
   const typeViolations = types
-    .map(
-      (need, i) =>
-        i < nArg &&
-        (isArray(need)
-          ? has(need, args[i].t)
-            ? false
-            : `argument ${i + 1} must be either: ${need
-                .map(t => typeNames[t])
-                .join(", ")}`
-          : need === args[i].t
+    .map((need, i) => {
+      if (i >= nArg) {
+        return false;
+      }
+      const argType = args[i].t;
+      const badType = typeNames[argType];
+      return isArray(need)
+        ? has(need, argType)
           ? false
-          : `argument ${i + 1} must be ${typeNames[need]}`),
-    )
+          : `argument ${i + 1} must be either: ${need
+              .map(t => typeNames[t])
+              .join(", ")}, not ${badType}`
+        : need === argType
+        ? false
+        : `argument ${i + 1} must be ${typeNames[need]}, not ${badType}`;
+    })
     .filter(r => !!r);
   return typeViolations.map(v => typeErr(<string>v, errCtx));
 }
@@ -252,7 +260,7 @@ async function exeOp(
           : len(dic(args[0]).keys),
       );
       return [];
-    case "num":
+    case "to-num":
       if (isNum(args[0].v)) {
         _num(toNum(args[0].v));
       } else {
@@ -340,7 +348,14 @@ async function exeOp(
     case "round":
     case "floor":
     case "ceil":
-      _num({ sin, cos, tan, sqrt, round, floor, ceil }[op](num(args[0])));
+    case "logn":
+    case "log2":
+    case "log10":
+      _num(
+        { sin, cos, tan, sqrt, round, floor, ceil, logn, log2, log10 }[op](
+          num(args[0]),
+        ),
+      );
       return [];
     case "odd?":
     case "even?":
@@ -406,7 +421,10 @@ async function exeOp(
             ? -1
             : 0;
         if (badArg !== -1) {
-          return tErr(`argument 2 must be either: string, vector, dictionary`);
+          const badType = typeNames[args[badArg].t];
+          return tErr(
+            `argument 2 must be either: string, vector, dictionary, not ${badType}`,
+          );
         }
 
         if (op === "for") {
@@ -659,10 +677,21 @@ async function exeOp(
       _boo(ends(str(args[0]), str(args[1])));
       return [];
     case "upper-case":
-      _str(upperCase(str(args[0])));
-      return [];
     case "lower-case":
-      _str(lowerCase(str(args[0])));
+    case "trim":
+    case "trim-start":
+    case "trim-end":
+      _str(
+        (op === "upper-case"
+          ? upperCase
+          : op === "lower-case"
+          ? lowerCase
+          : op === "trim"
+          ? trim
+          : op === "trim-start"
+          ? trimStart
+          : trimEnd)(str(args[0])),
+      );
       return [];
     case "time":
       _num(getTimeMs());
@@ -740,7 +769,10 @@ function getExe(
         return monoArityError;
       }
       if (params[0].t !== "dict") {
-        return [typeErr(`argument 1 must be dictionary`, errCtx)];
+        const badType = typeNames[params[0].t];
+        return [
+          typeErr(`argument 1 must be dictionary, not ${badType}`, errCtx),
+        ];
       }
       stack.push(dictGet(dic(params[0]), op));
       return [];
@@ -753,8 +785,12 @@ function getExe(
       }
       const a = params[0];
       if (a.t !== "str" && a.t !== "vec" && a.t !== "dict") {
+        const badType = typeNames[a.t];
         return [
-          typeErr("argument must be string, vector, or dictionary", errCtx),
+          typeErr(
+            `argument must be string, vector, or dictionary, not ${badType}`,
+            errCtx,
+          ),
         ];
       }
       const arr = asArray(a);

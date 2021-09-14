@@ -115,6 +115,9 @@ built-in operations each within an example, with results after a `=>`.
 (round 3.5)  => 4
 (floor 2.7)  => 2
 (ceil 2.1)   => 3
+(logn 1)     => 0
+(log2 8)     => 3
+(log10 1000) => 3
 (odd? 5) (even? 6) (pos? 5) (neg? -5) (zero? 0)
 (null? null) (num? 123) (bool? true) (str? "hi")
 (dict? {}) (vec? []) (key? :abc) (func? +)
@@ -162,8 +165,8 @@ built-in operations each within an example, with results after a `=>`.
 => "Hello, world! Welcome 2 my app. [:a :b c]"
 
 ;Returns a string parsed into a number, or null
-(num "123") => 123
-(num "abc") => null
+(to-num "123") => 123
+(to-num "abc") => null
 
 ;Returns character from string index or item from vector index
 ;Note: the first letter/item is 0, the second is 1, etc

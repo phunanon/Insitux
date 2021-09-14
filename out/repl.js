@@ -8,12 +8,14 @@
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.symbols = exports.invoke = exports.exeFunc = exports.visBoo = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
-exports.insituxVersion = 20210913;
+exports.insituxVersion = 20210914;
 const parse_1 = __webpack_require__(306);
 const pf = __webpack_require__(17);
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
+const { logn, log2, log10 } = pf;
 const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
 const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
+const { trim, trimStart, trimEnd } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isArray, isNum, len, objKeys, range, toNum } = pf;
 const test_1 = __webpack_require__(127);
@@ -178,24 +180,33 @@ function exeOpViolations(op, args, errCtx) {
         }
     }
     if (onlyNum) {
-        return args.findIndex(a => a.t !== "num") !== -1
-            ? [typeErr(`numeric arguments only`, errCtx)]
-            : [];
+        const nonNumArgIdx = args.findIndex(a => a.t !== "num");
+        if (nonNumArgIdx === -1) {
+            return [];
+        }
+        const typeName = types_1.typeNames[args[nonNumArgIdx].t];
+        return [typeErr(`numeric arguments only, not ${typeName}`, errCtx)];
     }
     if (!types) {
         return [];
     }
     const typeViolations = types
-        .map((need, i) => i < nArg &&
-        (isArray(need)
-            ? has(need, args[i].t)
+        .map((need, i) => {
+        if (i >= nArg) {
+            return false;
+        }
+        const argType = args[i].t;
+        const badType = types_1.typeNames[argType];
+        return isArray(need)
+            ? has(need, argType)
                 ? false
                 : `argument ${i + 1} must be either: ${need
                     .map(t => types_1.typeNames[t])
-                    .join(", ")}`
-            : need === args[i].t
+                    .join(", ")}, not ${badType}`
+            : need === argType
                 ? false
-                : `argument ${i + 1} must be ${types_1.typeNames[need]}`))
+                : `argument ${i + 1} must be ${types_1.typeNames[need]}, not ${badType}`;
+    })
         .filter(r => !!r);
     return typeViolations.map(v => typeErr(v, errCtx));
 }
@@ -238,7 +249,7 @@ async function exeOp(op, args, ctx, errCtx) {
                     ? len(vec(args[0]))
                     : len(dic(args[0]).keys));
             return [];
-        case "num":
+        case "to-num":
             if (isNum(args[0].v)) {
                 _num(toNum(args[0].v));
             }
@@ -323,7 +334,10 @@ async function exeOp(op, args, ctx, errCtx) {
         case "round":
         case "floor":
         case "ceil":
-            _num({ sin, cos, tan, sqrt, round, floor, ceil }[op](num(args[0])));
+        case "logn":
+        case "log2":
+        case "log10":
+            _num({ sin, cos, tan, sqrt, round, floor, ceil, logn, log2, log10 }[op](num(args[0])));
             return [];
         case "odd?":
         case "even?":
@@ -388,7 +402,8 @@ async function exeOp(op, args, ctx, errCtx) {
                         ? -1
                         : 0;
                 if (badArg !== -1) {
-                    return tErr(`argument 2 must be either: string, vector, dictionary`);
+                    const badType = types_1.typeNames[args[badArg].t];
+                    return tErr(`argument 2 must be either: string, vector, dictionary, not ${badType}`);
                 }
                 if (op === "for") {
                     const arrays = args.map(asArray);
@@ -634,10 +649,19 @@ async function exeOp(op, args, ctx, errCtx) {
             _boo(ends(str(args[0]), str(args[1])));
             return [];
         case "upper-case":
-            _str(upperCase(str(args[0])));
-            return [];
         case "lower-case":
-            _str(lowerCase(str(args[0])));
+        case "trim":
+        case "trim-start":
+        case "trim-end":
+            _str((op === "upper-case"
+                ? upperCase
+                : op === "lower-case"
+                    ? lowerCase
+                    : op === "trim"
+                        ? trim
+                        : op === "trim-start"
+                            ? trimStart
+                            : trimEnd)(str(args[0])));
             return [];
         case "time":
             _num(getTimeMs());
@@ -710,7 +734,10 @@ function getExe(ctx, op, errCtx) {
                 return monoArityError;
             }
             if (params[0].t !== "dict") {
-                return [typeErr(`argument 1 must be dictionary`, errCtx)];
+                const badType = types_1.typeNames[params[0].t];
+                return [
+                    typeErr(`argument 1 must be dictionary, not ${badType}`, errCtx),
+                ];
             }
             stack.push(dictGet(dic(params[0]), op));
             return [];
@@ -724,8 +751,9 @@ function getExe(ctx, op, errCtx) {
             }
             const a = params[0];
             if (a.t !== "str" && a.t !== "vec" && a.t !== "dict") {
+                const badType = types_1.typeNames[a.t];
                 return [
-                    typeErr("argument must be string, vector, or dictionary", errCtx),
+                    typeErr(`argument must be string, vector, or dictionary, not ${badType}`, errCtx),
                 ];
             }
             const arr = asArray(a);
@@ -1493,7 +1521,7 @@ exports.parse = parse;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.pi = exports.sign = exports.ceil = exports.floor = exports.round = exports.sqrt = exports.tan = exports.cos = exports.sin = exports.max = exports.min = exports.abs = exports.getTimeMs = exports.objKeys = exports.range = exports.randInt = exports.randNum = exports.padEnd = exports.upperCase = exports.lowerCase = exports.trimStart = exports.trim = exports.reverse = exports.sortBy = exports.push = exports.concat = exports.flat = exports.ends = exports.starts = exports.has = exports.subIdx = exports.sub = exports.strIdx = exports.substr = exports.isArray = exports.isNum = exports.slen = exports.len = exports.splice = exports.slice = exports.toNum = void 0;
+exports.log10 = exports.log2 = exports.logn = exports.pi = exports.sign = exports.ceil = exports.floor = exports.round = exports.sqrt = exports.tan = exports.cos = exports.sin = exports.max = exports.min = exports.abs = exports.getTimeMs = exports.objKeys = exports.range = exports.randInt = exports.randNum = exports.padEnd = exports.trimEnd = exports.trimStart = exports.trim = exports.upperCase = exports.lowerCase = exports.reverse = exports.sortBy = exports.push = exports.concat = exports.flat = exports.ends = exports.starts = exports.has = exports.subIdx = exports.sub = exports.strIdx = exports.substr = exports.isArray = exports.isNum = exports.slen = exports.len = exports.splice = exports.slice = exports.toNum = void 0;
 const toNum = (x) => Number(x);
 exports.toNum = toNum;
 const slice = (arr, start, end) => arr.slice(start, end);
@@ -1532,14 +1560,16 @@ const sortBy = (arr, by) => arr.sort(by);
 exports.sortBy = sortBy;
 const reverse = (arr) => arr.reverse();
 exports.reverse = reverse;
-const trim = (str) => str.trim();
-exports.trim = trim;
-const trimStart = (str) => str.trimStart();
-exports.trimStart = trimStart;
 const lowerCase = (str) => str.toLowerCase();
 exports.lowerCase = lowerCase;
 const upperCase = (str) => str.toUpperCase();
 exports.upperCase = upperCase;
+const trim = (str) => str.trim();
+exports.trim = trim;
+const trimStart = (str) => str.trimStart();
+exports.trimStart = trimStart;
+const trimEnd = (str) => str.trimEnd();
+exports.trimEnd = trimEnd;
 const padEnd = (str, by) => str.padEnd(by);
 exports.padEnd = padEnd;
 const randNum = (a, b) => a + Math.random() * (b - a);
@@ -1564,6 +1594,9 @@ exports.floor = Math.floor;
 exports.ceil = Math.ceil;
 exports.sign = Math.sign;
 exports.pi = Math.PI;
+exports.logn = Math.log;
+exports.log2 = Math.log2;
+exports.log10 = Math.log10;
 
 
 /***/ }),
@@ -1905,6 +1938,9 @@ exports.ops = {
     round: { exactArity: 1, onlyNum: true },
     floor: { exactArity: 1, onlyNum: true },
     ceil: { exactArity: 1, onlyNum: true },
+    logn: { exactArity: 1, onlyNum: true },
+    log2: { exactArity: 1, onlyNum: true },
+    log10: { exactArity: 1, onlyNum: true },
     "odd?": { exactArity: 1, onlyNum: true },
     "even?": { exactArity: 1, onlyNum: true },
     "pos?": { exactArity: 1, onlyNum: true },
@@ -1925,7 +1961,7 @@ exports.ops = {
     vec: {},
     dict: {},
     len: { exactArity: 1, types: [["str", "vec", "dict"]] },
-    num: { exactArity: 1, types: [["str", "num"]] },
+    "to-num": { exactArity: 1, types: [["str", "num"]] },
     "has?": { exactArity: 2, types: ["str", "str"] },
     idx: { exactArity: 2, types: [["str", "vec"]] },
     map: { minArity: 2 },
@@ -1960,6 +1996,9 @@ exports.ops = {
     "ends-with?": { exactArity: 2, types: ["str", "str"] },
     "lower-case": { exactArity: 1, types: ["str"] },
     "upper-case": { exactArity: 1, types: ["str"] },
+    trim: { exactArity: 1, types: ["str"] },
+    "trim-start": { exactArity: 1, types: ["str"] },
+    "trim-end": { exactArity: 1, types: ["str"] },
     time: { exactArity: 0 },
     version: { exactArity: 0 },
     tests: { minArity: 0, maxArity: 1, types: ["bool"] },

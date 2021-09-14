@@ -107,6 +107,134 @@
 				]
 			},
 			{
+				"directory": "**",
+				"description": [
+					"(** 10 2)",
+					"function",
+					"Returns its first argument to the power of its second argument."
+				]
+			},
+			{
+				"directory": "abs",
+				"description": [
+					"(abs -123)",
+					"function",
+					"Returns absolute of a number."
+				]
+			},
+			{
+				"directory": "sin",
+				"description": [
+					"(sin (pi))",
+					"function",
+					"Returns sine of a radian angle."
+				]
+			},
+			{
+				"directory": "cos",
+				"description": [
+					"(cos (pi))",
+					"function",
+					"Returns cosine of a radian angle."
+				]
+			},
+			{
+				"directory": "tan",
+				"description": [
+					"(tan (* 45 (/ (pi) 180)))",
+					"function",
+					"Returns tangent of a radian angle."
+				]
+			},
+			{
+				"directory": "sqrt",
+				"description": [
+					"(sqrt 25)",
+					"function",
+					"Returns the square root of a number."
+				]
+			},
+			{
+				"directory": "rem",
+				"description": [
+					"(rem 10 2)",
+					"function",
+					"Returns the remainder of a division."
+				]
+			},
+			{
+				"directory": "round",
+				"description": [
+					"(round 3.5)",
+					"function",
+					"Rounds a number to the nearest integer."
+				]
+			},
+			{
+				"directory": "floor",
+				"description": [
+					"(floor 3.9)",
+					"function",
+					"Rounds a number down to the nearest integer."
+				]
+			},
+			{
+				"directory": "ceil",
+				"description": [
+					"(ceil 3.1)",
+					"function",
+					"Rounds a number up to the nearest integer."
+				]
+			},
+			{
+				"directory": "logn",
+				"description": [
+					"(logn 1)",
+					"function",
+					"Returns the natural logarithm of a number."
+				]
+			},
+			{
+				"directory": "log2",
+				"description": [
+					"(log2 8)",
+					"function",
+					"Returns the logarithm base 2 of a number."
+				]
+			},
+			{
+				"directory": "log2",
+				"description": [
+					"(log2 1000)",
+					"function",
+					"Returns the logarithm base 10 of a number."
+				]
+			},
+			{
+				"directory": "min",
+				"description": [
+					"(min 1 2 3)",
+					"function",
+					"Returns the smallest number of its arguments."
+				]
+			},
+			{
+				"directory": "max",
+				"description": [
+					"(max 1 2 3)",
+					"function",
+					"Returns the largest number of its arguments."
+				]
+			},
+			{
+				"directory": "pi",
+				"description": [
+					"(pi)",
+					"function",
+					"Returns the mathematical Pi."
+				]
+			},
+			{
 				"directory": "inc",
 				"description": [
 					"(inc 123)",
@@ -287,110 +415,6 @@
 				]
 			},
 			{
-				"directory": "abs",
-				"description": [
-					"(abs -123)",
-					"function",
-					"Returns absolute of a number."
-				]
-			},
-			{
-				"directory": "sin",
-				"description": [
-					"(sin (pi))",
-					"function",
-					"Returns sine of a radian angle."
-				]
-			},
-			{
-				"directory": "cos",
-				"description": [
-					"(cos (pi))",
-					"function",
-					"Returns cosine of a radian angle."
-				]
-			},
-			{
-				"directory": "tan",
-				"description": [
-					"(tan (* 45 (/ (pi) 180)))",
-					"function",
-					"Returns tangent of a radian angle."
-				]
-			},
-			{
-				"directory": "sqrt",
-				"description": [
-					"(sqrt 25)",
-					"function",
-					"Returns the square root of a number."
-				]
-			},
-			{
-				"directory": "rem",
-				"description": [
-					"(rem 10 2)",
-					"function",
-					"Returns the remainder of a division."
-				]
-			},
-			{
-				"directory": "round",
-				"description": [
-					"(round 3.5)",
-					"function",
-					"Rounds a number to the nearest integer."
-				]
-			},
-			{
-				"directory": "floor",
-				"description": [
-					"(floor 3.9)",
-					"function",
-					"Rounds a number down to the nearest integer."
-				]
-			},
-			{
-				"directory": "ceil",
-				"description": [
-					"(ceil 3.1)",
-					"function",
-					"Rounds a number up to the nearest integer."
-				]
-			},
-			{
-				"directory": "min",
-				"description": [
-					"(min 1 2 3)",
-					"function",
-					"Returns the smallest number of its arguments."
-				]
-			},
-			{
-				"directory": "max",
-				"description": [
-					"(max 1 2 3)",
-					"function",
-					"Returns the largest number of its arguments."
-				]
-			},
-			{
-				"directory": "**",
-				"description": [
-					"(** 10 2)",
-					"function",
-					"Returns its first argument to the power of its second argument."
-				]
-			},
-			{
-				"directory": "pi",
-				"description": [
-					"(pi)",
-					"function",
-					"Returns the mathematical Pi."
-				]
-			},
-			{
 				"directory": "has?",
 				"description": [
 					"(has? \"Hello\" \"ll\")",
@@ -399,9 +423,9 @@
 				]
 			},
 			{
-				"directory": "num",
+				"directory": "to-num",
 				"description": [
-					"(num \"123\")",
+					"(to-num \"123\")",
 					"function",
 					"Converts a string to a number."
 				]

@@ -297,6 +297,70 @@ internal insitux functions
 ;; function
 ;; Divides and retains the quotient each argument by the next in turn.
 
+(** 10 2)
+;; function
+;; Returns its first argument to the power of its second argument.
+
+(abs -123)
+;; function
+;; Returns absolute of a number.
+
+(sin (pi))
+;; function
+;; Returns sine of a radian angle.
+
+(cos (pi))
+;; function
+;; Returns cosine of a radian angle.
+
+(tan (* 45 (/ (pi) 180)))
+;; function
+;; Returns tangent of a radian angle.
+
+(sqrt 25)
+;; function
+;; Returns the square root of a number.
+
+(rem 10 2)
+;; function
+;; Returns the remainder of a division.
+
+(round 3.5)
+;; function
+;; Rounds a number to the nearest integer.
+
+(floor 3.9)
+;; function
+;; Rounds a number down to the nearest integer.
+
+(ceil 3.1)
+;; function
+;; Rounds a number up to the nearest integer.
+
+(logn 1)
+;; function
+;; Returns the natural logarithm of a number.
+
+(log2 8)
+;; function
+;; Returns the logarithm base 2 of a number.
+
+(log2 1000)
+;; function
+;; Returns the logarithm base 10 of a number.
+
+(min 1 2 3)
+;; function
+;; Returns the smallest number of its arguments.
+
+(max 1 2 3)
+;; function
+;; Returns the largest number of its arguments.
+
+(pi)
+;; function
+;; Returns the mathematical Pi.
+
 (inc 123)
 ;; function
 ;; Returns its argument +1 (incremented).
@@ -389,63 +453,11 @@ internal insitux functions
 ;; function
 ;; Returns a section of a vector or string.
 
-(abs -123)
-;; function
-;; Returns absolute of a number.
-
-(sin (pi))
-;; function
-;; Returns sine of a radian angle.
-
-(cos (pi))
-;; function
-;; Returns cosine of a radian angle.
-
-(tan (* 45 (/ (pi) 180)))
-;; function
-;; Returns tangent of a radian angle.
-
-(sqrt 25)
-;; function
-;; Returns the square root of a number.
-
-(rem 10 2)
-;; function
-;; Returns the remainder of a division.
-
-(round 3.5)
-;; function
-;; Rounds a number to the nearest integer.
-
-(floor 3.9)
-;; function
-;; Rounds a number down to the nearest integer.
-
-(ceil 3.1)
-;; function
-;; Rounds a number up to the nearest integer.
-
-(min 1 2 3)
-;; function
-;; Returns the smallest number of its arguments.
-
-(max 1 2 3)
-;; function
-;; Returns the largest number of its arguments.
-
-(** 10 2)
-;; function
-;; Returns its first argument to the power of its second argument.
-
-(pi)
-;; function
-;; Returns the mathematical Pi.
-
 (has? "Hello" "ll")
 ;; function
 ;; Tests if a string contains a sub-string.
 
-(num "123")
+(to-num "123")
 ;; function
 ;; Converts a string to a number.
 
