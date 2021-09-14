@@ -1078,7 +1078,8 @@ function tokenise(code, invocationId) {
         if (isEscaped) {
             isEscaped = false;
             if (inString) {
-                tokens[len(tokens) - 1].text += { n: "\n", t: "\t" }[c] || `\\${c}`;
+                tokens[len(tokens) - 1].text +=
+                    { n: "\n", t: "\t", '"': '"' }[c] || `\\${c}`;
             }
             continue;
         }

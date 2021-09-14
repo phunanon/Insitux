@@ -20,7 +20,7 @@ module.exports = ({ target }) => {
     optimization: {
       minimize: isWeb,
     },
-    ...(isWeb ? {} : { devtool: "source-map" }),
+    devtool: "source-map",
     output: isWeb
       ? {
           filename: "insitux.js",
