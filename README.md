@@ -168,6 +168,10 @@ built-in operations each within an example, with results after a `=>`.
 (to-num "123") => 123
 (to-num "abc") => null
 
+;Returns a string or number converted into a keyword
+(to-key "hello") => :hello
+(to-key 123)     => :123
+
 ;Returns character from string index or item from vector index
 ;Note: the first letter/item is 0, the second is 1, etc
 (2 "Hello!")    => l
@@ -237,8 +241,10 @@ built-in operations each within an example, with results after a `=>`.
 (into [1 2 3] [4 5 6])          => [1 2 3 4 5 6]
 
 ;Returns a vector or dictionary with one item or key-value pair appended
+;Or, removes a key from a dictionary
 (push [1 2] 3)   => [1 2 3]
 (push {1 2} 3 4) => {1 2 3 4}
+(push {1 2} 1)   => {}
 
 ;Returns a section of a string or vector
 (sect "Patrick")       => "atrick"

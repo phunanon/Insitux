@@ -118,7 +118,7 @@ export const ops: {
   dict: {},
   len: { exactArity: 1, types: [["str", "vec", "dict"]] },
   "to-num": { exactArity: 1, types: [["str", "num"]] },
-  "to-key": {exactArity: 1, types: [["str", "num"]] },
+  "to-key": { exactArity: 1, types: [["str", "num"]] },
   "has?": { exactArity: 2, types: ["str", "str"] },
   idx: { exactArity: 2, types: [["str", "vec"]] },
   map: { minArity: 2 },

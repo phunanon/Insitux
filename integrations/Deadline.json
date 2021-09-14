@@ -403,7 +403,8 @@
 				"description": [
 					"(push [0 1 2] 3)",
 					"function",
-					"Returns a vector or dictionary with one item or key-value pair appended."
+					"Returns a vector or dictionary with one item or key-value pair appended.",
+					"Or, removes a key from a dictionary."
 				]
 			},
 			{
@@ -428,6 +429,14 @@
 					"(to-num \"123\")",
 					"function",
 					"Converts a string to a number."
+				]
+			},
+			{
+				"directory": "to-key",
+				"description": [
+					"(to-key \"hello\")",
+					"function",
+					"Converts a string or number into a keyword."
 				]
 			},
 			{

@@ -158,6 +158,16 @@ const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
   return <Val>{ t: "dict", v: <Dict>{ keys: nKeys, vals: nVals } };
 };
 
+const dictDrop = ({ keys, vals }: Dict, key: Val) => {
+  const [nKeys, nVals] = [slice(keys), slice(vals)];
+  const idx = keys.findIndex(k => isEqual(k, key));
+  if (idx !== -1) {
+    splice(nKeys, idx, 1);
+    splice(nVals, idx, 1);
+  }
+  return <Val>{ t: "dict", v: <Dict>{ keys: nKeys, vals: nVals } };
+};
+
 function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
   const { types, exactArity, maxArity, minArity, onlyNum } = ops[op];
   const aErr = (msg: string, amount: number) => [
@@ -545,9 +555,10 @@ async function exeOp(
         _vec(concat(asArray(args[0]), [args[1]]));
       } else {
         if (len(args) < 3) {
-          return [{ e: "Arity", m: `key and value both required`, errCtx }];
+          stack.push(dictDrop(dic(args[0]), args[1]));
+        } else {
+          stack.push(dictSet(dic(args[0]), args[1], args[2]));
         }
-        stack.push(dictSet(dic(args[0]), args[1], args[2]));
       }
       return [];
     }
