@@ -170,14 +170,14 @@ const dictDrop = ({ keys, vals }: Dict, key: Val) => {
 
 function exeOpViolations(op: string, args: Val[], errCtx: ErrCtx) {
   const { types, exactArity, maxArity, minArity, onlyNum } = ops[op];
+  const nArg = len(args);
   const aErr = (msg: string, amount: number) => [
     <InvokeError>{
       e: "Arity",
-      m: `${op} needs ${msg} argument${amount !== 1 ? "s" : ""}`,
+      m: `${op} needs ${msg} argument${amount !== 1 ? "s" : ""}, not ${nArg}`,
       errCtx,
     },
   ];
-  const nArg = len(args);
   if (exactArity !== undefined) {
     if (nArg !== exactArity) {
       return aErr(`exactly ${exactArity}`, exactArity);
