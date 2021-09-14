@@ -257,6 +257,9 @@ async function exeOp(op, args, ctx, errCtx) {
                 _nul();
             }
             return [];
+        case "to-key":
+            _key(`:${val2str(args[0])}`);
+            return [];
         case "!":
             _boo(!asBoo(args[0]));
             return [];
@@ -520,8 +523,7 @@ async function exeOp(op, args, ctx, errCtx) {
                 if (len(args) < 3) {
                     return [{ e: "Arity", m: `key and value both required`, errCtx }];
                 }
-                const { keys, vals } = dic(args[0]);
-                _dic({ keys: concat(keys, [args[1]]), vals: concat(vals, [args[2]]) });
+                stack.push(dictSet(dic(args[0]), args[1], args[2]));
             }
             return [];
         }
@@ -1968,6 +1970,7 @@ exports.ops = {
     dict: {},
     len: { exactArity: 1, types: [["str", "vec", "dict"]] },
     "to-num": { exactArity: 1, types: [["str", "num"]] },
+    "to-key": { exactArity: 1, types: [["str", "num"]] },
     "has?": { exactArity: 2, types: ["str", "str"] },
     idx: { exactArity: 2, types: [["str", "vec"]] },
     map: { minArity: 2 },

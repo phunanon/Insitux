@@ -267,6 +267,9 @@ async function exeOp(
         _nul();
       }
       return [];
+    case "to-key":
+      _key(`:${val2str(args[0])}`);
+      return [];
     case "!":
       _boo(!asBoo(args[0]));
       return [];
@@ -544,8 +547,7 @@ async function exeOp(
         if (len(args) < 3) {
           return [{ e: "Arity", m: `key and value both required`, errCtx }];
         }
-        const { keys, vals } = dic(args[0]);
-        _dic({ keys: concat(keys, [args[1]]), vals: concat(vals, [args[2]]) });
+        stack.push(dictSet(dic(args[0]), args[1], args[2]));
       }
       return [];
     }
