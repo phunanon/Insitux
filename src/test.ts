@@ -87,7 +87,7 @@ const tests: {
   {
     name: "Dictionary as op 2",
     code: `({"name" "Patrick"} "age" 24)`,
-    out: `{name Patrick, age 24}`,
+    out: `{"name" "Patrick", "age" 24}`,
   },
   {
     name: "Equalities",
@@ -122,7 +122,7 @@ const tests: {
   {
     name: "Filter by integer",
     code: `(filter 2 [[1] [:a :b :c] "hello" "hi"])`,
-    out: `[[:a :b :c] hello]`,
+    out: `[[:a :b :c] "hello"]`,
   },
   {
     name: "Comments, short decimal",
@@ -147,6 +147,11 @@ const tests: {
              (print-str n)
              (var n (dec n)))`,
     out: `543215`,
+  },
+  {
+    name: "Catch error",
+    code: `(:e (0 (catch (+))))`,
+    out: `Arity`,
   },
   //Basic functions
   { name: "Define with no call", code: `(function func (print "Nothing."))` },

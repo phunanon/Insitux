@@ -8,7 +8,7 @@
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.symbols = exports.invoke = exports.exeFunc = exports.visBoo = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
-exports.insituxVersion = 20210914;
+exports.insituxVersion = 20210915;
 const parse_1 = __webpack_require__(306);
 const pf = __webpack_require__(17);
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -21,6 +21,7 @@ const { isArray, isNum, len, objKeys, range, toNum } = pf;
 const test_1 = __webpack_require__(127);
 const types_1 = __webpack_require__(699);
 const val2str = ({ v, t }) => {
+    const quoted = (v) => (v.t === "str" ? `"${v.v}"` : val2str(v));
     switch (t) {
         case "bool":
             return `${v}`;
@@ -31,10 +32,10 @@ const val2str = ({ v, t }) => {
         case "ref":
             return v;
         case "vec":
-            return `[${v.map(v => val2str(v)).join(" ")}]`;
+            return `[${v.map(quoted).join(" ")}]`;
         case "dict": {
             const { keys, vals } = v;
-            const [ks, vs] = [keys.map(val2str), vals.map(val2str)];
+            const [ks, vs] = [keys.map(quoted), vals.map(quoted)];
             const entries = ks.map((k, i) => `${k} ${vs[i]}`);
             return `{${entries.join(", ")}}`;
         }
@@ -151,7 +152,7 @@ const dictSet = ({ keys, vals }, key, val) => {
         nKeys.push(key);
         nVals.push(val);
     }
-    return { t: "dict", v: { keys: nKeys, vals: nVals } };
+    return { keys: nKeys, vals: nVals };
 };
 const dictDrop = ({ keys, vals }, key) => {
     const [nKeys, nVals] = [slice(keys), slice(vals)];
@@ -533,7 +534,7 @@ async function exeOp(op, args, ctx, errCtx) {
                     stack.push(dictDrop(dic(args[0]), args[1]));
                 }
                 else {
-                    stack.push(dictSet(dic(args[0]), args[1], args[2]));
+                    _dic(dictSet(dic(args[0]), args[1], args[2]));
                 }
             }
             return [];
@@ -805,7 +806,7 @@ function getExe(ctx, op, errCtx) {
                 stack.push(dictGet(dict, params[0]));
             }
             else if (len(params) === 2) {
-                stack.push(dictSet(dict, params[0], params[1]));
+                _dic(dictSet(dict, params[0], params[1]));
             }
             else {
                 return [
@@ -842,6 +843,16 @@ function getExe(ctx, op, errCtx) {
     return async (_) => [
         { e: "Operation", m: `${val2str(op)} is an invalid operation`, errCtx },
     ];
+}
+function errorsToDict(errors) {
+    const newKey = (d, k, v) => dictSet(d, { t: "key", v: k }, v);
+    return errors.map(({ e, m, errCtx }) => {
+        let dict = newKey({ keys: [], vals: [] }, ":e", { t: "str", v: e });
+        dict = newKey(dict, ":m", { t: "str", v: m });
+        dict = newKey(dict, ":line", { t: "num", v: errCtx.line });
+        dict = newKey(dict, ":col", { t: "num", v: errCtx.col });
+        return { t: "dict", v: dict };
+    });
 }
 async function exeFunc(ctx, func, args) {
     --ctx.callBudget;
@@ -944,6 +955,10 @@ async function exeFunc(ctx, func, args) {
                     const closure = getExe(ctx, op, errCtx);
                     const errors = await closure(params);
                     if (len(errors)) {
+                        if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
+                            _vec(errorsToDict(errors));
+                            break;
+                        }
                         return errors;
                     }
                 }
@@ -979,6 +994,8 @@ async function exeFunc(ctx, func, args) {
                     _nul();
                 }
                 i = lim;
+                break;
+            case "cat":
                 break;
             default:
                 (0, types_1.assertUnreachable)(typ);
@@ -1225,7 +1242,14 @@ function parseForm(tokens, params) {
     const { typ, text, errCtx } = head;
     let op = text;
     const err = (value) => [{ typ: "err", value, errCtx }];
-    if (op === "var" || op === "let") {
+    if (op === "catch") {
+        const body = parseArg(tokens, params);
+        if (!len(body)) {
+            return err("must provide one argument");
+        }
+        return [...body, { typ: "cat", errCtx }];
+    }
+    else if (op === "var" || op === "let") {
         const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
         if (!len(def) || !len(val) || len(parseArg(tokens, params))) {
             return err("must provide reference name and value only");
@@ -1695,7 +1719,7 @@ const tests = [
     {
         name: "Dictionary as op 2",
         code: `({"name" "Patrick"} "age" 24)`,
-        out: `{name Patrick, age 24}`,
+        out: `{"name" "Patrick", "age" 24}`,
     },
     {
         name: "Equalities",
@@ -1730,7 +1754,7 @@ const tests = [
     {
         name: "Filter by integer",
         code: `(filter 2 [[1] [:a :b :c] "hello" "hi"])`,
-        out: `[[:a :b :c] hello]`,
+        out: `[[:a :b :c] "hello"]`,
     },
     {
         name: "Comments, short decimal",
@@ -1755,6 +1779,11 @@ const tests = [
              (print-str n)
              (var n (dec n)))`,
         out: `543215`,
+    },
+    {
+        name: "Catch error",
+        code: `(:e (0 (catch (+))))`,
+        out: `Arity`,
     },
     //Basic functions
     { name: "Define with no call", code: `(function func (print "Nothing."))` },

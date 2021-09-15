@@ -52,7 +52,8 @@ export type InsType =
   | "loo" //Expensive jump
   | "pop" //Truncate stack
   | "or"
-  | "ret";
+  | "ret"
+  | "cat";
 export type Ins = {
   typ: InsType;
   value?: unknown;

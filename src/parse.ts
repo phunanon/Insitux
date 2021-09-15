@@ -175,7 +175,13 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
   const { typ, text, errCtx } = head;
   let op = text;
   const err = (value: string) => [<ParserIns>{ typ: "err", value, errCtx }];
-  if (op === "var" || op === "let") {
+  if (op === "catch") {
+    const body = parseArg(tokens, params);
+    if (!len(body)) {
+      return err("must provide one argument");
+    }
+    return [...body, { typ: "cat", errCtx }];
+  } else if (op === "var" || op === "let") {
     const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
     if (!len(def) || !len(val) || len(parseArg(tokens, params))) {
       return err("must provide reference name and value only");

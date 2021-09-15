@@ -1,4 +1,4 @@
-export const insituxVersion = 20210914;
+export const insituxVersion = 20210915;
 import { parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -13,6 +13,7 @@ import { assertUnreachable, ops, typeNames } from "./types";
 import { Ctx, Dict, ErrCtx, Func, InvokeError, Val } from "./types";
 
 const val2str = ({ v, t }: Val): string => {
+  const quoted = (v: Val) => (v.t === "str" ? `"${v.v}"` : val2str(v));
   switch (t) {
     case "bool":
       return `${v as boolean}`;
@@ -23,10 +24,10 @@ const val2str = ({ v, t }: Val): string => {
     case "ref":
       return v as string;
     case "vec":
-      return `[${(v as Val[]).map(v => val2str(v)).join(" ")}]`;
+      return `[${(v as Val[]).map(quoted).join(" ")}]`;
     case "dict": {
       const { keys, vals } = v as Dict;
-      const [ks, vs] = [keys.map(val2str), vals.map(val2str)];
+      const [ks, vs] = [keys.map(quoted), vals.map(quoted)];
       const entries = ks.map((k, i) => `${k} ${vs[i]}`);
       return `{${entries.join(", ")}}`;
     }
@@ -155,7 +156,7 @@ const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
     nKeys.push(key);
     nVals.push(val);
   }
-  return <Val>{ t: "dict", v: <Dict>{ keys: nKeys, vals: nVals } };
+  return <Dict>{ keys: nKeys, vals: nVals };
 };
 
 const dictDrop = ({ keys, vals }: Dict, key: Val) => {
@@ -557,7 +558,7 @@ async function exeOp(
         if (len(args) < 3) {
           stack.push(dictDrop(dic(args[0]), args[1]));
         } else {
-          stack.push(dictSet(dic(args[0]), args[1], args[2]));
+          _dic(dictSet(dic(args[0]), args[1], args[2]));
         }
       }
       return [];
@@ -836,7 +837,7 @@ function getExe(
       if (len(params) === 1) {
         stack.push(dictGet(dict, params[0]));
       } else if (len(params) === 2) {
-        stack.push(dictSet(dict, params[0], params[1]));
+        _dic(dictSet(dict, params[0], params[1]));
       } else {
         return [
           {
@@ -873,6 +874,18 @@ function getExe(
   return async _ => [
     { e: "Operation", m: `${val2str(op)} is an invalid operation`, errCtx },
   ];
+}
+
+function errorsToDict(errors: InvokeError[]) {
+  const newKey = (d: Dict, k: string, v: Val) =>
+    dictSet(d, { t: "key", v: k }, v);
+  return errors.map(({ e, m, errCtx }) => {
+    let dict = newKey({ keys: [], vals: [] }, ":e", { t: "str", v: e });
+    dict = newKey(dict, ":m", { t: "str", v: m });
+    dict = newKey(dict, ":line", { t: "num", v: errCtx.line });
+    dict = newKey(dict, ":col", { t: "num", v: errCtx.col });
+    return <Val>{ t: "dict", v: dict };
+  });
 }
 
 export async function exeFunc(
@@ -975,6 +988,10 @@ export async function exeFunc(
           const closure = getExe(ctx, op, errCtx);
           const errors = await closure(params);
           if (len(errors)) {
+            if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
+              _vec(errorsToDict(errors));
+              break;
+            }
             return errors;
           }
         }
@@ -1008,6 +1025,8 @@ export async function exeFunc(
           _nul();
         }
         i = lim;
+        break;
+      case "cat":
         break;
       default:
         assertUnreachable(typ);
