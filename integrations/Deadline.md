@@ -273,6 +273,10 @@ internal insitux functions
 ;; syntax
 ;; Returns its last argument early from a function.
 
+(catch (+) errors)
+;; syntax
+;; Evaluates the first argument and returns the value if no runtime errors, else populates the let `errors` and returns the evaluation of the second argument
+
 (print "2 + 2 = " (+ 2 2))
 ;; function
 ;; Prints a line of text, joining its arguments together.

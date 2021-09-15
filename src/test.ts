@@ -150,7 +150,9 @@ const tests: {
   },
   {
     name: "Catch error",
-    code: `(:e (0 (catch (+))))`,
+    code: `(catch
+             (:e (catch (+) (0 errors)))
+             (print "hi"))`,
     out: `Arity`,
   },
   //Basic functions

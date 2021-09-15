@@ -59,6 +59,14 @@
 				]
 			},
 			{
+				"directory": "catch",
+				"description": [
+					"(catch (+) errors)",
+					"syntax",
+					"Evaluates the first argument and returns the value if no runtime errors, else populates the let `errors` and returns the evaluation of the second argument"
+				]
+			},
+			{
 				"directory": "print",
 				"description": [
 					"(print \"2 + 2 = \" (+ 2 2))",

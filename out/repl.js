@@ -958,7 +958,11 @@ async function exeFunc(ctx, func, args) {
                     const errors = await closure(params);
                     if (len(errors)) {
                         if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
-                            _vec(errorsToDict(errors));
+                            ++i;
+                            ctx.env.lets[len(ctx.env.lets) - 1]["errors"] = {
+                                t: "vec",
+                                v: errorsToDict(errors),
+                            };
                             break;
                         }
                         return errors;
@@ -979,6 +983,7 @@ async function exeFunc(ctx, func, args) {
                 }
                 break;
             case "jmp":
+            case "cat":
                 i += value;
                 break;
             case "loo":
@@ -996,8 +1001,6 @@ async function exeFunc(ctx, func, args) {
                     _nul();
                 }
                 i = lim;
-                break;
-            case "cat":
                 break;
             default:
                 (0, types_1.assertUnreachable)(typ);
@@ -1236,6 +1239,17 @@ function funcise(segments) {
         ])
         : described;
 }
+function parseWholeArg(tokens, params) {
+    const body = [];
+    while (true) {
+        const exp = parseArg(tokens, params);
+        if (!len(exp)) {
+            break;
+        }
+        push(body, exp);
+    }
+    return body;
+}
 function parseForm(tokens, params) {
     const head = tokens.shift();
     if (!head) {
@@ -1245,11 +1259,15 @@ function parseForm(tokens, params) {
     let op = text;
     const err = (value) => [{ typ: "err", value, errCtx }];
     if (op === "catch") {
-        const body = parseArg(tokens, params);
-        if (!len(body)) {
-            return err("must provide one argument");
+        if (tokens[0].typ !== "(") {
+            return err("first argument must be expression");
         }
-        return [...body, { typ: "cat", errCtx }];
+        const body = parseArg(tokens, params);
+        const when = parseWholeArg(tokens, params);
+        if (!len(body) || !len(when)) {
+            return err("must provide 2 arguments");
+        }
+        return [...body, { typ: "cat", value: len(when), errCtx }, ...when];
     }
     else if (op === "var" || op === "let") {
         const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
@@ -1285,14 +1303,7 @@ function parseForm(tokens, params) {
             }
         }
         else {
-            const body = [];
-            while (true) {
-                const exp = parseArg(tokens, params);
-                if (!len(exp)) {
-                    break;
-                }
-                push(body, exp);
-            }
+            const body = parseWholeArg(tokens, params);
             ins.push({ typ: "if", value: len(body) + 1, errCtx });
             push(ins, body);
             ins.push({ typ: "jmp", value: 1, errCtx });
@@ -1776,7 +1787,9 @@ const tests = [
     },
     {
         name: "Catch error",
-        code: `(:e (0 (catch (+))))`,
+        code: `(catch
+             (:e (catch (+) (0 errors)))
+             (print "hi"))`,
         out: `Arity`,
     },
     //Basic functions

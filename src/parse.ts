@@ -167,6 +167,18 @@ function funcise(segments: Token[][]): NamedTokens[] {
     : described;
 }
 
+function parseWholeArg(tokens: Token[], params: string[]) {
+  const body: ParserIns[] = [];
+  while (true) {
+    const exp = parseArg(tokens, params);
+    if (!len(exp)) {
+      break;
+    }
+    push(body, exp);
+  }
+  return body;
+}
+
 function parseForm(tokens: Token[], params: string[]): ParserIns[] {
   const head = tokens.shift();
   if (!head) {
@@ -176,11 +188,15 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
   let op = text;
   const err = (value: string) => [<ParserIns>{ typ: "err", value, errCtx }];
   if (op === "catch") {
-    const body = parseArg(tokens, params);
-    if (!len(body)) {
-      return err("must provide one argument");
+    if (tokens[0].typ !== "(") {
+      return err("first argument must be expression");
     }
-    return [...body, { typ: "cat", errCtx }];
+    const body = parseArg(tokens, params);
+    const when = parseWholeArg(tokens, params);
+    if (!len(body) || !len(when)) {
+      return err("must provide 2 arguments");
+    }
+    return [...body, { typ: "cat", value: len(when), errCtx }, ...when];
   } else if (op === "var" || op === "let") {
     const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
     if (!len(def) || !len(val) || len(parseArg(tokens, params))) {
@@ -212,14 +228,7 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
         ins.push({ typ: "nul", value: undefined, errCtx });
       }
     } else {
-      const body: ParserIns[] = [];
-      while (true) {
-        const exp = parseArg(tokens, params);
-        if (!len(exp)) {
-          break;
-        }
-        push(body, exp);
-      }
+      const body = parseWholeArg(tokens, params);
       ins.push({ typ: "if", value: len(body) + 1, errCtx });
       push(ins, body);
       ins.push({ typ: "jmp", value: 1, errCtx });

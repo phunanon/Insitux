@@ -991,7 +991,11 @@ export async function exeFunc(
           const errors = await closure(params);
           if (len(errors)) {
             if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
-              _vec(errorsToDict(errors));
+              ++i;
+              ctx.env.lets[len(ctx.env.lets) - 1]["errors"] = {
+                t: "vec",
+                v: errorsToDict(errors),
+              };
               break;
             }
             return errors;
@@ -1011,6 +1015,7 @@ export async function exeFunc(
         }
         break;
       case "jmp":
+      case "cat":
         i += value as number;
         break;
       case "loo":
@@ -1027,8 +1032,6 @@ export async function exeFunc(
           _nul();
         }
         i = lim;
-        break;
-      case "cat":
         break;
       default:
         assertUnreachable(typ);

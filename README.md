@@ -326,9 +326,11 @@ etc
 (.. + [0 1 2] 3 [4 5 6])
 => 21
 
-;Catches runtime errors, or returns the evaluated value
-(catch (+))     => [{:e "Arity", :m "+ needs at least 2 arguments, not 0", :line 1, :col 9}]
-(catch (+ 2 2)) => 4
+;Evaluates the first argument and returns the value if no runtime errors, else populates the let `errors` and returns the evaluation of the second argument
+;Note: the first argument must be expression
+(catch (+) errors)
+=> [{:e "Arity", :m "+ needs at least 2 arguments, not 0", :line 1, :col 9}]
+(catch (+ 2 2) (print "hi")) => 4
 
 ;Returns the time in milliseconds
 (time) => 1630143983032
