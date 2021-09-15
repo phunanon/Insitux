@@ -126,6 +126,7 @@ export const ops: {
   for: { minArity: 2 },
   reduce: { minArity: 2, maxArity: 3 },
   filter: { minArity: 2 },
+  remove: { minArity: 2 },
   str: {},
   rand: { maxArity: 2, onlyNum: true },
   "rand-int": { maxArity: 2, onlyNum: true },

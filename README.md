@@ -261,6 +261,8 @@ etc
 (filter odd? [0 1 2 3])    => [1 3]
 (filter ["e" "l"] "Hello") => ["e" "l" "l"]
 (filter = [1 1 2 2 3 3] 3) => [3 3]
+(remove odd? [0 1 2 3])    => [0 2]
+(remove = [1 1 2 2 3 3] 3) => [1 1 2 2]
 
 ;Returns the reverse of a vector or string
 (reverse "Hello") => "olleH"

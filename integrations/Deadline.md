@@ -490,6 +490,10 @@ internal insitux functions
 ;; function
 ;; Filters a vector or string by a function, optionally passing extra arguments.
 
+(remove odd? [0 1 2 3])
+;; function
+;; Negatively filters a vector or string by a function, optionally passing extra arguments.
+
 (reverse [0 1 2 3])
 ;; function
 ;; Returns the reverse of a vector or string.

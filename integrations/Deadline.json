@@ -488,6 +488,14 @@
 				]
 			},
 			{
+				"directory": "remove",
+				"description": [
+					"(remove odd? [0 1 2 3])",
+					"function",
+					"Negatively filters a vector or string by a function, optionally passing extra arguments."
+				]
+			},
+			{
 				"directory": "reverse",
 				"description": [
 					"(reverse [0 1 2 3])",

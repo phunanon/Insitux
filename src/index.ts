@@ -425,6 +425,7 @@ async function exeOp(
     case "for":
     case "reduce":
     case "filter":
+    case "remove":
       {
         const closure = getExe(ctx, args.shift()!, errCtx);
         const okT = (t: Val["t"]) => t === "vec" || t === "str" || t === "dict";
@@ -481,14 +482,15 @@ async function exeOp(
         }
 
         const array = asArray(args.shift()!);
-        if (op === "filter") {
+        const isRemove = op === "remove";
+        if (op === "filter" || isRemove) {
           const filtered: Val[] = [];
           for (let i = 0, lim = len(array); i < lim; ++i) {
             const errors = await closure([array[i], ...args]);
             if (len(errors)) {
               return errors;
             }
-            if (asBoo(stack.pop()!)) {
+            if (asBoo(stack.pop()!) !== isRemove) {
               filtered.push(array[i]);
             }
           }

@@ -406,6 +406,7 @@ async function exeOp(op, args, ctx, errCtx) {
         case "for":
         case "reduce":
         case "filter":
+        case "remove":
             {
                 const closure = getExe(ctx, args.shift(), errCtx);
                 const okT = (t) => t === "vec" || t === "str" || t === "dict";
@@ -454,14 +455,15 @@ async function exeOp(op, args, ctx, errCtx) {
                     return [];
                 }
                 const array = asArray(args.shift());
-                if (op === "filter") {
+                const isRemove = op === "remove";
+                if (op === "filter" || isRemove) {
                     const filtered = [];
                     for (let i = 0, lim = len(array); i < lim; ++i) {
                         const errors = await closure([array[i], ...args]);
                         if (len(errors)) {
                             return errors;
                         }
-                        if (asBoo(stack.pop())) {
+                        if (asBoo(stack.pop()) !== isRemove) {
                             filtered.push(array[i]);
                         }
                     }
@@ -2017,6 +2019,7 @@ exports.ops = {
     for: { minArity: 2 },
     reduce: { minArity: 2, maxArity: 3 },
     filter: { minArity: 2 },
+    remove: { minArity: 2 },
     str: {},
     rand: { maxArity: 2, onlyNum: true },
     "rand-int": { maxArity: 2, onlyNum: true },
