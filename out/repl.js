@@ -1445,15 +1445,13 @@ function partition(array, predicate) {
 }
 function syntaxise({ name, tokens }, errCtx) {
     const [params, body] = partitionWhen(tokens, t => t.typ !== "sym");
+    //In the case of e.g. (function (+))
+    if (name === "(") {
+        return { err: { e: "Parse", m: "nameless function", errCtx } };
+    }
     //In the case of e.g. (function)
     if (!len(params) && !len(body)) {
-        return {
-            err: {
-                e: "Parse",
-                m: "empty function body",
-                errCtx,
-            },
-        };
+        return { err: { e: "Parse", m: "empty function body", errCtx } };
     }
     if (len(body) && body[0].typ === ")") {
         if (len(params)) {
@@ -1462,13 +1460,7 @@ function syntaxise({ name, tokens }, errCtx) {
         }
         else {
             //In the case of e.g. (function name)
-            return {
-                err: {
-                    e: "Parse",
-                    m: "empty function body",
-                    errCtx,
-                },
-            };
+            return { err: { e: "Parse", m: "empty function body", errCtx } };
         }
     }
     //In the case of e.g. (function entry x y z)
@@ -1836,8 +1828,8 @@ const tests = [
     { name: "Let and retrieve", code: `(function f (let a 1) a) (f)`, out: `1` },
     {
         name: "Let num op and call",
-        code: `(function f (let n 0) (n [0])) (f)`,
-        out: `0`,
+        code: `(function f (let n 0) (n [1])) (f)`,
+        out: `1`,
     },
     {
         name: "Explicit return",
@@ -1907,6 +1899,7 @@ const tests = [
     },
     { name: "Imbalanced quotes 2", code: `print "Hello")`, err: ["Parse"] },
     { name: "Function as op", code: `(function)`, err: ["Parse"] },
+    { name: "Function without name", code: `(function (+))`, err: ["Parse"] },
     { name: "Function without body", code: `(function func)`, err: ["Parse"] },
 ];
 async function doTests(invoke, terse = true) {

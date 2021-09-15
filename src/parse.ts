@@ -380,15 +380,13 @@ function syntaxise(
   err?: InvokeError;
 } {
   const [params, body] = partitionWhen(tokens, t => t.typ !== "sym");
+  //In the case of e.g. (function (+))
+  if (name === "(") {
+    return { err: { e: "Parse", m: "nameless function", errCtx } };
+  }
   //In the case of e.g. (function)
   if (!len(params) && !len(body)) {
-    return {
-      err: {
-        e: "Parse",
-        m: "empty function body",
-        errCtx,
-      },
-    };
+    return { err: { e: "Parse", m: "empty function body", errCtx } };
   }
   if (len(body) && body[0].typ === ")") {
     if (len(params)) {
@@ -396,13 +394,7 @@ function syntaxise(
       body.unshift(params.pop()!);
     } else {
       //In the case of e.g. (function name)
-      return {
-        err: {
-          e: "Parse",
-          m: "empty function body",
-          errCtx,
-        },
-      };
+      return { err: { e: "Parse", m: "empty function body", errCtx } };
     }
   }
   //In the case of e.g. (function entry x y z)

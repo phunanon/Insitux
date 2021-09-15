@@ -202,8 +202,8 @@ const tests: {
   { name: "Let and retrieve", code: `(function f (let a 1) a) (f)`, out: `1` },
   {
     name: "Let num op and call",
-    code: `(function f (let n 0) (n [0])) (f)`,
-    out: `0`,
+    code: `(function f (let n 0) (n [1])) (f)`,
+    out: `1`,
   },
   {
     name: "Explicit return",
@@ -273,6 +273,7 @@ const tests: {
   },
   { name: "Imbalanced quotes 2", code: `print "Hello")`, err: ["Parse"] },
   { name: "Function as op", code: `(function)`, err: ["Parse"] },
+  { name: "Function without name", code: `(function (+))`, err: ["Parse"] },
   { name: "Function without body", code: `(function func)`, err: ["Parse"] },
 ];
 
