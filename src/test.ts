@@ -151,9 +151,9 @@ const tests: {
   {
     name: "Catch error",
     code: `(catch
-             (:e (catch (+) (0 errors)))
+             (:e (catch (+ 1 :a) (0 errors)))
              (print "hi"))`,
-    out: `Arity`,
+    out: `Type`,
   },
   //Basic functions
   { name: "Define with no call", code: `(function func (print "Nothing."))` },

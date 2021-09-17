@@ -179,6 +179,30 @@ function parseWholeArg(tokens: Token[], params: string[]) {
   return body;
 }
 
+export function arityCheck(op: string, nArg: number, errCtx: ErrCtx) {
+  const { exactArity, maxArity, minArity } = ops[op];
+  const aErr = (msg: string, amount: number) => [
+    <InvokeError>{
+      e: "Arity",
+      m: `${op} needs ${msg} argument${amount !== 1 ? "s" : ""}, not ${nArg}`,
+      errCtx,
+    },
+  ];
+  if (exactArity !== undefined) {
+    if (nArg !== exactArity) {
+      return aErr(`exactly ${exactArity}`, exactArity);
+    }
+  } else {
+    if (minArity && !maxArity && nArg < minArity) {
+      return aErr(`at least ${minArity}`, minArity);
+    } else if (!minArity && maxArity && nArg > maxArity) {
+      return aErr(`at most ${maxArity}`, maxArity);
+    } else if (minArity && maxArity && (nArg < minArity || nArg > maxArity)) {
+      return aErr(`between ${minArity} and ${maxArity}`, maxArity);
+    }
+  }
+}
+
 function parseForm(tokens: Token[], params: string[]): ParserIns[] {
   const head = tokens.shift();
   if (!head) {
@@ -302,6 +326,15 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
   if (op === "return") {
     return [...body, { typ: "ret", value: !!len(body), errCtx }];
   }
+
+  //Operation arity check
+  if (ops[op]) {
+    const errors = arityCheck(op, args, errCtx);
+    if (errors) {
+      push(headIns, errors.map(e => err(e.m)[0]));
+    }
+  }
+
   headIns.push({
     typ: ops[op] ? "op" : "exe",
     value: [

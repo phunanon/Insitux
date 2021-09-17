@@ -163,32 +163,9 @@ const dictDrop = ({ keys, vals }, key) => {
     }
     return { t: "dict", v: { keys: nKeys, vals: nVals } };
 };
-function exeOpViolations(op, args, errCtx) {
-    const { types, exactArity, maxArity, minArity, onlyNum } = types_1.ops[op];
+function typeCheck(op, args, errCtx) {
+    const { types, onlyNum } = types_1.ops[op];
     const nArg = len(args);
-    const aErr = (msg, amount) => [
-        {
-            e: "Arity",
-            m: `${op} needs ${msg} argument${amount !== 1 ? "s" : ""}, not ${nArg}`,
-            errCtx,
-        },
-    ];
-    if (exactArity !== undefined) {
-        if (nArg !== exactArity) {
-            return aErr(`exactly ${exactArity}`, exactArity);
-        }
-    }
-    else {
-        if (minArity && !maxArity && nArg < minArity) {
-            return aErr(`at least ${minArity}`, minArity);
-        }
-        else if (!minArity && maxArity && nArg > maxArity) {
-            return aErr(`at most ${maxArity}`, maxArity);
-        }
-        else if (minArity && maxArity && (nArg < minArity || nArg > maxArity)) {
-            return aErr(`between ${minArity} and ${maxArity}`, maxArity);
-        }
-    }
     if (onlyNum) {
         const nonNumArgIdx = args.findIndex(a => a.t !== "num");
         if (nonNumArgIdx === -1) {
@@ -220,11 +197,18 @@ function exeOpViolations(op, args, errCtx) {
         .filter(r => !!r);
     return typeViolations.map(v => typeErr(v, errCtx));
 }
-async function exeOp(op, args, ctx, errCtx) {
+async function exeOp(op, args, ctx, errCtx, checkArity) {
     const tErr = (msg) => [typeErr(msg, errCtx)];
-    //Argument arity and type checks
+    //Optional arity check
+    if (checkArity) {
+        const violations = (0, parse_1.arityCheck)(op, len(args), errCtx);
+        if (violations) {
+            return violations;
+        }
+    }
+    //Argument type check
     {
-        const violations = exeOpViolations(op, args, errCtx);
+        const violations = typeCheck(op, args, errCtx);
         if (len(violations)) {
             return violations;
         }
@@ -690,7 +674,7 @@ async function exeOp(op, args, ctx, errCtx) {
                 const tests = await (0, test_1.doTests)(invoke, !(len(args) && asBoo(args[0])));
                 const summary = tests.pop();
                 for (const test of tests) {
-                    await exeOp("print", [{ v: test, t: "str" }], ctx, errCtx);
+                    await exeOp("print", [{ v: test, t: "str" }], ctx, errCtx, false);
                 }
                 _str(summary);
             }
@@ -716,12 +700,12 @@ async function exeOp(op, args, ctx, errCtx) {
     }
     return [{ e: "Unexpected", m: "operation doesn't exist", errCtx }];
 }
-function getExe(ctx, op, errCtx) {
+function getExe(ctx, op, errCtx, checkArity = true) {
     const monoArityError = [{ e: "Arity", m: `one argument required`, errCtx }];
     if ((0, exports.visStr)(op) || (0, exports.visFun)(op)) {
         const str = op.v;
         if (types_1.ops[str]) {
-            return (params) => exeOp(str, params, ctx, errCtx);
+            return (params) => exeOp(str, params, ctx, errCtx, checkArity);
         }
         if (str in ctx.env.funcs) {
             return (params) => exeFunc(ctx, ctx.env.funcs[str], params);
@@ -960,7 +944,7 @@ async function exeFunc(ctx, func, args) {
                         }
                         continue;
                     }
-                    const closure = getExe(ctx, op, errCtx);
+                    const closure = getExe(ctx, op, errCtx, false);
                     const errors = await closure(params);
                     if (len(errors)) {
                         if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
@@ -1107,7 +1091,7 @@ exports.invoker = invoker;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.parse = void 0;
+exports.parse = exports.arityCheck = void 0;
 const pf = __webpack_require__(17);
 const { concat, has, flat, push, slice } = pf;
 const { slen, starts, sub, substr, strIdx } = pf;
@@ -1264,6 +1248,33 @@ function parseWholeArg(tokens, params) {
     }
     return body;
 }
+function arityCheck(op, nArg, errCtx) {
+    const { exactArity, maxArity, minArity } = types_1.ops[op];
+    const aErr = (msg, amount) => [
+        {
+            e: "Arity",
+            m: `${op} needs ${msg} argument${amount !== 1 ? "s" : ""}, not ${nArg}`,
+            errCtx,
+        },
+    ];
+    if (exactArity !== undefined) {
+        if (nArg !== exactArity) {
+            return aErr(`exactly ${exactArity}`, exactArity);
+        }
+    }
+    else {
+        if (minArity && !maxArity && nArg < minArity) {
+            return aErr(`at least ${minArity}`, minArity);
+        }
+        else if (!minArity && maxArity && nArg > maxArity) {
+            return aErr(`at most ${maxArity}`, maxArity);
+        }
+        else if (minArity && maxArity && (nArg < minArity || nArg > maxArity)) {
+            return aErr(`between ${minArity} and ${maxArity}`, maxArity);
+        }
+    }
+}
+exports.arityCheck = arityCheck;
 function parseForm(tokens, params) {
     const head = tokens.shift();
     if (!head) {
@@ -1392,6 +1403,13 @@ function parseForm(tokens, params) {
     }
     if (op === "return") {
         return [...body, { typ: "ret", value: !!len(body), errCtx }];
+    }
+    //Operation arity check
+    if (types_1.ops[op]) {
+        const errors = arityCheck(op, args, errCtx);
+        if (errors) {
+            push(headIns, errors.map(e => err(e.m)[0]));
+        }
     }
     headIns.push({
         typ: types_1.ops[op] ? "op" : "exe",
@@ -1802,9 +1820,9 @@ const tests = [
     {
         name: "Catch error",
         code: `(catch
-             (:e (catch (+) (0 errors)))
+             (:e (catch (+ 1 :a) (0 errors)))
              (print "hi"))`,
-        out: `Arity`,
+        out: `Type`,
     },
     //Basic functions
     { name: "Define with no call", code: `(function func (print "Nothing."))` },
