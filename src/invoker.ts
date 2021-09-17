@@ -16,7 +16,15 @@ export async function invoker(ctx: Ctx, code: string): Promise<ErrorOutput> {
   const errors = await invoke(ctx, code, uuid, true);
   let out: ErrorOutput = [];
   errors.forEach(({ e, m, errCtx: { line, col, invocationId } }) => {
-    const lineText = invocations.get(invocationId)!.split("\n")[line - 1];
+    const invocation = invocations.get(invocationId);
+    if (!invocation) {
+      out.push({
+        type: "message",
+        text: `${e} Error: line ${line} col ${col}: ${m}\n`,
+      });
+      return;
+    }
+    const lineText = invocation.split("\n")[line - 1];
     const sym = substr(lineText, col - 1).split(parensRx)[0];
     const half1 = trimStart(substr(lineText, 0, col - 1));
     out.push({ type: "message", text: padEnd(`${line}`, 4) + half1 });

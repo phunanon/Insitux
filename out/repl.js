@@ -8,7 +8,7 @@
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.symbols = exports.invoke = exports.exeFunc = exports.visBoo = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
-exports.insituxVersion = 20210915;
+exports.insituxVersion = 20210917;
 const parse_1 = __webpack_require__(306);
 const pf = __webpack_require__(17);
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -700,7 +700,13 @@ async function exeOp(op, args, ctx, errCtx) {
             const sLen = len(stack);
             const errors = await parseAndExe(ctx, str(args[0]), errCtx.invocationId);
             if (len(errors)) {
-                return [{ e: "Eval", m: "error within evaluated code", errCtx }];
+                errors.forEach(e => {
+                    e.errCtx.invocationId = "evaluated";
+                });
+                return [
+                    { e: "Eval", m: "error within evaluated code", errCtx },
+                    ...errors,
+                ];
             }
             if (sLen === len(stack)) {
                 _nul();
@@ -1065,7 +1071,15 @@ async function invoker(ctx, code) {
     const errors = await (0, _1.invoke)(ctx, code, uuid, true);
     let out = [];
     errors.forEach(({ e, m, errCtx: { line, col, invocationId } }) => {
-        const lineText = invocations.get(invocationId).split("\n")[line - 1];
+        const invocation = invocations.get(invocationId);
+        if (!invocation) {
+            out.push({
+                type: "message",
+                text: `${e} Error: line ${line} col ${col}: ${m}\n`,
+            });
+            return;
+        }
+        const lineText = invocation.split("\n")[line - 1];
         const sym = (0, poly_fills_1.substr)(lineText, col - 1).split(exports.parensRx)[0];
         const half1 = (0, poly_fills_1.trimStart)((0, poly_fills_1.substr)(lineText, 0, col - 1));
         out.push({ type: "message", text: (0, poly_fills_1.padEnd)(`${line}`, 4) + half1 });

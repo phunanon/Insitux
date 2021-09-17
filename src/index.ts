@@ -1,4 +1,4 @@
-export const insituxVersion = 20210915;
+export const insituxVersion = 20210917;
 import { parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -730,7 +730,13 @@ async function exeOp(
       const sLen = len(stack);
       const errors = await parseAndExe(ctx, str(args[0]), errCtx.invocationId);
       if (len(errors)) {
-        return [{ e: "Eval", m: "error within evaluated code", errCtx }];
+        errors.forEach(e => {
+          e.errCtx.invocationId = "evaluated";
+        });
+        return [
+          { e: "Eval", m: "error within evaluated code", errCtx },
+          ...errors,
+        ];
       }
       if (sLen === len(stack)) {
         _nul();
