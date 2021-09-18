@@ -64,7 +64,7 @@ function tokenise(code: string, invocationId: string) {
       inNumber = inSymbol = false;
       continue;
     }
-    const isWhite = sub(" \t\n\r", c);
+    const isWhite = sub(" \t\n\r,", c);
     if (!inString && isWhite) {
       inNumber = inSymbol = false;
       if (c === "\n") {

@@ -340,10 +340,17 @@ etc
 (tests true)
 
 ;Returns Insitux version
-(version)
+(version) => 2021****
+
+;Returns a vector of strings of symbol names by order of definition in the Insitux session
+(symbols) => ["print" "print-str" "!" "=" …]
 
 ;Evaluates a string as code, returning any values returned or null
 (eval "(+ 2 2)") => 4
+
+;Resets an Insitux session back to how it started
+;Note: safely position this in a program as it may cause Reference Errors to occur
+(reset)
 ```
 
 ### Miscellaneous
@@ -354,6 +361,8 @@ etc
 ;This won't be treated as code
 (print "Hello") ;Comment at the end of lines too
 ```
+
+- Commas `,` are treated as whitespace
 
 - Write `\"` inside of a string to represent `"`, `\n` to represent a newline, `\t` to represent a tab character.
 

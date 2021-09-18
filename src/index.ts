@@ -1,4 +1,4 @@
-export const insituxVersion = 20210917;
+export const insituxVersion = 20210918;
 import { arityCheck, parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -713,6 +713,9 @@ async function exeOp(
         _str(summary);
       }
       return [];
+    case "symbols":
+      _vec(symbols(ctx, false).map(v => ({ t: "str", v })));
+      return [];
     case "eval": {
       delete ctx.env.funcs["entry"];
       const sLen = len(stack);
@@ -731,6 +734,12 @@ async function exeOp(
       }
       return [];
     }
+    case "reset":
+      ctx.env.vars = {};
+      ctx.env.funcs = {};
+      ctx.env.lets = [];
+      _nul();
+      return [];
   }
 
   return [{ e: "Unexpected", m: "operation doesn't exist", errCtx }];
@@ -740,7 +749,7 @@ function getExe(
   ctx: Ctx,
   op: Val,
   errCtx: ErrCtx,
-  checkArity: boolean = true,
+  checkArity = true,
 ): (params: Val[]) => Promise<InvokeError[]> {
   const monoArityError = [{ e: "Arity", m: `one argument required`, errCtx }];
   if (visStr(op) || visFun(op)) {
@@ -782,7 +791,10 @@ function getExe(
       if (params[0].t !== "dict") {
         const badType = typeNames[params[0].t];
         return [
-          typeErr(`argument 1 must be dictionary, not ${badType}`, errCtx),
+          typeErr(
+            `keyword as operation argument must be dictionary, not ${badType}`,
+            errCtx,
+          ),
         ];
       }
       stack.push(dictGet(dic(params[0]), op));
@@ -799,7 +811,7 @@ function getExe(
         const badType = typeNames[a.t];
         return [
           typeErr(
-            `argument must be string, vector, or dictionary, not ${badType}`,
+            `number as operation argument must be string, vector, or dictionary, not ${badType}`,
             errCtx,
           ),
         ];
@@ -839,7 +851,7 @@ function getExe(
         return [
           {
             e: "Arity",
-            m: "dict as operation takes one or two arguments only",
+            m: "dictionary as operation takes one or two arguments only",
             errCtx,
           },
         ];
@@ -1073,13 +1085,11 @@ export async function invoke(
   return errors;
 }
 
-export function symbols(ctx: Ctx): string[] {
-  let syms = ["function"];
-  syms = concat(
-    syms,
-    objKeys(ops).filter(o => o !== "execute-last"),
-  );
+export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
+  let syms = alsoSyntax ? ["function"] : [];
+  syms = concat(syms, objKeys(ops));
   syms = concat(syms, objKeys(ctx.env.funcs));
   syms = concat(syms, objKeys(ctx.env.vars));
-  return syms;
+  const hidden = ["execute-last", "entry"];
+  return syms.filter(o => !has(hidden, o));
 }

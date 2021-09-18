@@ -8,7 +8,7 @@ export type ErrorOutput = {
 }[];
 
 const invocations = new Map<string, string>();
-export const parensRx = /[\[\]\(\) ]/;
+export const parensRx = /[\[\]\(\) ,]/;
 
 export async function invoker(ctx: Ctx, code: string): Promise<ErrorOutput> {
   const uuid = getTimeMs().toString();

@@ -8,7 +8,7 @@
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.symbols = exports.invoke = exports.exeFunc = exports.visBoo = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
-exports.insituxVersion = 20210917;
+exports.insituxVersion = 20210918;
 const parse_1 = __webpack_require__(306);
 const pf = __webpack_require__(17);
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -679,6 +679,9 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
                 _str(summary);
             }
             return [];
+        case "symbols":
+            _vec(symbols(ctx, false).map(v => ({ t: "str", v })));
+            return [];
         case "eval": {
             delete ctx.env.funcs["entry"];
             const sLen = len(stack);
@@ -697,6 +700,12 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
             }
             return [];
         }
+        case "reset":
+            ctx.env.vars = {};
+            ctx.env.funcs = {};
+            ctx.env.lets = [];
+            _nul();
+            return [];
     }
     return [{ e: "Unexpected", m: "operation doesn't exist", errCtx }];
 }
@@ -742,7 +751,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
             if (params[0].t !== "dict") {
                 const badType = types_1.typeNames[params[0].t];
                 return [
-                    typeErr(`argument 1 must be dictionary, not ${badType}`, errCtx),
+                    typeErr(`keyword as operation argument must be dictionary, not ${badType}`, errCtx),
                 ];
             }
             stack.push(dictGet(dic(params[0]), op));
@@ -759,7 +768,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
             if (a.t !== "str" && a.t !== "vec" && a.t !== "dict") {
                 const badType = types_1.typeNames[a.t];
                 return [
-                    typeErr(`argument must be string, vector, or dictionary, not ${badType}`, errCtx),
+                    typeErr(`number as operation argument must be string, vector, or dictionary, not ${badType}`, errCtx),
                 ];
             }
             const arr = asArray(a);
@@ -804,7 +813,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
                 return [
                     {
                         e: "Arity",
-                        m: "dict as operation takes one or two arguments only",
+                        m: "dictionary as operation takes one or two arguments only",
                         errCtx,
                     },
                 ];
@@ -1027,12 +1036,13 @@ async function invoke(ctx, code, invocationId, printResult = false) {
     return errors;
 }
 exports.invoke = invoke;
-function symbols(ctx) {
-    let syms = ["function"];
-    syms = concat(syms, objKeys(types_1.ops).filter(o => o !== "execute-last"));
+function symbols(ctx, alsoSyntax = true) {
+    let syms = alsoSyntax ? ["function"] : [];
+    syms = concat(syms, objKeys(types_1.ops));
     syms = concat(syms, objKeys(ctx.env.funcs));
     syms = concat(syms, objKeys(ctx.env.vars));
-    return syms;
+    const hidden = ["execute-last", "entry"];
+    return syms.filter(o => !has(hidden, o));
 }
 exports.symbols = symbols;
 
@@ -1048,7 +1058,7 @@ exports.invoker = exports.parensRx = void 0;
 const _1 = __webpack_require__(607);
 const poly_fills_1 = __webpack_require__(17);
 const invocations = new Map();
-exports.parensRx = /[\[\]\(\) ]/;
+exports.parensRx = /[\[\]\(\) ,]/;
 async function invoker(ctx, code) {
     const uuid = (0, poly_fills_1.getTimeMs)().toString();
     invocations.set(uuid, code);
@@ -1137,7 +1147,7 @@ function tokenise(code, invocationId) {
             inNumber = inSymbol = false;
             continue;
         }
-        const isWhite = sub(" \t\n\r", c);
+        const isWhite = sub(" \t\n\r,", c);
         if (!inString && isWhite) {
             inNumber = inSymbol = false;
             if (c === "\n") {
@@ -2092,7 +2102,9 @@ exports.ops = {
     time: { exactArity: 0 },
     version: { exactArity: 0 },
     tests: { minArity: 0, maxArity: 1, types: ["bool"] },
+    symbols: { exactArity: 0 },
     eval: { exactArity: 1, types: ["str"] },
+    reset: { exactArity: 0 },
 };
 exports.typeNames = {
     null: "null",
