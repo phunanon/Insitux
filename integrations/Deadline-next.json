@@ -51,6 +51,22 @@
 				]
 			},
 			{
+				"directory": "return",
+				"description": [
+					"(function f (return 123) (print \"hello\"))",
+					"syntax",
+					"Returns its last argument early from a function."
+				]
+			},
+			{
+				"directory": "catch",
+				"description": [
+					"(catch (+) errors)",
+					"syntax",
+					"Evaluates the first argument and returns the value if no runtime errors, else populates the let `errors` and returns the evaluation of the second argument"
+				]
+			},
+			{
 				"directory": "print",
 				"description": [
 					"(print \"2 + 2 = \" (+ 2 2))",
@@ -96,6 +112,134 @@
 					"(// 10 3)",
 					"function",
 					"Divides and retains the quotient each argument by the next in turn."
+				]
+			},
+			{
+				"directory": "**",
+				"description": [
+					"(** 10 2)",
+					"function",
+					"Returns its first argument to the power of its second argument."
+				]
+			},
+			{
+				"directory": "abs",
+				"description": [
+					"(abs -123)",
+					"function",
+					"Returns absolute of a number."
+				]
+			},
+			{
+				"directory": "sin",
+				"description": [
+					"(sin (pi))",
+					"function",
+					"Returns sine of a radian angle."
+				]
+			},
+			{
+				"directory": "cos",
+				"description": [
+					"(cos (pi))",
+					"function",
+					"Returns cosine of a radian angle."
+				]
+			},
+			{
+				"directory": "tan",
+				"description": [
+					"(tan (* 45 (/ (pi) 180)))",
+					"function",
+					"Returns tangent of a radian angle."
+				]
+			},
+			{
+				"directory": "sqrt",
+				"description": [
+					"(sqrt 25)",
+					"function",
+					"Returns the square root of a number."
+				]
+			},
+			{
+				"directory": "rem",
+				"description": [
+					"(rem 10 2)",
+					"function",
+					"Returns the remainder of a division."
+				]
+			},
+			{
+				"directory": "round",
+				"description": [
+					"(round 3.5)",
+					"function",
+					"Rounds a number to the nearest integer."
+				]
+			},
+			{
+				"directory": "floor",
+				"description": [
+					"(floor 3.9)",
+					"function",
+					"Rounds a number down to the nearest integer."
+				]
+			},
+			{
+				"directory": "ceil",
+				"description": [
+					"(ceil 3.1)",
+					"function",
+					"Rounds a number up to the nearest integer."
+				]
+			},
+			{
+				"directory": "logn",
+				"description": [
+					"(logn 1)",
+					"function",
+					"Returns the natural logarithm of a number."
+				]
+			},
+			{
+				"directory": "log2",
+				"description": [
+					"(log2 8)",
+					"function",
+					"Returns the logarithm base 2 of a number."
+				]
+			},
+			{
+				"directory": "log2",
+				"description": [
+					"(log2 1000)",
+					"function",
+					"Returns the logarithm base 10 of a number."
+				]
+			},
+			{
+				"directory": "min",
+				"description": [
+					"(min 1 2 3)",
+					"function",
+					"Returns the smallest number of its arguments."
+				]
+			},
+			{
+				"directory": "max",
+				"description": [
+					"(max 1 2 3)",
+					"function",
+					"Returns the largest number of its arguments."
+				]
+			},
+			{
+				"directory": "pi",
+				"description": [
+					"(pi)",
+					"function",
+					"Returns the mathematical Pi."
 				]
 			},
 			{
@@ -197,9 +341,9 @@
 				]
 			},
 			{
-				"directory": "rand-num",
+				"directory": "rand",
 				"description": [
-					"(rand-num)",
+					"(rand)",
 					"function",
 					"Returns a random number between 0 and 1.",
 					"Or, provided one argument a random number between 0 and that.",
@@ -267,7 +411,8 @@
 				"description": [
 					"(push [0 1 2] 3)",
 					"function",
-					"Returns a vector or dictionary with one item or key-value pair appended."
+					"Returns a vector or dictionary with one item or key-value pair appended.",
+					"Or, removes a key from a dictionary."
 				]
 			},
 			{
@@ -279,110 +424,6 @@
 				]
 			},
 			{
-				"directory": "abs",
-				"description": [
-					"(abs -123)",
-					"function",
-					"Returns absolute of a number."
-				]
-			},
-			{
-				"directory": "sin",
-				"description": [
-					"(sin (pi))",
-					"function",
-					"Returns sine of a radian angle."
-				]
-			},
-			{
-				"directory": "cos",
-				"description": [
-					"(cos (pi))",
-					"function",
-					"Returns cosine of a radian angle."
-				]
-			},
-			{
-				"directory": "tan",
-				"description": [
-					"(tan (* 45 (/ (pi) 180)))",
-					"function",
-					"Returns tangent of a radian angle."
-				]
-			},
-			{
-				"directory": "sqrt",
-				"description": [
-					"(sqrt 25)",
-					"function",
-					"Returns the square root of a number."
-				]
-			},
-			{
-				"directory": "rem",
-				"description": [
-					"(rem 10 2)",
-					"function",
-					"Returns the remainder of a division."
-				]
-			},
-			{
-				"directory": "round",
-				"description": [
-					"(round 3.5)",
-					"function",
-					"Rounds a number to the nearest integer."
-				]
-			},
-			{
-				"directory": "floor",
-				"description": [
-					"(floor 3.9)",
-					"function",
-					"Rounds a number down to the nearest integer."
-				]
-			},
-			{
-				"directory": "ceil",
-				"description": [
-					"(ceil 3.1)",
-					"function",
-					"Rounds a number up to the nearest integer."
-				]
-			},
-			{
-				"directory": "min",
-				"description": [
-					"(min 1 2 3)",
-					"function",
-					"Returns the smallest number of its arguments."
-				]
-			},
-			{
-				"directory": "max",
-				"description": [
-					"(max 1 2 3)",
-					"function",
-					"Returns the largest number of its arguments."
-				]
-			},
-			{
-				"directory": "**",
-				"description": [
-					"(** 10 2)",
-					"function",
-					"Returns its first argument to the power of its second argument."
-				]
-			},
-			{
-				"directory": "pi",
-				"description": [
-					"(pi)",
-					"function",
-					"Returns the mathematical Pi."
-				]
-			},
-			{
 				"directory": "has?",
 				"description": [
 					"(has? \"Hello\" \"ll\")",
@@ -391,11 +432,19 @@
 				]
 			},
 			{
-				"directory": "num",
+				"directory": "to-num",
 				"description": [
-					"(num \"123\")",
+					"(to-num \"123\")",
 					"function",
 					"Converts a string to a number."
+				]
+			},
+			{
+				"directory": "to-key",
+				"description": [
+					"(to-key \"hello\")",
+					"function",
+					"Converts a string or number into a keyword."
 				]
 			},
 			{
@@ -443,7 +492,15 @@
 				"description": [
 					"(filter odd? [0 1 2 3])",
 					"function",
-					"Filters a vector or string by a function."
+					"Filters a vector or string by a function, optionally passing extra arguments."
+				]
+			},
+			{
+				"directory": "remove",
+				"description": [
+					"(remove odd? [0 1 2 3])",
+					"function",
+					"Negatively filters a vector or string by a function, optionally passing extra arguments."
 				]
 			},
 			{
@@ -476,6 +533,22 @@
 					"(ends-with? \"hello\" \"lo\")",
 					"function",
 					"Tests if a string ends with another string."
+				]
+			},
+			{
+				"directory": "lower-case",
+				"description": [
+					"(lower-case \"HELLO\")",
+					"function",
+					"Returns a string made entirely lower-case."
+				]
+			},
+			{
+				"directory": "upper-case",
+				"description": [
+					"(lower-case \"hello\")",
+					"function",
+					"Returns a string made entirely upper-case."
 				]
 			},
 			{
@@ -619,7 +692,7 @@
 				"description": [
 					"(eval \"(+ 2 2)\")",
 					"function",
-					"Evaluates a string as Insitux code, returning any values returned or null."
+					"Evaluates a string as code, returning any values returned or null."
 				]
 			}
 		]

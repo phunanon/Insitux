@@ -178,7 +178,9 @@ function typeCheck(op: string, args: Val[], errCtx: ErrCtx) {
       return [];
     }
     const typeName = typeNames[args[nonNumArgIdx].t];
-    return [typeErr(`numeric arguments only, not ${typeName}`, errCtx)];
+    return [
+      typeErr(`${op} takes numeric arguments only, not ${typeName}`, errCtx),
+    ];
   }
   if (!types) {
     return [];

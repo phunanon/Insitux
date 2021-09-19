@@ -269,14 +269,6 @@ internal insitux functions
 ;; syntax
 ;; Loops all arguments so long as the first argument is true.
 
-(function f (return 123) (print "hello"))
-;; syntax
-;; Returns its last argument early from a function.
-
-(catch (+) errors)
-;; syntax
-;; Evaluates the first argument and returns the value if no runtime errors, else populates the let `errors` and returns the evaluation of the second argument
-
 (print "2 + 2 = " (+ 2 2))
 ;; function
 ;; Prints a line of text, joining its arguments together.
@@ -300,70 +292,6 @@ internal insitux functions
 (// 10 3)
 ;; function
 ;; Divides and retains the quotient each argument by the next in turn.
-
-(** 10 2)
-;; function
-;; Returns its first argument to the power of its second argument.
-
-(abs -123)
-;; function
-;; Returns absolute of a number.
-
-(sin (pi))
-;; function
-;; Returns sine of a radian angle.
-
-(cos (pi))
-;; function
-;; Returns cosine of a radian angle.
-
-(tan (* 45 (/ (pi) 180)))
-;; function
-;; Returns tangent of a radian angle.
-
-(sqrt 25)
-;; function
-;; Returns the square root of a number.
-
-(rem 10 2)
-;; function
-;; Returns the remainder of a division.
-
-(round 3.5)
-;; function
-;; Rounds a number to the nearest integer.
-
-(floor 3.9)
-;; function
-;; Rounds a number down to the nearest integer.
-
-(ceil 3.1)
-;; function
-;; Rounds a number up to the nearest integer.
-
-(logn 1)
-;; function
-;; Returns the natural logarithm of a number.
-
-(log2 8)
-;; function
-;; Returns the logarithm base 2 of a number.
-
-(log2 1000)
-;; function
-;; Returns the logarithm base 10 of a number.
-
-(min 1 2 3)
-;; function
-;; Returns the smallest number of its arguments.
-
-(max 1 2 3)
-;; function
-;; Returns the largest number of its arguments.
-
-(pi)
-;; function
-;; Returns the mathematical Pi.
 
 (inc 123)
 ;; function
@@ -415,7 +343,7 @@ internal insitux functions
 ;; Or, provided no arguments a random 0 or 1.
 ;; Or, provided one argument a random whole number between 0 and that.
 
-(rand)
+(rand-num)
 ;; function
 ;; Returns a random number between 0 and 1.
 ;; Or, provided one argument a random number between 0 and that.
@@ -452,23 +380,70 @@ internal insitux functions
 (push [0 1 2] 3)
 ;; function
 ;; Returns a vector or dictionary with one item or key-value pair appended.
-;; Or, removes a key from a dictionary.
 
 (sect "Hello, world!" 1 3)
 ;; function
 ;; Returns a section of a vector or string.
 
+(abs -123)
+;; function
+;; Returns absolute of a number.
+
+(sin (pi))
+;; function
+;; Returns sine of a radian angle.
+
+(cos (pi))
+;; function
+;; Returns cosine of a radian angle.
+
+(tan (* 45 (/ (pi) 180)))
+;; function
+;; Returns tangent of a radian angle.
+
+(sqrt 25)
+;; function
+;; Returns the square root of a number.
+
+(rem 10 2)
+;; function
+;; Returns the remainder of a division.
+
+(round 3.5)
+;; function
+;; Rounds a number to the nearest integer.
+
+(floor 3.9)
+;; function
+;; Rounds a number down to the nearest integer.
+
+(ceil 3.1)
+;; function
+;; Rounds a number up to the nearest integer.
+
+(min 1 2 3)
+;; function
+;; Returns the smallest number of its arguments.
+
+(max 1 2 3)
+;; function
+;; Returns the largest number of its arguments.
+
+(** 10 2)
+;; function
+;; Returns its first argument to the power of its second argument.
+
+(pi)
+;; function
+;; Returns the mathematical Pi.
+
 (has? "Hello" "ll")
 ;; function
 ;; Tests if a string contains a sub-string.
 
-(to-num "123")
+(num "123")
 ;; function
 ;; Converts a string to a number.
-
-(to-key "hello")
-;; function
-;; Converts a string or number into a keyword.
 
 (keys {0 1 2 3})
 ;; function
@@ -492,11 +467,7 @@ internal insitux functions
 
 (filter odd? [0 1 2 3])
 ;; function
-;; Filters a vector or string by a function, optionally passing extra arguments.
-
-(remove odd? [0 1 2 3])
-;; function
-;; Negatively filters a vector or string by a function, optionally passing extra arguments.
+;; Filters a vector or string by a function.
 
 (reverse [0 1 2 3])
 ;; function
@@ -513,14 +484,6 @@ internal insitux functions
 (ends-with? "hello" "lo")
 ;; function
 ;; Tests if a string ends with another string.
-
-(lower-case "HELLO")
-;; function
-;; Returns a string made entirely lower-case.
-
-(lower-case "hello")
-;; function
-;; Returns a string made entirely upper-case.
 
 (split "hello" "e")
 ;; function
@@ -592,5 +555,5 @@ internal insitux functions
 
 (eval "(+ 2 2)")
 ;; function
-;; Evaluates a string as code, returning any values returned or null.
+;; Evaluates a string as Insitux code, returning any values returned or null.
 ```
