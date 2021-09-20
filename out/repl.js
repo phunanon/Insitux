@@ -8,7 +8,7 @@
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.symbols = exports.invoke = exports.exeFunc = exports.visBoo = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
-exports.insituxVersion = 20210918;
+exports.insituxVersion = 20210919;
 const parse_1 = __webpack_require__(306);
 const pf = __webpack_require__(17);
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -30,6 +30,7 @@ const val2str = ({ v, t }) => {
         case "str":
         case "key":
         case "ref":
+        case "func":
             return v;
         case "vec":
             return `[${v.map(quoted).join(" ")}]`;
@@ -41,8 +42,6 @@ const val2str = ({ v, t }) => {
         }
         case "null":
             return "null";
-        case "func":
-            return `<${v}>`;
     }
     return (0, types_1.assertUnreachable)(t);
 };
@@ -172,7 +171,9 @@ function typeCheck(op, args, errCtx) {
             return [];
         }
         const typeName = types_1.typeNames[args[nonNumArgIdx].t];
-        return [typeErr(`numeric arguments only, not ${typeName}`, errCtx)];
+        return [
+            typeErr(`${op} takes numeric arguments only, not ${typeName}`, errCtx),
+        ];
     }
     if (!types) {
         return [];
@@ -265,7 +266,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
                     return [];
                 }
             }
-            _boo(true);
+            stack.push(args[0]);
             return [];
         case "-":
             _num(len(args) === 1
@@ -1775,7 +1776,7 @@ const tests = [
             (= "Hello" "hello")
             (!= "world" "world")
             (= [0 [1]] [0 [1]])]`,
-        out: `[false true false false true]`,
+        out: `[false 1 false false [0 [1]]]`,
     },
     { name: "Define and retrieve", code: `(var a 1) a`, out: `1` },
     { name: "Define and add", code: `(var a 1) (inc a)`, out: `2` },

@@ -130,8 +130,10 @@ built-in operations each within an example, with results after a `=>`.
 ;Various equality operators, which all accept a variable number of arguments
 ;Note: < > <= >= only compare numbers
 ;Note: != will only check that each value is different from the next
-(= 10 10)     => true
-(!= 1 2 1)    => true
+(= 10 10)     => 10
+(= 11 11)     => false
+(!= 1 2 1 3)  => 1
+(!= 1 1 2)    => false
 (< 1 2 3)     => true
 (> 10 5)      => true
 (<= 10 10 15) => true
@@ -423,6 +425,9 @@ $test.ing         => 456
   (let next (if (out (0 list)) [] [(0 list)]))
   (if (empty? list) out
     (dedupe (sect list) (into out next))))
+; OR ;
+(function dedupe list
+  (keys (.. .. dict (for vec list [0]))))
 
 (dedupe [1 2 3 3]) => [1 2 3]
 

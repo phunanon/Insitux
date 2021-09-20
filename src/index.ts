@@ -1,4 +1,4 @@
-export const insituxVersion = 20210918;
+export const insituxVersion = 20210919;
 import { arityCheck, parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -22,6 +22,7 @@ const val2str = ({ v, t }: Val): string => {
     case "str":
     case "key":
     case "ref":
+    case "func":
       return v as string;
     case "vec":
       return `[${(v as Val[]).map(quoted).join(" ")}]`;
@@ -33,8 +34,6 @@ const val2str = ({ v, t }: Val): string => {
     }
     case "null":
       return "null";
-    case "func":
-      return `<${v}>`;
   }
   return assertUnreachable(t);
 };
@@ -282,7 +281,7 @@ async function exeOp(
           return [];
         }
       }
-      _boo(true);
+      stack.push(args[0]);
       return [];
     case "-":
       _num(
