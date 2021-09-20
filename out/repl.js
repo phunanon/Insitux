@@ -664,6 +664,11 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
                             ? trimStart
                             : trimEnd)(str(args[0])));
             return [];
+        case "str*": {
+            const text = str(args[0]);
+            _str(range(max(num(args[1]), 0)).map(n => text).join(""));
+            return [];
+        }
         case "time":
             _num(getTimeMs());
             return [];
@@ -2100,6 +2105,7 @@ exports.ops = {
     trim: { exactArity: 1, types: ["str"] },
     "trim-start": { exactArity: 1, types: ["str"] },
     "trim-end": { exactArity: 1, types: ["str"] },
+    "str*": { exactArity: 2, types: ["str", "num"] },
     time: { exactArity: 0 },
     version: { exactArity: 0 },
     tests: { minArity: 0, maxArity: 1, types: ["bool"] },

@@ -698,6 +698,11 @@ async function exeOp(
           : trimEnd)(str(args[0])),
       );
       return [];
+    case "str*": {
+      const text = str(args[0]);
+      _str(range(max(num(args[1]), 0)).map(n => text).join(""));
+      return [];
+    }
     case "time":
       _num(getTimeMs());
       return [];

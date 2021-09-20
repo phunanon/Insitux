@@ -158,6 +158,7 @@ export const ops: {
   trim: { exactArity: 1, types: ["str"] },
   "trim-start": { exactArity: 1, types: ["str"] },
   "trim-end": { exactArity: 1, types: ["str"] },
+  "str*": { exactArity: 2, types: ["str", "num"] },
   time: { exactArity: 0 },
   version: { exactArity: 0 },
   tests: { minArity: 0, maxArity: 1, types: ["bool"] },

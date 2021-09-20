@@ -305,6 +305,9 @@ etc
 (upper-case "hEllo") => "HELLO"
 (lower-case "HeLlO") => "hello"
 
+;Returns a string repeated a specified number of times
+(str* "x" 6) => "xxxxxx"
+
 ;Returns the keys and values of a dictionary
 (var d {0 1 :a "hello" "hi" 123})
 (keys d) => [0 :a "hi"]
@@ -435,4 +438,16 @@ $test.ing         => 456
 (var report [(time) (fib 35) (time)])
 (str (1 report) " took " (- (2 report) (0 report)) "ms")
 => "9227465 took 55436ms"
+
+;Compose multiple functions into one
+(function comp
+  (let funcs (push (reverse (sect args)) (str ".. " (0 args))))
+  (eval (.. str
+    "(function comp- ("
+    (join funcs "(") " args"
+    (str* ")" (len funcs)) ")"))
+  "comp-")
+
+(map (comp + inc) [0 1 2 3 4] [0 1 2 3 4])
+=> [1 3 5 7 9]
 ```

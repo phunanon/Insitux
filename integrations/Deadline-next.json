@@ -552,6 +552,14 @@
 				]
 			},
 			{
+				"directory": "str*",
+				"description": [
+					"(str* \"hello \" 6)",
+					"function",
+					"Returns a string repeated a specified number of times"
+				]
+			},
+			{
 				"directory": "split",
 				"description": [
 					"(split \"hello\" \"e\")",
