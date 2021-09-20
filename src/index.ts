@@ -394,14 +394,28 @@ async function exeOp(
       _boo(sub(str(args[0]), str(args[1])));
       return [];
     case "idx": {
-      let i: number = -1;
+      let i = -1;
       if (args[0].t === "str") {
         if (args[1].t !== "str") {
           return tErr("strings can only contain strings");
         }
-        i = subIdx(str(args[0]), str(args[1]));
+        if (len(args) < 3) {
+          i = subIdx(str(args[0]), str(args[1]));
+        } else {
+          const arr = str(args[0]).split("");
+          arr[num(args[2])] = str(args[1]);
+          _str(arr.join(""));
+          return [];
+        }
       } else if (args[0].t === "vec") {
-        i = vec(args[0]).findIndex(a => isEqual(a, args[1]));
+        if (len(args) < 3) {
+          i = vec(args[0]).findIndex(a => isEqual(a, args[1]));
+        } else {
+          const v = asArray(args[0]);
+          v[num(args[2])] = args[1];
+          _vec(v);
+          return [];
+        }
       }
       if (i === -1) {
         _nul();
@@ -544,7 +558,13 @@ async function exeOp(
     }
     case "push": {
       if (args[0].t === "vec") {
-        _vec(concat(asArray(args[0]), [args[1]]));
+        const v = vec(args[0]);
+        if (len(args) < 3) {
+          _vec(concat(v, [args[1]]));
+        } else {
+          const n = num(args[2]);
+          _vec(concat(concat(slice(v, 0, n), [args[1]]), slice(v, n)));
+        }
       } else {
         if (len(args) < 3) {
           stack.push(dictDrop(dic(args[0]), args[1]));
@@ -700,7 +720,11 @@ async function exeOp(
       return [];
     case "str*": {
       const text = str(args[0]);
-      _str(range(max(num(args[1]), 0)).map(n => text).join(""));
+      _str(
+        range(max(num(args[1]), 0))
+          .map(n => text)
+          .join(""),
+      );
       return [];
     }
     case "time":

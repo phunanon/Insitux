@@ -335,9 +335,9 @@
 				"description": [
 					"(rand-int 10 20)",
 					"function",
-					"Returns a random whole number between its two arguments.",
-					"Or, provided no arguments a random 0 or 1.",
-					"Or, provided one argument a random whole number between 0 and that."
+					"Returns a random whole number between its two arguments;",
+					"or, provided no arguments a random 0 or 1;",
+					"or, provided one argument a random whole number between 0 and that."
 				]
 			},
 			{
@@ -345,9 +345,9 @@
 				"description": [
 					"(rand)",
 					"function",
-					"Returns a random number between 0 and 1.",
-					"Or, provided one argument a random number between 0 and that.",
-					"Or, provided two arguments a random number between those two."
+					"Returns a random number between 0 and 1;",
+					"or, provided one argument a random number between 0 and that;",
+					"or, provided two arguments a random number between those two."
 				]
 			},
 			{
@@ -411,8 +411,9 @@
 				"description": [
 					"(push [0 1 2] 3)",
 					"function",
-					"Returns a vector or dictionary with one item or key-value pair appended.",
-					"Or, removes a key from a dictionary."
+					"Returns a vector or dictionary with one item or key-value pair appended;",
+					"or, inserts a value into a vector at a specified index;",
+					"or, removes a key from a dictionary."
 				]
 			},
 			{
@@ -468,7 +469,8 @@
 				"description": [
 					"(idx [1 2 3] 2)",
 					"function",
-					"Returns index of an item or sub-string in a vector or string, or null."
+					"Returns index of an item or sub-string in a vector or string, or null;",
+					"or, replaces an item or character with another at a specified index."
 				]
 			},
 			{

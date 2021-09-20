@@ -121,7 +121,7 @@ export const ops: {
   "to-num": { exactArity: 1, types: [["str", "num"]] },
   "to-key": { exactArity: 1, types: [["str", "num"]] },
   "has?": { exactArity: 2, types: ["str", "str"] },
-  idx: { exactArity: 2, types: [["str", "vec"]] },
+  idx: { minArity: 2, maxArity: 3, types: [["str", "vec"]] },
   map: { minArity: 2 },
   for: { minArity: 2 },
   reduce: { minArity: 2, maxArity: 3 },

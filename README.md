@@ -239,14 +239,16 @@ built-in operations each within an example, with results after a `=>`.
 ;Returns the concatenation of vectors and dictionaries
 (into {} [0 1 2 3 4 5])         => {0 1, 2 3, 4 5}
 (into [] {:a "hi" :b "bye"})    => [[:a "hi"] [:b "bye"]]
-(into {:a 123 :b 456} {:a 456}) => {:a 456 :b 456}
+(into {:a 123 :b 456} {:a 456}) => {:a 456, :b 456}
 (into [1 2 3] [4 5 6])          => [1 2 3 4 5 6]
 
 ;Returns a vector or dictionary with one item or key-value pair appended
+;Or, inserts a value into a vector at a specified index
 ;Or, removes a key from a dictionary
-(push [1 2] 3)   => [1 2 3]
-(push {1 2} 3 4) => {1 2 3 4}
-(push {1 2} 1)   => {}
+(push [1 2] :a)   => [1 2 :a]
+(push {1 2} 1)    => {}
+(push [1 2] :a 1) => [1 :a 2]
+(push {1 2} 3 4)  => {1 2, 3 4}
 
 ;Returns a section of a string or vector
 (sect "Patrick")       => "atrick"
@@ -317,9 +319,12 @@ etc
 (has? "Hello" "ll") => true
 
 ;Returns index of an item or sub-string in a vector or string, or null
-(idx [1 2 3 4] 5)  => null
-(idx [1 2 3 4] 3)  => 2
-(idx "Hello" "ll") => 2
+;Or, replaces an item or character with another at a specified index
+(idx [1 2 3 4] 3)    => 2
+(idx [1 2 3 4] 5)    => null
+(idx "Hello" "ll")   => 2
+(idx [1 2 3 4] :a 2) => [1 2 :a 4]
+(idx "hello" "H" 0)  => "Hello"
 
 ;Returns its last argument early from a function with a value, or null
 (function f (return 123) (print "hello"))
