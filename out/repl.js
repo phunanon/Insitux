@@ -8,7 +8,7 @@
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.symbols = exports.invoke = exports.exeFunc = exports.visBoo = exports.visKey = exports.visFun = exports.visDic = exports.visVec = exports.visNum = exports.visStr = exports.insituxVersion = void 0;
-exports.insituxVersion = 20210919;
+exports.insituxVersion = 20210923;
 const parse_1 = __webpack_require__(306);
 const pf = __webpack_require__(17);
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -408,6 +408,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
         case "reduce":
         case "filter":
         case "remove":
+        case "find":
             {
                 const closure = getExe(ctx, args.shift(), errCtx);
                 const okT = (t) => t === "vec" || t === "str" || t === "dict";
@@ -456,19 +457,29 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
                     return [];
                 }
                 const array = asArray(args.shift());
-                const isRemove = op === "remove";
-                if (op === "filter" || isRemove) {
+                const isRemove = op === "remove", isFind = op === "find";
+                if (op === "filter" || isRemove || isFind) {
                     const filtered = [];
                     for (let i = 0, lim = len(array); i < lim; ++i) {
                         const errors = await closure([array[i], ...args]);
                         if (len(errors)) {
                             return errors;
                         }
-                        if (asBoo(stack.pop()) !== isRemove) {
+                        const b = asBoo(stack.pop());
+                        if (isFind && b) {
+                            stack.push(array[i]);
+                            return [];
+                        }
+                        if (b !== isRemove) {
                             filtered.push(array[i]);
                         }
                     }
-                    _vec(filtered);
+                    if (isFind) {
+                        _nul();
+                    }
+                    else {
+                        _vec(filtered);
+                    }
                     return [];
                 }
                 if (len(array) < 2) {
@@ -790,7 +801,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
         };
     }
     else if ((0, exports.visNum)(op)) {
-        const n = op.v;
+        const n = floor(op.v);
         return async (params) => {
             if (!len(params)) {
                 return monoArityError;
@@ -2099,6 +2110,7 @@ exports.ops = {
     reduce: { minArity: 2, maxArity: 3 },
     filter: { minArity: 2 },
     remove: { minArity: 2 },
+    find: { minArity: 2 },
     str: {},
     rand: { maxArity: 2, onlyNum: true },
     "rand-int": { maxArity: 2, onlyNum: true },

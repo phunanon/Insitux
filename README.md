@@ -268,6 +268,10 @@ etc
 (remove odd? [0 1 2 3])    => [0 2]
 (remove = [1 1 2 2 3 3] 3) => [1 1 2 2]
 
+;Returns the first item in the vector or string matching a predicate, optionally passing extra arguments
+(find odd? [0 1 2 3]) => 1
+(find > [4 5 6 7] 5)  => 6
+
 ;Returns the reverse of a vector or string
 (reverse "Hello") => "olleH"
 (reverse [1 2 3]) => [3 2 1]

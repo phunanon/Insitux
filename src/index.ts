@@ -1,4 +1,4 @@
-export const insituxVersion = 20210919;
+export const insituxVersion = 20210923;
 import { arityCheck, parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -429,6 +429,7 @@ async function exeOp(
     case "reduce":
     case "filter":
     case "remove":
+    case "find":
       {
         const closure = getExe(ctx, args.shift()!, errCtx);
         const okT = (t: Val["t"]) => t === "vec" || t === "str" || t === "dict";
@@ -485,19 +486,29 @@ async function exeOp(
         }
 
         const array = asArray(args.shift()!);
-        const isRemove = op === "remove";
-        if (op === "filter" || isRemove) {
+        const isRemove = op === "remove",
+          isFind = op === "find";
+        if (op === "filter" || isRemove || isFind) {
           const filtered: Val[] = [];
           for (let i = 0, lim = len(array); i < lim; ++i) {
             const errors = await closure([array[i], ...args]);
             if (len(errors)) {
               return errors;
             }
-            if (asBoo(stack.pop()!) !== isRemove) {
+            const b = asBoo(stack.pop()!);
+            if (isFind && b) {
+              stack.push(array[i]);
+              return [];
+            }
+            if (b !== isRemove) {
               filtered.push(array[i]);
             }
           }
-          _vec(filtered);
+          if (isFind) {
+            _nul();
+          } else {
+            _vec(filtered);
+          }
           return [];
         }
 
@@ -831,7 +842,7 @@ function getExe(
       return [];
     };
   } else if (visNum(op)) {
-    const n = op.v;
+    const n = floor(op.v);
     return async (params: Val[]) => {
       if (!len(params)) {
         return monoArityError;

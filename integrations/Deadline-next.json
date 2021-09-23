@@ -506,6 +506,14 @@
 				]
 			},
 			{
+				"directory": "find",
+				"description": [
+					"(find odd? [0 1 2 3])",
+					"function",
+					"Returns the first item in the vector or string matching a predicate, optionally passing extra arguments."
+				]
+			},
+			{
 				"directory": "reverse",
 				"description": [
 					"(reverse [0 1 2 3])",
