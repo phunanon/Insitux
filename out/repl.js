@@ -2040,7 +2040,7 @@ async function doTests(invoke, terse = true) {
     }
     const totalMs = results.reduce((sum, { elapsedMs }) => sum + elapsedMs, 0);
     const numPassed = (0, poly_fills_1.len)(results.filter(({ okOut, okErr }) => okOut && okErr));
-    return (0, poly_fills_1.concat)(results.filter(r => !terse || !r.okOut || !r.okErr).map(r => r.display), [`----- ${numPassed}/${(0, poly_fills_1.len)(results)} tests passed in ${totalMs}ms.`]);
+    return (0, poly_fills_1.concat)(results.filter(r => !terse || !r.okOut || !r.okErr).map(r => r.display), [`---- ${numPassed}/${(0, poly_fills_1.len)(results)} tests passed in ${totalMs}ms.`]);
 }
 exports.doTests = doTests;
 

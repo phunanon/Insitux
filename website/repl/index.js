@@ -32,6 +32,9 @@ async function browserExe(name, args) {
     case "print":
       historyAppend(args[0].v + (name == "print" ? "\n" : ""));
       break;
+    case "clear":
+      setTimeout(() => ($history.innerHTML = ""), 1000);
+      break;
     default:
       if (args.length && args[0].t == "str" && args[0].v.startsWith("$")) {
         if (args.length === 1) {
@@ -58,6 +61,7 @@ async function DomLoad() {
   $input.addEventListener("keydown", DomKeydown);
   $input.focus();
   DomInputResize($input);
+  await insituxInvoke('(str "Insitux version " (version))', browserExe);
   await insituxInvoke("(tests)", browserExe);
 }
 

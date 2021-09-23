@@ -340,6 +340,6 @@ export async function doTests(
   const numPassed = len(results.filter(({ okOut, okErr }) => okOut && okErr));
   return concat(
     results.filter(r => !terse || !r.okOut || !r.okErr).map(r => r.display),
-    [`----- ${numPassed}/${len(results)} tests passed in ${totalMs}ms.`],
+    [`---- ${numPassed}/${len(results)} tests passed in ${totalMs}ms.`],
   );
 }
