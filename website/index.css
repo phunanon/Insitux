@@ -82,7 +82,7 @@ examples {
   color: #aaf;
 }
 .syn-highlight str, .syn-highlight num {
-  color: rgb(255, 164, 111);
+  color: rgb(255, 164, 111) !important;
 }
 p0 {
   color: #21afa8;

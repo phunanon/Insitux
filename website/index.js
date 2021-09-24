@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async function () {
   const req = await fetch(
-    `https://raw.githubusercontent.com/phunanon/Insitux/master/README.md`
+    `https://raw.githubusercontent.com/phunanon/Insitux/master/README.md`,
   );
   const text = await req.text();
   const examples = text
@@ -18,15 +18,32 @@ function synHighlight(code) {
     .map(line => (line.startsWith(";") ? `<i>${line}</i>` : line))
     .join("\n");
   build = build.replaceAll(/([0-9]+)([\s\)\]])/g, "<num>$1</num>$2");
-  build = build.replaceAll(/(\"[^\"]+\"|\:[^\n\s\[\]]+)/g, `<str>$1</str>`);
-  build = build.replaceAll(/\(([^\n\s\[\]]+)/g, "(<op>$1</op>");
   let newBuild = "",
-    depth = 0;
+    depth = 0,
+    inString = false,
+    inOp = false;
   for (let i = 0; i < build.length; ++i) {
-    if ("([".includes(build[i])) {
+    if (build[i] == '"') {
+      inString = !inString;
+      newBuild += `${inString ? "<str>" :""}"${inString ? "" : "</str>"}`;
+      continue;
+    }
+    if (inString) {
+      newBuild += build[i];
+      continue;
+    }
+    if (/[\[\]\(\)\s]/.test(build[i]) && inOp) {
+      inOp = false;
+      newBuild += "</op>";
+    }
+    if ("([{".includes(build[i])) {
       newBuild += `<p${depth}>${build[i]}</p${depth}>`;
       ++depth;
-    } else if (")]".includes(build[i])) {
+      inOp = build[i] == "(";
+      if (inOp) {
+        newBuild += "<op>";
+      }
+    } else if (")]}".includes(build[i])) {
       --depth;
       newBuild += `<p${depth}>${build[i]}</p${depth}>`;
     } else {
