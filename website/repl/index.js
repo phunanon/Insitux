@@ -38,9 +38,9 @@ async function browserExe(name, args) {
     default:
       if (args.length && args[0].t == "str" && args[0].v.startsWith("$")) {
         if (args.length === 1) {
-          return await get(`${args[0].v.substring(1)}.${name}`);
+          return await insituxGet(`${args[0].v.substring(1)}.${name}`);
         } else {
-          set(`${args[0].v.substring(1)}.${name}`, args[1]);
+          insituxSet(`${args[0].v.substring(1)}.${name}`, args[1]);
           return { value: args[1] };
         }
       }
@@ -73,14 +73,14 @@ function DomInputResize(that) {
 }
 
 const insituxEnv = { funcs: {}, vars: {}, lets: [] };
+const state = new Map();
 
 async function insituxGet(key) {
   return { value: state.get(key) };
 }
 
 async function insituxSet(key, val) {
-  state.set(key, val);
-  return [];
+  return state.set(key, val) && undefined;
 }
 
 async function insituxInvoke(code, exe) {
