@@ -9,7 +9,11 @@ module.exports = ({ target }) => {
       rules: [
         {
           test: /\.ts$/,
-          use: "ts-loader",
+          loader: "esbuild-loader",
+          options: {
+            loader: "ts",
+            target: "es2020",
+          },
           exclude: /node_modules/,
         },
       ],
