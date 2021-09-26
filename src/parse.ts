@@ -2,7 +2,7 @@ import * as pf from "./poly-fills";
 const { concat, has, flat, push, slice } = pf;
 const { slen, starts, sub, substr, strIdx } = pf;
 const { isNum, len, toNum } = pf;
-import { ErrCtx, Func, Funcs, Ins, InvokeError, ops } from "./types";
+import { ErrCtx, Func, Funcs, Ins, InvokeError, ops, Val } from "./types";
 import { assertUnreachable } from "./types";
 
 type Token = {
@@ -16,6 +16,7 @@ type NamedTokens = {
   errCtx: ErrCtx;
 };
 type ParserIns = Omit<Ins, "typ"> & { typ: Ins["typ"] | "def" | "err" };
+const nullVal: Val = { t: "null", v: undefined };
 
 function tokenise(code: string, invocationId: string) {
   const tokens: Token[] = [];
@@ -249,14 +250,14 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
         }
       } else {
         ins.push({ typ: "jmp", value: 1, errCtx });
-        ins.push({ typ: "nul", value: undefined, errCtx });
+        ins.push({ typ: "val", value: nullVal, errCtx });
       }
     } else {
       const body = parseWholeArg(tokens, params);
       ins.push({ typ: "if", value: len(body) + 1, errCtx });
       push(ins, body);
       ins.push({ typ: "jmp", value: 1, errCtx });
-      ins.push({ typ: "nul", value: undefined, errCtx });
+      ins.push({ typ: "val", value: nullVal, errCtx });
     }
     return ins;
   } else if (op === "and" || op === "or" || op === "while") {
@@ -295,12 +296,12 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
     }
     if (op === "and") {
       push(ins, [
-        { typ: "boo", value: true, errCtx },
+        { typ: "val", value: <Val>{ t: "bool", v: true }, errCtx },
         { typ: "jmp", value: 1, errCtx },
-        { typ: "boo", value: false, errCtx },
+        { typ: "val", value: <Val>{ t: "bool", v: false }, errCtx },
       ]);
     } else {
-      ins.push({ typ: "boo", value: false, errCtx });
+      ins.push({ typ: "val", value: <Val>{ t: "bool", v: false }, errCtx });
     }
     return ins;
   }
@@ -330,9 +331,7 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
   //Operation arity check
   if (ops[op]) {
     const errors = arityCheck(op, args, errCtx);
-    if (errors) {
-      push(headIns, errors.map(e => err(e.m)[0]));
-    }
+    push(headIns, errors?.map(e => err(e.m)[0]) ?? []);
   }
 
   headIns.push({
@@ -361,20 +360,22 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
   const { typ, text, errCtx } = tokens.shift() as Token;
   switch (typ) {
     case "str":
-      return [{ typ: "str", value: text, errCtx }];
+      return [{ typ: "val", value: <Val>{ t: "str", v: text }, errCtx }];
     case "num":
-      return [{ typ: "num", value: toNum(text), errCtx }];
+      return [{ typ: "val", value: <Val>{ t: "num", v: toNum(text) }, errCtx }];
     case "sym":
       if (text === "true" || text === "false") {
-        return [{ typ: "boo", value: text === "true", errCtx }];
+        return [
+          { typ: "val", value: <Val>{ t: "bool", v: text === "true" }, errCtx },
+        ];
       } else if (text === "null") {
-        return [{ typ: "nul", value: undefined, errCtx }];
+        return [{ typ: "val", value: nullVal, errCtx }];
       } else if (starts(text, ":")) {
-        return [{ typ: "key", value: text, errCtx }];
+        return [{ typ: "val", value: <Val>{ t: "key", v: text }, errCtx }];
       } else if (starts(text, "#") && isNum(substr(text, 1))) {
         const value = toNum(substr(text, 1));
         if (value < 0) {
-          return [{ typ: "nul", errCtx }];
+          return [{ typ: "val", value: nullVal, errCtx }];
         }
         return [{ typ: "par", value, errCtx }];
       } else if (has(params, text)) {

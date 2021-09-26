@@ -978,20 +978,8 @@ export async function exeFunc(
     }
 
     switch (typ) {
-      case "nul":
-        _nul();
-        break;
-      case "boo":
-        _boo(value as boolean);
-        break;
-      case "num":
-        _num(value as number);
-        break;
-      case "str":
-        _str(value as string);
-        break;
-      case "key":
-        _key(value as string);
+      case "val":
+        stack.push(value as Val);
         break;
       case "var":
         ctx.env.vars[value as string] = stack[len(stack) - 1];

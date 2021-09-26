@@ -36,11 +36,7 @@ export type Ctx = {
 };
 
 export type InsType =
-  | "nul"
-  | "boo"
-  | "num"
-  | "str"
-  | "key"
+  | "val" //Stack Val
   | "par"
   | "var"
   | "let"
@@ -52,8 +48,8 @@ export type InsType =
   | "loo" //Expensive jump
   | "pop" //Truncate stack
   | "or"
-  | "ret"
-  | "cat";
+  | "ret" //Return
+  | "cat"; //Catch
 export type Ins = {
   typ: InsType;
   value?: unknown;

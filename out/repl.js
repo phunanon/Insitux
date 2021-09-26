@@ -295,6 +295,7 @@ const { slen: parse_slen, starts: parse_starts, sub: parse_sub, substr: parse_su
 const { isNum: parse_isNum, len: parse_len, toNum: parse_toNum } = poly_fills_namespaceObject;
 
 
+const nullVal = { t: "null", v: void 0 };
 function tokenise(code, invocationId) {
   const tokens = [];
   const digits = "0123456789";
@@ -502,14 +503,14 @@ function parseForm(tokens, params) {
         }
       } else {
         ins.push({ typ: "jmp", value: 1, errCtx });
-        ins.push({ typ: "nul", value: void 0, errCtx });
+        ins.push({ typ: "val", value: nullVal, errCtx });
       }
     } else {
       const body2 = parseWholeArg(tokens, params);
       ins.push({ typ: "if", value: parse_len(body2) + 1, errCtx });
       parse_push(ins, body2);
       ins.push({ typ: "jmp", value: 1, errCtx });
-      ins.push({ typ: "nul", value: void 0, errCtx });
+      ins.push({ typ: "val", value: nullVal, errCtx });
     }
     return ins;
   } else if (op === "and" || op === "or" || op === "while") {
@@ -548,12 +549,12 @@ function parseForm(tokens, params) {
     }
     if (op === "and") {
       parse_push(ins, [
-        { typ: "boo", value: true, errCtx },
+        { typ: "val", value: { t: "bool", v: true }, errCtx },
         { typ: "jmp", value: 1, errCtx },
-        { typ: "boo", value: false, errCtx }
+        { typ: "val", value: { t: "bool", v: false }, errCtx }
       ]);
     } else {
-      ins.push({ typ: "boo", value: false, errCtx });
+      ins.push({ typ: "val", value: { t: "bool", v: false }, errCtx });
     }
     return ins;
   }
@@ -580,9 +581,7 @@ function parseForm(tokens, params) {
   }
   if (ops[op]) {
     const errors = arityCheck(op, args, errCtx);
-    if (errors) {
-      parse_push(headIns, errors.map((e) => err(e.m)[0]));
-    }
+    parse_push(headIns, errors?.map((e) => err(e.m)[0]) ?? []);
   }
   headIns.push({
     typ: ops[op] ? "op" : "exe",
@@ -601,20 +600,22 @@ function parseArg(tokens, params) {
   const { typ, text, errCtx } = tokens.shift();
   switch (typ) {
     case "str":
-      return [{ typ: "str", value: text, errCtx }];
+      return [{ typ: "val", value: { t: "str", v: text }, errCtx }];
     case "num":
-      return [{ typ: "num", value: parse_toNum(text), errCtx }];
+      return [{ typ: "val", value: { t: "num", v: parse_toNum(text) }, errCtx }];
     case "sym":
       if (text === "true" || text === "false") {
-        return [{ typ: "boo", value: text === "true", errCtx }];
+        return [
+          { typ: "val", value: { t: "bool", v: text === "true" }, errCtx }
+        ];
       } else if (text === "null") {
-        return [{ typ: "nul", value: void 0, errCtx }];
+        return [{ typ: "val", value: nullVal, errCtx }];
       } else if (parse_starts(text, ":")) {
-        return [{ typ: "key", value: text, errCtx }];
+        return [{ typ: "val", value: { t: "key", v: text }, errCtx }];
       } else if (parse_starts(text, "#") && parse_isNum(parse_substr(text, 1))) {
         const value = parse_toNum(parse_substr(text, 1));
         if (value < 0) {
-          return [{ typ: "nul", errCtx }];
+          return [{ typ: "val", value: nullVal, errCtx }];
         }
         return [{ typ: "par", value, errCtx }];
       } else if (parse_has(params, text)) {
@@ -1868,20 +1869,8 @@ async function exeFunc(ctx, func, args) {
       ];
     }
     switch (typ) {
-      case "nul":
-        _nul();
-        break;
-      case "boo":
-        _boo(value);
-        break;
-      case "num":
-        _num(value);
-        break;
-      case "str":
-        _str(value);
-        break;
-      case "key":
-        _key(value);
+      case "val":
+        stack.push(value);
         break;
       case "var":
         ctx.env.vars[value] = stack[src_len(stack) - 1];
