@@ -268,9 +268,14 @@ etc
 (remove odd? [0 1 2 3])    => [0 2]
 (remove = [1 1 2 2 3 3] 3) => [1 1 2 2]
 
-;Returns the first item in the vector or string matching a predicate, optionally passing extra arguments
-(find odd? [0 1 2 3]) => 1
-(find > [4 5 6 7] 5)  => 6
+;Returns the first item or character in a vector or string matching a predicate, optionally passing extra arguments
+(find odd? [0 1 2 3])   => 1
+(find > [4 5 6 7] 5)    => 6
+(find ["a" "b"] "Able") => "b"
+
+;Returns the number of items or characters in a vector or string matching a predicate, optionally passing extra arguments
+(count odd? (range 10)) => 5
+(count = [1 1 2 3 3] 1) => 2
 
 ;Returns the reverse of a vector or string
 (reverse "Hello") => "olleH"

@@ -1,4 +1,4 @@
-export const insituxVersion = 20210923;
+export const insituxVersion = 20210926;
 import { arityCheck, parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -436,6 +436,7 @@ async function exeOp(
     case "filter":
     case "remove":
     case "find":
+    case "count":
       {
         const closure = getExe(ctx, args.shift()!, errCtx);
         const okT = (t: Val["t"]) => t === "vec" || t === "str" || t === "dict";
@@ -493,29 +494,40 @@ async function exeOp(
 
         const array = asArray(args.shift()!);
         const isRemove = op === "remove",
-          isFind = op === "find";
-        if (op === "filter" || isRemove || isFind) {
+          isFind = op === "find",
+          isCount = op === "count";
+        if (op !== "reduce") {
           const filtered: Val[] = [];
+          let count = 0;
           for (let i = 0, lim = len(array); i < lim; ++i) {
             const errors = await closure([array[i], ...args]);
             if (errors) {
               return errors;
             }
             const b = asBoo(stack.pop()!);
+            if (isCount) {
+              count += b ? 1 : 0;
+              continue;
+            }
             if (isFind && b) {
               stack.push(array[i]);
               return;
             }
-            if (b !== isRemove) {
+            if (!isFind && b !== isRemove) {
               filtered.push(array[i]);
             }
           }
-          if (isFind) {
-            _nul();
-          } else {
-            _vec(filtered);
+          switch (op) {
+            case "count":
+              _num(count);
+              return;
+            case "find":
+              _nul();
+              return;
+            default:
+              _vec(filtered);
+              return;
           }
-          return;
         }
 
         if (len(array) < 2) {

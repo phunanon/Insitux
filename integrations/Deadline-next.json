@@ -514,6 +514,14 @@
 				]
 			},
 			{
+				"directory": "count",
+				"description": [
+					"(count odd? (range 10))",
+					"function",
+					"Returns the number of items or characters in a vector or string matching a predicate, optionally passing extra arguments"
+				]
+			},
+			{
 				"directory": "reverse",
 				"description": [
 					"(reverse [0 1 2 3])",

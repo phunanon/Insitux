@@ -128,6 +128,7 @@ export const ops: {
   filter: { minArity: 2 },
   remove: { minArity: 2 },
   find: { minArity: 2 },
+  count: { minArity: 2 },
   str: {},
   rand: { maxArity: 2, onlyNum: true },
   "rand-int": { maxArity: 2, onlyNum: true },
