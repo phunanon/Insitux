@@ -49,7 +49,10 @@ async function browserExe(name, args) {
   return { value: nullVal };
 }
 
+let state = {};
+
 async function DomLoad() {
+  state = JSON.parse(localStorage.getItem("repl")) ?? {};
   $input = document.querySelector("textarea");
   $history = document.querySelector("div");
   $history.innerHTML += `<a href="https://github.com/phunanon/Insitux"><img src="../../media/Insitux64.png"/></a><span>REPL</span>\n`;
@@ -73,14 +76,14 @@ function DomInputResize(that) {
 }
 
 const insituxEnv = { funcs: {}, vars: {}, lets: [] };
-const state = new Map();
 
 async function insituxGet(key) {
-  return { value: state.get(key) };
+  return { value: state[key] };
 }
 
 async function insituxSet(key, val) {
-  return state.set(key, val) && undefined;
+  state[key] = val;
+  localStorage.setItem("repl", JSON.stringify(state));
 }
 
 async function insituxInvoke(code, exe) {
