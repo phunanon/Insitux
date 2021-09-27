@@ -1128,9 +1128,11 @@ export async function exeFunc(
           if (errors) {
             return errors;
           }
+          const numIns = derefFunc.ins.length;
+          const captures = splice(stack, len(stack) - numIns, numIns);
           ins = ins.map(ins =>
             ins.typ === "ref" || ins.typ === "npa"
-              ? <Ins>{ typ: "val", value: stack.shift()!, errCtx }
+              ? <Ins>{ typ: "val", value: captures.shift()!, errCtx }
               : ins,
           );
           stack.push(<Val>{ t: "clo", v: <Func>{ name, ins } });

@@ -215,15 +215,29 @@ const tests: {
   {
     name: "Closure 1",
     code: `(let x 10)
+           (let closure #(+ x x))
+           (let x 11)
+           (closure)`,
+    out: `20`,
+  },
+  {
+    name: "Closure 2",
+    code: `(let x 10)
            (let closure (do #(# x x)))
            (let x 11)
            (closure +)`,
     out: `20`,
   },
   {
-    name: "Closure 2",
+    name: "Closure 3",
     code: `(filter #(or (.. = args) (even? #)) (range 10) 5)`,
     out: `[0 2 4 5 6 8]`,
+  },
+  {
+    name: "Closure 4",
+    code: `(let M [[2 -4] [7 10]])
+           (map #(map - #) M)`,
+    out: `[[-2 4] [-7 -10]]`
   },
   {
     name: "Func returns closure",
