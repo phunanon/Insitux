@@ -155,7 +155,7 @@ const tests: {
              (print "hi"))`,
     out: `Type`,
   },
-  //Basic functions
+  //Basic functions and closures
   { name: "Define with no call", code: `(function func (print "Nothing."))` },
   {
     name: "Call greet func",
@@ -211,6 +211,45 @@ const tests: {
     name: "Explicit return",
     code: `(function f (return 123) (print 456)) (f)`,
     out: `123`,
+  },
+  {
+    name: "Closure 1",
+    code: `(let x 10)
+           (let closure (do #(# x x)))
+           (let x 11)
+           (closure +)`,
+    out: `20`,
+  },
+  {
+    name: "Closure 2",
+    code: `(filter #(or (.. = args) (even? #)) (range 10) 5)`,
+    out: `[0 2 4 5 6 8]`,
+  },
+  {
+    name: "Func returns closure",
+    code: `(function f x #(x 2 2))
+           (let closure (f +))
+           (closure)`,
+    out: `4`,
+  },
+  {
+    name: "Dictionary closure",
+    code: `(function f x #{x 2})
+           (let closure (f :a))
+           (closure)`,
+    out: `{:a 2}`,
+  },
+  {
+    name: "Vector closure",
+    code: `(function f x #[1 x #])
+           (let closure (f 2))
+           (closure 3)`,
+    out: `[1 2 3]`,
+  },
+  {
+    name: "Closure as head",
+    code: `(#[# #1 #2] 1 2 3)`,
+    out: `[1 2 3]`,
   },
   //Runtime errors
   {

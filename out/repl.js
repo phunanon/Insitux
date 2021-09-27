@@ -178,7 +178,6 @@ const log10 = Math.log10;
 const ops = {
   print: {},
   "print-str": {},
-  "execute-last": {},
   "!": { exactArity: 1 },
   "=": { minArity: 2 },
   "!=": { minArity: 2 },
@@ -284,7 +283,8 @@ const typeNames = {
   ref: "reference",
   vec: "vector",
   dict: "dictionary",
-  func: "function"
+  func: "function",
+  clo: "closure"
 };
 const assertUnreachable = (_x) => 0;
 
@@ -564,8 +564,6 @@ function parseForm(tokens, params) {
     tokens.unshift(head);
     const ins = parseArg(tokens, params);
     parse_push(headIns, ins);
-    op = "execute-last";
-    ++args;
   }
   const body = [];
   while (parse_len(tokens)) {
@@ -583,14 +581,11 @@ function parseForm(tokens, params) {
     const errors = arityCheck(op, args, errCtx);
     parse_push(headIns, errors?.map((e) => err(e.m)[0]) ?? []);
   }
-  headIns.push({
-    typ: ops[op] ? "op" : "exe",
-    value: [
-      typ === "num" ? { t: "num", v: parse_toNum(op) } : parse_starts(op, ":") ? { t: "key", v: op } : ops[op] ? { t: "func", v: op } : op === "true" || op === "false" ? { t: "bool", v: op === "true" } : { t: "str", v: op },
-      args
-    ],
-    errCtx
-  });
+  if (!parse_len(headIns)) {
+    const value = typ === "num" ? { t: "num", v: parse_toNum(op) } : parse_starts(op, ":") ? { t: "key", v: op } : ops[op] ? { t: "func", v: op } : op === "true" || op === "false" ? { t: "bool", v: op === "true" } : { t: "str", v: op };
+    headIns.push({ typ: "val", value, errCtx });
+  }
+  headIns.push({ typ: "exe", value: args, errCtx });
   return [...body, ...headIns];
 }
 function parseArg(tokens, params) {
@@ -598,6 +593,12 @@ function parseArg(tokens, params) {
     return [];
   }
   const { typ, text, errCtx } = tokens.shift();
+  if (typ === "sym" && text === "#" && parse_len(tokens) && tokens[0].typ === "(") {
+    const texts = tokens.map((t) => t.text);
+    const body = parseArg(tokens, params);
+    const value = [parse_slice(texts, 0, parse_len(texts) - parse_len(tokens)).join(" "), body];
+    return [{ typ: "clo", value, errCtx }];
+  }
   switch (typ) {
     case "str":
       return [{ typ: "val", value: { t: "str", v: text }, errCtx }];
@@ -617,11 +618,13 @@ function parseArg(tokens, params) {
         if (value < 0) {
           return [{ typ: "val", value: nullVal, errCtx }];
         }
-        return [{ typ: "par", value, errCtx }];
+        return [{ typ: "upa", value, errCtx }];
       } else if (parse_has(params, text)) {
-        return [{ typ: "par", value: params.indexOf(text), errCtx }];
+        return [{ typ: "npa", value: params.indexOf(text), errCtx }];
       } else if (text === "args") {
-        return [{ typ: "par", value: -1, errCtx }];
+        return [{ typ: "upa", value: -1, errCtx }];
+      } else if (ops[text]) {
+        return [{ typ: "val", value: { t: "func", v: text }, errCtx }];
       }
       return [{ typ: "ref", value: text, errCtx }];
     case "ref":
@@ -648,7 +651,7 @@ function partition(array, predicate) {
   return [a, b];
 }
 function syntaxise({ name, tokens }, errCtx) {
-  const [params, body] = partitionWhen(tokens, (t) => t.typ !== "sym");
+  const [params, body] = partitionWhen(tokens, (t) => t.typ !== "sym" || t.text === "#");
   if (name === "(") {
     return { err: { e: "Parse", m: "nameless function", errCtx } };
   }
@@ -944,6 +947,45 @@ null`
     out: `123`
   },
   {
+    name: "Closure 1",
+    code: `(let x 10)
+           (let closure (do #(# x x)))
+           (let x 11)
+           (closure +)`,
+    out: `20`
+  },
+  {
+    name: "Closure 2",
+    code: `(filter #(or (.. = args) (even? #)) (range 10) 5)`,
+    out: `[0 2 4 5 6 8]`
+  },
+  {
+    name: "Func returns closure",
+    code: `(function f x #(x 2 2))
+           (let closure (f +))
+           (closure)`,
+    out: `4`
+  },
+  {
+    name: "Dictionary closure",
+    code: `(function f x #{x 2})
+           (let closure (f :a))
+           (closure)`,
+    out: `{:a 2}`
+  },
+  {
+    name: "Vector closure",
+    code: `(function f x #[1 x #])
+           (let closure (f 2))
+           (closure 3)`,
+    out: `[1 2 3]`
+  },
+  {
+    name: "Closure as head",
+    code: `(#[# #1 #2] 1 2 3)`,
+    out: `[1 2 3]`
+  },
+  {
     name: "String instead of number",
     code: `(function sum (.. + args))
            (print (sum 2 2))
@@ -1072,6 +1114,8 @@ const val2str = ({ v, t }) => {
     case "ref":
     case "func":
       return v;
+    case "clo":
+      return `#${v.name}`;
     case "vec":
       return `[${v.map(quoted).join(" ")}]`;
     case "dict": {
@@ -1098,12 +1142,14 @@ const num = ({ v }) => v;
 const str = ({ v }) => v;
 const vec = ({ v }) => v;
 const dic = ({ v }) => v;
+const clo = ({ v }) => v;
 const asBoo = ({ t, v }) => t === "bool" ? v : t !== "null";
 const visStr = (val) => val.t === "str";
 const visNum = (val) => val.t === "num";
 const visVec = (val) => val.t === "vec";
 const visDic = (val) => val.t === "dict";
 const visFun = (val) => val.t === "func";
+const visClo = (val) => val.t === "clo";
 const visKey = (val) => val.t === "key";
 const visBoo = (val) => val.t == "bool";
 const asArray = ({ t, v }) => t === "vec" ? src_slice(v) : t === "str" ? [...v].map((s) => ({ t: "str", v: s })) : t === "dict" ? v.keys.map((k, i) => ({
@@ -1160,6 +1206,8 @@ const isEqual = (a, b) => {
     case "key":
     case "func":
       return str(a) === str(b);
+    case "clo":
+      return clo(a).name === clo(b).name;
   }
   return assertUnreachable(t);
 };
@@ -1228,8 +1276,6 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     }
   }
   switch (op) {
-    case "execute-last":
-      return await getExe(ctx, args.pop(), errCtx)(args);
     case "str":
       stack.push({
         t: "str",
@@ -1359,7 +1405,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "vec?":
     case "key?":
     case "func?":
-      _boo(op === "null?" && args[0].t === "null" || op === "num?" && args[0].t === "num" || op === "bool?" && args[0].t === "bool" || op === "str?" && args[0].t === "str" || op === "dict?" && args[0].t === "dict" || op === "vec?" && args[0].t === "vec" || op === "key?" && args[0].t === "key" || op === "func?" && args[0].t === "func");
+      _boo(op === "null?" && args[0].t === "null" || op === "num?" && args[0].t === "num" || op === "bool?" && args[0].t === "bool" || op === "str?" && args[0].t === "str" || op === "dict?" && args[0].t === "dict" || op === "vec?" && args[0].t === "vec" || op === "key?" && args[0].t === "key" || op === "func?" && (args[0].t === "func" || args[0].t === "clo"));
       return;
     case "has?":
       _boo(src_sub(str(args[0]), str(args[1])));
@@ -1754,6 +1800,8 @@ function getExe(ctx, op, errCtx, checkArity = true) {
       }
       return err ? [{ e: "External", m: err, errCtx }] : void 0;
     };
+  } else if (visClo(op)) {
+    return (params) => exeFunc(ctx, op.v, params);
   } else if (visKey(op)) {
     return async (params) => {
       if (!src_len(params)) {
@@ -1853,9 +1901,11 @@ function errorsToDict(errors) {
     return { t: "dict", v: dict };
   });
 }
-async function exeFunc(ctx, func, args) {
+async function exeFunc(ctx, func, args, newLets = true) {
   --ctx.callBudget;
-  ctx.env.lets.push({});
+  if (newLets) {
+    ctx.env.lets.push({});
+  }
   for (let i = 0, lim = src_len(func.ins); i < lim; ++i) {
     const { typ, value, errCtx } = func.ins[i];
     const tooManyLoops = ctx.loopBudget < 1;
@@ -1878,7 +1928,8 @@ async function exeFunc(ctx, func, args) {
       case "let":
         ctx.env.lets[src_len(ctx.env.lets) - 1][value] = stack[src_len(stack) - 1];
         break;
-      case "par":
+      case "npa":
+      case "upa":
         {
           const paramIdx = value;
           if (paramIdx === -1) {
@@ -1912,10 +1963,10 @@ async function exeFunc(ctx, func, args) {
           }
         }
         break;
-      case "op":
       case "exe":
         {
-          let [op, nArgs] = value;
+          const op = stack.pop();
+          const nArgs = value;
           const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
           if (src_len(params) !== nArgs) {
             return [{ e: "Unexpected", m: `${op} stack depleted`, errCtx }];
@@ -1976,11 +2027,28 @@ async function exeFunc(ctx, func, args) {
         }
         i = lim;
         break;
+      case "clo":
+        {
+          let [name, ins] = value;
+          const derefFunc = {
+            name: "",
+            ins: ins.filter(({ typ: typ2 }) => typ2 === "ref" || typ2 === "npa")
+          };
+          const errors = await exeFunc(ctx, derefFunc, args, false);
+          if (errors) {
+            return errors;
+          }
+          ins = ins.map((ins2) => ins2.typ === "ref" || ins2.typ === "npa" ? { typ: "val", value: stack.shift(), errCtx } : ins2);
+          stack.push({ t: "clo", v: { name, ins } });
+        }
+        break;
       default:
         assertUnreachable(typ);
     }
   }
-  ctx.env.lets.pop();
+  if (newLets) {
+    ctx.env.lets.pop();
+  }
   return;
 }
 async function parseAndExe(ctx, code, invocationId) {
@@ -2014,7 +2082,7 @@ function symbols(ctx, alsoSyntax = true) {
   syms = src_concat(syms, src_objKeys(ops));
   syms = src_concat(syms, src_objKeys(ctx.env.funcs));
   syms = src_concat(syms, src_objKeys(ctx.env.vars));
-  const hidden = ["execute-last", "entry"];
+  const hidden = ["entry"];
   return syms.filter((o) => !src_has(hidden, o));
 }
 

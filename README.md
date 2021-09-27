@@ -372,6 +372,32 @@ etc
 (reset)
 ```
 
+### Functions
+
+**Closures**  
+A closure is an anonymous (unnamed) function which also "captures" the data context around them. The syntax of a closure is:
+
+```clj
+#(+ 2 2)
+```
+
+Closures capture variables, lets, and named parameters of their parent function, so even when they are passed around the values are frozen as they were upon the closure's declaration. For example:
+
+```clj
+(let a 10)
+(let closure #(+ a a))
+(let a 100)
+(closure) => 20 not 200
+```
+
+They can take arguments, and be used as the operation of an expression:
+
+```clj
+(let closure #(+ # #))
+(closure 2)            => 4
+(#(.. vec args) 1 2 3) => [1 2 3]
+```
+
 ### Miscellaneous
 
 - Write `;` outside of a string of text to create a comment:

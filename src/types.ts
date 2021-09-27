@@ -1,6 +1,16 @@
 export type Val = {
   v: Val[] | Dict | undefined | string | number | boolean | Func;
-  t: "null" | "str" | "num" | "bool" | "key" | "ref" | "vec" | "dict" | "func";
+  t:
+    | "null"
+    | "str"
+    | "num"
+    | "bool"
+    | "key"
+    | "ref"
+    | "vec"
+    | "dict"
+    | "func"
+    | "clo";
 };
 
 export type ErrCtx = { invocationId: string; line: number; col: number };
@@ -37,11 +47,11 @@ export type Ctx = {
 
 export type InsType =
   | "val" //Stack Val
-  | "par"
+  | "npa" //Named parameter
+  | "upa" //Unnamed parameter
   | "var"
   | "let"
   | "ref"
-  | "op"
   | "exe"
   | "if"
   | "jmp" //Inexpensive jump
@@ -49,10 +59,11 @@ export type InsType =
   | "pop" //Truncate stack
   | "or"
   | "ret" //Return
-  | "cat"; //Catch
+  | "cat" //Catch
+  | "clo"; //Closure
 export type Ins = {
   typ: InsType;
-  value?: unknown;
+  value: unknown;
   errCtx: ErrCtx;
 };
 
@@ -67,7 +78,6 @@ export const ops: {
 } = {
   print: {},
   "print-str": {},
-  "execute-last": {},
   "!": { exactArity: 1 },
   "=": { minArity: 2 },
   "!=": { minArity: 2 },
@@ -175,6 +185,7 @@ export const typeNames = {
   vec: "vector",
   dict: "dictionary",
   func: "function",
+  clo: "closure",
 };
 
 export const assertUnreachable = (_x: never): never => <never>0;

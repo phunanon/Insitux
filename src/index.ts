@@ -9,7 +9,7 @@ const { trim, trimStart, trimEnd } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isArray, isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
-import { assertUnreachable, ops, typeNames } from "./types";
+import { assertUnreachable, Ins, ops, typeNames } from "./types";
 import { Ctx, Dict, ErrCtx, Func, InvokeError, Val } from "./types";
 
 const val2str = ({ v, t }: Val): string => {
@@ -24,6 +24,8 @@ const val2str = ({ v, t }: Val): string => {
     case "ref":
     case "func":
       return v as string;
+    case "clo":
+      return `#${(v as Func).name}`;
     case "vec":
       return `[${(v as Val[]).map(quoted).join(" ")}]`;
     case "dict": {
@@ -51,6 +53,7 @@ const num = ({ v }: Val) => v as number;
 const str = ({ v }: Val) => v as string;
 const vec = ({ v }: Val) => v as Val[];
 const dic = ({ v }: Val) => v as Dict;
+const clo = ({ v }: Val) => v as Func;
 const asBoo = ({ t, v }: Val) => (t === "bool" ? (v as boolean) : t !== "null");
 export const visStr = (val: Val): val is { t: "str"; v: string } =>
   val.t === "str";
@@ -62,6 +65,8 @@ export const visDic = (val: Val): val is { t: "dict"; v: Dict } =>
   val.t === "dict";
 export const visFun = (val: Val): val is { t: "func"; v: string } =>
   val.t === "func";
+export const visClo = (val: Val): val is { t: "clo"; v: Func } =>
+  val.t === "clo";
 export const visKey = (val: Val): val is { t: "key"; v: string } =>
   val.t === "key";
 export const visBoo = (val: Val): val is { t: "bool"; v: boolean } =>
@@ -137,6 +142,8 @@ const isEqual = (a: Val, b: Val) => {
     case "key":
     case "func":
       return str(a) === str(b);
+    case "clo":
+      return clo(a).name === clo(b).name;
   }
   return assertUnreachable(t);
 };
@@ -235,8 +242,6 @@ async function exeOp(
   }
 
   switch (op) {
-    case "execute-last":
-      return await getExe(ctx, args.pop()!, errCtx)(args);
     case "str":
       stack.push({
         t: "str",
@@ -393,7 +398,7 @@ async function exeOp(
           (op === "dict?" && args[0].t === "dict") ||
           (op === "vec?" && args[0].t === "vec") ||
           (op === "key?" && args[0].t === "key") ||
-          (op === "func?" && args[0].t === "func"),
+          (op === "func?" && (args[0].t === "func" || args[0].t === "clo")),
       );
       return;
     case "has?":
@@ -842,6 +847,8 @@ function getExe(
       }
       return err ? [{ e: "External", m: err, errCtx }] : undefined;
     };
+  } else if (visClo(op)) {
+    return (params: Val[]) => exeFunc(ctx, op.v, params);
   } else if (visKey(op)) {
     return async (params: Val[]) => {
       if (!len(params)) {
@@ -960,9 +967,12 @@ export async function exeFunc(
   ctx: Ctx,
   func: Func,
   args: Val[],
+  newLets = true,
 ): Promise<InvokeError[] | undefined> {
   --ctx.callBudget;
-  ctx.env.lets.push({});
+  if (newLets) {
+    ctx.env.lets.push({});
+  }
   for (let i = 0, lim = len(func.ins); i < lim; ++i) {
     const { typ, value, errCtx } = func.ins[i];
 
@@ -988,7 +998,8 @@ export async function exeFunc(
         ctx.env.lets[len(ctx.env.lets) - 1][value as string] =
           stack[len(stack) - 1];
         break;
-      case "par":
+      case "npa":
+      case "upa":
         {
           const paramIdx = value as number;
           if (paramIdx === -1) {
@@ -1022,10 +1033,10 @@ export async function exeFunc(
           }
         }
         break;
-      case "op":
       case "exe":
         {
-          let [op, nArgs] = value as [Val, number];
+          const op = stack.pop()!;
+          const nArgs = value as number;
           const params = splice(stack, len(stack) - nArgs, nArgs);
           if (len(params) !== nArgs) {
             return [{ e: "Unexpected", m: `${op} stack depleted`, errCtx }];
@@ -1087,11 +1098,32 @@ export async function exeFunc(
         }
         i = lim;
         break;
+      case "clo":
+        {
+          let [name, ins] = value as [string, Ins[]];
+          const derefFunc: Func = {
+            name: "",
+            ins: ins.filter(({ typ }: Ins) => typ === "ref" || typ === "npa"),
+          };
+          const errors = await exeFunc(ctx, derefFunc, args, false);
+          if (errors) {
+            return errors;
+          }
+          ins = ins.map(ins =>
+            ins.typ === "ref" || ins.typ === "npa"
+              ? <Ins>{ typ: "val", value: stack.shift()!, errCtx }
+              : ins,
+          );
+          stack.push(<Val>{ t: "clo", v: <Func>{ name, ins } });
+        }
+        break;
       default:
         assertUnreachable(typ);
     }
   }
-  ctx.env.lets.pop();
+  if (newLets) {
+    ctx.env.lets.pop();
+  }
   return;
 }
 
@@ -1137,6 +1169,6 @@ export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
   syms = concat(syms, objKeys(ops));
   syms = concat(syms, objKeys(ctx.env.funcs));
   syms = concat(syms, objKeys(ctx.env.vars));
-  const hidden = ["execute-last", "entry"];
+  const hidden = ["entry"];
   return syms.filter(o => !has(hidden, o));
 }

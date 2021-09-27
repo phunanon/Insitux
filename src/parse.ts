@@ -312,8 +312,6 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
     tokens.unshift(head);
     const ins = parseArg(tokens, params);
     push(headIns, ins);
-    op = "execute-last";
-    ++args;
   }
   const body: Ins[] = [];
   while (len(tokens)) {
@@ -334,9 +332,8 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
     push(headIns, errors?.map(e => err(e.m)[0]) ?? []);
   }
 
-  headIns.push({
-    typ: ops[op] ? "op" : "exe",
-    value: [
+  if (!len(headIns)) {
+    const value: Val =
       typ === "num"
         ? { t: "num", v: toNum(op) }
         : starts(op, ":")
@@ -345,11 +342,10 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
         ? { t: "func", v: op }
         : op === "true" || op === "false"
         ? { t: "bool", v: op === "true" }
-        : { t: "str", v: op },
-      args,
-    ],
-    errCtx,
-  });
+        : { t: "str", v: op };
+    headIns.push({ typ: "val", value, errCtx });
+  }
+  headIns.push({ typ: "exe", value: args, errCtx });
   return [...body, ...headIns];
 }
 
@@ -358,6 +354,13 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
     return [];
   }
   const { typ, text, errCtx } = tokens.shift() as Token;
+  //Upon closure
+  if (typ === "sym" && text === "#" && len(tokens) && tokens[0].typ === "(") {
+    const texts = tokens.map(t => t.text);
+    const body = parseArg(tokens, params);
+    const value = [slice(texts, 0, len(texts) - len(tokens)).join(" "), body];
+    return [{ typ: "clo", value, errCtx }];
+  }
   switch (typ) {
     case "str":
       return [{ typ: "val", value: <Val>{ t: "str", v: text }, errCtx }];
@@ -377,11 +380,13 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
         if (value < 0) {
           return [{ typ: "val", value: nullVal, errCtx }];
         }
-        return [{ typ: "par", value, errCtx }];
+        return [{ typ: "upa", value, errCtx }];
       } else if (has(params, text)) {
-        return [{ typ: "par", value: params.indexOf(text), errCtx }];
+        return [{ typ: "npa", value: params.indexOf(text), errCtx }];
       } else if (text === "args") {
-        return [{ typ: "par", value: -1, errCtx }];
+        return [{ typ: "upa", value: -1, errCtx }];
+      } else if (ops[text]) {
+        return [{ typ: "val", value: <Val>{ t: "func", v: text }, errCtx }];
       }
       return [{ typ: "ref", value: text, errCtx }];
     case "ref":
@@ -422,7 +427,10 @@ function syntaxise(
   func?: Func;
   err?: InvokeError;
 } {
-  const [params, body] = partitionWhen(tokens, t => t.typ !== "sym");
+  const [params, body] = partitionWhen(
+    tokens,
+    t => t.typ !== "sym" || t.text === "#",
+  );
   //In the case of e.g. (function (+))
   if (name === "(") {
     return { err: { e: "Parse", m: "nameless function", errCtx } };
