@@ -60,7 +60,8 @@ export type InsType =
   | "or"
   | "ret" //Return
   | "cat" //Catch
-  | "clo"; //Closure
+  | "clo" //Closure
+  | "oxe"; //Optimised operation execute
 export type Ins = {
   typ: InsType;
   value: unknown;

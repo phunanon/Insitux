@@ -1,4 +1,4 @@
-export const insituxVersion = 20210926;
+export const insituxVersion = 20210927;
 import { arityCheck, parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -1033,14 +1033,33 @@ export async function exeFunc(
           }
         }
         break;
+      case "oxe":
+        {
+          const [closure, nArgs, op] = value as [
+            ReturnType<typeof getExe>,
+            number,
+            string,
+          ];
+          const params = splice(stack, len(stack) - nArgs, nArgs);
+          const errors = await closure(params);
+          if (errors) {
+            if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
+              ++i;
+              ctx.env.lets[len(ctx.env.lets) - 1]["errors"] = {
+                t: "vec",
+                v: errorsToDict(errors),
+              };
+              break;
+            }
+            return errors;
+          }
+        }
+        break;
       case "exe":
         {
           const op = stack.pop()!;
           const nArgs = value as number;
           const params = splice(stack, len(stack) - nArgs, nArgs);
-          if (len(params) !== nArgs) {
-            return [{ e: "Unexpected", m: `${op} stack depleted`, errCtx }];
-          }
           //Tail-call optimisation
           if (i === lim - 1 && visStr(op) && op.v === func.name) {
             ctx.env.lets[len(ctx.env.lets) - 1] = {};
@@ -1127,6 +1146,18 @@ export async function exeFunc(
   return;
 }
 
+async function optimiseIns(ctx: Ctx, ins: Ins[]) {
+  for (let i = 0, lim = ins.length; i < lim; ++i) {
+    if (ins[i].typ === "oxe") {
+      const [op, nArgs] = ins[i].value as [Val, number];
+      const closure = getExe(ctx, op, ins[i].errCtx);
+      ins[i].value = [closure, nArgs, op];
+    } else if (ins[i].typ == "clo") {
+      optimiseIns(ctx, (ins[i].value as [string, Ins[]])[1]);
+    }
+  }
+}
+
 async function parseAndExe(
   ctx: Ctx,
   code: string,
@@ -1140,6 +1171,9 @@ async function parseAndExe(
   if (!("entry" in ctx.env.funcs)) {
     return;
   }
+  objKeys(ctx.env.funcs).forEach(name =>
+    optimiseIns(ctx, ctx.env.funcs[name].ins),
+  );
   return await exeFunc(ctx, ctx.env.funcs["entry"], []);
 }
 

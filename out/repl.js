@@ -514,36 +514,36 @@ function parseForm(tokens, params) {
     }
     return ins;
   } else if (op === "and" || op === "or" || op === "while") {
-    const args2 = [];
+    const args = [];
     let insCount = 0;
     while (true) {
       const arg = parseArg(tokens, params);
       if (!parse_len(arg)) {
         break;
       }
-      args2.push(arg);
+      args.push(arg);
       insCount += parse_len(arg);
     }
-    if (parse_len(args2) < 2) {
+    if (parse_len(args) < 2) {
       return err("requires at least two arguments");
     }
     const ins = [];
     if (op === "while") {
       insCount += 2;
-      const head2 = args2.shift();
+      const head2 = args.shift();
       parse_push(ins, head2);
       ins.push({ typ: "if", value: insCount - parse_len(head2), errCtx });
-      args2.forEach((as) => parse_push(ins, as));
-      ins.push({ typ: "pop", value: parse_len(args2), errCtx });
+      args.forEach((as) => parse_push(ins, as));
+      ins.push({ typ: "pop", value: parse_len(args), errCtx });
       ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
       return ins;
     }
-    insCount += parse_len(args2);
+    insCount += parse_len(args);
     insCount += parse_toNum(op === "and");
     const typ2 = op === "and" ? "if" : "or";
-    for (let a = 0; a < parse_len(args2); ++a) {
-      parse_push(ins, args2[a]);
-      insCount -= parse_len(args2[a]);
+    for (let a = 0; a < parse_len(args); ++a) {
+      parse_push(ins, args[a]);
+      insCount -= parse_len(args[a]);
       ins.push({ typ: typ2, value: insCount, errCtx });
       --insCount;
     }
@@ -559,7 +559,7 @@ function parseForm(tokens, params) {
     return ins;
   }
   const headIns = [];
-  let args = 0;
+  let nArgs = 0;
   if (typ === "(" || parse_has(params, text) || parse_starts(text, "#")) {
     tokens.unshift(head);
     const ins = parseArg(tokens, params);
@@ -571,21 +571,27 @@ function parseForm(tokens, params) {
     if (!parse_len(parsed)) {
       break;
     }
-    ++args;
+    ++nArgs;
     parse_push(body, parsed);
   }
   if (op === "return") {
     return [...body, { typ: "ret", value: !!parse_len(body), errCtx }];
   }
   if (ops[op]) {
-    const errors = arityCheck(op, args, errCtx);
+    const errors = arityCheck(op, nArgs, errCtx);
     parse_push(headIns, errors?.map((e) => err(e.m)[0]) ?? []);
   }
-  if (!parse_len(headIns)) {
+  if (parse_len(headIns)) {
+    headIns.push({ typ: "exe", value: nArgs, errCtx });
+  } else {
     const value = typ === "num" ? { t: "num", v: parse_toNum(op) } : parse_starts(op, ":") ? { t: "key", v: op } : ops[op] ? { t: "func", v: op } : op === "true" || op === "false" ? { t: "bool", v: op === "true" } : { t: "str", v: op };
-    headIns.push({ typ: "val", value, errCtx });
+    if (value.t !== "str") {
+      headIns.push({ typ: "oxe", value: [value, nArgs], errCtx });
+    } else {
+      headIns.push({ typ: "val", value, errCtx });
+      headIns.push({ typ: "exe", value: nArgs, errCtx });
+    }
   }
-  headIns.push({ typ: "exe", value: args, errCtx });
   return [...body, ...headIns];
 }
 function parseArg(tokens, params) {
@@ -1090,7 +1096,7 @@ async function doTests(invoke, terse = true) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20210926;
+const insituxVersion = 20210927;
 
 
 const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, pi: src_pi, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min } = poly_fills_namespaceObject;
@@ -1963,14 +1969,29 @@ async function exeFunc(ctx, func, args, newLets = true) {
           }
         }
         break;
+      case "oxe":
+        {
+          const [closure, nArgs, op] = value;
+          const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
+          const errors = await closure(params);
+          if (errors) {
+            if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
+              ++i;
+              ctx.env.lets[src_len(ctx.env.lets) - 1]["errors"] = {
+                t: "vec",
+                v: errorsToDict(errors)
+              };
+              break;
+            }
+            return errors;
+          }
+        }
+        break;
       case "exe":
         {
           const op = stack.pop();
           const nArgs = value;
           const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
-          if (src_len(params) !== nArgs) {
-            return [{ e: "Unexpected", m: `${op} stack depleted`, errCtx }];
-          }
           if (i === lim - 1 && visStr(op) && op.v === func.name) {
             ctx.env.lets[src_len(ctx.env.lets) - 1] = {};
             i = -1;
@@ -2051,6 +2072,17 @@ async function exeFunc(ctx, func, args, newLets = true) {
   }
   return;
 }
+async function optimiseIns(ctx, ins) {
+  for (let i = 0, lim = ins.length; i < lim; ++i) {
+    if (ins[i].typ === "oxe") {
+      const [op, nArgs] = ins[i].value;
+      const closure = getExe(ctx, op, ins[i].errCtx);
+      ins[i].value = [closure, nArgs, op];
+    } else if (ins[i].typ == "clo") {
+      optimiseIns(ctx, ins[i].value[1]);
+    }
+  }
+}
 async function parseAndExe(ctx, code, invocationId) {
   const parsed = parse(code, invocationId);
   if (src_len(parsed.errors)) {
@@ -2060,6 +2092,7 @@ async function parseAndExe(ctx, code, invocationId) {
   if (!("entry" in ctx.env.funcs)) {
     return;
   }
+  src_objKeys(ctx.env.funcs).forEach((name) => optimiseIns(ctx, ctx.env.funcs[name].ins));
   return await exeFunc(ctx, ctx.env.funcs["entry"], []);
 }
 async function invoke(ctx, code, invocationId, printResult = false) {

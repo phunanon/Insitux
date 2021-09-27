@@ -306,7 +306,7 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
     return ins;
   }
   const headIns: Ins[] = [];
-  let args = 0;
+  let nArgs = 0;
   //Head is a form or parameter
   if (typ === "(" || has(params, text) || starts(text, "#")) {
     tokens.unshift(head);
@@ -319,7 +319,7 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
     if (!len(parsed)) {
       break;
     }
-    ++args;
+    ++nArgs;
     push(body, parsed);
   }
   if (op === "return") {
@@ -328,11 +328,13 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
 
   //Operation arity check
   if (ops[op]) {
-    const errors = arityCheck(op, args, errCtx);
+    const errors = arityCheck(op, nArgs, errCtx);
     push(headIns, errors?.map(e => err(e.m)[0]) ?? []);
   }
 
-  if (!len(headIns)) {
+  if (len(headIns)) {
+    headIns.push({ typ: "exe", value: nArgs, errCtx });
+  } else {
     const value: Val =
       typ === "num"
         ? { t: "num", v: toNum(op) }
@@ -343,9 +345,13 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
         : op === "true" || op === "false"
         ? { t: "bool", v: op === "true" }
         : { t: "str", v: op };
-    headIns.push({ typ: "val", value, errCtx });
+    if (value.t !== "str") {
+      headIns.push({ typ: "oxe", value: [value, nArgs], errCtx });
+    } else {
+      headIns.push({ typ: "val", value, errCtx });
+      headIns.push({ typ: "exe", value: nArgs, errCtx });
+    }
   }
-  headIns.push({ typ: "exe", value: args, errCtx });
   return [...body, ...headIns];
 }
 
