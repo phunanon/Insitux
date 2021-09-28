@@ -168,7 +168,7 @@ function funcise(segments: Token[][]): NamedTokens[] {
     : described;
 }
 
-function parseWholeArg(tokens: Token[], params: string[]) {
+function parseAllArgs(tokens: Token[], params: string[]) {
   const body: ParserIns[] = [];
   while (true) {
     const exp = parseArg(tokens, params);
@@ -217,7 +217,7 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
       return err("first argument must be expression");
     }
     const body = parseArg(tokens, params);
-    const when = parseWholeArg(tokens, params);
+    const when = parseAllArgs(tokens, params);
     if (!len(body) || !len(when)) {
       return err("must provide 2 arguments");
     }
@@ -253,14 +253,14 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
         ins.push({ typ: "val", value: nullVal, errCtx });
       }
     } else {
-      const body = parseWholeArg(tokens, params);
+      const body = parseAllArgs(tokens, params);
       ins.push({ typ: "if", value: len(body) + 1, errCtx });
       push(ins, body);
       ins.push({ typ: "jmp", value: 1, errCtx });
       ins.push({ typ: "val", value: nullVal, errCtx });
     }
     return ins;
-  } else if (op === "and" || op === "or" || op === "while") {
+  } else if (op === "and" || op === "or" || op === "while" || op === "recur") {
     const args: ParserIns[][] = [];
     let insCount = 0;
     while (true) {
@@ -270,6 +270,9 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
       }
       args.push(arg);
       insCount += len(arg);
+    }
+    if (op === "recur") {
+      return [...flat(args), { typ: "rec", value: len(args), errCtx }];
     }
     if (len(args) < 2) {
       return err("requires at least two arguments");

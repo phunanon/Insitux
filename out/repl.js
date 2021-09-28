@@ -423,7 +423,7 @@ function funcise(segments) {
     }
   ]) : described;
 }
-function parseWholeArg(tokens, params) {
+function parseAllArgs(tokens, params) {
   const body = [];
   while (true) {
     const exp = parseArg(tokens, params);
@@ -470,7 +470,7 @@ function parseForm(tokens, params) {
       return err("first argument must be expression");
     }
     const body2 = parseArg(tokens, params);
-    const when = parseWholeArg(tokens, params);
+    const when = parseAllArgs(tokens, params);
     if (!parse_len(body2) || !parse_len(when)) {
       return err("must provide 2 arguments");
     }
@@ -506,14 +506,14 @@ function parseForm(tokens, params) {
         ins.push({ typ: "val", value: nullVal, errCtx });
       }
     } else {
-      const body2 = parseWholeArg(tokens, params);
+      const body2 = parseAllArgs(tokens, params);
       ins.push({ typ: "if", value: parse_len(body2) + 1, errCtx });
       parse_push(ins, body2);
       ins.push({ typ: "jmp", value: 1, errCtx });
       ins.push({ typ: "val", value: nullVal, errCtx });
     }
     return ins;
-  } else if (op === "and" || op === "or" || op === "while") {
+  } else if (op === "and" || op === "or" || op === "while" || op === "recur") {
     const args = [];
     let insCount = 0;
     while (true) {
@@ -523,6 +523,9 @@ function parseForm(tokens, params) {
       }
       args.push(arg);
       insCount += parse_len(arg);
+    }
+    if (op === "recur") {
+      return [...parse_flat(args), { typ: "rec", value: parse_len(args), errCtx }];
     }
     if (parse_len(args) < 2) {
       return err("requires at least two arguments");
@@ -777,7 +780,7 @@ async function exe(state, name, args) {
       state.output += args[0].v + "\n";
       break;
     default:
-      return { value: nullVal, err: "operation does not exist" };
+      return { value: nullVal, err: `operation ${name} does not exist` };
   }
   return { value: nullVal, err: void 0 };
 }
@@ -962,22 +965,16 @@ null`
   },
   {
     name: "Closure 2",
-    code: `(let x 10)
-           (let closure (do #(# x x)))
-           (let x 11)
-           (closure +)`,
-    out: `20`
-  },
-  {
-    name: "Closure 3",
     code: `(filter #(or (.. = args) (even? #)) (range 10) 5)`,
     out: `[0 2 4 5 6 8]`
   },
   {
-    name: "Closure 4",
-    code: `(let M [[2 -4] [7 10]])
-           (map #(map - #) M)`,
-    out: `[[-2 4] [-7 -10]]`
+    name: "Closure 3",
+    code: `(function f #(+ x x))
+           (var x 10) (let c20 (f))
+           (var x 20) (let c40 (f))
+           [(c20) (c40)]`,
+    out: `[20 40]`
   },
   {
     name: "Func returns closure",
@@ -1039,12 +1036,12 @@ null`
     out: `233`
   },
   {
-    name: "dedupe (tail-call optim)",
+    name: "dedupe (recur)",
     code: `(function dedupe list -out
              (let out (or -out []))
              (let next (if (out (0 list)) [] [(0 list)]))
              (if (empty? list) out
-                 (dedupe (sect list) (into out next))))
+                 (recur (sect list) (into out next))))
            (dedupe [1 1 2 3 3 3])`,
     out: `[1 2 3]`
   },
@@ -1110,7 +1107,7 @@ async function doTests(invoke, terse = true) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20210927;
+const insituxVersion = 20210928;
 
 
 const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, pi: src_pi, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min } = poly_fills_namespaceObject;
@@ -1984,40 +1981,20 @@ async function exeFunc(ctx, func, args, newLets = true) {
         }
         break;
       case "oxe":
-        {
-          const [closure, nArgs, op] = value;
-          const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
-          const errors = await closure(params);
-          if (errors) {
-            if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
-              ++i;
-              ctx.env.lets[src_len(ctx.env.lets) - 1]["errors"] = {
-                t: "vec",
-                v: errorsToDict(errors)
-              };
-              break;
-            }
-            return errors;
-          }
-        }
-        break;
       case "exe":
         {
-          const op = stack.pop();
-          const nArgs = value;
-          const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
-          if (i === lim - 1 && visStr(op) && op.v === func.name) {
-            ctx.env.lets[src_len(ctx.env.lets) - 1] = {};
-            i = -1;
-            args = params;
-            --ctx.recurBudget;
-            if (!ctx.recurBudget) {
-              return [{ e: "Budget", m: `recurred too many times`, errCtx }];
-            }
-            continue;
+          let errors;
+          let params;
+          let nArgs;
+          let closure;
+          if (typ === "oxe") {
+            [closure, nArgs] = value;
+          } else {
+            nArgs = value;
+            closure = getExe(ctx, stack.pop(), errCtx, false);
           }
-          const closure = getExe(ctx, op, errCtx, false);
-          const errors = await closure(params);
+          params = src_splice(stack, src_len(stack) - nArgs, nArgs);
+          errors = await closure(params);
           if (errors) {
             if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
               ++i;
@@ -2062,6 +2039,18 @@ async function exeFunc(ctx, func, args, newLets = true) {
         }
         i = lim;
         break;
+      case "rec":
+        {
+          ctx.env.lets[src_len(ctx.env.lets) - 1] = {};
+          i = -1;
+          const nArgs = value;
+          args = src_splice(stack, src_len(stack) - nArgs, nArgs);
+          --ctx.recurBudget;
+          if (!ctx.recurBudget) {
+            return [{ e: "Budget", m: `recurred too many times`, errCtx }];
+          }
+        }
+        continue;
       case "clo":
         {
           let [name, ins] = value;
@@ -2093,7 +2082,7 @@ async function optimiseIns(ctx, ins) {
     if (ins[i].typ === "oxe") {
       const [op, nArgs] = ins[i].value;
       const closure = getExe(ctx, op, ins[i].errCtx);
-      ins[i].value = [closure, nArgs, op];
+      ins[i].value = [closure, nArgs];
     } else if (ins[i].typ == "clo") {
       optimiseIns(ctx, ins[i].value[1]);
     }

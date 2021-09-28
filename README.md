@@ -374,7 +374,52 @@ etc
 
 ### Functions
 
-**Closures**  
+**Named functions**
+
+A named function is declared using `function` at the head of an expression, followed by a function name, followed by any parameter names, followed by a body consisting of at least one value or expression, and can contain many expressions.
+
+```clj
+;       name   parameters
+(function add x y
+  (+ x y))
+;  body
+```
+
+*Parameters* are referenceable names declared in a function, and *arguments* are values actually passed to a function. All arguments are accessible through the `args` let, a vector of values. If a function is underloaded (given fewer arguments than parameters specified) then un-populated parameters are `null`. If a function is overloaded the extra arguments are still accessible though the `args` let.
+
+```clj
+; Valid function definitions
+
+(function f 123) ;(f) always returns 123
+
+(function f 123 456) ;(f) always returns 456
+
+(function f x x) ;(f x) always returns x
+
+(function name a b c
+  (print "I will add together " (join args))
+  (+ a b c))
+; (f x y z) prints a message then returns the sum of x y z
+
+; Invalid function definitions
+
+(function)
+
+(function name)
+```
+
+Calling a function itself again from within is called *recurring*. To immediately recur use the `recur` syntax, as it will optimise the program to use less memory and perform faster.
+
+```clj
+(function f n
+  (when (pos? n)
+    (print n)
+    (recur (dec n))))
+(f 10) ;Recurs ten times
+```
+
+**Closures**
+
 A closure is an anonymous (unnamed) function which also "captures" the data context around them. The syntax of a closure is:
 
 ```clj
@@ -462,13 +507,13 @@ $test.ing         => 456
 (for * [0 1 2 3 4] [3])
 => [0 3 6 9 12]
 
-; Deduplicate a list
+; Deduplicate a list recursively
 (function dedupe list -out
   (let out (or -out []))
   (let next (if (out (0 list)) [] [(0 list)]))
   (if (empty? list) out
-    (dedupe (sect list) (into out next))))
-; OR ;
+    (recur (sect list) (into out next))))
+; or deduplicate a list via dictionary keys
 (function dedupe list
   (keys (.. .. dict (for vec list [0]))))
 

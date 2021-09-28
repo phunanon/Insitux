@@ -1,4 +1,4 @@
-export const insituxVersion = 20210927;
+export const insituxVersion = 20210928;
 import { arityCheck, parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -1034,45 +1034,20 @@ export async function exeFunc(
         }
         break;
       case "oxe":
-        {
-          const [closure, nArgs, op] = value as [
-            ReturnType<typeof getExe>,
-            number,
-            string,
-          ];
-          const params = splice(stack, len(stack) - nArgs, nArgs);
-          const errors = await closure(params);
-          if (errors) {
-            if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
-              ++i;
-              ctx.env.lets[len(ctx.env.lets) - 1]["errors"] = {
-                t: "vec",
-                v: errorsToDict(errors),
-              };
-              break;
-            }
-            return errors;
-          }
-        }
-        break;
       case "exe":
         {
-          const op = stack.pop()!;
-          const nArgs = value as number;
-          const params = splice(stack, len(stack) - nArgs, nArgs);
-          //Tail-call optimisation
-          if (i === lim - 1 && visStr(op) && op.v === func.name) {
-            ctx.env.lets[len(ctx.env.lets) - 1] = {};
-            i = -1;
-            args = params;
-            --ctx.recurBudget;
-            if (!ctx.recurBudget) {
-              return [{ e: "Budget", m: `recurred too many times`, errCtx }];
-            }
-            continue;
+          let errors: InvokeError[] | undefined;
+          let params: Val[];
+          let nArgs: number;
+          let closure: ReturnType<typeof getExe>;
+          if (typ === "oxe") {
+            [closure, nArgs] = value as [typeof closure, number];
+          } else {
+            nArgs = value as number;
+            closure = getExe(ctx, stack.pop()!, errCtx, false);
           }
-          const closure = getExe(ctx, op, errCtx, false);
-          const errors = await closure(params);
+          params = splice(stack, len(stack) - nArgs, nArgs);
+          errors = await closure(params);
           if (errors) {
             if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
               ++i;
@@ -1117,6 +1092,18 @@ export async function exeFunc(
         }
         i = lim;
         break;
+      case "rec":
+        {
+          ctx.env.lets[len(ctx.env.lets) - 1] = {};
+          i = -1;
+          const nArgs = value as number;
+          args = splice(stack, len(stack) - nArgs, nArgs);
+          --ctx.recurBudget;
+          if (!ctx.recurBudget) {
+            return [{ e: "Budget", m: `recurred too many times`, errCtx }];
+          }
+        }
+        continue;
       case "clo":
         {
           let [name, ins] = value as [string, Ins[]];
@@ -1153,7 +1140,7 @@ async function optimiseIns(ctx: Ctx, ins: Ins[]) {
     if (ins[i].typ === "oxe") {
       const [op, nArgs] = ins[i].value as [Val, number];
       const closure = getExe(ctx, op, ins[i].errCtx);
-      ins[i].value = [closure, nArgs, op];
+      ins[i].value = [closure, nArgs];
     } else if (ins[i].typ == "clo") {
       optimiseIns(ctx, (ins[i].value as [string, Ins[]])[1]);
     }

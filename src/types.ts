@@ -59,6 +59,7 @@ export type InsType =
   | "pop" //Truncate stack
   | "or"
   | "ret" //Return
+  | "rec" //Recur
   | "cat" //Catch
   | "clo" //Closure
   | "oxe"; //Optimised operation execute

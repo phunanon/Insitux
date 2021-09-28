@@ -34,7 +34,7 @@ async function exe(
       state.output += args[0].v + "\n";
       break;
     default:
-      return { value: nullVal, err: "operation does not exist" };
+      return { value: nullVal, err: `operation ${name} does not exist` };
   }
   return { value: nullVal, err: undefined };
 }
@@ -222,22 +222,16 @@ const tests: {
   },
   {
     name: "Closure 2",
-    code: `(let x 10)
-           (let closure (do #(# x x)))
-           (let x 11)
-           (closure +)`,
-    out: `20`,
-  },
-  {
-    name: "Closure 3",
     code: `(filter #(or (.. = args) (even? #)) (range 10) 5)`,
     out: `[0 2 4 5 6 8]`,
   },
   {
-    name: "Closure 4",
-    code: `(let M [[2 -4] [7 10]])
-           (map #(map - #) M)`,
-    out: `[[-2 4] [-7 -10]]`
+    name: "Closure 3",
+    code: `(function f #(+ x x))
+           (var x 10) (let c20 (f))
+           (var x 20) (let c40 (f))
+           [(c20) (c40)]`,
+    out: `[20 40]`,
   },
   {
     name: "Func returns closure",
@@ -301,12 +295,12 @@ const tests: {
     out: `233`,
   },
   {
-    name: "dedupe (tail-call optim)",
+    name: "dedupe (recur)",
     code: `(function dedupe list -out
              (let out (or -out []))
              (let next (if (out (0 list)) [] [(0 list)]))
              (if (empty? list) out
-                 (dedupe (sect list) (into out next))))
+                 (recur (sect list) (into out next))))
            (dedupe [1 1 2 3 3 3])`,
     out: `[1 2 3]`,
   },
