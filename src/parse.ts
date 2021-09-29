@@ -118,7 +118,7 @@ function tokenise(code: string, invocationId: string) {
         (c === "." && isDigit(nextCh)) ||
         (c === "-" && (isDigit(nextCh) || nextCh === "."));
       inSymbol = !inNumber;
-      let typ: "sym" | "num" | "ref" = inSymbol ? "sym" : "num";
+      let typ: Token["typ"] = inSymbol ? "sym" : "num";
       if (len(tokens)) {
         const { typ: t, text } = tokens[len(tokens) - 1];
         if (t === "sym" && (text === "var" || text === "let")) {
@@ -214,18 +214,24 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
   const err = (value: string) => [<ParserIns>{ typ: "err", value, errCtx }];
   if (op === "catch") {
     if (tokens[0].typ !== "(") {
-      return err("first argument must be expression");
+      return err("argument 1 must be expression");
     }
     const body = parseArg(tokens, params);
     const when = parseAllArgs(tokens, params);
     if (!len(body) || !len(when)) {
-      return err("must provide 2 arguments");
+      return err("must provide at least 2 arguments");
     }
     return [...body, { typ: "cat", value: len(when), errCtx }, ...when];
   } else if (op === "var" || op === "let") {
     const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
-    if (!len(def) || !len(val) || len(parseArg(tokens, params))) {
-      return err("must provide reference name and value only");
+    const tooManyArgs = len(parseArg(tokens, params));
+    if (!len(def) || !len(val) || tooManyArgs) {
+      return err(
+        `must provide declaration name and value${tooManyArgs ? " only" : ""}`,
+      );
+    }
+    if (def[0].typ !== "def") {
+      return err("declaration name must be symbol");
     }
     return [...val, { typ: op, value: def[0].value, errCtx }];
   } else if (op === "if" || op === "when") {

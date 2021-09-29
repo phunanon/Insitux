@@ -1108,9 +1108,13 @@ export async function exeFunc(
       case "clo":
         {
           let [name, ins] = value as [string, Ins[]];
+          const isCapture = ({ typ, value }: Ins) =>
+            (typ === "ref" &&
+              !ins.find(i => i.typ === "let" && i.value === value)) ||
+            typ === "npa";
           const derefFunc: Func = {
             name: "",
-            ins: ins.filter(({ typ }: Ins) => typ === "ref" || typ === "npa"),
+            ins: ins.filter(isCapture),
           };
           const errors = await exeFunc(ctx, derefFunc, args, true);
           if (errors) {
@@ -1119,7 +1123,7 @@ export async function exeFunc(
           const numIns = derefFunc.ins.length;
           const captures = splice(stack, len(stack) - numIns, numIns);
           ins = ins.map(ins =>
-            ins.typ === "ref" || ins.typ === "npa"
+            isCapture(ins)
               ? <Ins>{ typ: "val", value: captures.shift()!, errCtx }
               : ins,
           );

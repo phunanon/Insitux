@@ -467,18 +467,22 @@ function parseForm(tokens, params) {
   const err = (value) => [{ typ: "err", value, errCtx }];
   if (op === "catch") {
     if (tokens[0].typ !== "(") {
-      return err("first argument must be expression");
+      return err("argument 1 must be expression");
     }
     const body2 = parseArg(tokens, params);
     const when = parseAllArgs(tokens, params);
     if (!parse_len(body2) || !parse_len(when)) {
-      return err("must provide 2 arguments");
+      return err("must provide at least 2 arguments");
     }
     return [...body2, { typ: "cat", value: parse_len(when), errCtx }, ...when];
   } else if (op === "var" || op === "let") {
     const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
-    if (!parse_len(def) || !parse_len(val) || parse_len(parseArg(tokens, params))) {
-      return err("must provide reference name and value only");
+    const tooManyArgs = parse_len(parseArg(tokens, params));
+    if (!parse_len(def) || !parse_len(val) || tooManyArgs) {
+      return err(`must provide declaration name and value${tooManyArgs ? " only" : ""}`);
+    }
+    if (def[0].typ !== "def") {
+      return err("declaration name must be symbol");
     }
     return [...val, { typ: op, value: def[0].value, errCtx }];
   } else if (op === "if" || op === "when") {
@@ -2050,9 +2054,10 @@ async function exeFunc(ctx, func, args, inClosure = false) {
       case "clo":
         {
           let [name, ins] = value;
+          const isCapture = ({ typ: typ2, value: value2 }) => typ2 === "ref" && !ins.find((i2) => i2.typ === "let" && i2.value === value2) || typ2 === "npa";
           const derefFunc = {
             name: "",
-            ins: ins.filter(({ typ: typ2 }) => typ2 === "ref" || typ2 === "npa")
+            ins: ins.filter(isCapture)
           };
           const errors = await exeFunc(ctx, derefFunc, args, true);
           if (errors) {
@@ -2060,7 +2065,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
           }
           const numIns = derefFunc.ins.length;
           const captures = src_splice(stack, src_len(stack) - numIns, numIns);
-          ins = ins.map((ins2) => ins2.typ === "ref" || ins2.typ === "npa" ? { typ: "val", value: captures.shift(), errCtx } : ins2);
+          ins = ins.map((ins2) => isCapture(ins2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
           stack.push({ t: "clo", v: { name, ins } });
         }
         break;

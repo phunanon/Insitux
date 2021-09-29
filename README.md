@@ -512,13 +512,29 @@ $test.ing         => 456
 (for * [0 1 2 3 4] [3])
 => [0 3 6 9 12]
 
+; Clojure's juxt
+(function juxt
+  (let funcs args)
+  #(for #(.. #1 #) [args] funcs))
+
+((juxt + - * /) 10 8) => [18 2 80 1.25]
+
+; Clojure's comp
+(function comp f
+  (let funcs (sect args))
+  #(do (let st (.. f args))
+       (reduce #(#1 #) funcs st)))
+
+(map (comp + inc) [0 1 2 3 4] [0 1 2 3 4])
+=> [1 3 5 7 9]
+
 ; Deduplicate a list recursively
 (function dedupe list -out
   (let out (or -out []))
   (let next (if (out (0 list)) [] [(0 list)]))
   (if (empty? list) out
     (recur (sect list) (into out next))))
-; or deduplicate a list via dictionary keys
+;or deduplicate a list via dictionary keys
 (function dedupe list
   (keys (.. .. dict (for vec list [0]))))
 
@@ -528,16 +544,4 @@ $test.ing         => 456
 (var report [(time) (fib 35) (time)])
 (str (1 report) " took " (- (2 report) (0 report)) "ms")
 => "9227465 took 55436ms"
-
-;Compose multiple functions into one
-(function comp
-  (let funcs (push (reverse (sect args)) (str ".. " (0 args))))
-  (eval (.. str
-    "(function comp- ("
-    (join funcs "(") " args"
-    (str* ")" (len funcs)) ")"))
-  "comp-")
-
-(map (comp + inc) [0 1 2 3 4] [0 1 2 3 4])
-=> [1 3 5 7 9]
 ```
