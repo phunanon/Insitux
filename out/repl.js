@@ -588,12 +588,8 @@ function parseForm(tokens, params) {
     headIns.push({ typ: "exe", value: nArgs, errCtx });
   } else {
     const value = typ === "num" ? { t: "num", v: parse_toNum(op) } : parse_starts(op, ":") ? { t: "key", v: op } : ops[op] ? { t: "func", v: op } : op === "true" || op === "false" ? { t: "bool", v: op === "true" } : { t: "str", v: op };
-    if (value.t !== "str") {
-      headIns.push({ typ: "oxe", value: [value, nArgs], errCtx });
-    } else {
-      headIns.push({ typ: "val", value, errCtx });
-      headIns.push({ typ: "exe", value: nArgs, errCtx });
-    }
+    headIns.push({ typ: "val", value, errCtx });
+    headIns.push({ typ: "exe", value: nArgs, errCtx });
   }
   return [...body, ...headIns];
 }
@@ -1107,7 +1103,7 @@ async function doTests(invoke, terse = true) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20210928;
+const insituxVersion = 20210929;
 
 
 const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, pi: src_pi, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min } = poly_fills_namespaceObject;
@@ -1787,31 +1783,31 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
 function getExe(ctx, op, errCtx, checkArity = true) {
   const monoArityError = [{ e: "Arity", m: `one argument required`, errCtx }];
   if (visStr(op) || visFun(op)) {
-    const str2 = op.v;
-    if (ops[str2]) {
-      return (params) => exeOp(str2, params, ctx, errCtx, checkArity);
+    const name = op.v;
+    if (ops[name]) {
+      return (params) => exeOp(name, params, ctx, errCtx, checkArity);
     }
-    if (str2 in ctx.env.funcs) {
-      return (params) => exeFunc(ctx, ctx.env.funcs[str2], params);
+    if (name in ctx.env.funcs) {
+      return (params) => exeFunc(ctx, ctx.env.funcs[name], params);
     }
-    if (str2 in ctx.env.vars) {
-      return getExe(ctx, ctx.env.vars[str2], errCtx);
+    if (name in ctx.env.vars) {
+      return getExe(ctx, ctx.env.vars[name], errCtx);
     }
-    if (str2 in ctx.env.lets[src_len(ctx.env.lets) - 1]) {
-      return getExe(ctx, ctx.env.lets[src_len(ctx.env.lets) - 1][str2], errCtx);
+    if (name in ctx.env.lets[src_len(ctx.env.lets) - 1]) {
+      return getExe(ctx, ctx.env.lets[src_len(ctx.env.lets) - 1][name], errCtx);
     }
-    if (src_starts(str2, "$")) {
+    if (src_starts(name, "$")) {
       return async (params) => {
         if (!src_len(params)) {
           return monoArityError;
         }
-        const err = await ctx.set(src_substr(str2, 1), params[0]);
+        const err = await ctx.set(src_substr(name, 1), params[0]);
         stack.push(params[0]);
         return err ? [{ e: "External", m: err, errCtx }] : void 0;
       };
     }
     return async (params) => {
-      const { err, value } = await ctx.exe(str2, params);
+      const { err, value } = await ctx.exe(name, params);
       if (!err) {
         stack.push(value);
       }
@@ -1918,11 +1914,12 @@ function errorsToDict(errors) {
     return { t: "dict", v: dict };
   });
 }
-async function exeFunc(ctx, func, args, newLets = true) {
+async function exeFunc(ctx, func, args, inClosure = false) {
   --ctx.callBudget;
-  if (newLets) {
+  if (!inClosure) {
     ctx.env.lets.push({});
   }
+  const stackLen = src_len(stack);
   for (let i = 0, lim = src_len(func.ins); i < lim; ++i) {
     const { typ, value, errCtx } = func.ins[i];
     const tooManyLoops = ctx.loopBudget < 1;
@@ -1980,21 +1977,12 @@ async function exeFunc(ctx, func, args, newLets = true) {
           }
         }
         break;
-      case "oxe":
       case "exe":
         {
-          let errors;
-          let params;
-          let nArgs;
-          let closure;
-          if (typ === "oxe") {
-            [closure, nArgs] = value;
-          } else {
-            nArgs = value;
-            closure = getExe(ctx, stack.pop(), errCtx, false);
-          }
-          params = src_splice(stack, src_len(stack) - nArgs, nArgs);
-          errors = await closure(params);
+          const closure = getExe(ctx, stack.pop(), errCtx, false);
+          const nArgs = value;
+          const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
+          const errors = await closure(params);
           if (errors) {
             if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
               ++i;
@@ -2058,7 +2046,7 @@ async function exeFunc(ctx, func, args, newLets = true) {
             name: "",
             ins: ins.filter(({ typ: typ2 }) => typ2 === "ref" || typ2 === "npa")
           };
-          const errors = await exeFunc(ctx, derefFunc, args, false);
+          const errors = await exeFunc(ctx, derefFunc, args, true);
           if (errors) {
             return errors;
           }
@@ -2072,21 +2060,11 @@ async function exeFunc(ctx, func, args, newLets = true) {
         assertUnreachable(typ);
     }
   }
-  if (newLets) {
+  if (!inClosure) {
     ctx.env.lets.pop();
+    src_splice(stack, stackLen, src_len(stack) - (stackLen + 1));
   }
   return;
-}
-async function optimiseIns(ctx, ins) {
-  for (let i = 0, lim = ins.length; i < lim; ++i) {
-    if (ins[i].typ === "oxe") {
-      const [op, nArgs] = ins[i].value;
-      const closure = getExe(ctx, op, ins[i].errCtx);
-      ins[i].value = [closure, nArgs];
-    } else if (ins[i].typ == "clo") {
-      optimiseIns(ctx, ins[i].value[1]);
-    }
-  }
 }
 async function parseAndExe(ctx, code, invocationId) {
   const parsed = parse(code, invocationId);
@@ -2097,7 +2075,6 @@ async function parseAndExe(ctx, code, invocationId) {
   if (!("entry" in ctx.env.funcs)) {
     return;
   }
-  src_objKeys(ctx.env.funcs).forEach((name) => optimiseIns(ctx, ctx.env.funcs[name].ins));
   return await exeFunc(ctx, ctx.env.funcs["entry"], []);
 }
 async function invoke(ctx, code, invocationId, printResult = false) {

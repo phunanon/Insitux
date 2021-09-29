@@ -348,12 +348,8 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
         : op === "true" || op === "false"
         ? { t: "bool", v: op === "true" }
         : { t: "str", v: op };
-    if (value.t !== "str") {
-      headIns.push({ typ: "oxe", value: [value, nArgs], errCtx });
-    } else {
-      headIns.push({ typ: "val", value, errCtx });
-      headIns.push({ typ: "exe", value: nArgs, errCtx });
-    }
+    headIns.push({ typ: "val", value, errCtx });
+    headIns.push({ typ: "exe", value: nArgs, errCtx });
   }
   return [...body, ...headIns];
 }

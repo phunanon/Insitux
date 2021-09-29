@@ -46,23 +46,22 @@ export type Ctx = {
 };
 
 export type InsType =
-  | "val" //Stack Val
-  | "npa" //Named parameter
-  | "upa" //Unnamed parameter
+  | "val"  //Stack Val
+  | "npa"  //Named parameter
+  | "upa"  //Unnamed parameter
   | "var"
   | "let"
   | "ref"
   | "exe"
   | "if"
-  | "jmp" //Inexpensive jump
-  | "loo" //Expensive jump
-  | "pop" //Truncate stack
+  | "jmp"  //Inexpensive jump
+  | "loo"  //Expensive jump
+  | "pop"  //Truncate stack
   | "or"
-  | "ret" //Return
-  | "rec" //Recur
-  | "cat" //Catch
-  | "clo" //Closure
-  | "oxe"; //Optimised operation execute
+  | "ret"  //Return
+  | "rec"  //Recur
+  | "cat"  //Catch
+  | "clo"; //Closure
 export type Ins = {
   typ: InsType;
   value: unknown;
