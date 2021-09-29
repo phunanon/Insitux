@@ -219,8 +219,13 @@ built-in operations each within an example, with results after a `=>`.
 => [0 1 2 0 10 20 0 100 200]
 
 ;"Reduces" a vector into one value through a function, also accepting an initial value as its second argument
+;Note: will return sole vector item or initial value if there are too few values to reduce
 (reduce + [1 2 3])   => 6
 (reduce + [1 2 3] 3) => 9
+(reduce + [1] 1)     => 2
+(reduce + [1])       => 1  ;
+(reduce + [] 1)      => 1  ;
+(reduce + [])        => [] ; + is never called
 
 ;Continues looping until condition becomes false
 ;Note: also returns the final value, in this case `0`

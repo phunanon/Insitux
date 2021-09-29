@@ -1505,8 +1505,8 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
           return;
         }
         const array = asArray(args.shift());
-        const isRemove = op === "remove", isFind = op === "find", isCount = op === "count";
         if (op !== "reduce") {
+          const isRemove = op === "remove", isFind = op === "find", isCount = op === "count";
           const filtered = [];
           let count = 0;
           for (let i = 0, lim = src_len(array); i < lim; ++i) {
@@ -1539,7 +1539,15 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
               return;
           }
         }
-        if (src_len(array) < 2) {
+        if (!src_len(array)) {
+          if (src_len(args)) {
+            stack.push(args[0]);
+          } else {
+            _vec();
+          }
+          return;
+        }
+        if (src_len(array) < 2 && !src_len(args)) {
           src_push(stack, array);
           return;
         }

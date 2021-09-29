@@ -498,10 +498,10 @@ async function exeOp(
         }
 
         const array = asArray(args.shift()!);
-        const isRemove = op === "remove",
-          isFind = op === "find",
-          isCount = op === "count";
         if (op !== "reduce") {
+          const isRemove = op === "remove",
+            isFind = op === "find",
+            isCount = op === "count";
           const filtered: Val[] = [];
           let count = 0;
           for (let i = 0, lim = len(array); i < lim; ++i) {
@@ -535,10 +535,19 @@ async function exeOp(
           }
         }
 
-        if (len(array) < 2) {
+        if (!len(array)) {
+          if (len(args)) {
+            stack.push(args[0]);
+          } else {
+            _vec();
+          }
+          return;
+        }
+        if (len(array) < 2 && !len(args)) {
           push(stack, array);
           return;
         }
+
         let reduction: Val = (len(args) ? args : array).shift()!;
         for (let i = 0, lim = len(array); i < lim; ++i) {
           const errors = await closure([reduction, array[i]]);
