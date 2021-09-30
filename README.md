@@ -448,6 +448,13 @@ They can take arguments, and be used as the operation of an expression:
 (#(.. vec args) 1 2 3) → [1 2 3]
 ```
 
+They can also be in the form of `#[]` and `#{}`:
+
+```clj
+(#[# #]  1) → [1 1]
+(#{:a #} 1) → {:a 1}
+```
+
 ### Miscellaneous
 
 - Write `;` outside of a string of text to create a comment:

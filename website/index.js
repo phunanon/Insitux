@@ -12,19 +12,27 @@ document.addEventListener("DOMContentLoaded", async function () {
 });
 
 function synHighlight(code) {
-  let build = "";
-  build = code
-    .split("\n")
-    .map(line => (line.startsWith(";") ? `<i>${line}</i>` : line))
-    .join("\n");
+  let build = code;
   let newBuild = "",
     depth = 0,
+    inComment = false,
     inString = false,
     inOp = false,
     inNum = false;
   for (let i = 0; i < build.length; ++i) {
-    const prevCh = i ? build[i - 1] : "",
-      nextCh = i + 1 != build.length ? build[i + 1] : "";
+    const prevCh = i ? build[i - 1] : "";
+    if (inComment) {
+      newBuild += build[i];
+      inComment = build[i] != "\n";
+      if (!inComment) {
+        newBuild += "</i>";
+      }
+      continue;
+    } else if (!inString && build[i] == ";") {
+      inComment = true;
+      newBuild += "<i>;";
+      continue;
+    }
     if (build[i] == '"') {
       inString = !inString;
       newBuild += `${inString ? "<str>" : ""}"${inString ? "" : "</str>"}`;

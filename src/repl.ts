@@ -1,6 +1,6 @@
 import readline = require("readline");
 import fs = require("fs");
-import { symbols, visStr } from ".";
+import { symbols, visStr, insituxVersion } from ".";
 import { Ctx, Val, ValAndErr } from "./types";
 import { ErrorOutput, invoker, parensRx } from "./invoker";
 const env = new Map<string, Val>();
@@ -86,18 +86,35 @@ const rl = readline.createInterface({
     : [],
 });
 
+let lines: string[] = [];
+
 rl.on("line", async line => {
-  if (line === "quit") {
-    rl.close();
-    return;
+  lines.push(line);
+  const input = lines.join("\n");
+  if (input.startsWith(" ") === /\r*\n$/.test(input)) {
+    lines = [];
+    if (input === "quit") {
+      rl.close();
+      return;
+    }
+    if (input.trim()) {
+      if (lines.length === 1) {
+        fs.appendFileSync(".repl-history", `\n${input}`);
+      }
+      printErrorOutput(await invoker(ctx, input));
+    }
+    rl.prompt();
+  } else {
+    process.stdout.write(".  ");
   }
-  if (line.trim()) {
-    fs.appendFileSync(".repl-history", `\n${line}`);
-    printErrorOutput(await invoker(ctx, line));
-  }
-  rl.prompt();
+});
+rl.on("close", () => {
+  console.log();
 });
 
+console.log(
+  `Insitux ${insituxVersion} REPL. Append space for multiline input.`,
+);
 rl.prompt();
 
 function printErrorOutput(lines: ErrorOutput) {

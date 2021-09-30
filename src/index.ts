@@ -70,7 +70,7 @@ export const visClo = (val: Val): val is { t: "clo"; v: Func } =>
 export const visKey = (val: Val): val is { t: "key"; v: string } =>
   val.t === "key";
 export const visBoo = (val: Val): val is { t: "bool"; v: boolean } =>
-  val.t == "bool";
+  val.t === "bool";
 
 const asArray = ({ t, v }: Val): Val[] =>
   t === "vec"

@@ -1168,7 +1168,7 @@ const visDic = (val) => val.t === "dict";
 const visFun = (val) => val.t === "func";
 const visClo = (val) => val.t === "clo";
 const visKey = (val) => val.t === "key";
-const visBoo = (val) => val.t == "bool";
+const visBoo = (val) => val.t === "bool";
 const asArray = ({ t, v }) => t === "vec" ? src_slice(v) : t === "str" ? [...v].map((s) => ({ t: "str", v: s })) : t === "dict" ? v.keys.map((k, i) => ({
   t: "vec",
   v: [k, v.vals[i]]
@@ -2232,22 +2232,36 @@ const rl = readline.createInterface({
   completer,
   history: fs.existsSync(".repl-history") ? fs.readFileSync(".repl-history").toString().split("\n").reverse() : []
 });
+let lines = [];
 rl.on("line", async (line) => {
-  if (line === "quit") {
-    rl.close();
-    return;
+  lines.push(line);
+  const input = lines.join("\n");
+  if (input.startsWith(" ") === /\r*\n$/.test(input)) {
+    lines = [];
+    if (input === "quit") {
+      rl.close();
+      return;
+    }
+    if (input.trim()) {
+      if (lines.length === 1) {
+        fs.appendFileSync(".repl-history", `
+${input}`);
+      }
+      printErrorOutput(await invoker(ctx, input));
+    }
+    rl.prompt();
+  } else {
+    process.stdout.write(".  ");
   }
-  if (line.trim()) {
-    fs.appendFileSync(".repl-history", `
-${line}`);
-    printErrorOutput(await invoker(ctx, line));
-  }
-  rl.prompt();
 });
+rl.on("close", () => {
+  console.log();
+});
+console.log(`Insitux ${insituxVersion} REPL. Append space for multiline input.`);
 rl.prompt();
-function printErrorOutput(lines) {
+function printErrorOutput(lines2) {
   const colours = { error: 31, message: 35 };
-  lines.forEach(({ type, text }) => {
+  lines2.forEach(({ type, text }) => {
     process.stdout.write(`[${colours[type]}m${text}[0m`);
   });
 }
