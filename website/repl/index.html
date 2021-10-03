@@ -11,6 +11,8 @@
     />
     <script src="../../out/insitux.js"></script>
     <script src="index.js"></script>
+    <script defer src="../insitux-tokenise.js"></script>
+    <script defer src="../insitux-highlight.js"></script>
     <style>
       *:not(head) {
         padding: 0;
@@ -64,7 +66,7 @@
     </style>
   </head>
   <body onload="DomLoad()">
-    <div></div>
+    <div class="highlight"></div>
     <textarea oninput="DomInputResize(this)"></textarea>
   </body>
 </html>

@@ -74,28 +74,3 @@ examples {
   display: block;
   padding: 1rem;
 }
-
-.syn-highlight i {
-  color: #0f0;
-}
-.syn-highlight op {
-  color: #aaf;
-}
-.syn-highlight str, .syn-highlight num {
-  color: rgb(255, 164, 111) !important;
-}
-p0 {
-  color: #2ae0d7;
-}
-p1 {
-  color: #dd3d65;
-}
-p2 {
-  color: #14b17a;
-}
-p3 {
-  color: #c7e564;
-}
-p4 {
-  color: #e24dc2;
-}

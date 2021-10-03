@@ -10,7 +10,7 @@ async function DomKeydown({ keyCode, shiftKey }) {
     $input.value = "";
     DomInputResize($input);
   }, 10);
-  $history.innerHTML += `<code>${input}</code>\n`;
+  $history.innerHTML += `<code>${insituxHighlight(input)}</code>\n`;
   const errors = (await insituxInvoke(input, browserExe))
     .map(({ type, text }) =>
       type == "message" ? `<m>${text}</m>` : `<e>${text}</e>`,
