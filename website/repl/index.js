@@ -55,8 +55,8 @@ async function DomLoad() {
   state = JSON.parse(localStorage.getItem("repl")) ?? {};
   $input = document.querySelector("textarea");
   $history = document.querySelector("div");
-  $history.innerHTML += `<a href="https://phunanon.github.io/insitux"><img src="../../media/Insitux64.png"/></a><span>REPL</span>\n`;
-  $history.addEventListener("mouseup", event => {
+  $history.innerHTML += `<a href="https://phunanon.github.io/Insitux"><img src="../../media/Insitux64.png"/></a><span>REPL</span>\n`;
+  $history.addEventListener("mouseup", e => {
     if (!(getSelection() + "")) {
       $input.focus();
     }
