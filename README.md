@@ -549,8 +549,10 @@ $test.ing         → 456
 (dedupe [1 2 3 3])
 → [1 2 3]
 
-; Time an operation
-(var report [(time) (fib 35) (time)])
-(str (1 report) " took " (- (2 report) (0 report)) "ms")
-→ "9227465 took 55436ms"
+; Time a function call
+(function measure
+  (let report [(time) (.. .. args) (time)])
+  (str (1 report) " took " (- (2 report) (0 report)) "ms"))
+(measure fib 35)
+→ "9227465 took 45500ms"
 ```

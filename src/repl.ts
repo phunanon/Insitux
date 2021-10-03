@@ -3,6 +3,7 @@ import fs = require("fs");
 import { symbols, visStr, insituxVersion } from ".";
 import { Ctx, Val, ValAndErr } from "./types";
 import { ErrorOutput, invoker, parensRx } from "./invoker";
+import { tokenise } from "./parse";
 const env = new Map<string, Val>();
 
 async function get(key: string) {
@@ -24,10 +25,10 @@ const ctx: Ctx = {
   get,
   set,
   exe,
-  loopBudget: 10000,
-  rangeBudget: 1000,
-  callBudget: 100000000,
-  recurBudget: 10000,
+  loopBudget: 1e4,
+  rangeBudget: 1e4,
+  callBudget: 1e8,
+  recurBudget: 1e4,
 };
 
 async function exe(name: string, args: Val[]): Promise<ValAndErr> {
@@ -88,33 +89,39 @@ const rl = readline.createInterface({
 
 let lines: string[] = [];
 
+function isFinished(code: string): boolean {
+  const { tokens } = tokenise(code, "");
+  const numL = tokens.filter(t => t.typ == "(").length;
+  const numR = tokens.filter(t => t.typ == ")").length;
+  return numL <= numR;
+}
+
 rl.on("line", async line => {
   lines.push(line);
   const input = lines.join("\n");
-  if (input.startsWith(" ") === /\r*\n$/.test(input)) {
+  if (isFinished(input)) {
+    if (lines.length === 1) {
+      fs.appendFileSync(".repl-history", `\n${input}`);
+    }
     lines = [];
     if (input === "quit") {
       rl.close();
       return;
     }
     if (input.trim()) {
-      if (lines.length === 1) {
-        fs.appendFileSync(".repl-history", `\n${input}`);
-      }
       printErrorOutput(await invoker(ctx, input));
     }
-    rl.prompt();
+    rl.setPrompt("> ");
   } else {
-    process.stdout.write(".  ");
+    rl.setPrompt(". ");
   }
+  rl.prompt();
 });
 rl.on("close", () => {
   console.log();
 });
 
-console.log(
-  `Insitux ${insituxVersion} REPL. Append space for multiline input.`,
-);
+console.log(`Insitux ${insituxVersion} REPL.`);
 rl.prompt();
 
 function printErrorOutput(lines: ErrorOutput) {

@@ -2170,6 +2170,7 @@ const readline = __webpack_require__(521);
 const fs = __webpack_require__(147);
 
 
+
 const env = new Map();
 async function repl_get(key) {
   return env.has(key) ? { value: env.get(key), err: void 0 } : {
@@ -2187,7 +2188,7 @@ const ctx = {
   set: repl_set,
   exe: repl_exe,
   loopBudget: 1e4,
-  rangeBudget: 1e3,
+  rangeBudget: 1e4,
   callBudget: 1e8,
   recurBudget: 1e4
 };
@@ -2243,31 +2244,38 @@ const rl = readline.createInterface({
   history: fs.existsSync(".repl-history") ? fs.readFileSync(".repl-history").toString().split("\n").reverse() : []
 });
 let lines = [];
+function isFinished(code) {
+  const { tokens } = tokenise(code, "");
+  const numL = tokens.filter((t) => t.typ == "(").length;
+  const numR = tokens.filter((t) => t.typ == ")").length;
+  return numL <= numR;
+}
 rl.on("line", async (line) => {
   lines.push(line);
   const input = lines.join("\n");
-  if (input.startsWith(" ") === /\r*\n$/.test(input)) {
+  if (isFinished(input)) {
+    if (lines.length === 1) {
+      fs.appendFileSync(".repl-history", `
+${input}`);
+    }
     lines = [];
     if (input === "quit") {
       rl.close();
       return;
     }
     if (input.trim()) {
-      if (lines.length === 1) {
-        fs.appendFileSync(".repl-history", `
-${input}`);
-      }
       printErrorOutput(await invoker(ctx, input));
     }
-    rl.prompt();
+    rl.setPrompt("> ");
   } else {
-    process.stdout.write(".  ");
+    rl.setPrompt(". ");
   }
+  rl.prompt();
 });
 rl.on("close", () => {
   console.log();
 });
-console.log(`Insitux ${insituxVersion} REPL. Append space for multiline input.`);
+console.log(`Insitux ${insituxVersion} REPL.`);
 rl.prompt();
 function printErrorOutput(lines2) {
   const colours = { error: 31, message: 35 };

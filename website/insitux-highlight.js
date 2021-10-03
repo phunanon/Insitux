@@ -19,7 +19,7 @@ function insituxHighlight(code) {
       text = `"${text}"`;
     }
     lineLen = col + text.length;
-    text = text.replaceAll("<", "&gt;");
+    text = text.replaceAll(">", "&gt;").replaceAll("<", "&lt;");
     if (typ == "(" || typ == ")") {
       depth -= Number(typ == ")");
       lines[0] += `<p${depth}>${text}</p${depth}>`;
