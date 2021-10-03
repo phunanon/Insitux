@@ -632,7 +632,7 @@ function parseArg(tokens, params, checkArity = true) {
         return [{ typ: "val", value: nullVal, errCtx }];
       } else if (parse_starts(text, ":")) {
         return [{ typ: "val", value: { t: "key", v: text }, errCtx }];
-      } else if (parse_starts(text, "#") && parse_isNum(parse_substr(text, 1))) {
+      } else if (parse_starts(text, "%") && parse_isNum(parse_substr(text, 1))) {
         const value = parse_toNum(parse_substr(text, 1));
         if (value < 0) {
           return [{ typ: "val", value: nullVal, errCtx }];
@@ -921,7 +921,7 @@ null`
   },
   {
     name: "Call identity funcs",
-    code: `(function id1 #)
+    code: `(function id1 %)
            (function id2 x x)
            [(id1 123) (id2 456)]`,
     out: `[123 456]`
@@ -945,7 +945,7 @@ null`
   },
   {
     name: "Anonymous parameters",
-    code: `(function avg<n? (< (/ (.. + #) (len #)) #1))
+    code: `(function avg<n? (< (/ (.. + %) (len %)) %1))
            (avg<n? [0 10 20 30 40] 5)`,
     out: `false`
   },
@@ -976,7 +976,7 @@ null`
   },
   {
     name: "Closure 2",
-    code: `(filter #(or (.. = args) (even? #)) (range 10) 5)`,
+    code: `(filter #(or (.. = args) (even? %)) (range 10) 5)`,
     out: `[0 2 4 5 6 8]`
   },
   {
@@ -1003,14 +1003,14 @@ null`
   },
   {
     name: "Vector closure",
-    code: `(function f x #[1 x #])
+    code: `(function f x #[1 x %])
            (let closure (f 2))
            (closure 3)`,
     out: `[1 2 3]`
   },
   {
     name: "Closure as head",
-    code: `(#[# #1 #2] 1 2 3)`,
+    code: `(#[% %1 %2] 1 2 3)`,
     out: `[1 2 3]`
   },
   {

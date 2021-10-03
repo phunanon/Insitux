@@ -169,7 +169,7 @@ const tests: {
   },
   {
     name: "Call identity funcs",
-    code: `(function id1 #)
+    code: `(function id1 %)
            (function id2 x x)
            [(id1 123) (id2 456)]`,
     out: `[123 456]`,
@@ -192,7 +192,7 @@ const tests: {
   },
   {
     name: "Anonymous parameters",
-    code: `(function avg<n? (< (/ (.. + #) (len #)) #1))
+    code: `(function avg<n? (< (/ (.. + %) (len %)) %1))
            (avg<n? [0 10 20 30 40] 5)`,
     out: `false`,
   },
@@ -222,7 +222,7 @@ const tests: {
   },
   {
     name: "Closure 2",
-    code: `(filter #(or (.. = args) (even? #)) (range 10) 5)`,
+    code: `(filter #(or (.. = args) (even? %)) (range 10) 5)`,
     out: `[0 2 4 5 6 8]`,
   },
   {
@@ -249,14 +249,14 @@ const tests: {
   },
   {
     name: "Vector closure",
-    code: `(function f x #[1 x #])
+    code: `(function f x #[1 x %])
            (let closure (f 2))
            (closure 3)`,
     out: `[1 2 3]`,
   },
   {
     name: "Closure as head",
-    code: `(#[# #1 #2] 1 2 3)`,
+    code: `(#[% %1 %2] 1 2 3)`,
     out: `[1 2 3]`,
   },
   {

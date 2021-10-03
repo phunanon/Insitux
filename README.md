@@ -381,6 +381,39 @@ etc
 (reset)
 ```
 
+### Miscellaneous
+
+- Write `;` outside of a string of text to create a comment:
+
+```clj
+;This won't be treated as code
+(print "Hello") ;Comment at the end of lines too
+```
+
+- Commas `,` are treated as whitespace
+
+- Write `\"` inside of a string to represent `"`, `\n` to represent a newline, `\t` to represent a tab character.
+
+- Write decimal numbers either `0.123` or `.123`.
+
+- `args` contains a vector of arguments the function was called with.
+
+- Arguments can also be accessed through `%0`, `%1`, `%2`, etc, with `%` the same as `%0`
+
+  - Accessing too high a number will return `null`
+
+- Parameters take precedence over lets and defines.
+
+- Insitux implementations are advised to support this behaviour:
+
+```clj
+($test.ing 123)   → 123
+$test.ing         → 123
+(ing "$test")     → 123
+(ing "$test" 456) → 456
+$test.ing         → 456
+```
+
 ### Functions
 
 **Named functions**
@@ -447,7 +480,7 @@ Closures capture variables, lets, and named parameters of their parent function,
 They can take arguments, and be used as the operation of an expression:
 
 ```clj
-(var closure #(+ # #))
+(var closure #(+ % %))
 (closure 2)            → 4
 (#(.. vec args) 1 2 3) → [1 2 3]
 ```
@@ -464,43 +497,10 @@ There are also partial closures with slightly different syntax. They append thei
 They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 
 ```clj
-(#[# #]  1) → [1 1]
-(#{:a #} 1) → {:a 1}
+(#[% %]  1) → [1 1]
+(#{:a %} 1) → {:a 1}
 (@[1] 2 3)  → [1 2 3]
 (@{:a} 5)   → {:a 5}
-```
-
-### Miscellaneous
-
-- Write `;` outside of a string of text to create a comment:
-
-```clj
-;This won't be treated as code
-(print "Hello") ;Comment at the end of lines too
-```
-
-- Commas `,` are treated as whitespace
-
-- Write `\"` inside of a string to represent `"`, `\n` to represent a newline, `\t` to represent a tab character.
-
-- Write decimal numbers either `0.123` or `.123`.
-
-- `args` contains a vector of arguments the function was called with.
-
-- Arguments can also be accessed through `#0`, `#1`, `#2`, etc, with `#` the same as `#0`
-
-  - Accessing too high a number will return `null`
-
-- Parameters take precedence over lets and defines.
-
-- Insitux implementations are advised to support this behaviour:
-
-```clj
-($test.ing 123)   → 123
-$test.ing         → 123
-(ing "$test")     → 123
-(ing "$test" 456) → 456
-$test.ing         → 456
 ```
 
 ### Various examples
@@ -539,7 +539,7 @@ $test.ing         → 456
 ; Clojure's juxt
 (function juxt
   (let funcs args)
-  #(for #(.. #1 #) [args] funcs))
+  #(for #(.. %1 %) [args] funcs))
 
 ((juxt + - * /) 10 8)
 → [18 2 80 1.25]
@@ -548,7 +548,7 @@ $test.ing         → 456
 (function comp f
   (let funcs (sect args))
   #(do (let 1st (.. f args))
-       (reduce #(#1 #) funcs 1st)))
+       (reduce #(%1 %) funcs 1st)))
 
 (map (comp + inc) [0 1 2 3 4] [0 1 2 3 4])
 → [1 3 5 7 9]

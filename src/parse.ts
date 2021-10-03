@@ -412,7 +412,7 @@ function parseArg(
         return [{ typ: "val", value: nullVal, errCtx }];
       } else if (starts(text, ":")) {
         return [{ typ: "val", value: <Val>{ t: "key", v: text }, errCtx }];
-      } else if (starts(text, "#") && isNum(substr(text, 1))) {
+      } else if (starts(text, "%") && isNum(substr(text, 1))) {
         const value = toNum(substr(text, 1));
         if (value < 0) {
           return [{ typ: "val", value: nullVal, errCtx }];
@@ -479,7 +479,7 @@ function syntaxise(
   }
   if (len(body) && body[0].typ === ")") {
     if (len(params)) {
-      //In the case of e.g. (function f #) or (function x y z)
+      //In the case of e.g. (function f %) or (function x y z)
       body.unshift(params.pop()!);
     } else {
       //In the case of e.g. (function name)
