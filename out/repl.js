@@ -204,6 +204,8 @@ const ops = {
   logn: { exactArity: 1, onlyNum: true },
   log2: { exactArity: 1, onlyNum: true },
   log10: { exactArity: 1, onlyNum: true },
+  and: { minArity: 1 },
+  or: { minArity: 1 },
   "odd?": { exactArity: 1, onlyNum: true },
   "even?": { exactArity: 1, onlyNum: true },
   "pos?": { exactArity: 1, onlyNum: true },
@@ -1123,7 +1125,7 @@ async function doTests(invoke, terse = true) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211003;
+const insituxVersion = 20211004;
 
 
 const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, pi: src_pi, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min } = poly_fills_namespaceObject;
@@ -1418,6 +1420,12 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "log2":
     case "log10":
       _num({ sin: src_sin, cos: src_cos, tan: src_tan, sqrt: src_sqrt, round: src_round, floor: src_floor, ceil: src_ceil, logn: src_logn, log2: src_log2, log10: src_log10 }[op](num(args[0])));
+      return;
+    case "and":
+      _boo(args.every(asBoo));
+      return;
+    case "or":
+      _boo(args.some(asBoo));
       return;
     case "odd?":
     case "even?":

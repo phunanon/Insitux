@@ -1,4 +1,4 @@
-export const insituxVersion = 20211003;
+export const insituxVersion = 20211004;
 import { arityCheck, parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -370,6 +370,12 @@ async function exeOp(
           num(args[0]),
         ),
       );
+      return;
+    case "and":
+      _boo(args.every(asBoo));
+      return;
+    case "or":
+      _boo(args.some(asBoo));
       return;
     case "odd?":
     case "even?":

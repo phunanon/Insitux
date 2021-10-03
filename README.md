@@ -88,6 +88,18 @@ built-in operations each within an example, with results after a `→`.
   (print "bye"))
 → bye
 
+;Tests each argument and returns true or false if all arguments are truthy
+;Note: short-circuits evaluation after falsey argument
+(and null (print "hi")) → false
+(and true 1 2 3)        → true
+(.. and [0 1 false])    → false
+
+;Returns first truthy argument or false
+;Note: short-circuits evaluation after first truthy argument
+(or (print-str "hi") 1 (print "hi")) → hi1
+(or null false 1 2 3)                → 1
+(.. or [null false null])            → false
+
 ;Like if, but either executes all arguments or returns null
 (when true (print-str "hi") 123)
 → hi123

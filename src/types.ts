@@ -106,6 +106,8 @@ export const ops: {
   logn: { exactArity: 1, onlyNum: true },
   log2: { exactArity: 1, onlyNum: true },
   log10: { exactArity: 1, onlyNum: true },
+  and: { minArity: 1 },
+  or: { minArity: 1 },
   "odd?": { exactArity: 1, onlyNum: true },
   "even?": { exactArity: 1, onlyNum: true },
   "pos?": { exactArity: 1, onlyNum: true },
