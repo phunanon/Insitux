@@ -577,7 +577,7 @@ function parseForm(tokens, params, checkArity = true) {
   }
   const headIns = [];
   let nArgs = 0;
-  if (typ === "(" || parse_has(params, text) || parse_sub("#@", text[0])) {
+  if (typ === "(" || parse_has(params, text) || parse_sub("%#@", text[0])) {
     tokens.unshift(head);
     const ins = parseArg(tokens, params);
     parse_push(headIns, ins);
@@ -671,7 +671,7 @@ function partition(array, predicate) {
   return [a, b];
 }
 function syntaxise({ name, tokens }, errCtx) {
-  const [params, body] = partitionWhen(tokens, (t) => t.typ !== "sym" || parse_sub("#@", t.text));
+  const [params, body] = partitionWhen(tokens, (t) => t.typ !== "sym" || parse_sub("%#@", t.text));
   if (name === "(") {
     return { err: { e: "Parse", m: "nameless function", errCtx } };
   }
