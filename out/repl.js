@@ -577,7 +577,7 @@ function parseForm(tokens, params, checkArity = true) {
   }
   const headIns = [];
   let nArgs = 0;
-  if (typ === "(" || parse_has(params, text) || parse_sub("%#@", text[0])) {
+  if (typ === "(" || parse_has(params, text) || parse_sub("%#@", parse_strIdx(text, 0))) {
     tokens.unshift(head);
     const ins = parseArg(tokens, params);
     parse_push(headIns, ins);

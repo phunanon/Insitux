@@ -334,7 +334,7 @@ function parseForm(
   const headIns: Ins[] = [];
   let nArgs = 0;
   //Head is a form or parameter
-  if (typ === "(" || has(params, text) || sub("%#@", text[0])) {
+  if (typ === "(" || has(params, text) || sub("%#@", strIdx(text, 0))) {
     tokens.unshift(head);
     const ins = parseArg(tokens, params);
     push(headIns, ins);
