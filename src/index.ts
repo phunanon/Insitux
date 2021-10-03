@@ -1120,7 +1120,7 @@ export async function exeFunc(
           if (errors) {
             return errors;
           }
-          const numIns = derefFunc.ins.length;
+          const numIns = len(derefFunc.ins);
           const captures = splice(stack, len(stack) - numIns, numIns);
           ins = ins.map(ins =>
             isCapture(ins)

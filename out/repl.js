@@ -296,7 +296,7 @@ const { isNum: parse_isNum, len: parse_len, toNum: parse_toNum } = poly_fills_na
 
 
 const nullVal = { t: "null", v: void 0 };
-function tokenise(code, invocationId) {
+function tokenise(code, invocationId, makeCollsOps = true) {
   const tokens = [];
   const digits = "0123456789";
   let inString = false, isEscaped = false, inStringAt = [0, 0], inSymbol = false, inNumber = false, inComment = false, line = 1, col = 0;
@@ -308,6 +308,8 @@ function tokenise(code, invocationId) {
         inComment = false;
         ++line;
         col = 0;
+      } else {
+        tokens[parse_len(tokens) - 1].text += c;
       }
       continue;
     }
@@ -345,6 +347,11 @@ function tokenise(code, invocationId) {
     }
     if (!inString && c === ";") {
       inComment = true;
+      tokens.push({
+        typ: "rem",
+        text: "",
+        errCtx: { invocationId, line, col }
+      });
       continue;
     }
     const errCtx = { invocationId, line, col };
@@ -371,11 +378,13 @@ function tokenise(code, invocationId) {
           "]": ")"
         };
         const text = parens[c];
-        tokens.push({ typ: text, text, errCtx });
-        if (c === "[") {
-          tokens.push({ typ: "sym", text: "vec", errCtx });
-        } else if (c === "{") {
-          tokens.push({ typ: "sym", text: "dict", errCtx });
+        tokens.push({ typ: text, text: makeCollsOps ? text : c, errCtx });
+        if (makeCollsOps) {
+          if (c === "[") {
+            tokens.push({ typ: "sym", text: "vec", errCtx });
+          } else if (c === "{") {
+            tokens.push({ typ: "sym", text: "dict", errCtx });
+          }
         }
         continue;
       }
@@ -641,6 +650,7 @@ function parseArg(tokens, params) {
     case "(":
       return parseForm(tokens, params);
     case ")":
+    case "rem":
       return [];
     default:
       return assertUnreachable(typ);
@@ -2063,7 +2073,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
           if (errors) {
             return errors;
           }
-          const numIns = derefFunc.ins.length;
+          const numIns = src_len(derefFunc.ins);
           const captures = src_splice(stack, src_len(stack) - numIns, numIns);
           ins = ins.map((ins2) => isCapture(ins2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
           stack.push({ t: "clo", v: { name, ins } });
@@ -2144,7 +2154,7 @@ async function invoker(ctx, code) {
       out.push({ type: "message", text: `${half2}
 ` });
     } else {
-      const half2 = substr(lineText, col - 1 + sym.length);
+      const half2 = substr(lineText, col - 1 + slen(sym));
       out.push({ type: "error", text: sym });
       out.push({ type: "message", text: `${half2}
 ` });

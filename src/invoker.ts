@@ -1,5 +1,5 @@
 import { invoke } from ".";
-import { getTimeMs, padEnd, substr, trimStart } from "./poly-fills";
+import { getTimeMs, padEnd, slen, substr, trimStart } from "./poly-fills";
 import { Ctx } from "./types";
 
 export type ErrorOutput = {
@@ -33,7 +33,7 @@ export async function invoker(ctx: Ctx, code: string): Promise<ErrorOutput> {
       out.push({ type: "error", text: lineText[col - 1] });
       out.push({ type: "message", text: `${half2}\n` });
     } else {
-      const half2 = substr(lineText, col - 1 + sym.length);
+      const half2 = substr(lineText, col - 1 + slen(sym));
       out.push({ type: "error", text: sym });
       out.push({ type: "message", text: `${half2}\n` });
     }

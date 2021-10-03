@@ -6,7 +6,7 @@ import { ErrCtx, Func, Funcs, Ins, InvokeError, ops, Val } from "./types";
 import { assertUnreachable } from "./types";
 
 type Token = {
-  typ: "str" | "num" | "sym" | "ref" | "(" | ")";
+  typ: "str" | "num" | "sym" | "ref" | "rem" | "(" | ")";
   text: string;
   errCtx: ErrCtx;
 };
@@ -18,7 +18,11 @@ type NamedTokens = {
 type ParserIns = Omit<Ins, "typ"> & { typ: Ins["typ"] | "def" | "err" };
 const nullVal: Val = { t: "null", v: undefined };
 
-function tokenise(code: string, invocationId: string) {
+export function tokenise(
+  code: string,
+  invocationId: string,
+  makeCollsOps = true,
+) {
   const tokens: Token[] = [];
   const digits = "0123456789";
   let inString = false,
@@ -38,6 +42,8 @@ function tokenise(code: string, invocationId: string) {
         inComment = false;
         ++line;
         col = 0;
+      } else {
+        tokens[len(tokens) - 1].text += c;
       }
       continue;
     }
@@ -76,6 +82,11 @@ function tokenise(code: string, invocationId: string) {
     }
     if (!inString && c === ";") {
       inComment = true;
+      tokens.push({
+        typ: "rem",
+        text: "",
+        errCtx: { invocationId, line, col },
+      });
       continue;
     }
     const errCtx: ErrCtx = { invocationId, line, col };
@@ -105,11 +116,13 @@ function tokenise(code: string, invocationId: string) {
           "]": ")",
         };
         const text = parens[c]!;
-        tokens.push({ typ: text, text, errCtx });
-        if (c === "[") {
-          tokens.push({ typ: "sym", text: "vec", errCtx });
-        } else if (c === "{") {
-          tokens.push({ typ: "sym", text: "dict", errCtx });
+        tokens.push({ typ: text, text: makeCollsOps ? text : c, errCtx });
+        if (makeCollsOps) {
+          if (c === "[") {
+            tokens.push({ typ: "sym", text: "vec", errCtx });
+          } else if (c === "{") {
+            tokens.push({ typ: "sym", text: "dict", errCtx });
+          }
         }
         continue;
       }
@@ -405,6 +418,7 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
     case "(":
       return parseForm(tokens, params);
     case ")":
+    case "rem":
       return [];
     default:
       return assertUnreachable(typ);

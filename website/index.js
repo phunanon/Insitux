@@ -12,68 +12,44 @@ document.addEventListener("DOMContentLoaded", async function () {
 });
 
 function synHighlight(code) {
-  let build = code;
-  let newBuild = "",
-    depth = 0,
-    inComment = false,
-    inString = false,
-    inOp = false,
-    inNum = false;
-  for (let i = 0; i < build.length; ++i) {
-    const prevCh = i ? build[i - 1] : "";
-    if (inComment) {
-      newBuild += build[i];
-      inComment = build[i] != "\n";
-      if (!inComment) {
-        newBuild += "</i>";
-      }
-      continue;
-    } else if (!inString && build[i] == ";") {
-      inComment = true;
-      newBuild += "<i>;";
-      continue;
+  const { tokens } = insituxTokenise(code, "", false);
+  let lines = [];
+  let lineLen = 1;
+  let prevText = "";
+  let depth = 0;
+  for (let t = 0, lim = tokens.length; t < lim; ++t) {
+    let {
+      typ,
+      text,
+      errCtx: { line, col },
+    } = tokens[t];
+    while (line > lines.length) {
+      lines.unshift("");
+      lineLen = 1;
     }
-    if (build[i] == '"') {
-      inString = !inString;
-      newBuild += `${inString ? "<str>" : ""}"${inString ? "" : "</str>"}`;
-      continue;
+    lines[0] += " ".repeat(col - lineLen);
+    if (typ == "str") {
+      text = `"${text}"`;
     }
-    if (inString) {
-      newBuild += build[i];
-      continue;
-    }
-    if (inOp) {
-      if (/[\[\]\(\)\s]/.test(build[i])) {
-        inOp = false;
-        newBuild += "</op>";
-      }
-    } else if (prevCh != "#" && /[\d.]/.test(build[i])) {
-      if (!inNum) {
-        newBuild += "<num>";
-      }
-      inNum = true;
-    } else if (inNum) {
-      inNum = false;
-      newBuild += "</num>";
-    }
-    if ("([{".includes(build[i])) {
-      if (prevCh == "#") {
-        newBuild = newBuild.substring(0, newBuild.length - 1);
-        newBuild += `<p${depth}>#${build[i]}</p${depth}>`;
-      } else {
-        newBuild += `<p${depth}>${build[i]}</p${depth}>`;
-      }
-      ++depth;
-      inOp = build[i] == "(";
-      if (inOp) {
-        newBuild += "<op>";
-      }
-    } else if (")]}".includes(build[i])) {
-      --depth;
-      newBuild += `<p${depth}>${build[i]}</p${depth}>`;
+    lineLen = col + text.length;
+    text = text.replaceAll("<", "&gt;");
+    if (typ == "(" || typ == ")") {
+      depth -= Number(typ == ")");
+      lines[0] += `<p${depth}>${text}</p${depth}>`;
+      depth += Number(typ == "(");
     } else {
-      newBuild += build[i];
+      lines[0] +=
+        prevText == "("
+          ? `<op>${text}</op>`
+          : typ == "rem"
+          ? `<i>;${text}</i>`
+          : typ == "str"
+          ? `<str>${text}</str>`
+          : typ == "num"
+          ? `<num>${text}</num>`
+          : text;
     }
+    prevText = text;
   }
-  return newBuild;
+  return lines.reverse().join("\n");
 }
