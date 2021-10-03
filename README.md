@@ -346,8 +346,12 @@ etc
 (function f (return) (print "hi"))
 (f) → null
 
-;Applies a vector's items and other arguments as the arguments to a function
+;Applies a vector's items and other arguments as the parameters to a function
 (.. + [0 1 2] 3 [4 5 6])
+→ 21
+
+;Applies a final vector's items and other arguments as the parameters to a function
+(... + 0 1 2 3 [4 5 6])
 → 21
 
 ;Evaluates the first argument and returns the value if no runtime errors, else populates the let `errors` and returns the evaluation of the second argument
@@ -434,25 +438,36 @@ A closure is an anonymous (unnamed) function which also "captures" the data cont
 Closures capture variables, lets, and named parameters of their parent function, so even when they are passed around the values are frozen as they were upon the closure's declaration. For example:
 
 ```clj
-(let a 10)
-(let closure #(+ a a))
-(let a 100)
+(var a 10)
+(var closure #(+ a a))
+(var a 100)
 (closure) → 20 not 200
 ```
 
 They can take arguments, and be used as the operation of an expression:
 
 ```clj
-(let closure #(+ # #))
+(var closure #(+ # #))
 (closure 2)            → 4
 (#(.. vec args) 1 2 3) → [1 2 3]
 ```
 
-They can also be in the form of `#[]` and `#{}`:
+There are also partial closures with slightly different syntax. They append their arguments to the end of the closure expression.
+
+```clj
+(var partial @(* 10))
+(partial 4) → 40
+;exactly the same as writing:
+(var partial #(... * 10 args))
+```
+
+They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 
 ```clj
 (#[# #]  1) → [1 1]
 (#{:a #} 1) → {:a 1}
+(@[1] 2 3)  → [1 2 3]
+(@{:a} 5)   → {:a 5}
 ```
 
 ### Miscellaneous
@@ -517,6 +532,8 @@ $test.ing         → 456
 
 ; Triple every vector item
 (for * [0 1 2 3 4] [3])
+;or
+(map @(* 3) [0 1 2 3 4])
 → [0 3 6 9 12]
 
 ; Clojure's juxt

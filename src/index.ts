@@ -1,4 +1,4 @@
-export const insituxVersion = 20210929;
+export const insituxVersion = 20211003;
 import { arityCheck, parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -578,9 +578,17 @@ async function exeOp(
     case "val":
       stack.push(op === "do" ? args.pop()! : args.shift()!);
       return;
-    case "..": {
+    case "..":
+    case "...": {
       const closure = getExe(ctx, args.shift()!, errCtx);
-      return await closure(flat(args.map(a => (a.t === "vec" ? vec(a) : [a]))));
+      let flatArgs: Val[] = args;
+      if (op === "..") {
+        flatArgs = flat(args.map(a => (a.t === "vec" ? vec(a) : [a])));
+      } else {
+        const a = flatArgs.pop()!;
+        push(flatArgs, flat([a.t === "vec" ? vec(a) : [a]]));
+      }
+      return await closure(flatArgs);
     }
     case "into": {
       const a0v = args[0].t === "vec";
@@ -1106,6 +1114,7 @@ export async function exeFunc(
         }
         continue;
       case "clo":
+      case "par":
         {
           let [name, ins] = value as [string, Ins[]];
           const isCapture = ({ typ, value }: Ins) =>
@@ -1127,6 +1136,19 @@ export async function exeFunc(
               ? <Ins>{ typ: "val", value: captures.shift()!, errCtx }
               : ins,
           );
+          //Rewrite partial closure to #(... func [args] args)
+          if (typ === "par") {
+            const { value, errCtx } = ins.pop()!;
+            const f = ins.pop()!;
+            ins.unshift({ typ: "val", value: f.value, errCtx });
+            ins.push({ typ: "upa", value: -1, errCtx });
+            ins.push({
+              typ: "val",
+              value: <Val>{ t: "str", v: "..." },
+              errCtx,
+            });
+            ins.push({ typ: "exe", value: <number>value + 2, errCtx });
+          }
           stack.push(<Val>{ t: "clo", v: <Func>{ name, ins } });
         }
         break;

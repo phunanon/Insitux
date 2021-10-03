@@ -217,7 +217,11 @@ export function arityCheck(op: string, nArg: number, errCtx: ErrCtx) {
   }
 }
 
-function parseForm(tokens: Token[], params: string[]): ParserIns[] {
+function parseForm(
+  tokens: Token[],
+  params: string[],
+  checkArity = true,
+): ParserIns[] {
   const head = tokens.shift();
   if (!head) {
     return [];
@@ -330,7 +334,7 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
   const headIns: Ins[] = [];
   let nArgs = 0;
   //Head is a form or parameter
-  if (typ === "(" || has(params, text) || starts(text, "#")) {
+  if (typ === "(" || has(params, text) || sub("#@", text[0])) {
     tokens.unshift(head);
     const ins = parseArg(tokens, params);
     push(headIns, ins);
@@ -349,7 +353,7 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
   }
 
   //Operation arity check
-  if (ops[op]) {
+  if (ops[op] && checkArity) {
     const errors = arityCheck(op, nArgs, errCtx);
     push(headIns, errors?.map(e => err(e.m)[0]) ?? []);
   }
@@ -373,17 +377,26 @@ function parseForm(tokens: Token[], params: string[]): ParserIns[] {
   return [...body, ...headIns];
 }
 
-function parseArg(tokens: Token[], params: string[]): ParserIns[] {
+function parseArg(
+  tokens: Token[],
+  params: string[],
+  checkArity = true,
+): ParserIns[] {
   if (!len(tokens)) {
     return [];
   }
   const { typ, text, errCtx } = tokens.shift() as Token;
   //Upon closure
-  if (typ === "sym" && text === "#" && len(tokens) && tokens[0].typ === "(") {
+  if (
+    typ === "sym" &&
+    sub("#@", text) &&
+    len(tokens) &&
+    tokens[0].typ === "("
+  ) {
     const texts = tokens.map(t => t.text);
-    const body = parseArg(tokens, params);
+    const body = parseArg(tokens, params, text !== "@");
     const value = [slice(texts, 0, len(texts) - len(tokens)).join(" "), body];
-    return [{ typ: "clo", value, errCtx }];
+    return [{ typ: text === "#" ? "clo" : "par", value, errCtx }];
   }
   switch (typ) {
     case "str":
@@ -416,7 +429,7 @@ function parseArg(tokens: Token[], params: string[]): ParserIns[] {
     case "ref":
       return [{ typ: "def", value: text, errCtx }];
     case "(":
-      return parseForm(tokens, params);
+      return parseForm(tokens, params, checkArity);
     case ")":
     case "rem":
       return [];
@@ -454,7 +467,7 @@ function syntaxise(
 } {
   const [params, body] = partitionWhen(
     tokens,
-    t => t.typ !== "sym" || t.text === "#",
+    t => t.typ !== "sym" || sub("#@", t.text),
   );
   //In the case of e.g. (function (+))
   if (name === "(") {

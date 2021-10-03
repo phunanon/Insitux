@@ -46,22 +46,23 @@ export type Ctx = {
 };
 
 export type InsType =
-  | "val"  //Stack Val
-  | "npa"  //Named parameter
-  | "upa"  //Unnamed parameter
+  | "val" //Stack Val
+  | "npa" //Named parameter
+  | "upa" //Unnamed parameter
   | "var"
   | "let"
   | "ref"
   | "exe"
   | "if"
-  | "jmp"  //Inexpensive jump
-  | "loo"  //Expensive jump
-  | "pop"  //Truncate stack
+  | "jmp" //Inexpensive jump
+  | "loo" //Expensive jump
+  | "pop" //Truncate stack
   | "or"
-  | "ret"  //Return
-  | "rec"  //Recur
-  | "cat"  //Catch
-  | "clo"; //Closure
+  | "ret" //Return
+  | "rec" //Recur
+  | "cat" //Catch
+  | "clo" //Closure
+  | "par"; //Partial closure
 export type Ins = {
   typ: InsType;
   value: unknown;
@@ -141,6 +142,7 @@ export const ops: {
   "rand-int": { maxArity: 2, onlyNum: true },
   while: {},
   "..": { minArity: 2 },
+  "...": { minArity: 2 },
   into: {
     exactArity: 2,
     types: [

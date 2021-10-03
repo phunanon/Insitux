@@ -240,6 +240,7 @@ const ops = {
   "rand-int": { maxArity: 2, onlyNum: true },
   while: {},
   "..": { minArity: 2 },
+  "...": { minArity: 2 },
   into: {
     exactArity: 2,
     types: [
@@ -466,7 +467,7 @@ function arityCheck(op, nArg, errCtx) {
     }
   }
 }
-function parseForm(tokens, params) {
+function parseForm(tokens, params, checkArity = true) {
   const head = tokens.shift();
   if (!head) {
     return [];
@@ -576,7 +577,7 @@ function parseForm(tokens, params) {
   }
   const headIns = [];
   let nArgs = 0;
-  if (typ === "(" || parse_has(params, text) || parse_starts(text, "#")) {
+  if (typ === "(" || parse_has(params, text) || parse_sub("#@", text[0])) {
     tokens.unshift(head);
     const ins = parseArg(tokens, params);
     parse_push(headIns, ins);
@@ -593,7 +594,7 @@ function parseForm(tokens, params) {
   if (op === "return") {
     return [...body, { typ: "ret", value: !!parse_len(body), errCtx }];
   }
-  if (ops[op]) {
+  if (ops[op] && checkArity) {
     const errors = arityCheck(op, nArgs, errCtx);
     parse_push(headIns, errors?.map((e) => err(e.m)[0]) ?? []);
   }
@@ -606,16 +607,16 @@ function parseForm(tokens, params) {
   }
   return [...body, ...headIns];
 }
-function parseArg(tokens, params) {
+function parseArg(tokens, params, checkArity = true) {
   if (!parse_len(tokens)) {
     return [];
   }
   const { typ, text, errCtx } = tokens.shift();
-  if (typ === "sym" && text === "#" && parse_len(tokens) && tokens[0].typ === "(") {
+  if (typ === "sym" && parse_sub("#@", text) && parse_len(tokens) && tokens[0].typ === "(") {
     const texts = tokens.map((t) => t.text);
-    const body = parseArg(tokens, params);
+    const body = parseArg(tokens, params, text !== "@");
     const value = [parse_slice(texts, 0, parse_len(texts) - parse_len(tokens)).join(" "), body];
-    return [{ typ: "clo", value, errCtx }];
+    return [{ typ: text === "#" ? "clo" : "par", value, errCtx }];
   }
   switch (typ) {
     case "str":
@@ -648,7 +649,7 @@ function parseArg(tokens, params) {
     case "ref":
       return [{ typ: "def", value: text, errCtx }];
     case "(":
-      return parseForm(tokens, params);
+      return parseForm(tokens, params, checkArity);
     case ")":
     case "rem":
       return [];
@@ -670,7 +671,7 @@ function partition(array, predicate) {
   return [a, b];
 }
 function syntaxise({ name, tokens }, errCtx) {
-  const [params, body] = partitionWhen(tokens, (t) => t.typ !== "sym" || t.text === "#");
+  const [params, body] = partitionWhen(tokens, (t) => t.typ !== "sym" || parse_sub("#@", t.text));
   if (name === "(") {
     return { err: { e: "Parse", m: "nameless function", errCtx } };
   }
@@ -1013,6 +1014,11 @@ null`
     out: `[1 2 3]`
   },
   {
+    name: "Partial closure 1",
+    code: `(@[] 1 2 3)`,
+    out: `[1 2 3]`
+  },
+  {
     name: "String instead of number",
     code: `(function sum (.. + args))
            (print (sum 2 2))
@@ -1117,7 +1123,7 @@ async function doTests(invoke, terse = true) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20210929;
+const insituxVersion = 20211003;
 
 
 const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, pi: src_pi, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min } = poly_fills_namespaceObject;
@@ -1591,9 +1597,17 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "val":
       stack.push(op === "do" ? args.pop() : args.shift());
       return;
-    case "..": {
+    case "..":
+    case "...": {
       const closure = getExe(ctx, args.shift(), errCtx);
-      return await closure(src_flat(args.map((a) => a.t === "vec" ? vec(a) : [a])));
+      let flatArgs = args;
+      if (op === "..") {
+        flatArgs = src_flat(args.map((a) => a.t === "vec" ? vec(a) : [a]));
+      } else {
+        const a = flatArgs.pop();
+        src_push(flatArgs, src_flat([a.t === "vec" ? vec(a) : [a]]));
+      }
+      return await closure(flatArgs);
     }
     case "into": {
       const a0v = args[0].t === "vec";
@@ -2062,6 +2076,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
         }
         continue;
       case "clo":
+      case "par":
         {
           let [name, ins] = value;
           const isCapture = ({ typ: typ2, value: value2 }) => typ2 === "ref" && !ins.find((i2) => i2.typ === "let" && i2.value === value2) || typ2 === "npa";
@@ -2076,6 +2091,18 @@ async function exeFunc(ctx, func, args, inClosure = false) {
           const numIns = src_len(derefFunc.ins);
           const captures = src_splice(stack, src_len(stack) - numIns, numIns);
           ins = ins.map((ins2) => isCapture(ins2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
+          if (typ === "par") {
+            const { value: value2, errCtx: errCtx2 } = ins.pop();
+            const f = ins.pop();
+            ins.unshift({ typ: "val", value: f.value, errCtx: errCtx2 });
+            ins.push({ typ: "upa", value: -1, errCtx: errCtx2 });
+            ins.push({
+              typ: "val",
+              value: { t: "str", v: "..." },
+              errCtx: errCtx2
+            });
+            ins.push({ typ: "exe", value: value2 + 2, errCtx: errCtx2 });
+          }
           stack.push({ t: "clo", v: { name, ins } });
         }
         break;

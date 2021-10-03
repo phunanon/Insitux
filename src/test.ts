@@ -259,6 +259,11 @@ const tests: {
     code: `(#[# #1 #2] 1 2 3)`,
     out: `[1 2 3]`,
   },
+  {
+    name: "Partial closure 1",
+    code: `(@[] 1 2 3)`,
+    out: `[1 2 3]`,
+  },
   //Runtime errors
   {
     name: "String instead of number",
