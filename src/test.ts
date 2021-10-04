@@ -146,7 +146,7 @@ const tests: {
            (while (< 0 n)
              (print-str n)
              (var n (dec n)))`,
-    out: `543215`,
+    out: `543210`,
   },
   {
     name: "Catch error",

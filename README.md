@@ -240,12 +240,14 @@ built-in operations each within an example, with results after a `→`.
 (reduce + [])        → [] ; + is never called
 
 ;Continues looping until condition becomes false
-;Note: also returns the final value, in this case `0`
+;Note: also returns the final value or null if the first condition evaluation is false
 (var n 0)
 (while (< n 5)
   (print n)
   (var n (inc n)))
 → 012345
+(while false 0)
+→ null
 
 ;Returns the first argument; returns the last argument
 (val 3 2 1 (print-str "hello"))
@@ -590,4 +592,22 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
   (str (1 report) " took " (- (2 report) (0 report)) "ms"))
 (measure fib 35)
 → "9227465 took 45500ms"
+
+; Display the Mandelbrot fractal as ASCII
+(function mandelbrot width height depth
+  (.. str (for #(do
+    (let c_re (/ (* (- % (/ width 2)) 4) width))
+    (let c_im (/ (* (- %1 (/ height 2)) 4) width))
+    (let x 0)
+    (let y 0)
+    (let i 0)
+    (while (and (<= (+ (** x) (** y)) 4)
+                (< i depth))
+      (let x_new (+ (- (** x) (** y)) c_re))
+      (let y (+ (* 2 x y) c_im))
+      (let x x_new)
+      (let i (inc i)))
+    (str (if (zero? %) "\n" "") (if (< i depth) "#" " ")))
+    (range width) (range height))))
+(mandelbrot 48 32 10)
 ```

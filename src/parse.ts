@@ -305,12 +305,13 @@ function parseForm(
     }
     const ins: Ins[] = [];
     if (op === "while") {
+      ins.push({ typ: "val", value: nullVal, errCtx }); //If first is false
       insCount += 2; //+1 for the if ins, +1 for the pop ins
       const head = args.shift()!;
       push(ins, head);
       ins.push({ typ: "if", value: insCount - len(head), errCtx });
-      args.forEach(as => push(ins, as));
       ins.push({ typ: "pop", value: len(args), errCtx });
+      args.forEach(as => push(ins, as));
       ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
       return ins;
     }

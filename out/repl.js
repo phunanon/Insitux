@@ -550,12 +550,13 @@ function parseForm(tokens, params, checkArity = true) {
     }
     const ins = [];
     if (op === "while") {
+      ins.push({ typ: "val", value: nullVal, errCtx });
       insCount += 2;
       const head2 = args.shift();
       parse_push(ins, head2);
       ins.push({ typ: "if", value: insCount - parse_len(head2), errCtx });
-      args.forEach((as) => parse_push(ins, as));
       ins.push({ typ: "pop", value: parse_len(args), errCtx });
+      args.forEach((as) => parse_push(ins, as));
       ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
       return ins;
     }
@@ -902,7 +903,7 @@ null`
            (while (< 0 n)
              (print-str n)
              (var n (dec n)))`,
-    out: `543215`
+    out: `543210`
   },
   {
     name: "Catch error",
@@ -2224,7 +2225,7 @@ const ctx = {
   get: repl_get,
   set: repl_set,
   exe: repl_exe,
-  loopBudget: 1e4,
+  loopBudget: 1e6,
   rangeBudget: 1e4,
   callBudget: 1e8,
   recurBudget: 1e4
