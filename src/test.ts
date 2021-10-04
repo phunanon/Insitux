@@ -352,7 +352,7 @@ export async function doTests(
       dict: new Map<string, Val>(),
       output: "",
     };
-    const env: Env = { funcs: {}, vars: {}, lets: [] };
+    const env: Env = { funcs: {}, vars: {} };
     const startTime = getTimeMs();
     const errors = await invoke(
       {

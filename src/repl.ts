@@ -21,7 +21,7 @@ async function set(key: string, val: Val) {
 }
 
 const ctx: Ctx = {
-  env: { funcs: {}, vars: {}, lets: [] },
+  env: { funcs: {}, vars: {} },
   get,
   set,
   exe,

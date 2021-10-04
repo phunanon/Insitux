@@ -1,7 +1,7 @@
 import * as Insitux from "./insitux.js";
 
 const e = el => document.querySelector(el);
-const loaderEnv = { funcs: {}, vars: {}, lets: [] };
+const loaderEnv = { funcs: {}, vars: {} };
 const state = new Map();
 
 async function loaderGet(key) {

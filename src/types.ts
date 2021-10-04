@@ -31,7 +31,6 @@ export type Funcs = { [key: string]: Func };
 export type Env = {
   funcs: Funcs;
   vars: { [key: string]: Val };
-  lets: { [key: string]: Val }[];
 };
 
 export type Ctx = {

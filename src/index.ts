@@ -41,6 +41,7 @@ const val2str = ({ v, t }: Val): string => {
 };
 
 let stack: Val[] = [];
+let lets: { [key: string]: Val }[] = [];
 const _boo = (v: boolean) => stack.push({ t: "bool", v });
 const _num = (v: number) => stack.push({ t: "num", v });
 const _str = (v: string = "") => stack.push({ t: "str", v });
@@ -824,7 +825,7 @@ async function exeOp(
     case "reset":
       ctx.env.vars = {};
       ctx.env.funcs = {};
-      ctx.env.lets = [];
+      lets = [];
       _nul();
       return;
   }
@@ -850,8 +851,8 @@ function getExe(
     if (name in ctx.env.vars) {
       return getExe(ctx, ctx.env.vars[name], errCtx);
     }
-    if (name in ctx.env.lets[len(ctx.env.lets) - 1]) {
-      return getExe(ctx, ctx.env.lets[len(ctx.env.lets) - 1][name], errCtx);
+    if (name in lets[len(lets) - 1]) {
+      return getExe(ctx, lets[len(lets) - 1][name], errCtx);
     }
     if (starts(name, "$")) {
       return async (params: Val[]) => {
@@ -994,7 +995,7 @@ export async function exeFunc(
 ): Promise<InvokeError[] | undefined> {
   --ctx.callBudget;
   if (!inClosure) {
-    ctx.env.lets.push({});
+    lets.push({});
   }
   const stackLen = len(stack);
   for (let i = 0, lim = len(func.ins); i < lim; ++i) {
@@ -1019,7 +1020,7 @@ export async function exeFunc(
         ctx.env.vars[value as string] = stack[len(stack) - 1];
         break;
       case "let":
-        ctx.env.lets[len(ctx.env.lets) - 1][value as string] =
+        lets[len(lets) - 1][value as string] =
           stack[len(stack) - 1];
         break;
       case "npa":
@@ -1048,8 +1049,8 @@ export async function exeFunc(
             stack.push(value);
           } else if (name in ctx.env.vars) {
             stack.push(ctx.env.vars[name]);
-          } else if (name in ctx.env.lets[len(ctx.env.lets) - 1]) {
-            stack.push(ctx.env.lets[len(ctx.env.lets) - 1][name]);
+          } else if (name in lets[len(lets) - 1]) {
+            stack.push(lets[len(lets) - 1][name]);
           } else if (name in ctx.env.funcs) {
             _fun(name);
           } else {
@@ -1066,7 +1067,7 @@ export async function exeFunc(
           if (errors) {
             if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
               ++i;
-              ctx.env.lets[len(ctx.env.lets) - 1]["errors"] = {
+              lets[len(lets) - 1]["errors"] = {
                 t: "vec",
                 v: errorsToDict(errors),
               };
@@ -1109,7 +1110,7 @@ export async function exeFunc(
         break;
       case "rec":
         {
-          ctx.env.lets[len(ctx.env.lets) - 1] = {};
+          lets[len(lets) - 1] = {};
           i = -1;
           const nArgs = value as number;
           args = splice(stack, len(stack) - nArgs, nArgs);
@@ -1163,7 +1164,7 @@ export async function exeFunc(
     }
   }
   if (!inClosure) {
-    ctx.env.lets.pop();
+    lets.pop();
     splice(stack, stackLen, len(stack) - (stackLen + 1));
   }
   return;
@@ -1193,7 +1194,6 @@ export async function invoke(
 ): Promise<InvokeError[]> {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   const errors = await parseAndExe(ctx, code, invocationId);
-  ctx.env.lets = [];
   ctx.callBudget = callBudget;
   ctx.recurBudget = recurBudget;
   ctx.loopBudget = loopBudget;
@@ -1203,6 +1203,7 @@ export async function invoke(
     await ctx.exe("print", [{ t: "str", v: val2str(stack[len(stack) - 1]) }]);
   }
   stack = [];
+  lets = [];
   return errors ?? [];
 }
 

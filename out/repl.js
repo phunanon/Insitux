@@ -1094,7 +1094,7 @@ async function doTests(invoke, terse = true) {
       dict: new Map(),
       output: ""
     };
-    const env = { funcs: {}, vars: {}, lets: [] };
+    const env = { funcs: {}, vars: {} };
     const startTime = getTimeMs();
     const errors = await invoke({
       get: (key) => get(state, key),
@@ -1168,6 +1168,7 @@ const val2str = ({ v, t }) => {
   return assertUnreachable(t);
 };
 let stack = [];
+let lets = [];
 const _boo = (v) => stack.push({ t: "bool", v });
 const _num = (v) => stack.push({ t: "num", v });
 const _str = (v = "") => stack.push({ t: "str", v });
@@ -1821,7 +1822,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "reset":
       ctx.env.vars = {};
       ctx.env.funcs = {};
-      ctx.env.lets = [];
+      lets = [];
       _nul();
       return;
   }
@@ -1840,8 +1841,8 @@ function getExe(ctx, op, errCtx, checkArity = true) {
     if (name in ctx.env.vars) {
       return getExe(ctx, ctx.env.vars[name], errCtx);
     }
-    if (name in ctx.env.lets[src_len(ctx.env.lets) - 1]) {
-      return getExe(ctx, ctx.env.lets[src_len(ctx.env.lets) - 1][name], errCtx);
+    if (name in lets[src_len(lets) - 1]) {
+      return getExe(ctx, lets[src_len(lets) - 1][name], errCtx);
     }
     if (src_starts(name, "$")) {
       return async (params) => {
@@ -1964,7 +1965,7 @@ function errorsToDict(errors) {
 async function exeFunc(ctx, func, args, inClosure = false) {
   --ctx.callBudget;
   if (!inClosure) {
-    ctx.env.lets.push({});
+    lets.push({});
   }
   const stackLen = src_len(stack);
   for (let i = 0, lim = src_len(func.ins); i < lim; ++i) {
@@ -1987,7 +1988,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
         ctx.env.vars[value] = stack[src_len(stack) - 1];
         break;
       case "let":
-        ctx.env.lets[src_len(ctx.env.lets) - 1][value] = stack[src_len(stack) - 1];
+        lets[src_len(lets) - 1][value] = stack[src_len(stack) - 1];
         break;
       case "npa":
       case "upa":
@@ -2015,8 +2016,8 @@ async function exeFunc(ctx, func, args, inClosure = false) {
             stack.push(value2);
           } else if (name in ctx.env.vars) {
             stack.push(ctx.env.vars[name]);
-          } else if (name in ctx.env.lets[src_len(ctx.env.lets) - 1]) {
-            stack.push(ctx.env.lets[src_len(ctx.env.lets) - 1][name]);
+          } else if (name in lets[src_len(lets) - 1]) {
+            stack.push(lets[src_len(lets) - 1][name]);
           } else if (name in ctx.env.funcs) {
             _fun(name);
           } else {
@@ -2033,7 +2034,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
           if (errors) {
             if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
               ++i;
-              ctx.env.lets[src_len(ctx.env.lets) - 1]["errors"] = {
+              lets[src_len(lets) - 1]["errors"] = {
                 t: "vec",
                 v: errorsToDict(errors)
               };
@@ -2076,7 +2077,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
         break;
       case "rec":
         {
-          ctx.env.lets[src_len(ctx.env.lets) - 1] = {};
+          lets[src_len(lets) - 1] = {};
           i = -1;
           const nArgs = value;
           args = src_splice(stack, src_len(stack) - nArgs, nArgs);
@@ -2122,7 +2123,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
     }
   }
   if (!inClosure) {
-    ctx.env.lets.pop();
+    lets.pop();
     src_splice(stack, stackLen, src_len(stack) - (stackLen + 1));
   }
   return;
@@ -2141,7 +2142,6 @@ async function parseAndExe(ctx, code, invocationId) {
 async function invoke(ctx, code, invocationId, printResult = false) {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   const errors = await parseAndExe(ctx, code, invocationId);
-  ctx.env.lets = [];
   ctx.callBudget = callBudget;
   ctx.recurBudget = recurBudget;
   ctx.loopBudget = loopBudget;
@@ -2151,6 +2151,7 @@ async function invoke(ctx, code, invocationId, printResult = false) {
     await ctx.exe("print", [{ t: "str", v: val2str(stack[src_len(stack) - 1]) }]);
   }
   stack = [];
+  lets = [];
   return errors ?? [];
 }
 function symbols(ctx, alsoSyntax = true) {
@@ -2221,7 +2222,7 @@ async function repl_set(key, val) {
   return void 0;
 }
 const ctx = {
-  env: { funcs: {}, vars: {}, lets: [] },
+  env: { funcs: {}, vars: {} },
   get: repl_get,
   set: repl_set,
   exe: repl_exe,

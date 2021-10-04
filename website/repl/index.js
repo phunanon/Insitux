@@ -75,7 +75,7 @@ function DomInputResize(that) {
   $history.style.height = `calc(100% - 1rem - ${that.style.height})`;
 }
 
-const insituxEnv = { funcs: {}, vars: {}, lets: [] };
+const insituxEnv = { funcs: {}, vars: {} };
 
 async function insituxGet(key) {
   return { value: state[key] };
