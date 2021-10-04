@@ -162,12 +162,12 @@ export const lowerCase = string.lower;
 
 export const trimStart = (str: string) => {
 	let res = str;
-	while (res.sub(1, 1) == " ") res = res.sub(2, -1);
+	while (res.sub(1, 1) === " ") res = res.sub(2, -1);
 	return res;
 };
 export const trimEnd = (str: string) => {
 	let res = str;
-	while (res.sub(-1, -1) == " ") res = res.sub(1, -2);
+	while (res.sub(-1, -1) === " ") res = res.sub(1, -2);
 	return res;
 };
 
