@@ -299,7 +299,7 @@ const { isNum: parse_isNum, len: parse_len, toNum: parse_toNum } = poly_fills_na
 
 
 const nullVal = { t: "null", v: void 0 };
-function tokenise(code, invocationId, makeCollsOps = true) {
+function tokenise(code, invocationId, makeCollsOps = true, emitComments = false) {
   const tokens = [];
   const digits = "0123456789";
   let inString = false, isEscaped = false, inStringAt = [0, 0], inSymbol = false, inNumber = false, inComment = false, line = 1, col = 0;
@@ -311,7 +311,7 @@ function tokenise(code, invocationId, makeCollsOps = true) {
         inComment = false;
         ++line;
         col = 0;
-      } else {
+      } else if (emitComments) {
         tokens[parse_len(tokens) - 1].text += c;
       }
       continue;
@@ -350,11 +350,13 @@ function tokenise(code, invocationId, makeCollsOps = true) {
     }
     if (!inString && c === ";") {
       inComment = true;
-      tokens.push({
-        typ: "rem",
-        text: "",
-        errCtx: { invocationId, line, col }
-      });
+      if (emitComments) {
+        tokens.push({
+          typ: "rem",
+          text: "",
+          errCtx: { invocationId, line, col }
+        });
+      }
       continue;
     }
     const errCtx = { invocationId, line, col };

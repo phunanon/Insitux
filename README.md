@@ -548,6 +548,12 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (map @(* 3) [0 1 2 3 4])
 → [0 3 6 9 12]
 
+; Palindrome checker
+(function palindrome? text
+  (.. and (map = text (reverse text))))
+(palindrome? "aabbxbbaa") → true
+(palindrome? "abcd")      → false
+
 ; Clojure's juxt
 (function juxt
   (let funcs args)

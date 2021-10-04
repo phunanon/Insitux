@@ -22,6 +22,7 @@ export function tokenise(
   code: string,
   invocationId: string,
   makeCollsOps = true,
+  emitComments = false,
 ) {
   const tokens: Token[] = [];
   const digits = "0123456789";
@@ -42,7 +43,7 @@ export function tokenise(
         inComment = false;
         ++line;
         col = 0;
-      } else {
+      } else if (emitComments) {
         tokens[len(tokens) - 1].text += c;
       }
       continue;
@@ -82,11 +83,13 @@ export function tokenise(
     }
     if (!inString && c === ";") {
       inComment = true;
-      tokens.push({
-        typ: "rem",
-        text: "",
-        errCtx: { invocationId, line, col },
-      });
+      if (emitComments) {
+        tokens.push({
+          typ: "rem",
+          text: "",
+          errCtx: { invocationId, line, col },
+        });
+      }
       continue;
     }
     const errCtx: ErrCtx = { invocationId, line, col };
