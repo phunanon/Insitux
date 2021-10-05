@@ -5,7 +5,7 @@ async function DomKeydown({ keyCode, shiftKey }) {
   if (![13, 9].includes(keyCode) || shiftKey) {
     return true;
   }
-  const input = $input.value.trim();
+  const input = $input.value;
   setTimeout(() => {
     $input.value = "";
     DomInputResize($input);
@@ -55,7 +55,7 @@ async function DomLoad() {
   state = JSON.parse(localStorage.getItem("repl")) ?? {};
   $input = document.querySelector("textarea");
   $history = document.querySelector("div");
-  $history.innerHTML += `<a href="https://github.com/phunanon/Insitux"><img src="../../media/Insitux64.png"/></a><span>REPL</span>\n`;
+  $history.innerHTML += `<a href="https://github.com/phunanon/Insitux"><img src="../../media/ix64.png"/></a><span>REPL</span>\n`;
   $history.addEventListener("mouseup", e => {
     if (!(getSelection() + "")) {
       $input.focus();

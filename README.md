@@ -1,7 +1,7 @@
 <table>
   <tr>
     <td>
-      <img src="media/Insitux.png" alt="Insitux logo" height="32">
+      <img src="media/insitux.png" alt="Insitux logo" height="32">
     </td>
     <td colspan="3">
       S-expression scripting language written in portable TypeScript.

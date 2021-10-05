@@ -68,7 +68,7 @@ li:not(:first-child) {
 examples {
   font-family: monospace;
   white-space: pre-wrap;
-  background-color: #000;
+  background-color: #1e1e1e;
   color: #fff;
   font-weight: bold;
   display: block;
