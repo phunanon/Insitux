@@ -13,17 +13,17 @@
 			{
 				"directory": "var",
 				"description": [
-					"(var variable-name 123)",
+					"(var a 1 b 2 c 3)",
 					"syntax",
-					"Defines a variable for later use."
+					"Defines one or more variables for later use anywhere in the program."
 				]
 			},
 			{
 				"directory": "let",
 				"description": [
-					"(let variable-name 123)",
+					"(let a 1 b 2 c 3)",
 					"syntax",
-					"Defines a variable for later use within the same function call."
+					"Defines one or more variables for later use within the same function call."
 				]
 			},
 			{

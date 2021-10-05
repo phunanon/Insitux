@@ -396,12 +396,6 @@ function tokenise(code, invocationId, makeCollsOps = true, emitComments = false)
       inNumber = isDigit(c) || c === "." && isDigit(nextCh) || c === "-" && (isDigit(nextCh) || nextCh === ".");
       inSymbol = !inNumber;
       let typ = inSymbol ? "sym" : "num";
-      if (parse_len(tokens)) {
-        const { typ: t, text } = tokens[parse_len(tokens) - 1];
-        if (t === "sym" && (text === "var" || text === "let")) {
-          typ = "ref";
-        }
-      }
       tokens.push({ typ, text: "", errCtx });
     }
     tokens[parse_len(tokens) - 1].text += c;
@@ -490,15 +484,24 @@ function parseForm(tokens, params, checkArity = true) {
     }
     return [...body2, { typ: "cat", value: parse_len(when), errCtx }, ...when];
   } else if (op === "var" || op === "let") {
-    const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
-    const tooManyArgs = parse_len(parseArg(tokens, params));
-    if (!parse_len(def) || !parse_len(val) || tooManyArgs) {
-      return err(`must provide declaration name and value${tooManyArgs ? " only" : ""}`);
+    const ins = [];
+    while (true) {
+      const def = parseArg(tokens, params);
+      if (parse_len(ins) && !parse_len(def)) {
+        return ins;
+      }
+      const val = parseArg(tokens, params);
+      if (!parse_len(ins) && (!parse_len(def) || !parse_len(val))) {
+        return err(`must provide at least one declaration name and value`);
+      } else if (!parse_len(val)) {
+        return err(`must provide a value after each declaration name`);
+      }
+      if (def[0].typ !== "ref") {
+        return err("declaration name must be symbol");
+      }
+      parse_push(ins, val);
+      ins.push({ typ: op, value: def[0].value, errCtx });
     }
-    if (def[0].typ !== "def") {
-      return err("declaration name must be symbol");
-    }
-    return [...val, { typ: op, value: def[0].value, errCtx }];
   } else if (op === "if" || op === "when") {
     const cond = parseArg(tokens, params);
     if (!parse_len(cond)) {
@@ -651,8 +654,6 @@ function parseArg(tokens, params, checkArity = true) {
         return [{ typ: "val", value: { t: "func", v: text }, errCtx }];
       }
       return [{ typ: "ref", value: text, errCtx }];
-    case "ref":
-      return [{ typ: "def", value: text, errCtx }];
     case "(":
       return parseForm(tokens, params, checkArity);
     case ")":
@@ -1109,17 +1110,18 @@ async function doTests(invoke, terse = true) {
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
     const okOut = !out || trim(state.output) === out;
     const elapsedMs = getTimeMs() - startTime;
-    const [testNum, testName, testElapsed, testErrors] = [
+    const [tNum, tName, tElapsed, tOutput, tErrors] = [
       padEnd(`${t + 1}`, 3),
       padEnd(name, 24),
       padEnd(`${elapsedMs}ms`, 6),
+      okOut || out + "	=/=	" + trim(state.output),
       okErr || errors.map(({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`)
     ];
     results.push({
       okErr,
       okOut,
       elapsedMs,
-      display: `${testNum} ${testName} ${testElapsed} ${okOut} ${testErrors}`
+      display: `${tNum} ${tName} ${tElapsed} ${tOutput} ${tErrors}`
     });
   }
   const totalMs = results.reduce((sum, { elapsedMs }) => sum + elapsedMs, 0);
@@ -1128,7 +1130,7 @@ async function doTests(invoke, terse = true) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211004;
+const insituxVersion = 20211005;
 
 
 const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, pi: src_pi, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min } = poly_fills_namespaceObject;

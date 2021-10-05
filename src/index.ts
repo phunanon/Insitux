@@ -1,4 +1,4 @@
-export const insituxVersion = 20211004;
+export const insituxVersion = 20211005;
 import { arityCheck, parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -1020,8 +1020,7 @@ export async function exeFunc(
         ctx.env.vars[value as string] = stack[len(stack) - 1];
         break;
       case "let":
-        lets[len(lets) - 1][value as string] =
-          stack[len(stack) - 1];
+        lets[len(lets) - 1][value as string] = stack[len(stack) - 1];
         break;
       case "npa":
       case "upa":

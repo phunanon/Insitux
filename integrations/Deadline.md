@@ -251,7 +251,7 @@ internal insitux functions
 
 (var variable-name 123)
 ;; syntax
-;; Defines a variable for later use.
+;; Defines a variable for later use anywhere in the program.
 
 (let variable-name 123)
 ;; syntax
@@ -260,6 +260,16 @@ internal insitux functions
 (if true (print "hi") (print "bye"))
 ;; syntax
 ;; Tests a condition and executes either the second or third argument (or null).
+
+(and null (print "hi"))
+;; syntax and function
+;; Tests each argument and returns true or false if all arguments are truthy.
+;; Note: short-circuits evaluation after falsey argument.
+
+(and null true (print "hi"))
+;; syntax and function
+;; Returns first truthy argument or false.
+;; Note: short-circuits evaluation after first truthy argument.
 
 (when true (print "hi") (print "bye"))
 ;; syntax

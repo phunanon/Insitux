@@ -6,7 +6,7 @@ import { ErrCtx, Func, Funcs, Ins, InvokeError, ops, Val } from "./types";
 import { assertUnreachable } from "./types";
 
 type Token = {
-  typ: "str" | "num" | "sym" | "ref" | "rem" | "(" | ")";
+  typ: "str" | "num" | "sym" | "rem" | "(" | ")";
   text: string;
   errCtx: ErrCtx;
 };
@@ -15,7 +15,7 @@ type NamedTokens = {
   tokens: Token[];
   errCtx: ErrCtx;
 };
-type ParserIns = Omit<Ins, "typ"> & { typ: Ins["typ"] | "def" | "err" };
+type ParserIns = Omit<Ins, "typ"> & { typ: Ins["typ"] | "err" };
 const nullVal: Val = { t: "null", v: undefined };
 
 export function tokenise(
@@ -135,12 +135,6 @@ export function tokenise(
         (c === "-" && (isDigit(nextCh) || nextCh === "."));
       inSymbol = !inNumber;
       let typ: Token["typ"] = inSymbol ? "sym" : "num";
-      if (len(tokens)) {
-        const { typ: t, text } = tokens[len(tokens) - 1];
-        if (t === "sym" && (text === "var" || text === "let")) {
-          typ = "ref";
-        }
-      }
       tokens.push({ typ, text: "", errCtx });
     }
     tokens[len(tokens) - 1].text += c;
@@ -243,17 +237,24 @@ function parseForm(
     }
     return [...body, { typ: "cat", value: len(when), errCtx }, ...when];
   } else if (op === "var" || op === "let") {
-    const [def, val] = [parseArg(tokens, params), parseArg(tokens, params)];
-    const tooManyArgs = len(parseArg(tokens, params));
-    if (!len(def) || !len(val) || tooManyArgs) {
-      return err(
-        `must provide declaration name and value${tooManyArgs ? " only" : ""}`,
-      );
+    const ins: Ins[] = [];
+    while (true) {
+      const def = parseArg(tokens, params);
+      if (len(ins) && !len(def)) {
+        return ins;
+      }
+      const val = parseArg(tokens, params);
+      if (!len(ins) && (!len(def) || !len(val))) {
+        return err(`must provide at least one declaration name and value`);
+      } else if (!len(val)) {
+        return err(`must provide a value after each declaration name`);
+      }
+      if (def[0].typ !== "ref") {
+        return err("declaration name must be symbol");
+      }
+      push(ins, val);
+      ins.push({ typ: op, value: def[0].value, errCtx });
     }
-    if (def[0].typ !== "def") {
-      return err("declaration name must be symbol");
-    }
-    return [...val, { typ: op, value: def[0].value, errCtx }];
   } else if (op === "if" || op === "when") {
     const cond = parseArg(tokens, params);
     if (!len(cond)) {
@@ -430,8 +431,6 @@ function parseArg(
         return [{ typ: "val", value: <Val>{ t: "func", v: text }, errCtx }];
       }
       return [{ typ: "ref", value: text, errCtx }];
-    case "ref":
-      return [{ typ: "def", value: text, errCtx }];
     case "(":
       return parseForm(tokens, params, checkArity);
     case ")":

@@ -372,10 +372,11 @@ export async function doTests(
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
     const okOut = !out || trim(state.output) === out;
     const elapsedMs = getTimeMs() - startTime;
-    const [testNum, testName, testElapsed, testErrors] = [
+    const [tNum, tName, tElapsed, tOutput, tErrors] = [
       padEnd(`${t + 1}`, 3),
       padEnd(name, 24),
       padEnd(`${elapsedMs}ms`, 6),
+      okOut || out + "\t=/=\t" + trim(state.output),
       okErr ||
         errors.map(
           ({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`,
@@ -385,7 +386,7 @@ export async function doTests(
       okErr,
       okOut,
       elapsedMs,
-      display: `${testNum} ${testName} ${testElapsed} ${okOut} ${testErrors}`,
+      display: `${tNum} ${tName} ${tElapsed} ${tOutput} ${tErrors}`,
     });
   }
   const totalMs = results.reduce((sum, { elapsedMs }) => sum + elapsedMs, 0);

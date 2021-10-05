@@ -1,12 +1,25 @@
 <table>
   <tr>
-    <td><img src="media/Insitux.png" alt="Insitux logo" height="32"></td>
-    <td><a href="https://phunanon.github.io/Insitux">Website</a></td>
-    <td><a href="https://phunanon.github.io/Insitux/website/repl">Try in online REPL</a></td>
-    <td><a href="https://discord.gg/w3Fc4YZ9Qw">Join on Discord</a> <img src="website/DiscordLogo.png" alt="Insitux logo" height="16"></td>
+    <td>
+      <img src="media/Insitux.png" alt="Insitux logo" height="32">
+    </td>
+    <td colspan="3">
+      S-expression scripting language written in portable TypeScript.
+    </td>
   </tr>
   <tr>
-    <td colspan="4">S-expression scripting language written in portable TypeScript.</td>
+    <td>
+      <a href="https://phunanon.github.io/Insitux">Website</a>
+    </td>
+    <td>
+      <a href="https://phunanon.github.io/Insitux/website/repl">Try online</a>
+    </td>
+    <td>
+      <a href="https://discord.gg/w3Fc4YZ9Qw">
+        Talk with us
+        <img src="website/DiscordLogo.png" alt="Insitux logo" height="16">
+      </a>
+    </td>
   </tr>
 </table>
 
@@ -66,17 +79,19 @@ built-in operations each within an example, with results after a `→`.
 (print-str "world!")
 → Hello, world!
 
-;Defines a variable for later use anywhere in the program
-(var my-number 123)
-(print my-number)
-→ 123
+;Defines one or more variables for later use anywhere in the program
+(var my-number 123) → 123
+(print my-number)   → 123
+(var a 1 b 2 c 3)   → 3
+[a b c]             → [1 2 3]
 
-;Defines a variable for use only within one function call
+;Defines one or more variables for use only within one function call
 (function test
-  (let my-number 123)
-  (print my-number))
+  (let name "Patrick")
+  (let a 1 b 2 c 3)
+  [name a b c])
 (test)
-→ 123
+→ ["Patrick" 1 2 3]
 
 ;Tests a condition and executes either the second or third argument
 (if true 1 2) → 1
@@ -441,7 +456,7 @@ A named function is declared using `function` at the head of an expression, foll
 ;  body
 ```
 
-*Parameters* are referenceable names declared in a function, and *arguments* are values actually passed to a function. All arguments are accessible through the `args` let, a vector of values. If a function is underloaded (given fewer arguments than parameters specified) then un-populated parameters are `null`. If a function is overloaded the extra arguments are still accessible though the `args` let.
+_Parameters_ are referenceable names declared in a function, and _arguments_ are values actually passed to a function. All arguments are accessible through the `args` let, a vector of values. If a function is underloaded (given fewer arguments than parameters specified) then un-populated parameters are `null`. If a function is overloaded the extra arguments are still accessible though the `args` let.
 
 ```clj
 ; Valid function definitions
@@ -464,7 +479,7 @@ A named function is declared using `function` at the head of an expression, foll
 (function name)
 ```
 
-Calling a function itself again from within is called *recurring*. To immediately recur use the `recur` syntax, as it will optimise the program to use less memory and perform faster.
+Calling a function itself again from within is called _recurring_. To immediately recur use the `recur` syntax, as it will optimise the program to use less memory and perform faster.
 
 ```clj
 (function f n
@@ -575,8 +590,8 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 
 ; Deduplicate a list recursively
 (function dedupe list -out
-  (let out (or -out []))
-  (let next (if (out (0 list)) [] [(0 list)]))
+  (let out  (or -out [])
+       next (if (out (0 list)) [] [(0 list)]))
   (if (empty? list) out
     (recur (sect list) (into out next))))
 ;or deduplicate a list via dictionary keys
@@ -596,17 +611,15 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 ; Display the Mandelbrot fractal as ASCII
 (function mandelbrot width height depth
   (.. str (for #(do
-    (let c_re (/ (* (- % (/ width 2)) 4) width))
-    (let c_im (/ (* (- %1 (/ height 2)) 4) width))
-    (let x 0)
-    (let y 0)
-    (let i 0)
+    (let c_re (/ (* (- % (/ width 2)) 4) width)
+         c_im (/ (* (- %1 (/ height 2)) 4) width))
+    (let x 0 y 0 i 0)
     (while (and (<= (+ (** x) (** y)) 4)
                 (< i depth))
-      (let x_new (+ (- (** x) (** y)) c_re))
-      (let y (+ (* 2 x y) c_im))
-      (let x x_new)
-      (let i (inc i)))
+      (let x2 (+ (- (** x) (** y)) c_re)
+           y  (+ (* 2 x y) c_im)
+           x  x2
+           i  (inc i)))
     (str (if (zero? %) "\n" "") (if (< i depth) "#" " ")))
     (range width) (range height))))
 (mandelbrot 48 32 10)
