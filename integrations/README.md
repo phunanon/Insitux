@@ -16,6 +16,6 @@ Insitux generally expects you have implemented `print` and `print-str` via `exe:
 ```ts
 const val: Val = {t: "str", v: "hello"};
 if (visStr(val)) {
-  //Here v is understood to be a string, not unknown
+  //Here val.v is understood to be a string, not unknown
 }
 ```

@@ -454,31 +454,23 @@ function partitionWhen<T>(
   return [a, b];
 }
 
-function partition<T>(array: T[], predicate: (item: T) => boolean): [T[], T[]] {
-  const a: T[] = [],
-    b: T[] = [];
-  array.forEach(x => (predicate(x) ? b : a).push(x));
-  return [a, b];
-}
-
 function syntaxise(
   { name, tokens }: NamedTokens,
   errCtx: ErrCtx,
-): {
-  func?: Func;
-  err?: InvokeError;
-} {
+): ["func", Func] | ["err", InvokeError] {
+  const err = (m: string, eCtx = errCtx) =>
+    <ReturnType<typeof syntaxise>>["err", { e: "Parse", m, errCtx: eCtx }];
   const [params, body] = partitionWhen(
     tokens,
     t => t.typ !== "sym" || sub("%#@", t.text),
   );
   //In the case of e.g. (function (+))
   if (name === "(") {
-    return { err: { e: "Parse", m: "nameless function", errCtx } };
+    return err("nameless function");
   }
   //In the case of e.g. (function)
   if (!len(params) && !len(body)) {
-    return { err: { e: "Parse", m: "empty function body", errCtx } };
+    return err("empty function body");
   }
   if (len(body) && body[0].typ === ")") {
     if (len(params)) {
@@ -486,7 +478,7 @@ function syntaxise(
       body.unshift(params.pop()!);
     } else {
       //In the case of e.g. (function name)
-      return { err: { e: "Parse", m: "empty function body", errCtx } };
+      return err("empty function body");
     }
   }
   //In the case of e.g. (function entry x y z)
@@ -503,17 +495,11 @@ function syntaxise(
       ),
     );
   }
-  const parseErrors = ins.filter(i => i.typ === "err");
-  if (len(parseErrors)) {
-    return {
-      err: {
-        e: "Parse",
-        m: <string>parseErrors[0].value,
-        errCtx: parseErrors[0].errCtx,
-      },
-    };
+  const parseError = ins.find(i => i.typ === "err");
+  if (parseError) {
+    return err(<string>parseError.value, parseError.errCtx);
   }
-  return { func: { name, ins: <Ins[]>ins } };
+  return ["func", { name, ins: <Ins[]>ins }];
 }
 
 function findParenImbalance(
@@ -543,11 +529,8 @@ function findParenImbalance(
   return [0, 0];
 }
 
-function errorDetect(
-  stringError: number[] | undefined,
-  tokens: Token[],
-  invocationId: string,
-) {
+function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
+  const invocationId = len(tokens) ? tokens[0].errCtx.invocationId : "";
   const errors: InvokeError[] = [];
   const err = (m: string, errCtx: ErrCtx) =>
     errors.push({ e: "Parse", m, errCtx });
@@ -590,9 +573,9 @@ export function parse(
   invocationId: string,
 ): { funcs: Funcs; errors: InvokeError[] } {
   const { tokens, stringError } = tokenise(code, invocationId);
-  const errors = errorDetect(stringError, tokens, invocationId);
-  if (len(errors)) {
-    return { errors, funcs: {} };
+  const tokenErrors = tokenErrorDetect(stringError, tokens);
+  if (len(tokenErrors)) {
+    return { errors: tokenErrors, funcs: {} };
   }
   const segments = segment(tokens);
   const labelled = funcise(segments);
@@ -603,12 +586,16 @@ export function parse(
       col: named.errCtx.col,
     }),
   );
-  const [funcArr, synErrors] = partition(funcsAndErrors, fae => !!fae.err);
-  push(
-    errors,
-    synErrors.map(fae => fae.err!),
-  );
+  const okFuncs: Func[] = [],
+    syntaxErrors: InvokeError[] = [];
+  funcsAndErrors.forEach(fae => {
+    if (fae[0] === "err") {
+      syntaxErrors.push(fae[1]);
+    } else {
+      okFuncs.push(fae[1]);
+    }
+  });
   const funcs: Funcs = {};
-  funcArr.forEach(({ func }) => (funcs[func!.name] = func!));
-  return { errors, funcs };
+  okFuncs.forEach(func => (funcs[func.name] = func));
+  return { errors: syntaxErrors, funcs };
 }

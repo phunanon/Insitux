@@ -178,7 +178,7 @@ const log10 = Math.log10;
 const ops = {
   print: {},
   "print-str": {},
-  "!": { exactArity: 1 },
+  "!": { exactArity: 1, returns: ["bool"] },
   "=": { minArity: 2 },
   "!=": { minArity: 2 },
   "+": { minArity: 2, onlyNum: true },
@@ -671,24 +671,20 @@ function partitionWhen(array, predicate) {
   }
   return [a, b];
 }
-function partition(array, predicate) {
-  const a = [], b = [];
-  array.forEach((x) => (predicate(x) ? b : a).push(x));
-  return [a, b];
-}
 function syntaxise({ name, tokens }, errCtx) {
+  const err = (m, eCtx = errCtx) => ["err", { e: "Parse", m, errCtx: eCtx }];
   const [params, body] = partitionWhen(tokens, (t) => t.typ !== "sym" || parse_sub("%#@", t.text));
   if (name === "(") {
-    return { err: { e: "Parse", m: "nameless function", errCtx } };
+    return err("nameless function");
   }
   if (!parse_len(params) && !parse_len(body)) {
-    return { err: { e: "Parse", m: "empty function body", errCtx } };
+    return err("empty function body");
   }
   if (parse_len(body) && body[0].typ === ")") {
     if (parse_len(params)) {
       body.unshift(params.pop());
     } else {
-      return { err: { e: "Parse", m: "empty function body", errCtx } };
+      return err("empty function body");
     }
   }
   if (parse_len(params) && !parse_len(body)) {
@@ -698,17 +694,11 @@ function syntaxise({ name, tokens }, errCtx) {
   while (parse_len(body)) {
     parse_push(ins, parseArg(body, params.map((p) => p.text)));
   }
-  const parseErrors = ins.filter((i) => i.typ === "err");
-  if (parse_len(parseErrors)) {
-    return {
-      err: {
-        e: "Parse",
-        m: parseErrors[0].value,
-        errCtx: parseErrors[0].errCtx
-      }
-    };
+  const parseError = ins.find((i) => i.typ === "err");
+  if (parseError) {
+    return err(parseError.value, parseError.errCtx);
   }
-  return { func: { name, ins } };
+  return ["func", { name, ins }];
 }
 function findParenImbalance(tokens, numL, numR) {
   const untimely = numR >= numL;
@@ -726,7 +716,8 @@ function findParenImbalance(tokens, numL, numR) {
   }
   return [0, 0];
 }
-function errorDetect(stringError, tokens, invocationId) {
+function tokenErrorDetect(stringError, tokens) {
+  const invocationId = parse_len(tokens) ? tokens[0].errCtx.invocationId : "";
   const errors = [];
   const err = (m, errCtx) => errors.push({ e: "Parse", m, errCtx });
   const countTyp = (t) => parse_len(tokens.filter(({ typ }) => typ === t));
@@ -756,9 +747,9 @@ function errorDetect(stringError, tokens, invocationId) {
 }
 function parse(code, invocationId) {
   const { tokens, stringError } = tokenise(code, invocationId);
-  const errors = errorDetect(stringError, tokens, invocationId);
-  if (parse_len(errors)) {
-    return { errors, funcs: {} };
+  const tokenErrors = tokenErrorDetect(stringError, tokens);
+  if (parse_len(tokenErrors)) {
+    return { errors: tokenErrors, funcs: {} };
   }
   const segments = segment(tokens);
   const labelled = funcise(segments);
@@ -767,11 +758,17 @@ function parse(code, invocationId) {
     line: named.errCtx.line,
     col: named.errCtx.col
   }));
-  const [funcArr, synErrors] = partition(funcsAndErrors, (fae) => !!fae.err);
-  parse_push(errors, synErrors.map((fae) => fae.err));
+  const okFuncs = [], syntaxErrors = [];
+  funcsAndErrors.forEach((fae) => {
+    if (fae[0] === "err") {
+      syntaxErrors.push(fae[1]);
+    } else {
+      okFuncs.push(fae[1]);
+    }
+  });
   const funcs = {};
-  funcArr.forEach(({ func }) => funcs[func.name] = func);
-  return { errors, funcs };
+  okFuncs.forEach((func) => funcs[func.name] = func);
+  return { errors: syntaxErrors, funcs };
 }
 
 ;// CONCATENATED MODULE: ./src/test.ts
