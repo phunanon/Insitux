@@ -568,6 +568,7 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 ; Palindrome checker
 (function palindrome? text
   (.. and (map = text (reverse text))))
+
 (palindrome? "aabbxbbaa") → true
 (palindrome? "abcd")      → false
 
@@ -588,6 +589,13 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (map (comp + inc) [0 1 2 3 4] [0 1 2 3 4])
 → [1 3 5 7 9]
 
+; Clojure's frequencies
+(function frequencies list
+  (reduce #(push % %1 (inc (or (% %1) 0))) list {}))
+
+(frequencies "hello")
+→ {"h" 1, "e" 1, "l" 2, "o" 1}
+
 ; Deduplicate a list recursively
 (function dedupe list -out
   (let out  (or -out [])
@@ -605,8 +613,8 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (function measure
   (let report [(time) (.. .. args) (time)])
   (str (1 report) " took " (- (2 report) (0 report)) "ms"))
-(measure fib 35)
-→ "9227465 took 45500ms"
+
+(measure fib 35) → "9227465 took 45500ms"
 
 ; Display the Mandelbrot fractal as ASCII
 (function mandelbrot width height depth
@@ -622,5 +630,6 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
            i  (inc i)))
     (str (if (zero? %) "\n" "") (if (< i depth) "#" " ")))
     (range width) (range height))))
+
 (mandelbrot 48 32 10)
 ```
