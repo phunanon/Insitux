@@ -8,14 +8,3 @@ Next, replace the contents of `poly-fills.ts` with the contents of [Roblox-ts-po
 
 Next is up to you. `index.ts`'s `invoke()` must be supplied with a context you implement, and per invocation given a unique/randomised/incremented invocationId.  
 Insitux generally expects you have implemented `print` and `print-str` via `exe: (name: string, args: Val[]) => Promise<ValAndErr>;`.
-
-**Working with Val**
-
-`Val` is a type used throughout Insitux internally. Property `t` informs you of the type of `v`. Make use of `visStr()`, `visNum()`, etc to ensure the correct types. For example:
-
-```ts
-const val: Val = {t: "str", v: "hello"};
-if (visStr(val)) {
-  //Here val.v is understood to be a string, not unknown
-}
-```

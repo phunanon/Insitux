@@ -1,9 +1,10 @@
 import * as pf from "./poly-fills";
-const { concat, has, flat, push, slice } = pf;
+const { concat, has, flat, push, slice, splice } = pf;
 const { slen, starts, sub, substr, strIdx } = pf;
-const { isNum, len, toNum } = pf;
-import { ErrCtx, Func, Funcs, Ins, InvokeError, ops, Val } from "./types";
+const { isNum, len, toNum, isArray } = pf;
+import { ErrCtx, Func, Funcs, Ins, ops, typeNames, Val } from "./types";
 import { assertUnreachable } from "./types";
+import { InvokeError, typeErr, keyOpErr, numOpErr } from "./types";
 
 type Token = {
   typ: "str" | "num" | "sym" | "rem" | "(" | ")";
@@ -15,7 +16,7 @@ type NamedTokens = {
   tokens: Token[];
   errCtx: ErrCtx;
 };
-type ParserIns = Omit<Ins, "typ"> & { typ: Ins["typ"] | "err" };
+type ParserIns = Ins | { typ: "err"; value: string; errCtx: ErrCtx };
 const nullVal: Val = { t: "null", v: undefined };
 
 export function tokenise(
@@ -214,6 +215,64 @@ export function arityCheck(op: string, nArg: number, errCtx: ErrCtx) {
   }
 }
 
+export function typeCheck(
+  op: string,
+  args: (Val["t"][] | undefined)[],
+  errCtx: ErrCtx,
+  optimistic = false,
+): InvokeError[] | undefined {
+  const { types, numeric: onlyNum } = ops[op];
+  const nArg = len(args);
+  if (onlyNum) {
+    const nonNumArgIdx = args.findIndex(
+      a => a && (optimistic ? !a.find(t => t === "num") : a[0] !== "num"),
+    );
+    if (nonNumArgIdx === -1) {
+      return;
+    }
+    const names = args[nonNumArgIdx]!.map(t => typeNames[t]).join(", ");
+    return [
+      typeErr(`${op} takes numeric arguments only, not ${names}`, errCtx),
+    ];
+  }
+  if (!types) {
+    return;
+  }
+  const typeViolations = types
+    .map((need, i) => {
+      if (i >= nArg || !args[i]) {
+        return false;
+      }
+      const argTypes = args[i]!;
+      if (isArray(need)) {
+        if (
+          optimistic
+            ? argTypes.some(t => has(need, t))
+            : len(argTypes) === 1 && has(need, argTypes[0])
+        ) {
+          return false;
+        }
+        const names = argTypes.map(t => typeNames[t]);
+        const needs = need.map(t => typeNames[t]).join(", ");
+        return `argument ${i + 1} must be either: ${needs}, not ${names}`;
+      } else {
+        if (
+          optimistic
+            ? has(argTypes, need)
+            : len(argTypes) === 1 && need === argTypes[0]
+        ) {
+          return false;
+        }
+        const names = argTypes.map(t => typeNames[t]);
+        return `argument ${i + 1} must be ${typeNames[need]}, not ${names}`;
+      }
+    })
+    .filter(r => !!r);
+  return len(typeViolations)
+    ? typeViolations.map(v => typeErr(<string>v, errCtx))
+    : undefined;
+}
+
 function parseForm(
   tokens: Token[],
   params: string[],
@@ -239,21 +298,22 @@ function parseForm(
   } else if (op === "var" || op === "let") {
     const ins: Ins[] = [];
     while (true) {
-      const def = parseArg(tokens, params);
-      if (len(ins) && !len(def)) {
+      const defIns = parseArg(tokens, params);
+      if (len(ins) && !len(defIns)) {
         return ins;
       }
       const val = parseArg(tokens, params);
-      if (!len(ins) && (!len(def) || !len(val))) {
+      if (!len(ins) && (!len(defIns) || !len(val))) {
         return err(`must provide at least one declaration name and value`);
       } else if (!len(val)) {
         return err(`must provide a value after each declaration name`);
       }
-      if (def[0].typ !== "ref") {
+      const def = defIns[0];
+      if (def.typ !== "ref") {
         return err("declaration name must be symbol");
       }
       push(ins, val);
-      ins.push({ typ: op, value: def[0].value, errCtx });
+      ins.push({ typ: op, value: def.value, errCtx });
     }
   } else if (op === "if" || op === "when") {
     const cond = parseArg(tokens, params);
@@ -400,7 +460,14 @@ function parseArg(
   ) {
     const texts = tokens.map(t => t.text);
     const body = parseArg(tokens, params, text !== "@");
-    const value = [slice(texts, 0, len(texts) - len(tokens)).join(" "), body];
+    const err = body.find(t => t.typ === "err");
+    if (err) {
+      return [err];
+    }
+    const value: [string, Ins[]] = [
+      slice(texts, 0, len(texts) - len(tokens)).join(" "),
+      <Ins[]>body,
+    ];
     return [{ typ: text === "#" ? "clo" : "par", value, errCtx }];
   }
   switch (typ) {
@@ -568,6 +635,96 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   return errors;
 }
 
+function insErrorDetect(fins: Ins[]): InvokeError[] {
+  type TypeInfo = {
+    types?: Val["t"][];
+    val?: Val;
+  };
+  const stack: TypeInfo[] = [];
+  for (let i = 0, lim = len(fins); i < lim; ++i) {
+    const ins = fins[i];
+    switch (ins.typ) {
+      case "val":
+        stack.push({ types: [ins.value.t], val: ins.value });
+        break;
+      case "exe": {
+        const head = stack.pop()!;
+        const args = splice(stack, len(stack) - ins.value, ins.value);
+        const badMatch = (okTypes: Val["t"][]) =>
+          args.findIndex(
+            ({ types }) => types && !okTypes.find(t => has(types, t)),
+          );
+        const headIs = (t: Val["t"]) =>
+          head.val
+            ? head.val.t === t
+            : head.types && len(head.types) === 1 && head.types[0] === t;
+        if (head.val && head.val.t === "func") {
+          const errors = typeCheck(
+            head.val.v,
+            args.map(a => a.types),
+            ins.errCtx,
+            true,
+          );
+          if (errors) {
+            return errors;
+          }
+          const { returns, numeric: onlyNum } = ops[head.val.v];
+          stack.push(
+            onlyNum && onlyNum !== "in only" ? { types: ["num"] } : { types: returns },
+          );
+        } else if (headIs("num")) {
+          const badArg = badMatch(["str", "dict", "vec"]);
+          if (badArg !== -1) {
+            return numOpErr(ins.errCtx, args[badArg].types!);
+          }
+        } else if (headIs("key")) {
+          const badArg = badMatch(["dict", "vec"]);
+          if (badArg !== -1) {
+            return keyOpErr(ins.errCtx, args[badArg].types!);
+          }
+        }
+        break;
+      }
+      case "cat":
+      case "or":
+      case "var":
+      case "let":
+      case "loo":
+        break;
+      case "clo":
+      case "par": {
+        const errors = insErrorDetect(ins.value[1]);
+        if (errors) {
+          return errors;
+        }
+      }
+      case "ref":
+      case "npa":
+      case "upa":
+        stack.push({});
+        break;
+      case "if":
+        stack.pop();
+        stack.push({});
+      case "jmp":
+        i += ins.value - (ins.typ === "if" ? 1 : 0);
+        break;
+      case "pop":
+      case "rec":
+        splice(stack, len(stack) - ins.value, ins.value);
+        break;
+      case "ret":
+        if (ins.value) {
+          stack.pop();
+        }
+        break;
+      default:
+        assertUnreachable(ins);
+    }
+  }
+  return [];
+}
+
 export function parse(
   code: string,
   invocationId: string,
@@ -587,15 +744,16 @@ export function parse(
     }),
   );
   const okFuncs: Func[] = [],
-    syntaxErrors: InvokeError[] = [];
+    errors: InvokeError[] = [];
   funcsAndErrors.forEach(fae => {
     if (fae[0] === "err") {
-      syntaxErrors.push(fae[1]);
+      errors.push(fae[1]);
     } else {
       okFuncs.push(fae[1]);
     }
   });
+  push(errors, flat(okFuncs.map(f => insErrorDetect(f.ins))));
   const funcs: Funcs = {};
   okFuncs.forEach(func => (funcs[func.name] = func));
-  return { errors: syntaxErrors, funcs };
+  return { errors, funcs };
 }

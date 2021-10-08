@@ -127,6 +127,15 @@ __webpack_require__.d(poly_fills_namespaceObject, {
   "upperCase": () => (upperCase)
 });
 
+// NAMESPACE OBJECT: ./src/index.ts
+var src_namespaceObject = {};
+__webpack_require__.r(src_namespaceObject);
+__webpack_require__.d(src_namespaceObject, {
+  "i$": () => (insituxVersion),
+  "dw": () => (invoke),
+  "uH": () => (symbols)
+});
+
 ;// CONCATENATED MODULE: ./src/poly-fills.ts
 const toNum = (x) => Number(x);
 const slice = (arr, start, end) => arr.slice(start, end);
@@ -176,70 +185,74 @@ const log10 = Math.log10;
 
 ;// CONCATENATED MODULE: ./src/types.ts
 const ops = {
-  print: {},
-  "print-str": {},
+  print: { returns: ["null"] },
+  "print-str": { returns: ["null"] },
   "!": { exactArity: 1, returns: ["bool"] },
   "=": { minArity: 2 },
   "!=": { minArity: 2 },
-  "+": { minArity: 2, onlyNum: true },
-  "-": { minArity: 1, onlyNum: true },
-  "*": { minArity: 2, onlyNum: true },
-  "/": { minArity: 2, onlyNum: true },
-  "//": { minArity: 2, onlyNum: true },
-  "**": { minArity: 1, onlyNum: true },
-  "<": { minArity: 2, onlyNum: true },
-  ">": { minArity: 2, onlyNum: true },
-  "<=": { minArity: 2, onlyNum: true },
-  ">=": { minArity: 2, onlyNum: true },
-  inc: { exactArity: 1, onlyNum: true },
-  dec: { exactArity: 1, onlyNum: true },
-  min: { minArity: 2, onlyNum: true },
-  max: { minArity: 2, onlyNum: true },
-  abs: { exactArity: 1, onlyNum: true },
-  pi: { exactArity: 0 },
-  sqrt: { exactArity: 1, onlyNum: true },
-  round: { exactArity: 1, onlyNum: true },
-  floor: { exactArity: 1, onlyNum: true },
-  ceil: { exactArity: 1, onlyNum: true },
-  logn: { exactArity: 1, onlyNum: true },
-  log2: { exactArity: 1, onlyNum: true },
-  log10: { exactArity: 1, onlyNum: true },
+  "+": { minArity: 2, numeric: true },
+  "-": { minArity: 1, numeric: true },
+  "*": { minArity: 2, numeric: true },
+  "/": { minArity: 2, numeric: true },
+  "//": { minArity: 2, numeric: true },
+  "**": { minArity: 1, numeric: true },
+  "<": { minArity: 2, numeric: true },
+  ">": { minArity: 2, numeric: true },
+  "<=": { minArity: 2, numeric: true },
+  ">=": { minArity: 2, numeric: true },
+  inc: { exactArity: 1, numeric: true },
+  dec: { exactArity: 1, numeric: true },
+  min: { minArity: 2, numeric: true },
+  max: { minArity: 2, numeric: true },
+  abs: { exactArity: 1, numeric: true },
+  pi: { exactArity: 0, numeric: true },
+  sqrt: { exactArity: 1, numeric: true },
+  round: { exactArity: 1, numeric: true },
+  floor: { exactArity: 1, numeric: true },
+  ceil: { exactArity: 1, numeric: true },
+  logn: { exactArity: 1, numeric: true },
+  log2: { exactArity: 1, numeric: true },
+  log10: { exactArity: 1, numeric: true },
   and: { minArity: 1 },
   or: { minArity: 1 },
-  "odd?": { exactArity: 1, onlyNum: true },
-  "even?": { exactArity: 1, onlyNum: true },
-  "pos?": { exactArity: 1, onlyNum: true },
-  "neg?": { exactArity: 1, onlyNum: true },
-  "zero?": { exactArity: 1, onlyNum: true },
-  "null?": { exactArity: 1 },
-  "num?": { exactArity: 1 },
-  "bool?": { exactArity: 1 },
-  "str?": { exactArity: 1 },
-  "vec?": { exactArity: 1 },
-  "dict?": { exactArity: 1 },
-  "key?": { exactArity: 1 },
-  "func?": { exactArity: 1 },
-  rem: { minArity: 2, onlyNum: true },
-  sin: { exactArity: 1, onlyNum: true },
-  cos: { exactArity: 1, onlyNum: true },
-  tan: { exactArity: 1, onlyNum: true },
-  vec: {},
-  dict: {},
-  len: { exactArity: 1, types: [["str", "vec", "dict"]] },
-  "to-num": { exactArity: 1, types: [["str", "num"]] },
-  "to-key": { exactArity: 1, types: [["str", "num"]] },
-  "has?": { exactArity: 2, types: ["str", "str"] },
-  idx: { minArity: 2, maxArity: 3, types: [["str", "vec"]] },
-  map: { minArity: 2 },
-  for: { minArity: 2 },
+  "odd?": { exactArity: 1, numeric: "in only", returns: ["bool"] },
+  "even?": { exactArity: 1, numeric: "in only", returns: ["bool"] },
+  "pos?": { exactArity: 1, numeric: "in only", returns: ["bool"] },
+  "neg?": { exactArity: 1, numeric: "in only", returns: ["bool"] },
+  "zero?": { exactArity: 1, numeric: "in only", returns: ["bool"] },
+  "null?": { exactArity: 1, returns: ["bool"] },
+  "num?": { exactArity: 1, returns: ["bool"] },
+  "bool?": { exactArity: 1, returns: ["bool"] },
+  "str?": { exactArity: 1, returns: ["bool"] },
+  "vec?": { exactArity: 1, returns: ["bool"] },
+  "dict?": { exactArity: 1, returns: ["bool"] },
+  "key?": { exactArity: 1, returns: ["bool"] },
+  "func?": { exactArity: 1, returns: ["bool"] },
+  rem: { minArity: 2, numeric: true },
+  sin: { exactArity: 1, numeric: true },
+  cos: { exactArity: 1, numeric: true },
+  tan: { exactArity: 1, numeric: true },
+  vec: { returns: ["vec"] },
+  dict: { returns: ["dict"] },
+  len: { exactArity: 1, types: [["str", "vec", "dict"]], returns: ["num"] },
+  "to-num": {
+    exactArity: 1,
+    types: [["str", "num"]],
+    returns: ["num", "null"]
+  },
+  "to-key": { exactArity: 1, types: [["str", "num"]], returns: ["key"] },
+  "has?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
+  idx: { minArity: 2, maxArity: 3, types: [["str", "vec"]], returns: ["num"] },
+  map: { minArity: 2, returns: ["vec"] },
+  for: { minArity: 2, returns: ["vec"] },
   reduce: { minArity: 2, maxArity: 3 },
-  filter: { minArity: 2 },
-  remove: { minArity: 2 },
+  filter: { minArity: 2, returns: ["vec"] },
+  remove: { minArity: 2, returns: ["vec"] },
   find: { minArity: 2 },
-  count: { minArity: 2 },
-  str: {},
-  rand: { maxArity: 2, onlyNum: true },
-  "rand-int": { maxArity: 2, onlyNum: true },
+  count: { minArity: 2, returns: ["num"] },
+  str: { returns: ["str"] },
+  rand: { maxArity: 2, numeric: true, returns: ["num"] },
+  "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },
   while: {},
   "..": { minArity: 2 },
   "...": { minArity: 2 },
@@ -248,32 +261,47 @@ const ops = {
     types: [
       ["vec", "dict"],
       ["vec", "dict"]
-    ]
+    ],
+    returns: ["vec", "dict"]
   },
-  push: { minArity: 2, maxArity: 3, types: [["vec", "dict"]] },
-  sect: { minArity: 1, maxArity: 3, types: [["vec", "str"], "num", "num"] },
-  reverse: { exactArity: 1, types: [["vec", "str"]] },
-  sort: { minArity: 1, maxArity: 2, types: ["vec"] },
+  push: {
+    minArity: 2,
+    maxArity: 3,
+    types: [["vec", "dict"]],
+    returns: ["vec", "dict"]
+  },
+  sect: {
+    minArity: 1,
+    maxArity: 3,
+    types: [["vec", "str"], "num", "num"],
+    returns: ["vec", "str"]
+  },
+  reverse: { exactArity: 1, types: [["vec", "str"]], returns: ["vec", "str"] },
+  sort: { minArity: 1, maxArity: 2, types: ["vec"], returns: ["vec"] },
   keys: { exactArity: 1, types: ["dict"] },
   vals: { exactArity: 1, types: ["dict"] },
   do: { minArity: 1 },
   val: { minArity: 1 },
-  range: { minArity: 1, maxArity: 3, types: ["num", "num", "num"] },
-  "empty?": { exactArity: 1, types: [["str", "vec", "dict"]] },
-  split: { minArity: 1, maxArity: 2, types: ["str", "str"] },
-  join: { minArity: 1, maxArity: 2, types: ["vec", "str"] },
-  "starts-with?": { exactArity: 2, types: ["str", "str"] },
-  "ends-with?": { exactArity: 2, types: ["str", "str"] },
-  "lower-case": { exactArity: 1, types: ["str"] },
-  "upper-case": { exactArity: 1, types: ["str"] },
-  trim: { exactArity: 1, types: ["str"] },
-  "trim-start": { exactArity: 1, types: ["str"] },
-  "trim-end": { exactArity: 1, types: ["str"] },
-  "str*": { exactArity: 2, types: ["str", "num"] },
-  time: { exactArity: 0 },
-  version: { exactArity: 0 },
-  tests: { minArity: 0, maxArity: 1, types: ["bool"] },
-  symbols: { exactArity: 0 },
+  range: { minArity: 1, maxArity: 3, numeric: true },
+  "empty?": {
+    exactArity: 1,
+    types: [["str", "vec", "dict"]],
+    returns: ["bool"]
+  },
+  split: { minArity: 1, maxArity: 2, types: ["str", "str"], returns: ["vec"] },
+  join: { minArity: 1, maxArity: 2, types: ["vec", "str"], returns: ["str"] },
+  "starts-with?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
+  "ends-with?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
+  "lower-case": { exactArity: 1, types: ["str"], returns: ["str"] },
+  "upper-case": { exactArity: 1, types: ["str"], returns: ["str"] },
+  trim: { exactArity: 1, types: ["str"], returns: ["str"] },
+  "trim-start": { exactArity: 1, types: ["str"], returns: ["str"] },
+  "trim-end": { exactArity: 1, types: ["str"], returns: ["str"] },
+  "str*": { exactArity: 2, types: ["str", "num"], returns: ["str"] },
+  time: { exactArity: 0, returns: ["num"] },
+  version: { exactArity: 0, returns: ["num"] },
+  tests: { minArity: 0, maxArity: 1, types: ["bool"], returns: ["str"] },
+  symbols: { exactArity: 0, returns: ["vec"] },
   eval: { exactArity: 1, types: ["str"] },
   reset: { exactArity: 0 }
 };
@@ -290,12 +318,30 @@ const typeNames = {
   clo: "closure"
 };
 const assertUnreachable = (_x) => 0;
+const typeErr = (m, errCtx) => ({
+  e: "Type",
+  m,
+  errCtx
+});
+function numOpErr(errCtx, types) {
+  const names = types.map((t) => typeNames[t]).join(", ");
+  return [
+    typeErr(`number as operation argument must be string, vector, or dictionary, not ${names}`, errCtx)
+  ];
+}
+function keyOpErr(errCtx, types) {
+  const names = types.map((t) => typeNames[t]).join(", ");
+  return [
+    typeErr(`keyword as operation argument must be dictionary or vector, not ${names}`, errCtx)
+  ];
+}
 
 ;// CONCATENATED MODULE: ./src/parse.ts
 
-const { concat: parse_concat, has: parse_has, flat: parse_flat, push: parse_push, slice: parse_slice } = poly_fills_namespaceObject;
+const { concat: parse_concat, has: parse_has, flat: parse_flat, push: parse_push, slice: parse_slice, splice: parse_splice } = poly_fills_namespaceObject;
 const { slen: parse_slen, starts: parse_starts, sub: parse_sub, substr: parse_substr, strIdx: parse_strIdx } = poly_fills_namespaceObject;
-const { isNum: parse_isNum, len: parse_len, toNum: parse_toNum } = poly_fills_namespaceObject;
+const { isNum: parse_isNum, len: parse_len, toNum: parse_toNum, isArray: parse_isArray } = poly_fills_namespaceObject;
+
 
 
 const nullVal = { t: "null", v: void 0 };
@@ -465,6 +511,44 @@ function arityCheck(op, nArg, errCtx) {
     }
   }
 }
+function typeCheck(op, args, errCtx, optimistic = false) {
+  const { types, numeric: onlyNum } = ops[op];
+  const nArg = parse_len(args);
+  if (onlyNum) {
+    const nonNumArgIdx = args.findIndex((a) => a && (optimistic ? !a.find((t) => t === "num") : a[0] !== "num"));
+    if (nonNumArgIdx === -1) {
+      return;
+    }
+    const names = args[nonNumArgIdx].map((t) => typeNames[t]).join(", ");
+    return [
+      typeErr(`${op} takes numeric arguments only, not ${names}`, errCtx)
+    ];
+  }
+  if (!types) {
+    return;
+  }
+  const typeViolations = types.map((need, i) => {
+    if (i >= nArg || !args[i]) {
+      return false;
+    }
+    const argTypes = args[i];
+    if (parse_isArray(need)) {
+      if (optimistic ? argTypes.some((t) => parse_has(need, t)) : parse_len(argTypes) === 1 && parse_has(need, argTypes[0])) {
+        return false;
+      }
+      const names = argTypes.map((t) => typeNames[t]);
+      const needs = need.map((t) => typeNames[t]).join(", ");
+      return `argument ${i + 1} must be either: ${needs}, not ${names}`;
+    } else {
+      if (optimistic ? parse_has(argTypes, need) : parse_len(argTypes) === 1 && need === argTypes[0]) {
+        return false;
+      }
+      const names = argTypes.map((t) => typeNames[t]);
+      return `argument ${i + 1} must be ${typeNames[need]}, not ${names}`;
+    }
+  }).filter((r) => !!r);
+  return parse_len(typeViolations) ? typeViolations.map((v) => typeErr(v, errCtx)) : void 0;
+}
 function parseForm(tokens, params, checkArity = true) {
   const head = tokens.shift();
   if (!head) {
@@ -486,21 +570,22 @@ function parseForm(tokens, params, checkArity = true) {
   } else if (op === "var" || op === "let") {
     const ins = [];
     while (true) {
-      const def = parseArg(tokens, params);
-      if (parse_len(ins) && !parse_len(def)) {
+      const defIns = parseArg(tokens, params);
+      if (parse_len(ins) && !parse_len(defIns)) {
         return ins;
       }
       const val = parseArg(tokens, params);
-      if (!parse_len(ins) && (!parse_len(def) || !parse_len(val))) {
+      if (!parse_len(ins) && (!parse_len(defIns) || !parse_len(val))) {
         return err(`must provide at least one declaration name and value`);
       } else if (!parse_len(val)) {
         return err(`must provide a value after each declaration name`);
       }
-      if (def[0].typ !== "ref") {
+      const def = defIns[0];
+      if (def.typ !== "ref") {
         return err("declaration name must be symbol");
       }
       parse_push(ins, val);
-      ins.push({ typ: op, value: def[0].value, errCtx });
+      ins.push({ typ: op, value: def.value, errCtx });
     }
   } else if (op === "if" || op === "when") {
     const cond = parseArg(tokens, params);
@@ -623,7 +708,14 @@ function parseArg(tokens, params, checkArity = true) {
   if (typ === "sym" && parse_sub("#@", text) && parse_len(tokens) && tokens[0].typ === "(") {
     const texts = tokens.map((t) => t.text);
     const body = parseArg(tokens, params, text !== "@");
-    const value = [parse_slice(texts, 0, parse_len(texts) - parse_len(tokens)).join(" "), body];
+    const err = body.find((t) => t.typ === "err");
+    if (err) {
+      return [err];
+    }
+    const value = [
+      parse_slice(texts, 0, parse_len(texts) - parse_len(tokens)).join(" "),
+      body
+    ];
     return [{ typ: text === "#" ? "clo" : "par", value, errCtx }];
   }
   switch (typ) {
@@ -745,6 +837,78 @@ function tokenErrorDetect(stringError, tokens) {
   }
   return errors;
 }
+function insErrorDetect(fins) {
+  const stack = [];
+  for (let i = 0, lim = parse_len(fins); i < lim; ++i) {
+    const ins = fins[i];
+    switch (ins.typ) {
+      case "val":
+        stack.push({ types: [ins.value.t], val: ins.value });
+        break;
+      case "exe": {
+        const head = stack.pop();
+        const args = parse_splice(stack, parse_len(stack) - ins.value, ins.value);
+        const badMatch = (okTypes) => args.findIndex(({ types }) => types && !okTypes.find((t) => parse_has(types, t)));
+        const headIs = (t) => head.val ? head.val.t === t : head.types && parse_len(head.types) === 1 && head.types[0] === t;
+        if (head.val && head.val.t === "func") {
+          const errors = typeCheck(head.val.v, args.map((a) => a.types), ins.errCtx, true);
+          if (errors) {
+            return errors;
+          }
+          const { returns, numeric: onlyNum } = ops[head.val.v];
+          stack.push(onlyNum && onlyNum !== "in only" ? { types: ["num"] } : { types: returns });
+        } else if (headIs("num")) {
+          const badArg = badMatch(["str", "dict", "vec"]);
+          if (badArg !== -1) {
+            return numOpErr(ins.errCtx, args[badArg].types);
+          }
+        } else if (headIs("key")) {
+          const badArg = badMatch(["dict", "vec"]);
+          if (badArg !== -1) {
+            return keyOpErr(ins.errCtx, args[badArg].types);
+          }
+        }
+        break;
+      }
+      case "cat":
+      case "or":
+      case "var":
+      case "let":
+      case "loo":
+        break;
+      case "clo":
+      case "par": {
+        const errors = insErrorDetect(ins.value[1]);
+        if (errors) {
+          return errors;
+        }
+      }
+      case "ref":
+      case "npa":
+      case "upa":
+        stack.push({});
+        break;
+      case "if":
+        stack.pop();
+        stack.push({});
+      case "jmp":
+        i += ins.value - (ins.typ === "if" ? 1 : 0);
+        break;
+      case "pop":
+      case "rec":
+        parse_splice(stack, parse_len(stack) - ins.value, ins.value);
+        break;
+      case "ret":
+        if (ins.value) {
+          stack.pop();
+        }
+        break;
+      default:
+        assertUnreachable(ins);
+    }
+  }
+  return [];
+}
 function parse(code, invocationId) {
   const { tokens, stringError } = tokenise(code, invocationId);
   const tokenErrors = tokenErrorDetect(stringError, tokens);
@@ -758,17 +922,18 @@ function parse(code, invocationId) {
     line: named.errCtx.line,
     col: named.errCtx.col
   }));
-  const okFuncs = [], syntaxErrors = [];
+  const okFuncs = [], errors = [];
   funcsAndErrors.forEach((fae) => {
     if (fae[0] === "err") {
-      syntaxErrors.push(fae[1]);
+      errors.push(fae[1]);
     } else {
       okFuncs.push(fae[1]);
     }
   });
+  parse_push(errors, parse_flat(okFuncs.map((f) => insErrorDetect(f.ins))));
   const funcs = {};
   okFuncs.forEach((func) => funcs[func.name] = func);
-  return { errors: syntaxErrors, funcs };
+  return { errors, funcs };
 }
 
 ;// CONCATENATED MODULE: ./src/test.ts
@@ -831,8 +996,8 @@ null`
   { name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },
   {
     name: "Key as operation",
-    code: `(:age {:name "Patrick" :age 24})`,
-    out: `24`
+    code: `[(:age {:name "Patrick" :age 24}) (:abc [:a :abc :c])]`,
+    out: `[24 :abc]`
   },
   {
     name: "Dictionary as op 1",
@@ -906,7 +1071,7 @@ null`
   {
     name: "Catch error",
     code: `(catch
-             (:e (catch (+ 1 :a) (0 errors)))
+             (:e (catch (do (let a :a) (+ 1 a)) (0 errors)))
              (print "hi"))`,
     out: `Type`
   },
@@ -1082,7 +1247,13 @@ null` },
   { name: "Imbalanced quotes 2", code: `print "Hello")`, err: ["Parse"] },
   { name: "Function as op", code: `(function)`, err: ["Parse"] },
   { name: "Function without name", code: `(function (+))`, err: ["Parse"] },
-  { name: "Function without body", code: `(function func)`, err: ["Parse"] }
+  { name: "Function without body", code: `(function func)`, err: ["Parse"] },
+  { name: "Parser type error 1", code: `(function f (+ 1 :a))`, err: ["Type"] },
+  {
+    name: "Parser type error 2",
+    code: `(function f (+ 1 (into {} {})))`,
+    err: ["Type"]
+  }
 ];
 async function doTests(invoke, terse = true) {
   const results = [];
@@ -1127,7 +1298,7 @@ async function doTests(invoke, terse = true) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211005;
+const insituxVersion = 20211008;
 
 
 const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, pi: src_pi, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min } = poly_fills_namespaceObject;
@@ -1136,7 +1307,9 @@ const { concat: src_concat, has: src_has, flat: src_flat, push: src_push, revers
 const { ends: src_ends, slen: src_slen, starts: src_starts, sub: src_sub, subIdx: src_subIdx, substr: src_substr, upperCase: src_upperCase, lowerCase: src_lowerCase } = poly_fills_namespaceObject;
 const { trim: src_trim, trimStart: src_trimStart, trimEnd: src_trimEnd } = poly_fills_namespaceObject;
 const { getTimeMs: src_getTimeMs, randInt: src_randInt, randNum: src_randNum } = poly_fills_namespaceObject;
-const { isArray: src_isArray, isNum: src_isNum, len: src_len, objKeys: src_objKeys, range: src_range, toNum: src_toNum } = poly_fills_namespaceObject;
+const { isNum: src_isNum, len: src_len, objKeys: src_objKeys, range: src_range, toNum: src_toNum } = poly_fills_namespaceObject;
+
+
 
 
 const val2str = ({ v, t }) => {
@@ -1182,14 +1355,6 @@ const vec = ({ v }) => v;
 const dic = ({ v }) => v;
 const clo = ({ v }) => v;
 const asBoo = ({ t, v }) => t === "bool" ? v : t !== "null";
-const visStr = (val) => val.t === "str";
-const visNum = (val) => val.t === "num";
-const visVec = (val) => val.t === "vec";
-const visDic = (val) => val.t === "dict";
-const visFun = (val) => val.t === "func";
-const visClo = (val) => val.t === "clo";
-const visKey = (val) => val.t === "key";
-const visBoo = (val) => val.t === "bool";
 const asArray = ({ t, v }) => t === "vec" ? src_slice(v) : t === "str" ? [...v].map((s) => ({ t: "str", v: s })) : t === "dict" ? v.keys.map((k, i) => ({
   t: "vec",
   v: [k, v.vals[i]]
@@ -1216,11 +1381,6 @@ const toDict = (args) => {
     v: { keys: ddKeys, vals: ddVals }
   };
 };
-const typeErr = (m, errCtx) => ({
-  e: "Type",
-  m,
-  errCtx
-});
 const isVecEqual = (a, b) => src_len(a) === src_len(b) && !a.some((x, i) => !isEqual(x, b[i]));
 const isDictEqual = (a, b) => {
   const [ad, bd] = [dic(a), dic(b)];
@@ -1273,32 +1433,6 @@ const dictDrop = ({ keys, vals }, key) => {
   }
   return { t: "dict", v: { keys: nKeys, vals: nVals } };
 };
-function typeCheck(op, args, errCtx) {
-  const { types, onlyNum } = ops[op];
-  const nArg = src_len(args);
-  if (onlyNum) {
-    const nonNumArgIdx = args.findIndex((a) => a.t !== "num");
-    if (nonNumArgIdx === -1) {
-      return;
-    }
-    const typeName = typeNames[args[nonNumArgIdx].t];
-    return [
-      typeErr(`${op} takes numeric arguments only, not ${typeName}`, errCtx)
-    ];
-  }
-  if (!types) {
-    return;
-  }
-  const typeViolations = types.map((need, i) => {
-    if (i >= nArg) {
-      return false;
-    }
-    const argType = args[i].t;
-    const badType = typeNames[argType];
-    return src_isArray(need) ? src_has(need, argType) ? false : `argument ${i + 1} must be either: ${need.map((t) => typeNames[t]).join(", ")}, not ${badType}` : need === argType ? false : `argument ${i + 1} must be ${typeNames[need]}, not ${badType}`;
-  }).filter((r) => !!r);
-  return src_len(typeViolations) ? typeViolations.map((v) => typeErr(v, errCtx)) : void 0;
-}
 async function exeOp(op, args, ctx, errCtx, checkArity) {
   const tErr = (msg) => [typeErr(msg, errCtx)];
   if (checkArity) {
@@ -1308,7 +1442,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     }
   }
   {
-    const violations = typeCheck(op, args, errCtx);
+    const violations = typeCheck(op, args.map((a) => [a.t]), errCtx);
     if (violations) {
       return violations;
     }
@@ -1724,7 +1858,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
       if (mapped.some(([_, { t }]) => t !== okT || !src_has(["num", "str"], t))) {
         return tErr("can only sort by all number or all string");
       }
-      if (visNum(mapped[0][1])) {
+      if (mapped[0][1].t === "num") {
         src_sortBy(mapped, ([x, a], [y, b]) => num(a) > num(b) ? 1 : -1);
       } else {
         src_sortBy(mapped, ([x, a], [y, b]) => str(a) > str(b) ? 1 : -1);
@@ -1829,7 +1963,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
 }
 function getExe(ctx, op, errCtx, checkArity = true) {
   const monoArityError = [{ e: "Arity", m: `one argument required`, errCtx }];
-  if (visStr(op) || visFun(op)) {
+  if (op.t === "str" || op.t === "func") {
     const name = op.v;
     if (ops[name]) {
       return (params) => exeOp(name, params, ctx, errCtx, checkArity);
@@ -1860,23 +1994,24 @@ function getExe(ctx, op, errCtx, checkArity = true) {
       }
       return err ? [{ e: "External", m: err, errCtx }] : void 0;
     };
-  } else if (visClo(op)) {
+  } else if (op.t === "clo") {
     return (params) => exeFunc(ctx, op.v, params);
-  } else if (visKey(op)) {
+  } else if (op.t === "key") {
     return async (params) => {
       if (!src_len(params)) {
         return monoArityError;
       }
-      if (params[0].t !== "dict") {
-        const badType = typeNames[params[0].t];
-        return [
-          typeErr(`keyword as operation argument must be dictionary, not ${badType}`, errCtx)
-        ];
+      if (params[0].t === "dict") {
+        stack.push(dictGet(dic(params[0]), op));
+      } else if (params[0].t === "vec") {
+        const found = vec(params[0]).find((v) => isEqual(v, op));
+        stack.push(found ?? { t: "null", v: void 0 });
+      } else {
+        return keyOpErr(errCtx, [params[0].t]);
       }
-      stack.push(dictGet(dic(params[0]), op));
       return;
     };
-  } else if (visNum(op)) {
+  } else if (op.t === "num") {
     const n = src_floor(op.v);
     return async (params) => {
       if (!src_len(params)) {
@@ -1884,10 +2019,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
       }
       const a = params[0];
       if (a.t !== "str" && a.t !== "vec" && a.t !== "dict") {
-        const badType = typeNames[a.t];
-        return [
-          typeErr(`number as operation argument must be string, vector, or dictionary, not ${badType}`, errCtx)
-        ];
+        return numOpErr(errCtx, [a.t]);
       }
       const arr = asArray(a);
       if (src_abs(n) >= src_len(arr)) {
@@ -1899,7 +2031,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
       }
       return;
     };
-  } else if (visVec(op)) {
+  } else if (op.t === "vec") {
     const { v } = op;
     return async (params) => {
       if (!src_len(params)) {
@@ -1913,7 +2045,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
       }
       return;
     };
-  } else if (visDic(op)) {
+  } else if (op.t === "dict") {
     const dict = op.v;
     return async (params) => {
       if (src_len(params) === 1) {
@@ -1931,7 +2063,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
       }
       return;
     };
-  } else if (visBoo(op)) {
+  } else if (op.t === "bool") {
     const cond = op.v;
     return async (params) => {
       if (!src_len(params) || src_len(params) > 2) {
@@ -1968,7 +2100,8 @@ async function exeFunc(ctx, func, args, inClosure = false) {
   }
   const stackLen = src_len(stack);
   for (let i = 0, lim = src_len(func.ins); i < lim; ++i) {
-    const { typ, value, errCtx } = func.ins[i];
+    const ins = func.ins[i];
+    const { errCtx } = func.ins[i];
     const tooManyLoops = ctx.loopBudget < 1;
     if (tooManyLoops || ctx.callBudget < 1) {
       return [
@@ -1979,20 +2112,20 @@ async function exeFunc(ctx, func, args, inClosure = false) {
         }
       ];
     }
-    switch (typ) {
+    switch (ins.typ) {
       case "val":
-        stack.push(value);
+        stack.push(ins.value);
         break;
       case "var":
-        ctx.env.vars[value] = stack[src_len(stack) - 1];
+        ctx.env.vars[ins.value] = stack[src_len(stack) - 1];
         break;
       case "let":
-        lets[src_len(lets) - 1][value] = stack[src_len(stack) - 1];
+        lets[src_len(lets) - 1][ins.value] = stack[src_len(stack) - 1];
         break;
       case "npa":
       case "upa":
         {
-          const paramIdx = value;
+          const paramIdx = ins.value;
           if (paramIdx === -1) {
             _vec(args);
           } else if (src_len(args) <= paramIdx) {
@@ -2004,15 +2137,15 @@ async function exeFunc(ctx, func, args, inClosure = false) {
         break;
       case "ref":
         {
-          const name = value;
+          const name = ins.value;
           if (ops[name]) {
             _fun(name);
           } else if (src_starts(name, "$")) {
-            const { value: value2, err } = await ctx.get(src_substr(name, 1));
+            const { value, err } = await ctx.get(src_substr(name, 1));
             if (err) {
               return [{ e: "External", m: err, errCtx }];
             }
-            stack.push(value2);
+            stack.push(value);
           } else if (name in ctx.env.vars) {
             stack.push(ctx.env.vars[name]);
           } else if (name in lets[src_len(lets) - 1]) {
@@ -2027,12 +2160,13 @@ async function exeFunc(ctx, func, args, inClosure = false) {
       case "exe":
         {
           const closure = getExe(ctx, stack.pop(), errCtx, false);
-          const nArgs = value;
+          const nArgs = ins.value;
           const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
           const errors = await closure(params);
           if (errors) {
-            if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
-              ++i;
+            const nextCat = src_slice(func.ins, i).findIndex((ins2) => ins2.typ === "cat");
+            if (nextCat !== -1) {
+              i += nextCat;
               lets[src_len(lets) - 1]["errors"] = {
                 t: "vec",
                 v: errorsToDict(errors)
@@ -2045,29 +2179,29 @@ async function exeFunc(ctx, func, args, inClosure = false) {
         break;
       case "or":
         if (asBoo(stack[src_len(stack) - 1])) {
-          i += value;
+          i += ins.value;
         } else {
           stack.pop();
         }
         break;
       case "if":
         if (!asBoo(stack.pop())) {
-          i += value;
+          i += ins.value;
         }
         break;
       case "jmp":
       case "cat":
-        i += value;
+        i += ins.value;
         break;
       case "loo":
-        i += value;
+        i += ins.value;
         --ctx.loopBudget;
         break;
       case "pop":
-        src_splice(stack, src_len(stack) - value, value);
+        src_splice(stack, src_len(stack) - ins.value, ins.value);
         break;
       case "ret":
-        if (value) {
+        if (ins.value) {
           src_splice(stack, 0, src_len(stack) - 1);
         } else {
           _nul();
@@ -2078,7 +2212,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
         {
           lets[src_len(lets) - 1] = {};
           i = -1;
-          const nArgs = value;
+          const nArgs = ins.value;
           args = src_splice(stack, src_len(stack) - nArgs, nArgs);
           --ctx.recurBudget;
           if (!ctx.recurBudget) {
@@ -2089,11 +2223,11 @@ async function exeFunc(ctx, func, args, inClosure = false) {
       case "clo":
       case "par":
         {
-          let [name, ins] = value;
-          const isCapture = ({ typ: typ2, value: value2 }) => typ2 === "ref" && !ins.find((i2) => i2.typ === "let" && i2.value === value2) || typ2 === "npa";
+          let [name, cins] = ins.value;
+          const isCapture = ({ typ, value }) => typ === "ref" && !cins.find((i2) => i2.typ === "let" && i2.value === value) || typ === "npa";
           const derefFunc = {
             name: "",
-            ins: ins.filter(isCapture)
+            ins: cins.filter(isCapture)
           };
           const errors = await exeFunc(ctx, derefFunc, args, true);
           if (errors) {
@@ -2101,24 +2235,23 @@ async function exeFunc(ctx, func, args, inClosure = false) {
           }
           const numIns = src_len(derefFunc.ins);
           const captures = src_splice(stack, src_len(stack) - numIns, numIns);
-          ins = ins.map((ins2) => isCapture(ins2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
-          if (typ === "par") {
-            const { value: value2, errCtx: errCtx2 } = ins.pop();
-            const f = ins.pop();
-            ins.unshift({ typ: "val", value: f.value, errCtx: errCtx2 });
-            ins.push({ typ: "upa", value: -1, errCtx: errCtx2 });
-            ins.push({
+          cins = cins.map((ins2) => isCapture(ins2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
+          if (ins.typ === "par") {
+            const { value: exeNumArgs, errCtx: errCtx2 } = cins.pop();
+            cins.unshift(cins.pop());
+            cins.push({ typ: "upa", value: -1, errCtx: errCtx2 });
+            cins.push({
               typ: "val",
               value: { t: "str", v: "..." },
               errCtx: errCtx2
             });
-            ins.push({ typ: "exe", value: value2 + 2, errCtx: errCtx2 });
+            cins.push({ typ: "exe", value: exeNumArgs + 2, errCtx: errCtx2 });
           }
-          stack.push({ t: "clo", v: { name, ins } });
+          stack.push({ t: "clo", v: { name, ins: cins } });
         }
         break;
       default:
-        assertUnreachable(typ);
+        assertUnreachable(ins);
     }
   }
   if (!inClosure) {
@@ -2252,7 +2385,7 @@ async function repl_exe(name, args) {
     default:
       if (args.length) {
         const a = args[0];
-        if (visStr(a) && a.v.startsWith("$")) {
+        if ((0,src_namespaceObject.visStr)(a) && a.v.startsWith("$")) {
           if (args.length === 1) {
             return await repl_get(`${a.v.substring(1)}.${name}`);
           } else {

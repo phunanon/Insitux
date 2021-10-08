@@ -159,7 +159,7 @@ built-in operations each within an example, with results after a `→`.
 ;Note: != will only check that each value is different from the next
 (= 10 10)     → 10
 (= 11 11)     → false
-(!= 1 2 1 3)  → 1
+(!= 1 2 4 3)  → 1
 (!= 1 1 2)    → false
 (< 1 2 3)     → true
 (> 10 5)      → true
@@ -210,6 +210,12 @@ built-in operations each within an example, with results after a `→`.
 ;Returns item if contained within vector else null
 ([0 1 2 3] 3)   → 3
 ([:a :b :c] :d) → null
+
+;Returns keyword if contained within vector, or value if key contained in dictionary, else null
+(:a {:a 1 :b 2 :c 3}) → 1
+(:a [:a :b :c])       → :a
+(:a {:d 1 :e 2 :f 3}) → null
+(:a [1 2 3])          → null
 
 ;Returns value associated with key if within dictionary else null
 ({0 1 2 3} 0)           → 1

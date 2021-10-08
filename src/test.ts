@@ -76,8 +76,8 @@ const tests: {
   { name: "Vector retrieve", code: `(2 [:a :b :c :d])`, out: `:c` },
   {
     name: "Key as operation",
-    code: `(:age {:name "Patrick" :age 24})`,
-    out: `24`,
+    code: `[(:age {:name "Patrick" :age 24}) (:abc [:a :abc :c])]`,
+    out: `[24 :abc]`,
   },
   {
     name: "Dictionary as op 1",
@@ -329,6 +329,13 @@ const tests: {
   { name: "Function as op", code: `(function)`, err: ["Parse"] },
   { name: "Function without name", code: `(function (+))`, err: ["Parse"] },
   { name: "Function without body", code: `(function func)`, err: ["Parse"] },
+  //Parser type-errors
+  { name: "Parser type error 1", code: `(function f (+ 1 :a))`, err: ["Type"] },
+  {
+    name: "Parser type error 2",
+    code: `(function f (+ 1 (into {} {})))`,
+    err: ["Type"],
+  },
 ];
 
 export async function doTests(
