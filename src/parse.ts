@@ -217,7 +217,7 @@ export function arityCheck(op: string, nArg: number, errCtx: ErrCtx) {
 
 export function typeCheck(
   op: string,
-  args: (Val["t"][] | undefined)[],
+  args: Val["t"][][],
   errCtx: ErrCtx,
   optimistic = false,
 ): InvokeError[] | undefined {
@@ -225,7 +225,7 @@ export function typeCheck(
   const nArg = len(args);
   if (onlyNum) {
     const nonNumArgIdx = args.findIndex(
-      a => a && (optimistic ? !a.find(t => t === "num") : a[0] !== "num"),
+      a => len(a) && (optimistic ? !a.find(t => t === "num") : a[0] !== "num"),
     );
     if (nonNumArgIdx === -1) {
       return;
@@ -247,7 +247,7 @@ export function typeCheck(
       if (isArray(need)) {
         if (
           optimistic
-            ? argTypes.some(t => has(need, t))
+            ? !len(argTypes) || argTypes.some(t => has(need, t))
             : len(argTypes) === 1 && has(need, argTypes[0])
         ) {
           return false;
@@ -258,7 +258,7 @@ export function typeCheck(
       } else {
         if (
           optimistic
-            ? has(argTypes, need)
+            ? !len(argTypes) || has(argTypes, need)
             : len(argTypes) === 1 && need === argTypes[0]
         ) {
           return false;
@@ -661,7 +661,7 @@ function insErrorDetect(fins: Ins[]): InvokeError[] {
         if (head.val && head.val.t === "func") {
           const errors = typeCheck(
             head.val.v,
-            args.map(a => a.types),
+            args.map(a => a.types ?? []),
             ins.errCtx,
             true,
           );
@@ -670,7 +670,9 @@ function insErrorDetect(fins: Ins[]): InvokeError[] {
           }
           const { returns, numeric: onlyNum } = ops[head.val.v];
           stack.push(
-            onlyNum && onlyNum !== "in only" ? { types: ["num"] } : { types: returns },
+            onlyNum && onlyNum !== "in only"
+              ? { types: ["num"] }
+              : { types: returns },
           );
         } else if (headIs("num")) {
           const badArg = badMatch(["str", "dict", "vec"]);

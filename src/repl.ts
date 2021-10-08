@@ -1,6 +1,6 @@
 import readline = require("readline");
 import fs = require("fs");
-import { symbols, visStr, insituxVersion } from ".";
+import { symbols, insituxVersion } from ".";
 import { Ctx, Val, ValAndErr } from "./types";
 import { ErrorOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
@@ -53,7 +53,7 @@ async function exe(name: string, args: Val[]): Promise<ValAndErr> {
     default:
       if (args.length) {
         const a = args[0];
-        if (visStr(a) && a.v.startsWith("$")) {
+        if (a.t === "str" && a.v.startsWith("$")) {
           if (args.length === 1) {
             return await get(`${a.v.substring(1)}.${name}`);
           } else {

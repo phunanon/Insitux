@@ -127,15 +127,6 @@ __webpack_require__.d(poly_fills_namespaceObject, {
   "upperCase": () => (upperCase)
 });
 
-// NAMESPACE OBJECT: ./src/index.ts
-var src_namespaceObject = {};
-__webpack_require__.r(src_namespaceObject);
-__webpack_require__.d(src_namespaceObject, {
-  "i$": () => (insituxVersion),
-  "dw": () => (invoke),
-  "uH": () => (symbols)
-});
-
 ;// CONCATENATED MODULE: ./src/poly-fills.ts
 const toNum = (x) => Number(x);
 const slice = (arr, start, end) => arr.slice(start, end);
@@ -515,7 +506,7 @@ function typeCheck(op, args, errCtx, optimistic = false) {
   const { types, numeric: onlyNum } = ops[op];
   const nArg = parse_len(args);
   if (onlyNum) {
-    const nonNumArgIdx = args.findIndex((a) => a && (optimistic ? !a.find((t) => t === "num") : a[0] !== "num"));
+    const nonNumArgIdx = args.findIndex((a) => parse_len(a) && (optimistic ? !a.find((t) => t === "num") : a[0] !== "num"));
     if (nonNumArgIdx === -1) {
       return;
     }
@@ -533,14 +524,14 @@ function typeCheck(op, args, errCtx, optimistic = false) {
     }
     const argTypes = args[i];
     if (parse_isArray(need)) {
-      if (optimistic ? argTypes.some((t) => parse_has(need, t)) : parse_len(argTypes) === 1 && parse_has(need, argTypes[0])) {
+      if (optimistic ? !parse_len(argTypes) || argTypes.some((t) => parse_has(need, t)) : parse_len(argTypes) === 1 && parse_has(need, argTypes[0])) {
         return false;
       }
       const names = argTypes.map((t) => typeNames[t]);
       const needs = need.map((t) => typeNames[t]).join(", ");
       return `argument ${i + 1} must be either: ${needs}, not ${names}`;
     } else {
-      if (optimistic ? parse_has(argTypes, need) : parse_len(argTypes) === 1 && need === argTypes[0]) {
+      if (optimistic ? !parse_len(argTypes) || parse_has(argTypes, need) : parse_len(argTypes) === 1 && need === argTypes[0]) {
         return false;
       }
       const names = argTypes.map((t) => typeNames[t]);
@@ -851,7 +842,7 @@ function insErrorDetect(fins) {
         const badMatch = (okTypes) => args.findIndex(({ types }) => types && !okTypes.find((t) => parse_has(types, t)));
         const headIs = (t) => head.val ? head.val.t === t : head.types && parse_len(head.types) === 1 && head.types[0] === t;
         if (head.val && head.val.t === "func") {
-          const errors = typeCheck(head.val.v, args.map((a) => a.types), ins.errCtx, true);
+          const errors = typeCheck(head.val.v, args.map((a) => a.types ?? []), ins.errCtx, true);
           if (errors) {
             return errors;
           }
@@ -2385,7 +2376,7 @@ async function repl_exe(name, args) {
     default:
       if (args.length) {
         const a = args[0];
-        if ((0,src_namespaceObject.visStr)(a) && a.v.startsWith("$")) {
+        if (a.t === "str" && a.v.startsWith("$")) {
           if (args.length === 1) {
             return await repl_get(`${a.v.substring(1)}.${name}`);
           } else {

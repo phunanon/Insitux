@@ -1,7 +1,7 @@
 <table>
   <tr>
     <td>
-      <img src="media/insitux.png" alt="Insitux logo" height="32">
+      <img src="https://phunanon.github.io/Insitux/media/insitux.png" alt="Insitux logo" height="32">
     </td>
     <td colspan="3">
       S-expression scripting language written in portable TypeScript.
@@ -24,8 +24,10 @@
 </table>
 
 Successor to [Chika](https://github.com/phunanon/Chika),
-[Epizeuxis](https://github.com/phunanon/Epizeuxis),
-and [Kuan](https://github.com/phunanon/Kuan).
+[Epizeuxis](https://github.com/phunanon/Epizeuxis), and
+[Kuan](https://github.com/phunanon/Kuan).
+
+[**Roblox-ts npm package**](https://github.com/insitux/rbxts-Insitux)
 
 ## Usage
 
@@ -44,8 +46,8 @@ You and the Insitux app talk to each other in these ways:
 ### Writing the code
 
 Most code is written as _expressions_ like `(+ 2 2)`. As you can see, values are
-separated by spaces or new lines within the parentheses, and the operation you want to
-perform is the first value. Expressions can nest within one another, for
+separated by spaces or new lines within the parentheses, and the operation you
+want to perform is the first value. Expressions can nest within one another, for
 example:  
 `(+ 2 (- 10 2) 2)`  
 which is like the arithmetic expression `2 + (10 - 2) + 2`. Letting Insitux run
@@ -427,13 +429,15 @@ etc
 
 - Commas `,` are treated as whitespace
 
-- Write `\"` inside of a string to represent `"`, `\n` to represent a newline, `\t` to represent a tab character.
+- Write `\"` inside of a string to represent `"`, `\n` to represent a newline,
+  `\t` to represent a tab character.
 
 - Write decimal numbers either `0.123` or `.123`.
 
 - `args` contains a vector of arguments the function was called with.
 
-- Arguments can also be accessed through `%0`, `%1`, `%2`, etc, with `%` the same as `%0`
+- Arguments can also be accessed through `%0`, `%1`, `%2`, etc, with `%` the
+  same as `%0`
 
   - Accessing too high a number will return `null`
 
@@ -453,7 +457,10 @@ $test.ing         → 456
 
 **Named functions**
 
-A named function is declared using `function` at the head of an expression, followed by a function name, followed by any parameter names, followed by a body consisting of at least one value or expression, and can contain many expressions.
+A named function is declared using `function` at the head of an expression,
+followed by a function name, followed by any parameter names, followed by a body
+consisting of at least one value or expression, and can contain many
+expressions.
 
 ```clj
 ;       name   parameters
@@ -462,7 +469,12 @@ A named function is declared using `function` at the head of an expression, foll
 ;  body
 ```
 
-_Parameters_ are referenceable names declared in a function, and _arguments_ are values actually passed to a function. All arguments are accessible through the `args` let, a vector of values. If a function is underloaded (given fewer arguments than parameters specified) then un-populated parameters are `null`. If a function is overloaded the extra arguments are still accessible though the `args` let.
+_Parameters_ are referenceable names declared in a function, and _arguments_ are
+values actually passed to a function. All arguments are accessible through the
+`args` let, a vector of values. If a function is underloaded (given fewer
+arguments than parameters specified) then un-populated parameters are `null`. If
+a function is overloaded the extra arguments are still accessible though the
+`args` let.
 
 ```clj
 ; Valid function definitions
@@ -485,7 +497,9 @@ _Parameters_ are referenceable names declared in a function, and _arguments_ are
 (function name)
 ```
 
-Calling a function itself again from within is called _recurring_. To immediately recur use the `recur` syntax, as it will optimise the program to use less memory and perform faster.
+Calling a function itself again from within is called _recurring_. To
+immediately recur use the `recur` syntax, as it will optimise the program to use
+less memory and perform faster.
 
 ```clj
 (function f n
@@ -497,13 +511,16 @@ Calling a function itself again from within is called _recurring_. To immediatel
 
 **Closures**
 
-A closure is an anonymous (unnamed) function which also "captures" the data context around them. The syntax of a closure is:
+A closure is an anonymous (unnamed) function which also "captures" the data
+context around them. The syntax of a closure is:
 
 ```clj
 #(+ 2 2)
 ```
 
-Closures capture variables, lets, and named parameters of their parent function, so even when they are passed around the values are frozen as they were upon the closure's declaration. For example:
+Closures capture variables, lets, and named parameters of their parent function,
+so even when they are passed around the values are frozen as they were upon the
+closure's declaration. For example:
 
 ```clj
 (var a 10)
@@ -520,7 +537,8 @@ They can take arguments, and be used as the operation of an expression:
 (#(.. vec args) 1 2 3) → [1 2 3]
 ```
 
-There are also partial closures with slightly different syntax. They append their arguments to the end of the closure expression.
+There are also partial closures with slightly different syntax. They append
+their arguments to the end of the closure expression.
 
 ```clj
 (var partial @(* 10))
