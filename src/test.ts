@@ -151,7 +151,7 @@ const tests: {
   {
     name: "Catch error",
     code: `(catch
-             (:e (catch (+ 1 :a) (0 errors)))
+             (:e (catch (do (let a :a) (+ 1 a)) (0 errors)))
              (print "hi"))`,
     out: `Type`,
   },

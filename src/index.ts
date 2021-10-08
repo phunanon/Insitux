@@ -1,5 +1,4 @@
-export const insituxVersion = 20211005;
-import { arityCheck, parse } from "./parse";
+export const insituxVersion = 20211008;
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
 const { logn, log2, log10 } = pf;
@@ -1064,8 +1063,10 @@ export async function exeFunc(
           const params = splice(stack, len(stack) - nArgs, nArgs);
           const errors = await closure(params);
           if (errors) {
-            if (i + 1 !== lim && func.ins[i + 1].typ === "cat") {
-              ++i;
+            //Find next catch statement
+            const nextCat = slice(func.ins, i).findIndex(ins => ins.typ === "cat");
+            if (nextCat !== -1) {
+              i += nextCat;
               lets[len(lets) - 1]["errors"] = {
                 t: "vec",
                 v: errorsToDict(errors),
