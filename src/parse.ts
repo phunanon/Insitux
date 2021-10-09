@@ -417,10 +417,16 @@ function parseForm(
     return [...body, { typ: "ret", value: !!len(body), errCtx }];
   }
 
-  //Operation arity check
+  //Operation arity check, optionally disabled for partial closures
   if (ops[op] && checkArity) {
     const errors = arityCheck(op, nArgs, errCtx);
     push(headIns, errors?.map(e => err(e.m)[0]) ?? []);
+    if (!errors) {
+      //Upgrade some math and logic functions to their fast counterparts
+      if (nArgs === 2 && ops[`fast${op}`]) {
+        op = `fast${op}`;
+      }
+    }
   }
 
   if (len(headIns)) {
@@ -679,11 +685,13 @@ function insErrorDetect(fins: Ins[]): InvokeError[] {
           if (badArg !== -1) {
             return numOpErr(ins.errCtx, args[badArg].types!);
           }
+          stack.push({});
         } else if (headIs("key")) {
           const badArg = badMatch(["dict", "vec"]);
           if (badArg !== -1) {
             return keyOpErr(ins.errCtx, args[badArg].types!);
           }
+          stack.push({});
         }
         break;
       }

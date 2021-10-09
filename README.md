@@ -125,6 +125,7 @@ built-in operations each within an example, with results after a `→`.
 (pi) → 3.141592653589793
 
 ;Various arithmetic operators which take one or more arguments
+;Note: fast+ fast- fast* fast/ fast// are also available for two arguments only
 (+ 1 1 1)    → 3
 (- 10 5 1)   → 4
 (* 10 10 10) → 1000
@@ -159,6 +160,8 @@ built-in operations each within an example, with results after a `→`.
 ;Various equality operators, which all accept a variable number of arguments
 ;Note: < > <= >= only compare numbers
 ;Note: != will only check that each value is different from the next
+;Note: fast= fast!= fast< fast> fast<= fast>= are also available for two
+;  arguments only
 (= 10 10)     → 10
 (= 11 11)     → false
 (!= 1 2 4 3)  → 1
@@ -187,7 +190,8 @@ built-in operations each within an example, with results after a `→`.
 (len [0 1 2])   → 3
 (len {0 1 2 3}) → 2
 
-;Concatenates strings of text together, also displaying numbers and vectors as text too
+;Concatenates strings of text together, also displaying numbers and vectors as
+;  text too
 (str "Hello, "
      "world! Welcome "
      2
@@ -213,7 +217,8 @@ built-in operations each within an example, with results after a `→`.
 ([0 1 2 3] 3)   → 3
 ([:a :b :c] :d) → null
 
-;Returns keyword if contained within vector, or value if key contained in dictionary, else null
+;Returns keyword if contained within vector, or value if key contained in
+;  dictionary, else null
 (:a {:a 1 :b 2 :c 3}) → 1
 (:a [:a :b :c])       → :a
 (:a {:d 1 :e 2 :f 3}) → null
@@ -227,7 +232,7 @@ built-in operations each within an example, with results after a `→`.
 ({:a 2 :b 3} :c 4) → {:a 2 :b 3 :c 4}
 
 ;Returns either its first or second argument, or null
-;Note: unlike `if` or `when`, all arguments are evaluated regardless of condition
+;Note: unlike `if` or `when` all arguments are evaluated regardless of condition
 (true 1 2)  → 1
 (false 1 2) → 2
 (let b true)
@@ -253,8 +258,9 @@ built-in operations each within an example, with results after a `→`.
 (for * [0 1 2] [1 10 100])
 → [0 1 2 0 10 20 0 100 200]
 
-;"Reduces" a vector into one value through a function, also accepting an initial value as its second argument
-;Note: will return sole vector item or initial value if there are too few values to reduce
+;"Reduces" a vector into one value through a function, also accepting an initial
+;  value as its second argument
+;Note: will return sole vector item or initial value if there are too few values
 (reduce + [1 2 3])   → 6
 (reduce + [1 2 3] 3) → 9
 (reduce + [1] 1)     → 2
@@ -263,7 +269,7 @@ built-in operations each within an example, with results after a `→`.
 (reduce + [])        → [] ; + is never called
 
 ;Continues looping until condition becomes false
-;Note: also returns the final value or null if the first condition evaluation is false
+;Note: returns the final value or null if the first evaluated condition is false
 (var n 0)
 (while (< n 5)
   (print n)
@@ -310,12 +316,14 @@ etc
 (remove odd? [0 1 2 3])    → [0 2]
 (remove = [1 1 2 2 3 3] 3) → [1 1 2 2]
 
-;Returns the first item or character in a vector or string matching a predicate, optionally passing extra arguments
+;Returns the first item or character in a vector or string matching a predicate,
+;  optionally passing extra arguments
 (find odd? [0 1 2 3])   → 1
 (find > [4 5 6 7] 5)    → 6
 (find ["a" "b"] "Able") → "b"
 
-;Returns the number of items or characters in a vector or string matching a predicate, optionally passing extra arguments
+;Returns the number of items or characters in a vector or string matching a
+;  predicate, optionally passing extra arguments
 (count odd? (range 10)) → 5
 (count = [1 1 2 3 3] 1) → 2
 
@@ -323,7 +331,7 @@ etc
 (reverse "Hello") → "olleH"
 (reverse [1 2 3]) → [3 2 1]
 
-;Returns a vector sorted, optionally sorting by the return of a function of each item
+;Returns a vector sorted, optionally by the return of a function of each item
 ;Note: will only sort all number or all string
 (sort [0 7 8 9 8 6])    → [0 6 7 8 8 9]
 (sort [0 1 8 9 65] str) → [0 1 65 8 9]
@@ -383,15 +391,16 @@ etc
 (function f (return) (print "hi"))
 (f) → null
 
-;Applies a vector's items and other arguments as the parameters to a function
+;Applies a vector's items and other arguments as a function's parameters
 (.. + [0 1 2] 3 [4 5 6])
 → 21
 
-;Applies a final vector's items and other arguments as the parameters to a function
+;Applies a final vector's items and other arguments as a function's parameters
 (... + 0 1 2 3 [4 5 6])
 → 21
 
-;Evaluates the first argument and returns the value if no runtime errors, else populates the let `errors` and returns the evaluation of the second argument
+;Evaluates the first argument and returns the value if no runtime errors, else
+;  populates the let `errors` and returns the evaluation of the second argument
 ;Note: the first argument must be expression
 (catch (+) errors)
 → [{:e "Arity", :m "+ needs at least 2 arguments, not 0", :line 1, :col 9}]
@@ -400,21 +409,21 @@ etc
 ;Returns the time in milliseconds
 (time) → 1630143983032
 
-;Runs built-in Insitux tests, with optional verbosity
+;Returns report of built-in Insitux tests as a string, optionally verbose
 (tests)
 (tests true)
 
-;Returns Insitux version
+;Returns Insitux version as number
 (version) → 2021****
 
-;Returns a vector of strings of symbol names by order of definition in the Insitux session
+;Returns symbol name strings vector by definition order in the Insitux session
 (symbols) → ["print" "print-str" "!" "=" …]
 
 ;Evaluates a string as code, returning any values returned or null
 (eval "(+ 2 2)") → 4
 
 ;Resets an Insitux session back to how it started
-;Note: safely position this in a program as it may cause Reference Errors to occur
+;Note: safely position this in a program as it may cause Reference Errors
 (reset)
 ```
 

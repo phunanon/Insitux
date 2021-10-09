@@ -329,6 +329,7 @@ const tests: {
   { name: "Function as op", code: `(function)`, err: ["Parse"] },
   { name: "Function without name", code: `(function (+))`, err: ["Parse"] },
   { name: "Function without body", code: `(function func)`, err: ["Parse"] },
+  { name: "Variable not symbol", code: `(var 1 2)`, err: ["Parse"] },
   //Parser type-errors
   { name: "Parser type error 1", code: `(function f (+ 1 :a))`, err: ["Type"] },
   {

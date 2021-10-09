@@ -91,8 +91,8 @@ let lines: string[] = [];
 
 function isFinished(code: string): boolean {
   const { tokens } = tokenise(code, "");
-  const numL = tokens.filter(t => t.typ == "(").length;
-  const numR = tokens.filter(t => t.typ == ")").length;
+  const numL = tokens.filter(t => t.typ === "(").length;
+  const numR = tokens.filter(t => t.typ === ")").length;
   return numL <= numR;
 }
 

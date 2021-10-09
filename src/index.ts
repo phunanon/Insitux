@@ -1,4 +1,4 @@
-export const insituxVersion = 20211008;
+export const insituxVersion = 20211009;
 import { arityCheck, parse, typeCheck } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
@@ -13,32 +13,21 @@ import { assertUnreachable, typeNames } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops } from "./types";
 import { InvokeError, typeErr, numOpErr, keyOpErr } from "./types";
 
-const val2str = ({ v, t }: Val): string => {
+const val2str = (val: Val): string => {
   const quoted = (v: Val) => (v.t === "str" ? `"${v.v}"` : val2str(v));
-  switch (t) {
-    case "bool":
-      return `${v as boolean}`;
-    case "num":
-      return `${v as number}`;
-    case "str":
-    case "key":
-    case "ref":
-    case "func":
-      return v as string;
-    case "clo":
-      return `#${(v as Func).name}`;
-    case "vec":
-      return `[${(v as Val[]).map(quoted).join(" ")}]`;
-    case "dict": {
-      const { keys, vals } = v as Dict;
-      const [ks, vs] = [keys.map(quoted), vals.map(quoted)];
-      const entries = ks.map((k, i) => `${k} ${vs[i]}`);
-      return `{${entries.join(", ")}}`;
-    }
-    case "null":
-      return "null";
+  if (val.t === "clo") {
+    return `#${val.v.name}`;
+  } else if (val.t === "vec") {
+    return `[${val.v.map(quoted).join(" ")}]`;
+  } else if (val.t === "dict") {
+    const { keys, vals } = val.v;
+    const [ks, vs] = [keys.map(quoted), vals.map(quoted)];
+    const entries = ks.map((k, i) => `${k} ${vs[i]}`);
+    return `{${entries.join(", ")}}`;
+  } else if (val.t === "null") {
+    return "null";
   }
-  return assertUnreachable(t);
+  return `${val.v}`;
 };
 
 let stack: Val[] = [];
@@ -46,7 +35,6 @@ let lets: { [key: string]: Val }[] = [];
 const _boo = (v: boolean) => stack.push({ t: "bool", v });
 const _num = (v: number) => stack.push({ t: "num", v });
 const _str = (v: string = "") => stack.push({ t: "str", v });
-const _key = (v: string) => stack.push({ t: "key", v });
 const _vec = (v: Val[] = []) => stack.push({ t: "vec", v });
 const _dic = (v: Dict) => stack.push({ t: "dict", v });
 const _nul = () => stack.push({ t: "null", v: undefined });
@@ -55,18 +43,17 @@ const num = ({ v }: Val) => v as number;
 const str = ({ v }: Val) => v as string;
 const vec = ({ v }: Val) => v as Val[];
 const dic = ({ v }: Val) => v as Dict;
-const clo = ({ v }: Val) => v as Func;
-const asBoo = ({ t, v }: Val) => (t === "bool" ? (v as boolean) : t !== "null");
+const asBoo = (val: Val) => (val.t === "bool" ? val.v : val.t !== "null");
 
-const asArray = ({ t, v }: Val): Val[] =>
-  t === "vec"
-    ? slice(v as Val[])
-    : t === "str"
-    ? [...(v as string)].map(s => ({ t: "str", v: s }))
-    : t === "dict"
-    ? (v as Dict).keys.map((k, i) => ({
+const asArray = (val: Val): Val[] =>
+  val.t === "vec"
+    ? slice(val.v)
+    : val.t === "str"
+    ? [...val.v].map(s => ({ t: "str", v: s }))
+    : val.t === "dict"
+    ? val.v.keys.map((k, i) => ({
         t: "vec",
-        v: [k, (v as Dict).vals[i]],
+        v: [k, val.v.vals[i]],
       }))
     : [];
 
@@ -99,33 +86,32 @@ const toDict = (args: Val[]): Val => {
 const isVecEqual = (a: Val[], b: Val[]): boolean =>
   len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
 
-const isDictEqual = (a: Val, b: Val): boolean => {
-  const [ad, bd] = [dic(a), dic(b)];
-  return len(ad.keys) === len(bd.keys) && isVecEqual(ad.keys, bd.keys);
-};
-
 const isEqual = (a: Val, b: Val) => {
-  const { t } = a;
-  switch (t) {
+  if (a.t !== b.t) {
+    return false;
+  }
+  switch (a.t) {
     case "null":
       return true;
     case "bool":
       return a.v === b.v;
     case "num":
-      return num(a) === num(b);
+      return a.v === b.v;
     case "vec":
-      return isVecEqual(vec(a), vec(b));
-    case "dict":
-      return isDictEqual(a, b);
+      return isVecEqual(a.v, vec(b));
+    case "dict": {
+      const bd = dic(b);
+      return len(a.v.keys) === len(bd.keys) && isVecEqual(a.v.keys, bd.keys);
+    }
     case "str":
     case "ref":
     case "key":
     case "func":
       return str(a) === str(b);
     case "clo":
-      return clo(a).name === clo(b).name;
+      return (<Func>a.v).name === (<Func>b.v).name;
   }
-  return assertUnreachable(t);
+  return assertUnreachable(a);
 };
 
 const dictGet = ({ keys, vals }: Dict, key: Val) => {
@@ -206,9 +192,9 @@ async function exeOp(
     case "len":
       _num(
         args[0].t === "str"
-          ? slen(str(args[0]))
+          ? slen(args[0].v)
           : args[0].t === "vec"
-          ? len(vec(args[0]))
+          ? len(args[0].v)
           : len(dic(args[0]).keys),
       );
       return;
@@ -220,7 +206,7 @@ async function exeOp(
       }
       return;
     case "to-key":
-      _key(`:${val2str(args[0])}`);
+      stack.push({ t: "key", v: `:${val2str(args[0])}` });
       return;
     case "!":
       _boo(!asBoo(args[0]));
@@ -257,6 +243,41 @@ async function exeOp(
     case "//":
       _num(args.map(num).reduce((sum, n) => floor(sum / n)));
       return;
+    case "fast=":
+    case "fast!=":
+      if (isEqual(args[0], args[1]) !== (op === "fast=")) {
+        _boo(false);
+        return;
+      }
+      stack.push(args[0]);
+      return;
+    case "fast-":
+      _num(<number>args[0].v - <number>args[1].v);
+      return;
+    case "fast+":
+      _num(<number>args[0].v + <number>args[1].v);
+      return;
+    case "fast*":
+      _num(<number>args[0].v * <number>args[1].v);
+      return;
+    case "fast/":
+      _num(<number>args[0].v / <number>args[1].v);
+      return;
+    case "fast//":
+      _num(floor(<number>args[0].v / <number>args[1].v));
+      return;
+    case "fast<":
+      _boo(<number>args[0].v < <number>args[1].v);
+      return;
+    case "fast>":
+      _boo(<number>args[0].v > <number>args[1].v);
+      return;
+    case "fast<=":
+      _boo(<number>args[0].v <= <number>args[1].v);
+      return;
+    case "fast>=":
+      _boo(<number>args[0].v >= <number>args[1].v);
+      return;
     case "rem":
       _num(args.map(num).reduce((sum, n) => sum % n));
       return;
@@ -291,7 +312,7 @@ async function exeOp(
       _num(<number>args[0].v - 1);
       return;
     case "abs":
-      _num(abs(num(args[0])));
+      _num(abs(<number>args[0].v));
       return;
     case "pi":
       _num(pi);
@@ -358,18 +379,18 @@ async function exeOp(
           return tErr("strings can only contain strings");
         }
         if (len(args) < 3) {
-          i = subIdx(str(args[0]), str(args[1]));
+          i = subIdx(args[0].v, args[1].v);
         } else {
-          const arr = str(args[0]).split("");
-          arr[num(args[2])] = str(args[1]);
+          const arr = args[0].v.split("");
+          arr[num(args[2])] = args[1].v;
           _str(arr.join(""));
           return;
         }
       } else if (args[0].t === "vec") {
         if (len(args) < 3) {
-          i = vec(args[0]).findIndex(a => isEqual(a, args[1]));
+          i = args[0].v.findIndex(a => isEqual(a, args[1]));
         } else {
-          const v = asArray(args[0]);
+          const v = slice(args[0].v);
           v[num(args[2])] = args[1];
           _vec(v);
           return;
@@ -530,22 +551,21 @@ async function exeOp(
       const closure = getExe(ctx, args.shift()!, errCtx);
       let flatArgs: Val[] = args;
       if (op === "..") {
-        flatArgs = flat(args.map(a => (a.t === "vec" ? vec(a) : [a])));
+        flatArgs = flat(args.map(a => (a.t === "vec" ? a.v : [a])));
       } else {
         const a = flatArgs.pop()!;
-        push(flatArgs, flat([a.t === "vec" ? vec(a) : [a]]));
+        push(flatArgs, flat([a.t === "vec" ? a.v : [a]]));
       }
       return await closure(flatArgs);
     }
     case "into": {
-      const a0v = args[0].t === "vec";
-      const a1v = args[1].t === "vec";
-      if (a0v) {
-        _vec(concat(vec(args[0]), a1v ? vec(args[1]) : asArray(args[1])));
+      if (args[0].t === "vec") {
+        _vec(concat(args[0].v, asArray(args[1])));
       } else {
-        if (a1v) {
-          const v1 = asArray(args[1]);
-          stack.push(toDict(concat(flat(asArray(args[0]).map(vec)), v1)));
+        if (args[1].t === "vec") {
+          stack.push(
+            toDict(concat(flat(asArray(args[0]).map(vec)), args[1].v)),
+          );
         } else {
           const { keys, vals } = dic(args[0]);
           const d1 = dic(args[1]);
@@ -556,7 +576,7 @@ async function exeOp(
     }
     case "push": {
       if (args[0].t === "vec") {
-        const v = vec(args[0]);
+        const v = args[0].v;
         if (len(args) < 3) {
           _vec(concat(v, [args[1]]));
         } else {
@@ -575,7 +595,7 @@ async function exeOp(
     case "sect": {
       const v = args[0];
       const isVec = v.t === "vec";
-      const vlen = isVec ? len(vec(v)) : slen(str(v));
+      const vlen = isVec ? len(v.v) : slen(str(v));
       let a = 0,
         b = vlen;
       switch (len(args)) {
@@ -606,7 +626,7 @@ async function exeOp(
         return;
       }
       if (isVec) {
-        _vec(slice(vec(v), a, b));
+        _vec(slice(v.v, a, b));
       } else {
         _str(substr(str(args[0]), a, b - a));
       }
@@ -694,10 +714,8 @@ async function exeOp(
       );
       return;
     case "starts-with?":
-      _boo(starts(str(args[0]), str(args[1])));
-      return;
     case "ends-with?":
-      _boo(ends(str(args[0]), str(args[1])));
+      _boo((op === "starts-with?" ? starts : ends)(str(args[0]), str(args[1])));
       return;
     case "upper-case":
     case "lower-case":
@@ -732,14 +750,7 @@ async function exeOp(
       _num(insituxVersion);
       return;
     case "tests":
-      {
-        const tests = await doTests(invoke, !(len(args) && asBoo(args[0])));
-        const summary = tests.pop()!;
-        for (const test of tests) {
-          await exeOp("print", [{ v: test, t: "str" }], ctx, errCtx, false);
-        }
-        _str(summary);
-      }
+      _str((await doTests(invoke, !(len(args) && asBoo(args[0])))).join("\n"));
       return;
     case "symbols":
       _vec(symbols(ctx, false).map(v => ({ t: "str", v })));

@@ -56,20 +56,20 @@ const addCss = s =>
 
 document.addEventListener("DOMContentLoaded", async function () {
   const css = `
-.highlight rem { color: #0f0; }
-.highlight op { color: #aaf; }
-.highlight str,
-.highlight arg,
-.highlight key,
-.highlight num { color: rgb(255, 164, 111) !important; }
-.highlight p0 { color: #2ae0d7; }
-.highlight p1 { color: #dd3d65; }
-.highlight p2 { color: #14b17a; }
-.highlight p3 { color: #c7e564; }
-.highlight p4 { color: #e24dc2; }
-.highlight p5 { color: #ff9b00; }
-.highlight p6 { color: #6660ff; }
-.highlight p7 { color: #4de2aa; }
-.highlight p8 { color: #ffb6ca; }`;
-  addCss(css);
+rem { color: #0f0; }
+op { color: #aaf; }
+str,
+arg,
+key,
+num { color: rgb(255, 164, 111) !important; }
+p0 { color: #2ae0d7; }
+p1 { color: #dd3d65; }
+p2 { color: #14b17a; }
+p3 { color: #c7e564; }
+p4 { color: #e24dc2; }
+p5 { color: #ff9b00; }
+p6 { color: #6660ff; }
+p7 { color: #4de2aa; }
+p8 { color: #ffb6ca; }`;
+  addCss(css.split("\n").join("\n.highlight "));
 });
