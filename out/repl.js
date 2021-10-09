@@ -443,7 +443,7 @@ function tokenise(code, invocationId, makeCollsOps = true, emitComments = false)
       }
       inNumber = isDigit(c) || c === "." && isDigit(nextCh) || c === "-" && (isDigit(nextCh) || nextCh === ".");
       inSymbol = !inNumber;
-      let typ = inSymbol ? "sym" : "num";
+      const typ = inSymbol ? "sym" : "num";
       tokens.push({ typ, text: "", errCtx });
     }
     tokens[parse_len(tokens) - 1].text += c;
@@ -517,7 +517,7 @@ function typeCheck(op, args, errCtx, optimistic = false) {
   const { types, numeric: onlyNum } = ops[op];
   const nArg = parse_len(args);
   if (onlyNum) {
-    const nonNumArgIdx = args.findIndex((a) => parse_len(a) && (optimistic ? !a.find((t) => t === "num") : a[0] !== "num"));
+    const nonNumArgIdx = args.findIndex((a) => !!parse_len(a) && (optimistic ? !a.find((t) => t === "num") : a[0] !== "num"));
     if (nonNumArgIdx === -1) {
       return;
     }
@@ -1820,8 +1820,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     }
     case "sect": {
       const v = args[0];
-      const isVec = v.t === "vec";
-      const vlen = isVec ? src_len(v.v) : src_slen(str(v));
+      const vlen = v.t === "vec" ? src_len(v.v) : src_slen(str(v));
       let a = 0, b = vlen;
       switch (src_len(args)) {
         case 1:
@@ -1847,10 +1846,10 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
       a = src_max(a, 0);
       b = src_min(b, vlen);
       if (a > b) {
-        (isVec ? _vec : _str)();
+        (v.t === "vec" ? _vec : _str)();
         return;
       }
-      if (isVec) {
+      if (v.t === "vec") {
         _vec(src_slice(v.v, a, b));
       } else {
         _str(src_substr(str(args[0]), a, b - a));

@@ -594,8 +594,7 @@ async function exeOp(
     }
     case "sect": {
       const v = args[0];
-      const isVec = v.t === "vec";
-      const vlen = isVec ? len(v.v) : slen(str(v));
+      const vlen = v.t === "vec" ? len(v.v) : slen(str(v));
       let a = 0,
         b = vlen;
       switch (len(args)) {
@@ -622,10 +621,10 @@ async function exeOp(
       a = max(a, 0);
       b = min(b, vlen);
       if (a > b) {
-        (isVec ? _vec : _str)();
+        (v.t === "vec" ? _vec : _str)();
         return;
       }
-      if (isVec) {
+      if (v.t === "vec") {
         _vec(slice(v.v, a, b));
       } else {
         _str(substr(str(args[0]), a, b - a));

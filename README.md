@@ -17,7 +17,7 @@
     <td>
       <a href="https://discord.gg/w3Fc4YZ9Qw">
         Talk with us
-        <img src="website/DiscordLogo.png" alt="Insitux logo" height="16">
+        <img src="https://phunanon.github.io/Insitux/website/DiscordLogo.png" alt="Discord logo" height="16">
       </a>
     </td>
   </tr>
@@ -27,7 +27,8 @@ Successor to [Chika](https://github.com/phunanon/Chika),
 [Epizeuxis](https://github.com/phunanon/Epizeuxis), and
 [Kuan](https://github.com/phunanon/Kuan).
 
-[**Roblox-ts npm package**](https://github.com/insitux/rbxts-Insitux)
+[**Main Github repository**](https://github.com/phunanon/Insitux)
+[**Roblox-ts NPM package**](https://www.npmjs.com/package/@rbxts/insitux) and its [Github repository](https://github.com/insitux/rbxts-Insitux).
 
 ## Usage
 

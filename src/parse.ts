@@ -135,7 +135,7 @@ export function tokenise(
         (c === "." && isDigit(nextCh)) ||
         (c === "-" && (isDigit(nextCh) || nextCh === "."));
       inSymbol = !inNumber;
-      let typ: Token["typ"] = inSymbol ? "sym" : "num";
+      const typ: Token["typ"] = inSymbol ? "sym" : "num";
       tokens.push({ typ, text: "", errCtx });
     }
     tokens[len(tokens) - 1].text += c;
@@ -225,7 +225,8 @@ export function typeCheck(
   const nArg = len(args);
   if (onlyNum) {
     const nonNumArgIdx = args.findIndex(
-      a => len(a) && (optimistic ? !a.find(t => t === "num") : a[0] !== "num"),
+      a =>
+        !!len(a) && (optimistic ? !a.find(t => t === "num") : a[0] !== "num"),
     );
     if (nonNumArgIdx === -1) {
       return;
