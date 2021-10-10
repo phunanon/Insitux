@@ -122,9 +122,6 @@ built-in operations each within an example, with results after a `→`.
 (when true (print-str "hi") 123)
 → hi123
 
-;Yields the mathematical Pi
-(pi) → 3.141592653589793
-
 ;Various arithmetic operators which take one or more arguments
 ;Note: fast+ fast- fast* fast/ fast// are also available for two arguments only
 (+ 1 1 1)    → 3
@@ -437,19 +434,21 @@ etc
 (print "Hello") ;Comment at the end of lines too
 ```
 
-- Commas `,` are treated as whitespace
+- Commas `,` are treated as whitespace.
 
 - Write `\"` inside of a string to represent `"`, `\n` to represent a newline,
   `\t` to represent a tab character.
 
 - Write decimal numbers either `0.123` or `.123`.
 
+- Pi and Euler's number are accessible through constants `PI` and `E`
+
 - `args` contains a vector of arguments the function was called with.
 
 - Arguments can also be accessed through `%0`, `%1`, `%2`, etc, with `%` the
-  same as `%0`
+  same as `%0`.
 
-  - Accessing too high a number will return `null`
+  - Accessing too high a number will return `null`.
 
 - Parameters take precedence over lets and defines.
 

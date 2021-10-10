@@ -501,6 +501,9 @@ function parseArg(
         return [{ typ: "npa", value: params.indexOf(text), errCtx }];
       } else if (text === "args") {
         return [{ typ: "upa", value: -1, errCtx }];
+      } else if (text === "PI" || text === "E") {
+        const v = text === "PI" ? 3.141592653589793 : 2.718281828459045;
+        return [{ typ: "val", value: { t: "num", v }, errCtx }];
       } else if (ops[text]) {
         return [{ typ: "val", value: <Val>{ t: "func", v: text }, errCtx }];
       }

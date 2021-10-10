@@ -1,7 +1,7 @@
 export const insituxVersion = 20211010;
 import { arityCheck, parse, typeCheck } from "./parse";
 import * as pf from "./poly-fills";
-const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;
+const { abs, cos, sin, tan, sign, sqrt, floor, ceil, round, max, min } = pf;
 const { logn, log2, log10 } = pf;
 const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
 const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
@@ -313,9 +313,6 @@ async function exeOp(
       return;
     case "abs":
       _num(abs(<number>args[0].v));
-      return;
-    case "pi":
-      _num(pi);
       return;
     case "sin":
     case "cos":
@@ -1167,6 +1164,7 @@ export async function invoke(
 
 export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
   let syms = alsoSyntax ? ["function"] : [];
+  push(syms, ["args", "PI", "E"]);
   syms = concat(syms, objKeys(ops));
   syms = concat(syms, objKeys(ctx.env.funcs));
   syms = concat(syms, objKeys(ctx.env.vars));

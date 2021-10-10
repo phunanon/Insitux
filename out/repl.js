@@ -100,7 +100,6 @@ __webpack_require__.d(poly_fills_namespaceObject, {
   "min": () => (min),
   "objKeys": () => (objKeys),
   "padEnd": () => (padEnd),
-  "pi": () => (pi),
   "push": () => (push),
   "randInt": () => (randInt),
   "randNum": () => (randNum),
@@ -169,7 +168,6 @@ const round = Math.round;
 const floor = Math.floor;
 const ceil = Math.ceil;
 const sign = Math.sign;
-const pi = Math.PI;
 const logn = Math.log;
 const log2 = Math.log2;
 const log10 = Math.log10;
@@ -207,7 +205,6 @@ const ops = {
   min: { minArity: 2, numeric: true },
   max: { minArity: 2, numeric: true },
   abs: { exactArity: 1, numeric: true },
-  pi: { exactArity: 0, numeric: true },
   sqrt: { exactArity: 1, numeric: true },
   round: { exactArity: 1, numeric: true },
   floor: { exactArity: 1, numeric: true },
@@ -749,6 +746,9 @@ function parseArg(tokens, params, checkArity = true) {
         return [{ typ: "npa", value: params.indexOf(text), errCtx }];
       } else if (text === "args") {
         return [{ typ: "upa", value: -1, errCtx }];
+      } else if (text === "PI" || text === "E") {
+        const v = text === "PI" ? 3.141592653589793 : 2.718281828459045;
+        return [{ typ: "val", value: { t: "num", v }, errCtx }];
       } else if (ops[text]) {
         return [{ typ: "val", value: { t: "func", v: text }, errCtx }];
       }
@@ -1314,7 +1314,7 @@ async function doTests(invoke, terse = true) {
 const insituxVersion = 20211010;
 
 
-const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, pi: src_pi, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min } = poly_fills_namespaceObject;
+const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min } = poly_fills_namespaceObject;
 const { logn: src_logn, log2: src_log2, log10: src_log10 } = poly_fills_namespaceObject;
 const { concat: src_concat, has: src_has, flat: src_flat, push: src_push, reverse: src_reverse, slice: src_slice, splice: src_splice, sortBy: src_sortBy } = poly_fills_namespaceObject;
 const { ends: src_ends, slen: src_slen, starts: src_starts, sub: src_sub, subIdx: src_subIdx, substr: src_substr, upperCase: src_upperCase, lowerCase: src_lowerCase } = poly_fills_namespaceObject;
@@ -1577,9 +1577,6 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
       return;
     case "abs":
       _num(src_abs(args[0].v));
-      return;
-    case "pi":
-      _num(src_pi);
       return;
     case "sin":
     case "cos":
@@ -2314,6 +2311,7 @@ async function invoke(ctx, code, invocationId, printResult = false) {
 }
 function symbols(ctx, alsoSyntax = true) {
   let syms = alsoSyntax ? ["function"] : [];
+  src_push(syms, ["args", "PI", "E"]);
   syms = src_concat(syms, src_objKeys(ops));
   syms = src_concat(syms, src_objKeys(ctx.env.funcs));
   syms = src_concat(syms, src_objKeys(ctx.env.vars));

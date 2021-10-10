@@ -42,7 +42,6 @@ export const round = Math.round;
 export const floor = Math.floor;
 export const ceil = Math.ceil;
 export const sign = Math.sign;
-export const pi = Math.PI;
 export const logn = Math.log;
 export const log2 = Math.log2;
 export const log10 = Math.log10;
