@@ -1960,11 +1960,9 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "eval": {
       delete ctx.env.funcs["entry"];
       const sLen = src_len(stack);
-      const errors = await parseAndExe(ctx, str(args[0]), errCtx.invocationId);
+      const invocationId = `${errCtx.invocationId} eval`;
+      const errors = await parseAndExe(ctx, str(args[0]), invocationId);
       if (errors) {
-        errors.forEach((e) => {
-          e.errCtx.invocationId = "evaluated";
-        });
         return [
           { e: "Eval", m: "error within evaluated code", errCtx },
           ...errors
@@ -2247,10 +2245,16 @@ async function exeFunc(ctx, func, args, inClosure = false) {
       case "par":
         {
           let [name, cins] = ins.value;
-          const isCapture = ({ typ, value }) => typ === "ref" && !cins.find((i2) => i2.typ === "let" && i2.value === value) || typ === "npa";
+          const isCapture = ({ typ, value }, i2) => typ === "ref" && !cins.find((i3) => i3.typ === "let" && i3.value === value) || typ === "npa" || typ === "val" && cins[i2 + 1].typ === "exe";
           const derefFunc = {
             name: "",
-            ins: cins.filter(isCapture)
+            ins: cins.map((ins2, i2) => {
+              if (i2 + 1 === src_len(cins)) {
+                return ins2;
+              }
+              const possibleLet = ins2.typ === "val" && ins2.value.t === "str" && cins[i2 + 1].typ === "exe" && lets[src_len(lets) - 1][ins2.value.v];
+              return possibleLet ? { typ: "val", value: possibleLet } : ins2;
+            }).filter(isCapture)
           };
           const errors = await exeFunc(ctx, derefFunc, args, true);
           if (errors) {
@@ -2258,7 +2262,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
           }
           const numIns = src_len(derefFunc.ins);
           const captures = src_splice(stack, src_len(stack) - numIns, numIns);
-          cins = cins.map((ins2) => isCapture(ins2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
+          cins = cins.map((ins2, i2) => isCapture(ins2, i2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
           if (ins.typ === "par") {
             const { value: exeNumArgs, errCtx: errCtx2 } = cins.pop();
             cins.unshift(cins.pop());

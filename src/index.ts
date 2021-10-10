@@ -757,11 +757,9 @@ async function exeOp(
     case "eval": {
       delete ctx.env.funcs["entry"];
       const sLen = len(stack);
-      const errors = await parseAndExe(ctx, str(args[0]), errCtx.invocationId);
+      const invocationId = `${errCtx.invocationId} eval`;
+      const errors = await parseAndExe(ctx, str(args[0]), invocationId);
       if (errors) {
-        errors.forEach(e => {
-          e.errCtx.invocationId = "evaluated";
-        });
         return [
           { e: "Eval", m: "error within evaluated code", errCtx },
           ...errors,
@@ -1070,13 +1068,28 @@ export async function exeFunc(
       case "par":
         {
           let [name, cins] = ins.value;
-          const isCapture = ({ typ, value }: Ins) =>
+          const isCapture = ({ typ, value }: Ins, i: number) =>
             (typ === "ref" &&
               !cins.find(i => i.typ === "let" && i.value === value)) ||
-            typ === "npa";
+            typ === "npa" ||
+            (typ === "val" && cins[i + 1].typ === "exe");
           const derefFunc: Func = {
             name: "",
-            ins: cins.filter(isCapture),
+            ins: cins
+              .map((ins, i) => {
+                if (i + 1 === len(cins)) {
+                  return ins;
+                }
+                const possibleLet =
+                  ins.typ === "val" &&
+                  ins.value.t === "str" &&
+                  cins[i + 1].typ === "exe" &&
+                  lets[len(lets) - 1][ins.value.v];
+                return possibleLet
+                  ? <Ins>{ typ: "val", value: possibleLet }
+                  : ins;
+              })
+              .filter(isCapture),
           };
           const errors = await exeFunc(ctx, derefFunc, args, true);
           if (errors) {
@@ -1084,8 +1097,8 @@ export async function exeFunc(
           }
           const numIns = len(derefFunc.ins);
           const captures = splice(stack, len(stack) - numIns, numIns);
-          cins = cins.map(ins =>
-            isCapture(ins)
+          cins = cins.map((ins, i) =>
+            isCapture(ins, i)
               ? <Ins>{ typ: "val", value: captures.shift()!, errCtx }
               : ins,
           );
