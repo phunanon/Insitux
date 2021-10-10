@@ -314,18 +314,25 @@ async function exeOp(
     case "abs":
       _num(abs(<number>args[0].v));
       return;
+    case "round":
+      if (len(args) === 2) {
+        const x = 10 ** <number>args[1].v;
+        _num(round(<number>args[0].v * x) / x);
+      } else {
+        _num(round(<number>args[0].v));
+      }
+      return;
     case "sin":
     case "cos":
     case "tan":
     case "sqrt":
-    case "round":
     case "floor":
     case "ceil":
     case "logn":
     case "log2":
     case "log10":
       _num(
-        { sin, cos, tan, sqrt, round, floor, ceil, logn, log2, log10 }[op](
+        { sin, cos, tan, sqrt, floor, ceil, logn, log2, log10 }[op](
           num(args[0]),
         ),
       );

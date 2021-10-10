@@ -140,7 +140,6 @@ built-in operations each within an example, with results after a `→`.
 (cos (pi))   → -1
 (tan (* 45 (/ (pi) 180))) → ~1
 (sqrt 25)    → 5
-(round 3.5)  → 4
 (floor 2.7)  → 2
 (ceil 2.1)   → 3
 (logn 1)     → 0
@@ -151,9 +150,11 @@ built-in operations each within an example, with results after a `→`.
 (dict? {}) (vec? []) (key? :abc) (func? +)
 
 ;Various arithmetic functions which take two or more arguments
-(rem 10 3)  → 1
-(min 1 2 3) → 1
-(max 1 2 3) → 3
+(rem 10 3)   → 1
+(min 1 2 3)  → 1
+(max 1 2 3)  → 3
+(round 3.5)  → 4
+(round PI 2) → 3.14
 
 ;Various equality operators, which all accept a variable number of arguments
 ;Note: < > <= >= only compare numbers

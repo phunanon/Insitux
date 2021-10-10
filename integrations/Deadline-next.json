@@ -191,9 +191,9 @@
 			{
 				"directory": "round",
 				"description": [
-					"(round 3.5)",
+					"(round 3.5 2)",
 					"function",
-					"Rounds a number to the nearest integer."
+					"Rounds a number to the nearest integer or decimal provided."
 				]
 			},
 			{

@@ -206,7 +206,7 @@ const ops = {
   max: { minArity: 2, numeric: true },
   abs: { exactArity: 1, numeric: true },
   sqrt: { exactArity: 1, numeric: true },
-  round: { exactArity: 1, numeric: true },
+  round: { minArity: 1, maxArity: 2, numeric: true },
   floor: { exactArity: 1, numeric: true },
   ceil: { exactArity: 1, numeric: true },
   logn: { exactArity: 1, numeric: true },
@@ -1578,17 +1578,24 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "abs":
       _num(src_abs(args[0].v));
       return;
+    case "round":
+      if (src_len(args) === 2) {
+        const x = 10 ** args[1].v;
+        _num(src_round(args[0].v * x) / x);
+      } else {
+        _num(src_round(args[0].v));
+      }
+      return;
     case "sin":
     case "cos":
     case "tan":
     case "sqrt":
-    case "round":
     case "floor":
     case "ceil":
     case "logn":
     case "log2":
     case "log10":
-      _num({ sin: src_sin, cos: src_cos, tan: src_tan, sqrt: src_sqrt, round: src_round, floor: src_floor, ceil: src_ceil, logn: src_logn, log2: src_log2, log10: src_log10 }[op](num(args[0])));
+      _num({ sin: src_sin, cos: src_cos, tan: src_tan, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, logn: src_logn, log2: src_log2, log10: src_log10 }[op](num(args[0])));
       return;
     case "and":
       _boo(args.every(asBoo));

@@ -92,7 +92,7 @@ export const ops: {
   max: { minArity: 2, numeric: true },
   abs: { exactArity: 1, numeric: true },
   sqrt: { exactArity: 1, numeric: true },
-  round: { exactArity: 1, numeric: true },
+  round: { minArity: 1, maxArity: 2, numeric: true },
   floor: { exactArity: 1, numeric: true },
   ceil: { exactArity: 1, numeric: true },
   logn: { exactArity: 1, numeric: true },
