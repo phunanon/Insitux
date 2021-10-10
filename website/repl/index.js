@@ -65,7 +65,6 @@ async function DomLoad() {
   $input.focus();
   DomInputResize($input);
   await insituxInvoke('(str "Insitux version " (version))', browserExe);
-  await insituxInvoke("(tests)", browserExe);
 }
 
 function DomInputResize(that) {

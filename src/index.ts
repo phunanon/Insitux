@@ -1,4 +1,4 @@
-export const insituxVersion = 20211009;
+export const insituxVersion = 20211010;
 import { arityCheck, parse, typeCheck } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, pi, sign, sqrt, floor, ceil, round, max, min } = pf;

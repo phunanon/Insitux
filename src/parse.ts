@@ -515,29 +515,17 @@ function parseArg(
   }
 }
 
-function partitionWhen<T>(
-  array: T[],
-  predicate: (item: T) => boolean,
-): [T[], T[]] {
-  const a: T[] = [],
-    b: T[] = [];
-  for (let i = 0, isB = false; i < len(array); ++i) {
-    isB ||= predicate(array[i]);
-    (isB ? b : a).push(array[i]);
-  }
-  return [a, b];
-}
-
 function syntaxise(
   { name, tokens }: NamedTokens,
   errCtx: ErrCtx,
 ): ["func", Func] | ["err", InvokeError] {
   const err = (m: string, eCtx = errCtx) =>
     <ReturnType<typeof syntaxise>>["err", { e: "Parse", m, errCtx: eCtx }];
-  const [params, body] = partitionWhen(
-    tokens,
+  const firstNonParam = tokens.findIndex(
     t => t.typ !== "sym" || sub("%#@", t.text),
   );
+  const params = slice(tokens, 0, firstNonParam);
+  const body = slice(tokens, firstNonParam);
   //In the case of e.g. (function (+))
   if (name === "(") {
     return err("nameless function");
@@ -642,7 +630,7 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   return errors;
 }
 
-function insErrorDetect(fins: Ins[]): InvokeError[] {
+function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
   type TypeInfo = {
     types?: Val["t"][];
     val?: Val;
@@ -701,6 +689,7 @@ function insErrorDetect(fins: Ins[]): InvokeError[] {
       case "var":
       case "let":
       case "loo":
+      case "jmp":
         break;
       case "clo":
       case "par": {
@@ -714,12 +703,17 @@ function insErrorDetect(fins: Ins[]): InvokeError[] {
       case "upa":
         stack.push({});
         break;
-      case "if":
+      case "if": {
         stack.pop();
         stack.push({});
-      case "jmp":
-        i += ins.value - (ins.typ === "if" ? 1 : 0);
+        const ifIns = slice(fins, i + 1, ins.value + 1);
+        const errors = insErrorDetect(ifIns);
+        if (errors) {
+          return errors;
+        }
+        i += ins.value - 1;
         break;
+      }
       case "pop":
       case "rec":
         splice(stack, len(stack) - ins.value, ins.value);
@@ -733,7 +727,6 @@ function insErrorDetect(fins: Ins[]): InvokeError[] {
         assertUnreachable(ins);
     }
   }
-  return [];
 }
 
 export function parse(
@@ -763,7 +756,7 @@ export function parse(
       okFuncs.push(fae[1]);
     }
   });
-  push(errors, flat(okFuncs.map(f => insErrorDetect(f.ins))));
+  push(errors, flat(okFuncs.map(f => insErrorDetect(f.ins) ?? [])));
   const funcs: Funcs = {};
   okFuncs.forEach(func => (funcs[func.name] = func));
   return { errors, funcs };

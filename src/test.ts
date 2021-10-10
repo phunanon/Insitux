@@ -337,6 +337,11 @@ const tests: {
     code: `(function f (+ 1 (into {} {})))`,
     err: ["Type"],
   },
+  {
+    name: "Parser type error 3",
+    code: `(function f (if true (into 2 {}) (+ 2 2)))`,
+    err: ["Type"],
+  },
 ];
 
 export async function doTests(

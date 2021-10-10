@@ -762,17 +762,11 @@ function parseArg(tokens, params, checkArity = true) {
       return assertUnreachable(typ);
   }
 }
-function partitionWhen(array, predicate) {
-  const a = [], b = [];
-  for (let i = 0, isB = false; i < parse_len(array); ++i) {
-    isB || (isB = predicate(array[i]));
-    (isB ? b : a).push(array[i]);
-  }
-  return [a, b];
-}
 function syntaxise({ name, tokens }, errCtx) {
   const err = (m, eCtx = errCtx) => ["err", { e: "Parse", m, errCtx: eCtx }];
-  const [params, body] = partitionWhen(tokens, (t) => t.typ !== "sym" || parse_sub("%#@", t.text));
+  const firstNonParam = tokens.findIndex((t) => t.typ !== "sym" || parse_sub("%#@", t.text));
+  const params = parse_slice(tokens, 0, firstNonParam);
+  const body = parse_slice(tokens, firstNonParam);
   if (name === "(") {
     return err("nameless function");
   }
@@ -884,6 +878,7 @@ function insErrorDetect(fins) {
       case "var":
       case "let":
       case "loo":
+      case "jmp":
         break;
       case "clo":
       case "par": {
@@ -897,12 +892,17 @@ function insErrorDetect(fins) {
       case "upa":
         stack.push({});
         break;
-      case "if":
+      case "if": {
         stack.pop();
         stack.push({});
-      case "jmp":
-        i += ins.value - (ins.typ === "if" ? 1 : 0);
+        const ifIns = parse_slice(fins, i + 1, ins.value + 1);
+        const errors = insErrorDetect(ifIns);
+        if (errors) {
+          return errors;
+        }
+        i += ins.value - 1;
         break;
+      }
       case "pop":
       case "rec":
         parse_splice(stack, parse_len(stack) - ins.value, ins.value);
@@ -916,7 +916,6 @@ function insErrorDetect(fins) {
         assertUnreachable(ins);
     }
   }
-  return [];
 }
 function parse(code, invocationId) {
   const { tokens, stringError } = tokenise(code, invocationId);
@@ -939,7 +938,7 @@ function parse(code, invocationId) {
       okFuncs.push(fae[1]);
     }
   });
-  parse_push(errors, parse_flat(okFuncs.map((f) => insErrorDetect(f.ins))));
+  parse_push(errors, parse_flat(okFuncs.map((f) => insErrorDetect(f.ins) ?? [])));
   const funcs = {};
   okFuncs.forEach((func) => funcs[func.name] = func);
   return { errors, funcs };
@@ -1263,6 +1262,11 @@ null` },
     name: "Parser type error 2",
     code: `(function f (+ 1 (into {} {})))`,
     err: ["Type"]
+  },
+  {
+    name: "Parser type error 3",
+    code: `(function f (if true (into 2 {}) (+ 2 2)))`,
+    err: ["Type"]
   }
 ];
 async function doTests(invoke, terse = true) {
@@ -1308,7 +1312,7 @@ async function doTests(invoke, terse = true) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211009;
+const insituxVersion = 20211010;
 
 
 const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, pi: src_pi, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min } = poly_fills_namespaceObject;
