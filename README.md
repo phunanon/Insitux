@@ -23,7 +23,7 @@
   </tr>
 </table>
 
-Successor to [Chika](https://github.com/phunanon/Chika),
+Inspired by [Chika](https://github.com/phunanon/Chika),
 [Epizeuxis](https://github.com/phunanon/Epizeuxis), and
 [Kuan](https://github.com/phunanon/Kuan).
 
@@ -130,8 +130,6 @@ built-in operations each within an example, with results after a `→`.
 (* 10 10 10) → 1000
 (/ 10 3)     → 3.333333
 (// 10 3)    → 3
-(** 2 3)     → 8
-(** 10)      → 100
 
 ;Various arithmetic and test functions which take one argument only
 (inc 100)    → 101
@@ -150,12 +148,16 @@ built-in operations each within an example, with results after a `→`.
 (null? null) (num? 123) (bool? true) (str? "hi")
 (dict? {}) (vec? []) (key? :abc) (func? +)
 
-;Various arithmetic functions which take two or more arguments
-(rem 10 3)   → 1
-(min 1 2 3)  → 1
-(max 1 2 3)  → 3
-(round 3.5)  → 4
-(round PI 2) → 3.14
+;Various arithmetic functions which take two, or two or more arguments
+(rem 100 40)   → 20
+(rem 100 40 3) → 2
+(min 1 2)      → 1
+(min 4 3 2 5)  → 2
+(max 4 3 2 5)  → 5
+(** 10)        → 100
+(** 2 3)       → 8
+(round 3.5)    → 4
+(round PI 2)   → 3.14
 
 ;Various equality operators, which all accept a variable number of arguments
 ;Note: < > <= >= only compare numbers

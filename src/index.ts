@@ -702,11 +702,12 @@ function getExe(
       };
     }
     return async (params: Val[]) => {
-      const { err, value } = await ctx.exe(name, params);
-      if (!err) {
-        stack.push(value);
+      const valAndErr = await ctx.exe(name, params);
+      if (valAndErr.kind === "val") {
+        stack.push(valAndErr.value);
+        return;
       }
-      return err ? [{ e: "External", m: err, errCtx }] : undefined;
+      return [{ e: "External", m: valAndErr.err, errCtx }];
     };
   } else if (op.t === "clo") {
     return (params: Val[]) => exeFunc(ctx, op.v, params);
@@ -871,11 +872,11 @@ async function exeFunc(
           if (ops[name]) {
             _fun(name);
           } else if (starts(name, "$")) {
-            const { value, err } = await ctx.get(substr(name, 1));
-            if (err) {
-              return [{ e: "External", m: err, errCtx }];
+            const valAndErr = await ctx.get(substr(name, 1));
+            if (valAndErr.kind === "err") {
+              return [{ e: "External", m: valAndErr.err, errCtx }];
             }
-            stack.push(value);
+            stack.push(valAndErr.value);
           } else if (name in ctx.env.vars) {
             stack.push(ctx.env.vars[name]);
           } else if (name in lets[len(lets) - 1]) {
@@ -962,7 +963,7 @@ async function exeFunc(
             (typ === "ref" &&
               !cins.find(i => i.typ === "let" && i.value === value)) ||
             typ === "npa" ||
-            (typ === "val" && cins[i + 1].typ === "exe");
+            (typ === "val" && i + 1 !== len(cins) && cins[i + 1].typ === "exe");
           const derefFunc: Func = {
             name: "",
             ins: cins

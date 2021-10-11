@@ -1,20 +1,20 @@
 import { concat, getTimeMs, len, padEnd, trim } from "./poly-fills";
-import { Ctx, Env, ExternalError, InvokeError, Val, ValAndErr } from "./types";
+import { Ctx, Env, InvokeError, Val, ValAndErr } from "./types";
 
 type State = { dict: Map<string, Val>; output: string };
 
 async function get(state: State, key: string): Promise<ValAndErr> {
   if (!state.dict.has(key)) {
-    return { value: { t: "null", v: undefined }, err: `"${key} not found.` };
+    return { kind: "err", err: `"${key} not found.` };
   }
-  return { value: state.dict.get(key)!, err: undefined };
+  return { kind: "val", value: state.dict.get(key)! };
 }
 
 async function set(
   state: State,
   key: string,
   val: Val,
-): Promise<ExternalError> {
+): Promise<string | undefined> {
   state.dict.set(key, val);
   return undefined;
 }
@@ -34,9 +34,9 @@ async function exe(
       state.output += args[0].v + "\n";
       break;
     default:
-      return { value: nullVal, err: `operation ${name} does not exist` };
+      return { kind: "err", err: `operation ${name} does not exist` };
   }
-  return { value: nullVal, err: undefined };
+  return { kind: "val", value: nullVal };
 }
 
 const tests: {

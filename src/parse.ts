@@ -594,13 +594,14 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
           if (badArg !== -1) {
             return numOpErr(ins.errCtx, args[badArg].types!);
           }
+          stack.push({});
         } else if (headIs("key")) {
           const badArg = badMatch(["dict", "vec"]);
           if (badArg !== -1) {
             return keyOpErr(ins.errCtx, args[badArg].types!);
           }
+          stack.push({});
         }
-        stack.push({});
         break;
       }
       case "cat":

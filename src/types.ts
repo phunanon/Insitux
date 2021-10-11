@@ -9,8 +9,9 @@ export type Val =
 
 export type ErrCtx = { sourceId: string; line: number; col: number };
 export type InvokeError = { e: string; m: string; errCtx: ErrCtx };
-export type ExternalError = undefined | string;
-export type ValAndErr = { value: Val; err?: ExternalError };
+export type ValAndErr =
+  | { kind: "val"; value: Val }
+  | { kind: "err"; err: string };
 
 export type Dict = {
   keys: Val[];
@@ -28,7 +29,7 @@ export type Env = {
 };
 
 export type Ctx = {
-  set: (key: string, val: Val) => Promise<ExternalError>;
+  set: (key: string, val: Val) => Promise<string | undefined>;
   get: (key: string) => Promise<ValAndErr>;
   exe: (name: string, args: Val[]) => Promise<ValAndErr>;
   env: Env;
@@ -70,7 +71,7 @@ export const ops: {
   "*": { minArity: 2, numeric: true },
   "/": { minArity: 2, numeric: true },
   "//": { minArity: 2, numeric: true },
-  "**": { minArity: 1, numeric: true },
+  "**": { minArity: 1, maxArity: 2, numeric: true },
   "<": { minArity: 2, numeric: true },
   ">": { minArity: 2, numeric: true },
   "<=": { minArity: 2, numeric: true },

@@ -184,7 +184,7 @@ const ops = {
   "*": { minArity: 2, numeric: true },
   "/": { minArity: 2, numeric: true },
   "//": { minArity: 2, numeric: true },
-  "**": { minArity: 1, numeric: true },
+  "**": { minArity: 1, maxArity: 2, numeric: true },
   "<": { minArity: 2, numeric: true },
   ">": { minArity: 2, numeric: true },
   "<=": { minArity: 2, numeric: true },
@@ -982,13 +982,14 @@ function insErrorDetect(fins) {
           if (badArg !== -1) {
             return numOpErr(ins.errCtx, args[badArg].types);
           }
+          stack.push({});
         } else if (headIs("key")) {
           const badArg = badMatch(["dict", "vec"]);
           if (badArg !== -1) {
             return keyOpErr(ins.errCtx, args[badArg].types);
           }
+          stack.push({});
         }
-        stack.push({});
         break;
       }
       case "cat":
@@ -1066,9 +1067,9 @@ function parse(code, sourceId) {
 
 async function get(state, key) {
   if (!state.dict.has(key)) {
-    return { value: { t: "null", v: void 0 }, err: `"${key} not found.` };
+    return { kind: "err", err: `"${key} not found.` };
   }
-  return { value: state.dict.get(key), err: void 0 };
+  return { kind: "val", value: state.dict.get(key) };
 }
 async function set(state, key, val) {
   state.dict.set(key, val);
@@ -1085,9 +1086,9 @@ async function exe(state, name, args) {
       state.output += args[0].v + "\n";
       break;
     default:
-      return { value: nullVal, err: `operation ${name} does not exist` };
+      return { kind: "err", err: `operation ${name} does not exist` };
   }
-  return { value: nullVal, err: void 0 };
+  return { kind: "val", value: nullVal };
 }
 const tests = [
   { name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
@@ -2035,11 +2036,12 @@ function getExe(ctx, op, errCtx, checkArity = true) {
       };
     }
     return async (params) => {
-      const { err, value } = await ctx.exe(name, params);
-      if (!err) {
-        stack.push(value);
+      const valAndErr = await ctx.exe(name, params);
+      if (valAndErr.kind === "val") {
+        stack.push(valAndErr.value);
+        return;
       }
-      return err ? [{ e: "External", m: err, errCtx }] : void 0;
+      return [{ e: "External", m: valAndErr.err, errCtx }];
     };
   } else if (op.t === "clo") {
     return (params) => exeFunc(ctx, op.v, params);
@@ -2188,11 +2190,11 @@ async function exeFunc(ctx, func, args, inClosure = false) {
           if (ops[name]) {
             _fun(name);
           } else if (src_starts(name, "$")) {
-            const { value, err } = await ctx.get(src_substr(name, 1));
-            if (err) {
-              return [{ e: "External", m: err, errCtx }];
+            const valAndErr = await ctx.get(src_substr(name, 1));
+            if (valAndErr.kind === "err") {
+              return [{ e: "External", m: valAndErr.err, errCtx }];
             }
-            stack.push(value);
+            stack.push(valAndErr.value);
           } else if (name in ctx.env.vars) {
             stack.push(ctx.env.vars[name]);
           } else if (name in lets[src_len(lets) - 1]) {
@@ -2270,8 +2272,9 @@ async function exeFunc(ctx, func, args, inClosure = false) {
       case "clo":
       case "par":
         {
-          let [name, cins] = ins.value;
-          const isCapture = ({ typ, value }, i2) => typ === "ref" && !cins.find((i3) => i3.typ === "let" && i3.value === value) || typ === "npa" || typ === "val" && cins[i2 + 1].typ === "exe";
+          const name = ins.value[0];
+          let cins = ins.value[1];
+          const isCapture = ({ typ, value }, i2) => typ === "ref" && !cins.find((i3) => i3.typ === "let" && i3.value === value) || typ === "npa" || typ === "val" && i2 + 1 !== src_len(cins) && cins[i2 + 1].typ === "exe";
           const derefFunc = {
             name: "",
             ins: cins.map((ins2, i2) => {
