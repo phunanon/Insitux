@@ -1,10 +1,10 @@
+import { arityCheck, keyOpErr, numOpErr, typeCheck } from "./checks";
 import * as pf from "./poly-fills";
 const { concat, has, flat, push, slice, splice } = pf;
 const { slen, starts, sub, substr, strIdx } = pf;
-const { isNum, len, toNum, isArray } = pf;
-import { ErrCtx, Func, Funcs, Ins, ops, typeNames, Val } from "./types";
-import { assertUnreachable } from "./types";
-import { InvokeError, typeErr, keyOpErr, numOpErr } from "./types";
+const { isNum, len, toNum } = pf;
+import { ErrCtx, Func, Funcs, Ins, ops, Val } from "./types";
+import { assertUnreachable, InvokeError } from "./types";
 
 type Token = {
   typ: "str" | "num" | "sym" | "rem" | "(" | ")";
@@ -21,7 +21,7 @@ const nullVal: Val = { t: "null", v: undefined };
 
 export function tokenise(
   code: string,
-  invocationId: string,
+  sourceId: string,
   makeCollsOps = true,
   emitComments = false,
 ) {
@@ -67,7 +67,7 @@ export function tokenise(
         tokens.push({
           typ: "str",
           text: "",
-          errCtx: { invocationId, line, col },
+          errCtx: { sourceId: sourceId, line, col },
         });
       }
       inNumber = inSymbol = false;
@@ -88,12 +88,12 @@ export function tokenise(
         tokens.push({
           typ: "rem",
           text: "",
-          errCtx: { invocationId, line, col },
+          errCtx: { sourceId: sourceId, line, col },
         });
       }
       continue;
     }
-    const errCtx: ErrCtx = { invocationId, line, col };
+    const errCtx: ErrCtx = { sourceId: sourceId, line, col };
     const isDigit = (ch: string) => sub(digits, ch);
     const isParen = sub("()[]{}", c);
     //Allow one . per number, or convert into symbol
@@ -189,89 +189,6 @@ function parseAllArgs(tokens: Token[], params: string[]) {
     push(body, exp);
   }
   return body;
-}
-
-export function arityCheck(op: string, nArg: number, errCtx: ErrCtx) {
-  const { exactArity, maxArity, minArity } = ops[op];
-  const aErr = (msg: string, amount: number) => [
-    <InvokeError>{
-      e: "Arity",
-      m: `${op} needs ${msg} argument${amount !== 1 ? "s" : ""}, not ${nArg}`,
-      errCtx,
-    },
-  ];
-  if (exactArity !== undefined) {
-    if (nArg !== exactArity) {
-      return aErr(`exactly ${exactArity}`, exactArity);
-    }
-  } else {
-    if (minArity && !maxArity && nArg < minArity) {
-      return aErr(`at least ${minArity}`, minArity);
-    } else if (!minArity && maxArity && nArg > maxArity) {
-      return aErr(`at most ${maxArity}`, maxArity);
-    } else if (minArity && maxArity && (nArg < minArity || nArg > maxArity)) {
-      return aErr(`between ${minArity} and ${maxArity}`, maxArity);
-    }
-  }
-}
-
-export function typeCheck(
-  op: string,
-  args: Val["t"][][],
-  errCtx: ErrCtx,
-  optimistic = false,
-): InvokeError[] | undefined {
-  const { types, numeric: onlyNum } = ops[op];
-  const nArg = len(args);
-  if (onlyNum) {
-    const nonNumArgIdx = args.findIndex(
-      a =>
-        !!len(a) && (optimistic ? !a.find(t => t === "num") : a[0] !== "num"),
-    );
-    if (nonNumArgIdx === -1) {
-      return;
-    }
-    const names = args[nonNumArgIdx]!.map(t => typeNames[t]).join(", ");
-    return [
-      typeErr(`${op} takes numeric arguments only, not ${names}`, errCtx),
-    ];
-  }
-  if (!types) {
-    return;
-  }
-  const typeViolations = types
-    .map((need, i) => {
-      if (i >= nArg || !args[i]) {
-        return false;
-      }
-      const argTypes = args[i]!;
-      if (isArray(need)) {
-        if (
-          optimistic
-            ? !len(argTypes) || argTypes.some(t => has(need, t))
-            : len(argTypes) === 1 && has(need, argTypes[0])
-        ) {
-          return false;
-        }
-        const names = argTypes.map(t => typeNames[t]);
-        const needs = need.map(t => typeNames[t]).join(", ");
-        return `argument ${i + 1} must be either: ${needs}, not ${names}`;
-      } else {
-        if (
-          optimistic
-            ? !len(argTypes) || has(argTypes, need)
-            : len(argTypes) === 1 && need === argTypes[0]
-        ) {
-          return false;
-        }
-        const names = argTypes.map(t => typeNames[t]);
-        return `argument ${i + 1} must be ${typeNames[need]}, not ${names}`;
-      }
-    })
-    .filter(r => !!r);
-  return len(typeViolations)
-    ? typeViolations.map(v => typeErr(<string>v, errCtx))
-    : undefined;
 }
 
 function parseForm(
@@ -595,7 +512,7 @@ function findParenImbalance(
 }
 
 function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
-  const invocationId = len(tokens) ? tokens[0].errCtx.invocationId : "";
+  const sourceId = len(tokens) ? tokens[0].errCtx.sourceId : "";
   const errors: InvokeError[] = [];
   const err = (m: string, errCtx: ErrCtx) =>
     errors.push({ e: "Parse", m, errCtx });
@@ -607,14 +524,14 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   {
     const [line, col] = findParenImbalance(tokens, numL, numR);
     if (line + col) {
-      err("unmatched parenthesis", { invocationId, line, col });
+      err("unmatched parenthesis", { sourceId: sourceId, line, col });
     }
   }
 
   //Check for double-quote imbalance
   if (stringError) {
     const [line, col] = stringError;
-    err("unmatched double quotation marks", { invocationId, line, col });
+    err("unmatched double quotation marks", { sourceId: sourceId, line, col });
   }
 
   //Check for any empty expressions
@@ -733,9 +650,9 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
 
 export function parse(
   code: string,
-  invocationId: string,
+  sourceId: string,
 ): { funcs: Funcs; errors: InvokeError[] } {
-  const { tokens, stringError } = tokenise(code, invocationId);
+  const { tokens, stringError } = tokenise(code, sourceId);
   const tokenErrors = tokenErrorDetect(stringError, tokens);
   if (len(tokenErrors)) {
     return { errors: tokenErrors, funcs: {} };
@@ -744,7 +661,7 @@ export function parse(
   const labelled = funcise(segments);
   const funcsAndErrors = labelled.map(named =>
     syntaxise(named, {
-      invocationId,
+      sourceId: sourceId,
       line: named.errCtx.line,
       col: named.errCtx.col,
     }),

@@ -1,5 +1,7 @@
-export const insituxVersion = 20211010;
-import { arityCheck, parse, typeCheck } from "./parse";
+export const insituxVersion = 20211011;
+import { asBoo, isEqual } from "./checks";
+import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
+import { parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, cos, sin, tan, sign, sqrt, floor, ceil, round, max, min } = pf;
 const { logn, log2, log10 } = pf;
@@ -9,26 +11,10 @@ const { trim, trimStart, trimEnd } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
-import { assertUnreachable, typeNames } from "./types";
+import { assertUnreachable, typeNames, InvokeError } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops } from "./types";
-import { InvokeError, typeErr, numOpErr, keyOpErr } from "./types";
-
-const val2str = (val: Val): string => {
-  const quoted = (v: Val) => (v.t === "str" ? `"${v.v}"` : val2str(v));
-  if (val.t === "clo") {
-    return `#${val.v.name}`;
-  } else if (val.t === "vec") {
-    return `[${val.v.map(quoted).join(" ")}]`;
-  } else if (val.t === "dict") {
-    const { keys, vals } = val.v;
-    const [ks, vs] = [keys.map(quoted), vals.map(quoted)];
-    const entries = ks.map((k, i) => `${k} ${vs[i]}`);
-    return `{${entries.join(", ")}}`;
-  } else if (val.t === "null") {
-    return "null";
-  }
-  return `${val.v}`;
-};
+import { asArray, num, str, stringify, toDict, val2str, vec } from "./val";
+import { dic, dictDrop, dictGet, dictSet } from "./val";
 
 let stack: Val[] = [];
 let lets: { [key: string]: Val }[] = [];
@@ -39,107 +25,6 @@ const _vec = (v: Val[] = []) => stack.push({ t: "vec", v });
 const _dic = (v: Dict) => stack.push({ t: "dict", v });
 const _nul = () => stack.push({ t: "null", v: undefined });
 const _fun = (v: string) => stack.push({ t: "func", v });
-const num = ({ v }: Val) => v as number;
-const str = ({ v }: Val) => v as string;
-const vec = ({ v }: Val) => v as Val[];
-const dic = ({ v }: Val) => v as Dict;
-const asBoo = (val: Val) => (val.t === "bool" ? val.v : val.t !== "null");
-
-const asArray = (val: Val): Val[] =>
-  val.t === "vec"
-    ? slice(val.v)
-    : val.t === "str"
-    ? [...val.v].map(s => ({ t: "str", v: s }))
-    : val.t === "dict"
-    ? val.v.keys.map((k, i) => ({
-        t: "vec",
-        v: [k, val.v.vals[i]],
-      }))
-    : [];
-
-const stringify = (vals: Val[]) =>
-  vals.reduce((cat, v) => cat + val2str(v), "");
-
-const toDict = (args: Val[]): Val => {
-  if (len(args) % 2 === 1) {
-    args.pop();
-  }
-  const keys = args.filter((_, i) => i % 2 === 0);
-  const vals = args.filter((_, i) => i % 2 === 1);
-  const ddKeys: Val[] = [],
-    ddVals: Val[] = [];
-  keys.forEach((key, i) => {
-    const existingIdx = ddKeys.findIndex(k => isEqual(k, key));
-    if (existingIdx === -1) {
-      ddKeys.push(key);
-      ddVals.push(vals[i]);
-    } else {
-      ddVals[existingIdx] = vals[i];
-    }
-  });
-  return {
-    t: "dict",
-    v: { keys: ddKeys, vals: ddVals },
-  };
-};
-
-const isVecEqual = (a: Val[], b: Val[]): boolean =>
-  len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
-
-const isEqual = (a: Val, b: Val) => {
-  if (a.t !== b.t) {
-    return false;
-  }
-  switch (a.t) {
-    case "null":
-      return true;
-    case "bool":
-      return a.v === b.v;
-    case "num":
-      return a.v === b.v;
-    case "vec":
-      return isVecEqual(a.v, vec(b));
-    case "dict": {
-      const bd = dic(b);
-      return len(a.v.keys) === len(bd.keys) && isVecEqual(a.v.keys, bd.keys);
-    }
-    case "str":
-    case "ref":
-    case "key":
-    case "func":
-      return str(a) === str(b);
-    case "clo":
-      return (<Func>a.v).name === (<Func>b.v).name;
-  }
-  return assertUnreachable(a);
-};
-
-const dictGet = ({ keys, vals }: Dict, key: Val) => {
-  const idx = keys.findIndex(k => isEqual(k, key));
-  return idx === -1 ? <Val>{ t: "null", v: undefined } : vals[idx];
-};
-
-const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
-  const [nKeys, nVals] = [slice(keys), slice(vals)];
-  const idx = keys.findIndex(k => isEqual(k, key));
-  if (idx !== -1) {
-    nVals[idx] = val;
-  } else {
-    nKeys.push(key);
-    nVals.push(val);
-  }
-  return <Dict>{ keys: nKeys, vals: nVals };
-};
-
-const dictDrop = ({ keys, vals }: Dict, key: Val) => {
-  const [nKeys, nVals] = [slice(keys), slice(vals)];
-  const idx = keys.findIndex(k => isEqual(k, key));
-  if (idx !== -1) {
-    splice(nKeys, idx, 1);
-    splice(nVals, idx, 1);
-  }
-  return <Val>{ t: "dict", v: <Dict>{ keys: nKeys, vals: nVals } };
-};
 
 async function exeOp(
   op: string,
@@ -761,8 +646,8 @@ async function exeOp(
     case "eval": {
       delete ctx.env.funcs["entry"];
       const sLen = len(stack);
-      const invocationId = `${errCtx.invocationId} eval`;
-      const errors = await parseAndExe(ctx, str(args[0]), invocationId);
+      const sourceId = `${errCtx.sourceId} eval`;
+      const errors = await parseAndExe(ctx, str(args[0]), sourceId);
       if (errors) {
         return [
           { e: "Eval", m: "error within evaluated code", errCtx },
@@ -931,7 +816,7 @@ function errorsToDict(errors: InvokeError[]) {
   });
 }
 
-export async function exeFunc(
+async function exeFunc(
   ctx: Ctx,
   func: Func,
   args: Val[],
@@ -1135,9 +1020,9 @@ export async function exeFunc(
 async function parseAndExe(
   ctx: Ctx,
   code: string,
-  invocationId: string,
+  sourceId: string,
 ): Promise<InvokeError[] | undefined> {
-  const parsed = parse(code, invocationId);
+  const parsed = parse(code, sourceId);
   if (len(parsed.errors)) {
     return parsed.errors;
   }
@@ -1148,14 +1033,22 @@ async function parseAndExe(
   return await exeFunc(ctx, ctx.env.funcs["entry"], []);
 }
 
+/**
+ * Parses and executes the given code.
+ * @param ctx An environment context you retain.
+ * @param code The code you want to have parsed and executed.
+ * @param sourceId A unique ID for this source, used in immediate or future errors.
+ * @param printResult Whether you want to automatically print the final returned value of this invocation.
+ * @returns Invocation errors caused during execution of the code.
+ */
 export async function invoke(
   ctx: Ctx,
   code: string,
-  invocationId: string,
+  sourceId: string,
   printResult = false,
 ): Promise<InvokeError[]> {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
-  const errors = await parseAndExe(ctx, code, invocationId);
+  const errors = await parseAndExe(ctx, code, sourceId);
   ctx.callBudget = callBudget;
   ctx.recurBudget = recurBudget;
   ctx.loopBudget = loopBudget;
@@ -1169,8 +1062,39 @@ export async function invoke(
   return errors ?? [];
 }
 
+/**
+ * Executes a user-defined Insitux function by name.
+ * @param ctx An environment context you retain.
+ * @param funcName The function you want to execute.
+ * @param args The arguments you want to pass to the function.
+ * @returns Invocation errors caused during execution of the function, or undefined if the function was not found.
+ */
+export async function invokeFunction(
+  ctx: Ctx,
+  funcName: string,
+  args: Val[],
+): Promise<undefined | InvokeError[]> {
+  const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
+  if (!(funcName in ctx.env.funcs)) {
+    return;
+  }
+  const errors = await exeFunc(ctx, ctx.env.funcs[funcName], args);
+  ctx.callBudget = callBudget;
+  ctx.recurBudget = recurBudget;
+  ctx.loopBudget = loopBudget;
+  ctx.rangeBudget = rangeBudget;
+  stack = [];
+  lets = [];
+  return errors ?? [];
+}
+
+/**
+ * @param ctx An environment context you retain.
+ * @param alsoSyntax To optionally include syntax symbols.
+ * @returns List of symbols defined in Insitux, including built-in operations, (optionally) syntax, constants, and user-defined functions.
+ */
 export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
-  let syms = alsoSyntax ? ["function"] : [];
+  let syms = alsoSyntax ? ["function", "let", "var"] : [];
   push(syms, ["args", "PI", "E"]);
   syms = concat(syms, objKeys(ops));
   syms = concat(syms, objKeys(ctx.env.funcs));

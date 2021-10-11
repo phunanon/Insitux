@@ -317,6 +317,186 @@ const typeNames = {
   clo: "closure"
 };
 const assertUnreachable = (_x) => 0;
+
+;// CONCATENATED MODULE: ./src/val.ts
+
+
+const num = ({ v }) => v;
+const str = ({ v }) => v;
+const vec = ({ v }) => v;
+const dic = ({ v }) => v;
+const stringify = (vals) => vals.reduce((cat, v) => cat + val2str(v), "");
+const val2str = (val) => {
+  const quoted = (v) => v.t === "str" ? `"${v.v}"` : val2str(v);
+  if (val.t === "clo") {
+    return `#${val.v.name}`;
+  } else if (val.t === "vec") {
+    return `[${val.v.map(quoted).join(" ")}]`;
+  } else if (val.t === "dict") {
+    const { keys, vals } = val.v;
+    const [ks, vs] = [keys.map(quoted), vals.map(quoted)];
+    const entries = ks.map((k, i) => `${k} ${vs[i]}`);
+    return `{${entries.join(", ")}}`;
+  } else if (val.t === "null") {
+    return "null";
+  }
+  return `${val.v}`;
+};
+const asArray = (val) => val.t === "vec" ? slice(val.v) : val.t === "str" ? [...val.v].map((s) => ({ t: "str", v: s })) : val.t === "dict" ? val.v.keys.map((k, i) => ({
+  t: "vec",
+  v: [k, val.v.vals[i]]
+})) : [];
+const toDict = (args) => {
+  if (len(args) % 2 === 1) {
+    args.pop();
+  }
+  const keys = args.filter((_, i) => i % 2 === 0);
+  const vals = args.filter((_, i) => i % 2 === 1);
+  const ddKeys = [], ddVals = [];
+  keys.forEach((key, i) => {
+    const existingIdx = ddKeys.findIndex((k) => isEqual(k, key));
+    if (existingIdx === -1) {
+      ddKeys.push(key);
+      ddVals.push(vals[i]);
+    } else {
+      ddVals[existingIdx] = vals[i];
+    }
+  });
+  return {
+    t: "dict",
+    v: { keys: ddKeys, vals: ddVals }
+  };
+};
+const dictGet = ({ keys, vals }, key) => {
+  const idx = keys.findIndex((k) => isEqual(k, key));
+  return idx === -1 ? { t: "null", v: void 0 } : vals[idx];
+};
+const dictSet = ({ keys, vals }, key, val) => {
+  const [nKeys, nVals] = [slice(keys), slice(vals)];
+  const idx = keys.findIndex((k) => isEqual(k, key));
+  if (idx !== -1) {
+    nVals[idx] = val;
+  } else {
+    nKeys.push(key);
+    nVals.push(val);
+  }
+  return { keys: nKeys, vals: nVals };
+};
+const dictDrop = ({ keys, vals }, key) => {
+  const [nKeys, nVals] = [slice(keys), slice(vals)];
+  const idx = keys.findIndex((k) => isEqual(k, key));
+  if (idx !== -1) {
+    splice(nKeys, idx, 1);
+    splice(nVals, idx, 1);
+  }
+  return { t: "dict", v: { keys: nKeys, vals: nVals } };
+};
+function errorsToDict(errors) {
+  const newKey = (d, k, v) => dictSet(d, { t: "key", v: k }, v);
+  return errors.map(({ e, m, errCtx }) => {
+    let dict = newKey({ keys: [], vals: [] }, ":e", { t: "str", v: e });
+    dict = newKey(dict, ":m", { t: "str", v: m });
+    dict = newKey(dict, ":line", { t: "num", v: errCtx.line });
+    dict = newKey(dict, ":col", { t: "num", v: errCtx.col });
+    return { t: "dict", v: dict };
+  });
+}
+
+;// CONCATENATED MODULE: ./src/checks.ts
+
+
+
+
+const asBoo = (val) => val.t === "bool" ? val.v : val.t !== "null";
+const isVecEqual = (a, b) => len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
+const isEqual = (a, b) => {
+  if (a.t !== b.t) {
+    return false;
+  }
+  switch (a.t) {
+    case "null":
+      return true;
+    case "bool":
+      return a.v === b.v;
+    case "num":
+      return a.v === b.v;
+    case "vec":
+      return isVecEqual(a.v, vec(b));
+    case "dict": {
+      const bd = dic(b);
+      return len(a.v.keys) === len(bd.keys) && isVecEqual(a.v.keys, bd.keys);
+    }
+    case "str":
+    case "ref":
+    case "key":
+    case "func":
+      return str(a) === str(b);
+    case "clo":
+      return a.v.name === b.v.name;
+  }
+  return assertUnreachable(a);
+};
+function arityCheck(op, nArg, errCtx) {
+  const { exactArity, maxArity, minArity } = ops[op];
+  const aErr = (msg, amount) => [
+    {
+      e: "Arity",
+      m: `${op} needs ${msg} argument${amount !== 1 ? "s" : ""}, not ${nArg}`,
+      errCtx
+    }
+  ];
+  if (exactArity !== void 0) {
+    if (nArg !== exactArity) {
+      return aErr(`exactly ${exactArity}`, exactArity);
+    }
+  } else {
+    if (minArity && !maxArity && nArg < minArity) {
+      return aErr(`at least ${minArity}`, minArity);
+    } else if (!minArity && maxArity && nArg > maxArity) {
+      return aErr(`at most ${maxArity}`, maxArity);
+    } else if (minArity && maxArity && (nArg < minArity || nArg > maxArity)) {
+      return aErr(`between ${minArity} and ${maxArity}`, maxArity);
+    }
+  }
+}
+function typeCheck(op, args, errCtx, optimistic = false) {
+  const { types, numeric: onlyNum } = ops[op];
+  const nArg = len(args);
+  if (onlyNum) {
+    const nonNumArgIdx = args.findIndex((a) => !!len(a) && (optimistic ? !a.find((t) => t === "num") : a[0] !== "num"));
+    if (nonNumArgIdx === -1) {
+      return;
+    }
+    const names = args[nonNumArgIdx].map((t) => typeNames[t]).join(", ");
+    return [
+      typeErr(`${op} takes numeric arguments only, not ${names}`, errCtx)
+    ];
+  }
+  if (!types) {
+    return;
+  }
+  const typeViolations = types.map((need, i) => {
+    if (i >= nArg || !args[i]) {
+      return false;
+    }
+    const argTypes = args[i];
+    if (isArray(need)) {
+      if (optimistic ? !len(argTypes) || argTypes.some((t) => has(need, t)) : len(argTypes) === 1 && has(need, argTypes[0])) {
+        return false;
+      }
+      const names = argTypes.map((t) => typeNames[t]);
+      const needs = need.map((t) => typeNames[t]).join(", ");
+      return `argument ${i + 1} must be either: ${needs}, not ${names}`;
+    } else {
+      if (optimistic ? !len(argTypes) || has(argTypes, need) : len(argTypes) === 1 && need === argTypes[0]) {
+        return false;
+      }
+      const names = argTypes.map((t) => typeNames[t]);
+      return `argument ${i + 1} must be ${typeNames[need]}, not ${names}`;
+    }
+  }).filter((r) => !!r);
+  return len(typeViolations) ? typeViolations.map((v) => typeErr(v, errCtx)) : void 0;
+}
 const typeErr = (m, errCtx) => ({
   e: "Type",
   m,
@@ -337,14 +517,14 @@ function keyOpErr(errCtx, types) {
 
 ;// CONCATENATED MODULE: ./src/parse.ts
 
+
 const { concat: parse_concat, has: parse_has, flat: parse_flat, push: parse_push, slice: parse_slice, splice: parse_splice } = poly_fills_namespaceObject;
 const { slen: parse_slen, starts: parse_starts, sub: parse_sub, substr: parse_substr, strIdx: parse_strIdx } = poly_fills_namespaceObject;
-const { isNum: parse_isNum, len: parse_len, toNum: parse_toNum, isArray: parse_isArray } = poly_fills_namespaceObject;
-
+const { isNum: parse_isNum, len: parse_len, toNum: parse_toNum } = poly_fills_namespaceObject;
 
 
 const nullVal = { t: "null", v: void 0 };
-function tokenise(code, invocationId, makeCollsOps = true, emitComments = false) {
+function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
   const tokens = [];
   const digits = "0123456789";
   let inString = false, isEscaped = false, inStringAt = [0, 0], inSymbol = false, inNumber = false, inComment = false, line = 1, col = 0;
@@ -378,7 +558,7 @@ function tokenise(code, invocationId, makeCollsOps = true, emitComments = false)
         tokens.push({
           typ: "str",
           text: "",
-          errCtx: { invocationId, line, col }
+          errCtx: { sourceId, line, col }
         });
       }
       inNumber = inSymbol = false;
@@ -399,12 +579,12 @@ function tokenise(code, invocationId, makeCollsOps = true, emitComments = false)
         tokens.push({
           typ: "rem",
           text: "",
-          errCtx: { invocationId, line, col }
+          errCtx: { sourceId, line, col }
         });
       }
       continue;
     }
-    const errCtx = { invocationId, line, col };
+    const errCtx = { sourceId, line, col };
     const isDigit = (ch) => parse_sub(digits, ch);
     const isParen = parse_sub("()[]{}", c);
     if (inNumber && !isDigit(c)) {
@@ -486,67 +666,6 @@ function parseAllArgs(tokens, params) {
     parse_push(body, exp);
   }
   return body;
-}
-function arityCheck(op, nArg, errCtx) {
-  const { exactArity, maxArity, minArity } = ops[op];
-  const aErr = (msg, amount) => [
-    {
-      e: "Arity",
-      m: `${op} needs ${msg} argument${amount !== 1 ? "s" : ""}, not ${nArg}`,
-      errCtx
-    }
-  ];
-  if (exactArity !== void 0) {
-    if (nArg !== exactArity) {
-      return aErr(`exactly ${exactArity}`, exactArity);
-    }
-  } else {
-    if (minArity && !maxArity && nArg < minArity) {
-      return aErr(`at least ${minArity}`, minArity);
-    } else if (!minArity && maxArity && nArg > maxArity) {
-      return aErr(`at most ${maxArity}`, maxArity);
-    } else if (minArity && maxArity && (nArg < minArity || nArg > maxArity)) {
-      return aErr(`between ${minArity} and ${maxArity}`, maxArity);
-    }
-  }
-}
-function typeCheck(op, args, errCtx, optimistic = false) {
-  const { types, numeric: onlyNum } = ops[op];
-  const nArg = parse_len(args);
-  if (onlyNum) {
-    const nonNumArgIdx = args.findIndex((a) => !!parse_len(a) && (optimistic ? !a.find((t) => t === "num") : a[0] !== "num"));
-    if (nonNumArgIdx === -1) {
-      return;
-    }
-    const names = args[nonNumArgIdx].map((t) => typeNames[t]).join(", ");
-    return [
-      typeErr(`${op} takes numeric arguments only, not ${names}`, errCtx)
-    ];
-  }
-  if (!types) {
-    return;
-  }
-  const typeViolations = types.map((need, i) => {
-    if (i >= nArg || !args[i]) {
-      return false;
-    }
-    const argTypes = args[i];
-    if (parse_isArray(need)) {
-      if (optimistic ? !parse_len(argTypes) || argTypes.some((t) => parse_has(need, t)) : parse_len(argTypes) === 1 && parse_has(need, argTypes[0])) {
-        return false;
-      }
-      const names = argTypes.map((t) => typeNames[t]);
-      const needs = need.map((t) => typeNames[t]).join(", ");
-      return `argument ${i + 1} must be either: ${needs}, not ${names}`;
-    } else {
-      if (optimistic ? !parse_len(argTypes) || parse_has(argTypes, need) : parse_len(argTypes) === 1 && need === argTypes[0]) {
-        return false;
-      }
-      const names = argTypes.map((t) => typeNames[t]);
-      return `argument ${i + 1} must be ${typeNames[need]}, not ${names}`;
-    }
-  }).filter((r) => !!r);
-  return parse_len(typeViolations) ? typeViolations.map((v) => typeErr(v, errCtx)) : void 0;
 }
 function parseForm(tokens, params, checkArity = true) {
   const head = tokens.shift();
@@ -810,7 +929,7 @@ function findParenImbalance(tokens, numL, numR) {
   return [0, 0];
 }
 function tokenErrorDetect(stringError, tokens) {
-  const invocationId = parse_len(tokens) ? tokens[0].errCtx.invocationId : "";
+  const sourceId = parse_len(tokens) ? tokens[0].errCtx.sourceId : "";
   const errors = [];
   const err = (m, errCtx) => errors.push({ e: "Parse", m, errCtx });
   const countTyp = (t) => parse_len(tokens.filter(({ typ }) => typ === t));
@@ -818,12 +937,12 @@ function tokenErrorDetect(stringError, tokens) {
   {
     const [line, col] = findParenImbalance(tokens, numL, numR);
     if (line + col) {
-      err("unmatched parenthesis", { invocationId, line, col });
+      err("unmatched parenthesis", { sourceId, line, col });
     }
   }
   if (stringError) {
     const [line, col] = stringError;
-    err("unmatched double quotation marks", { invocationId, line, col });
+    err("unmatched double quotation marks", { sourceId, line, col });
   }
   let emptyHead;
   for (let t = 0, lastWasL = false; t < parse_len(tokens); ++t) {
@@ -916,8 +1035,8 @@ function insErrorDetect(fins) {
     }
   }
 }
-function parse(code, invocationId) {
-  const { tokens, stringError } = tokenise(code, invocationId);
+function parse(code, sourceId) {
+  const { tokens, stringError } = tokenise(code, sourceId);
   const tokenErrors = tokenErrorDetect(stringError, tokens);
   if (parse_len(tokenErrors)) {
     return { errors: tokenErrors, funcs: {} };
@@ -925,7 +1044,7 @@ function parse(code, invocationId) {
   const segments = segment(tokens);
   const labelled = funcise(segments);
   const funcsAndErrors = labelled.map((named) => syntaxise(named, {
-    invocationId,
+    sourceId,
     line: named.errCtx.line,
     col: named.errCtx.col
   }));
@@ -1311,7 +1430,9 @@ async function doTests(invoke, terse = true) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211010;
+const insituxVersion = 20211011;
+
+
 
 
 const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min } = poly_fills_namespaceObject;
@@ -1325,22 +1446,7 @@ const { isNum: src_isNum, len: src_len, objKeys: src_objKeys, range: src_range, 
 
 
 
-const val2str = (val) => {
-  const quoted = (v) => v.t === "str" ? `"${v.v}"` : val2str(v);
-  if (val.t === "clo") {
-    return `#${val.v.name}`;
-  } else if (val.t === "vec") {
-    return `[${val.v.map(quoted).join(" ")}]`;
-  } else if (val.t === "dict") {
-    const { keys, vals } = val.v;
-    const [ks, vs] = [keys.map(quoted), vals.map(quoted)];
-    const entries = ks.map((k, i) => `${k} ${vs[i]}`);
-    return `{${entries.join(", ")}}`;
-  } else if (val.t === "null") {
-    return "null";
-  }
-  return `${val.v}`;
-};
+
 let stack = [];
 let lets = [];
 const _boo = (v) => stack.push({ t: "bool", v });
@@ -1350,89 +1456,6 @@ const _vec = (v = []) => stack.push({ t: "vec", v });
 const _dic = (v) => stack.push({ t: "dict", v });
 const _nul = () => stack.push({ t: "null", v: void 0 });
 const _fun = (v) => stack.push({ t: "func", v });
-const num = ({ v }) => v;
-const str = ({ v }) => v;
-const vec = ({ v }) => v;
-const dic = ({ v }) => v;
-const asBoo = (val) => val.t === "bool" ? val.v : val.t !== "null";
-const asArray = (val) => val.t === "vec" ? src_slice(val.v) : val.t === "str" ? [...val.v].map((s) => ({ t: "str", v: s })) : val.t === "dict" ? val.v.keys.map((k, i) => ({
-  t: "vec",
-  v: [k, val.v.vals[i]]
-})) : [];
-const stringify = (vals) => vals.reduce((cat, v) => cat + val2str(v), "");
-const toDict = (args) => {
-  if (src_len(args) % 2 === 1) {
-    args.pop();
-  }
-  const keys = args.filter((_, i) => i % 2 === 0);
-  const vals = args.filter((_, i) => i % 2 === 1);
-  const ddKeys = [], ddVals = [];
-  keys.forEach((key, i) => {
-    const existingIdx = ddKeys.findIndex((k) => isEqual(k, key));
-    if (existingIdx === -1) {
-      ddKeys.push(key);
-      ddVals.push(vals[i]);
-    } else {
-      ddVals[existingIdx] = vals[i];
-    }
-  });
-  return {
-    t: "dict",
-    v: { keys: ddKeys, vals: ddVals }
-  };
-};
-const isVecEqual = (a, b) => src_len(a) === src_len(b) && !a.some((x, i) => !isEqual(x, b[i]));
-const isEqual = (a, b) => {
-  if (a.t !== b.t) {
-    return false;
-  }
-  switch (a.t) {
-    case "null":
-      return true;
-    case "bool":
-      return a.v === b.v;
-    case "num":
-      return a.v === b.v;
-    case "vec":
-      return isVecEqual(a.v, vec(b));
-    case "dict": {
-      const bd = dic(b);
-      return src_len(a.v.keys) === src_len(bd.keys) && isVecEqual(a.v.keys, bd.keys);
-    }
-    case "str":
-    case "ref":
-    case "key":
-    case "func":
-      return str(a) === str(b);
-    case "clo":
-      return a.v.name === b.v.name;
-  }
-  return assertUnreachable(a);
-};
-const dictGet = ({ keys, vals }, key) => {
-  const idx = keys.findIndex((k) => isEqual(k, key));
-  return idx === -1 ? { t: "null", v: void 0 } : vals[idx];
-};
-const dictSet = ({ keys, vals }, key, val) => {
-  const [nKeys, nVals] = [src_slice(keys), src_slice(vals)];
-  const idx = keys.findIndex((k) => isEqual(k, key));
-  if (idx !== -1) {
-    nVals[idx] = val;
-  } else {
-    nKeys.push(key);
-    nVals.push(val);
-  }
-  return { keys: nKeys, vals: nVals };
-};
-const dictDrop = ({ keys, vals }, key) => {
-  const [nKeys, nVals] = [src_slice(keys), src_slice(vals)];
-  const idx = keys.findIndex((k) => isEqual(k, key));
-  if (idx !== -1) {
-    src_splice(nKeys, idx, 1);
-    src_splice(nVals, idx, 1);
-  }
-  return { t: "dict", v: { keys: nKeys, vals: nVals } };
-};
 async function exeOp(op, args, ctx, errCtx, checkArity) {
   const tErr = (msg) => [typeErr(msg, errCtx)];
   if (checkArity) {
@@ -1963,8 +1986,8 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "eval": {
       delete ctx.env.funcs["entry"];
       const sLen = src_len(stack);
-      const invocationId = `${errCtx.invocationId} eval`;
-      const errors = await parseAndExe(ctx, str(args[0]), invocationId);
+      const sourceId = `${errCtx.sourceId} eval`;
+      const errors = await parseAndExe(ctx, str(args[0]), sourceId);
       if (errors) {
         return [
           { e: "Eval", m: "error within evaluated code", errCtx },
@@ -2107,7 +2130,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
     { e: "Operation", m: `${val2str(op)} is an invalid operation`, errCtx }
   ];
 }
-function errorsToDict(errors) {
+function src_errorsToDict(errors) {
   const newKey = (d, k, v) => dictSet(d, { t: "key", v: k }, v);
   return errors.map(({ e, m, errCtx }) => {
     let dict = newKey({ keys: [], vals: [] }, ":e", { t: "str", v: e });
@@ -2193,7 +2216,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
               i += nextCat;
               lets[src_len(lets) - 1]["errors"] = {
                 t: "vec",
-                v: errorsToDict(errors)
+                v: src_errorsToDict(errors)
               };
               break;
             }
@@ -2290,8 +2313,8 @@ async function exeFunc(ctx, func, args, inClosure = false) {
   }
   return;
 }
-async function parseAndExe(ctx, code, invocationId) {
-  const parsed = parse(code, invocationId);
+async function parseAndExe(ctx, code, sourceId) {
+  const parsed = parse(code, sourceId);
   if (src_len(parsed.errors)) {
     return parsed.errors;
   }
@@ -2301,9 +2324,9 @@ async function parseAndExe(ctx, code, invocationId) {
   }
   return await exeFunc(ctx, ctx.env.funcs["entry"], []);
 }
-async function invoke(ctx, code, invocationId, printResult = false) {
+async function invoke(ctx, code, sourceId, printResult = false) {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
-  const errors = await parseAndExe(ctx, code, invocationId);
+  const errors = await parseAndExe(ctx, code, sourceId);
   ctx.callBudget = callBudget;
   ctx.recurBudget = recurBudget;
   ctx.loopBudget = loopBudget;
@@ -2316,8 +2339,22 @@ async function invoke(ctx, code, invocationId, printResult = false) {
   lets = [];
   return errors ?? [];
 }
+async function invokeFunction(ctx, funcName, args) {
+  const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
+  if (!(funcName in ctx.env.funcs)) {
+    return;
+  }
+  const errors = await exeFunc(ctx, ctx.env.funcs[funcName], args);
+  ctx.callBudget = callBudget;
+  ctx.recurBudget = recurBudget;
+  ctx.loopBudget = loopBudget;
+  ctx.rangeBudget = rangeBudget;
+  stack = [];
+  lets = [];
+  return errors ?? [];
+}
 function symbols(ctx, alsoSyntax = true) {
-  let syms = alsoSyntax ? ["function"] : [];
+  let syms = alsoSyntax ? ["function", "let", "var"] : [];
   src_push(syms, ["args", "PI", "E"]);
   syms = src_concat(syms, src_objKeys(ops));
   syms = src_concat(syms, src_objKeys(ctx.env.funcs));
@@ -2336,8 +2373,8 @@ async function invoker(ctx, code) {
   invocations.set(uuid, code);
   const errors = await invoke(ctx, code, uuid, true);
   let out = [];
-  errors.forEach(({ e, m, errCtx: { line, col, invocationId } }) => {
-    const invocation = invocations.get(invocationId);
+  errors.forEach(({ e, m, errCtx: { line, col, sourceId } }) => {
+    const invocation = invocations.get(sourceId);
     if (!invocation) {
       out.push({
         type: "message",

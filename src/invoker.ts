@@ -15,8 +15,8 @@ export async function invoker(ctx: Ctx, code: string): Promise<ErrorOutput> {
   invocations.set(uuid, code);
   const errors = await invoke(ctx, code, uuid, true);
   let out: ErrorOutput = [];
-  errors.forEach(({ e, m, errCtx: { line, col, invocationId } }) => {
-    const invocation = invocations.get(invocationId);
+  errors.forEach(({ e, m, errCtx: { line, col, sourceId } }) => {
+    const invocation = invocations.get(sourceId);
     if (!invocation) {
       out.push({
         type: "message",

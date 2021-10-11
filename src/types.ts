@@ -7,7 +7,7 @@ export type Val =
   | { t: "clo"; v: Func }
   | { t: "dict"; v: Dict };
 
-export type ErrCtx = { invocationId: string; line: number; col: number };
+export type ErrCtx = { sourceId: string; line: number; col: number };
 export type InvokeError = { e: string; m: string; errCtx: ErrCtx };
 export type ExternalError = undefined | string;
 export type ValAndErr = { value: Val; err?: ExternalError };
@@ -205,29 +205,3 @@ export const typeNames = {
 };
 
 export const assertUnreachable = (_x: never): never => <never>0;
-
-export const typeErr = (m: string, errCtx: ErrCtx): InvokeError => ({
-  e: "Type",
-  m,
-  errCtx,
-});
-
-export function numOpErr(errCtx: ErrCtx, types: Val["t"][]): InvokeError[] {
-  const names = types.map(t => typeNames[t]).join(", ");
-  return [
-    typeErr(
-      `number as operation argument must be string, vector, or dictionary, not ${names}`,
-      errCtx,
-    ),
-  ];
-}
-
-export function keyOpErr(errCtx: ErrCtx, types: Val["t"][]): InvokeError[] {
-  const names = types.map(t => typeNames[t]).join(", ");
-  return [
-    typeErr(
-      `keyword as operation argument must be dictionary or vector, not ${names}`,
-      errCtx,
-    ),
-  ];
-}

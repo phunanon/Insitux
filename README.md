@@ -4,7 +4,7 @@
       <img src="https://phunanon.github.io/Insitux/media/insitux.png" alt="Insitux logo" height="32">
     </td>
     <td colspan="3">
-      S-expression scripting language written in portable TypeScript.
+      Extensible scripting language written in portable TypeScript.
     </td>
   </tr>
   <tr>
@@ -89,6 +89,7 @@ built-in operations each within an example, with results after a `→`.
 [a b c]             → [1 2 3]
 
 ;Defines one or more variables for use only within one function call
+;Note: (let a 1 b 2) internally becomes (let a 1) (let b 2)
 (function test
   (let name "Patrick")
   (let a 1 b 2 c 3)
@@ -569,13 +570,14 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 ### Various examples
 
 ```clj
-; 2D coordinate inside 2D area?
+; Test if 2D coordinate are inside 2D area
 (function inside-2d? X Y areaX areaY areaW areaH
   (and (<= areaX X (+ areaX areaW))
        (<= areaY Y (+ areaY areaH))))
 
 (inside-2d? 50 50 0 0 100 100)  → true
 (inside-2d? 50 150 0 0 100 100) → false
+
 
 ; Recursive Fibonacci solver
 (function fib n
@@ -585,19 +587,23 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 
 (fib 13) → 233
 
+
 ; Filter for vectors and strings above a certain length
 (filter 2 [[1] [:a :b :c] "hello" "hi"])
 → [[:a :b :c] "hello"]
 
+
 ; Flatten a vector one level deep
 (.. .. vec [[0 1] 2 3 [4 5]])
 → [0 1 2 3 4 5]
+
 
 ; Triple every vector item
 (for * [0 1 2 3 4] [3])
 ;or
 (map @(* 3) [0 1 2 3 4])
 → [0 3 6 9 12]
+
 
 ; Palindrome checker
 (function palindrome? text
@@ -606,6 +612,7 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (palindrome? "aabbxbbaa") → true
 (palindrome? "abcd")      → false
 
+
 ; Clojure's juxt
 (function juxt
   (let funcs args)
@@ -613,6 +620,7 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 
 ((juxt + - * /) 10 8)
 → [18 2 80 1.25]
+
 
 ; Clojure's comp
 (function comp f
@@ -623,12 +631,14 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (map (comp + inc) [0 1 2 3 4] [0 1 2 3 4])
 → [1 3 5 7 9]
 
+
 ; Clojure's frequencies
 (function frequencies list
   (reduce #(push % %1 (inc (or (% %1) 0))) list {}))
 
 (frequencies "hello")
 → {"h" 1, "e" 1, "l" 2, "o" 1}
+
 
 ; Deduplicate a list recursively
 (function dedupe list -out
@@ -643,12 +653,14 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (dedupe [1 2 3 3])
 → [1 2 3]
 
+
 ; Time a function call
 (function measure
   (let report [(time) (.. .. args) (time)])
   (str (1 report) " took " (- (2 report) (0 report)) "ms"))
 
 (measure fib 35) → "9227465 took 45500ms"
+
 
 ; Display the Mandelbrot fractal as ASCII
 (function mandelbrot width height depth
@@ -666,4 +678,24 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
     (range width) (range height))))
 
 (mandelbrot 48 32 10)
+
+
+; Convert nested arrays and dictionaries into HTML
+(function vec->html v
+  (if (vec? v)
+    (let has-attr (dict? (1 v))
+         attr (if has-attr (map #(str " " (0 %) "=\"" (1 %)) (1 v)) "")
+         tag (0 v)
+         html (.. str "<" tag attr ">"
+                (map vec->html (sect v (if has-attr 2 1)))
+                "</" tag ">"))
+    v))
+
+(vec->html
+  ["div"
+    ["h2" "Hello"]
+    ["p" ".PI is " ["b" PI] "."]
+    ["p" "Find more info about Insitux on "
+       ["a" {"href" "https://github.com/phunanon/Insitux"}
+          "Github"]]])
 ```
