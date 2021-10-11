@@ -27,8 +27,8 @@ Successor to [Chika](https://github.com/phunanon/Chika),
 [Epizeuxis](https://github.com/phunanon/Epizeuxis), and
 [Kuan](https://github.com/phunanon/Kuan).
 
-[**Main Github repository**](https://github.com/phunanon/Insitux)
-[**Roblox-ts NPM package**](https://www.npmjs.com/package/@rbxts/insitux) and its [Github repository](https://github.com/insitux/rbxts-Insitux).
+- [**Main Github repository**](https://github.com/phunanon/Insitux)
+- [**Roblox-ts NPM package**](https://www.npmjs.com/package/@rbxts/insitux) and its [Github repository](https://github.com/insitux/rbxts-Insitux).
 
 ## Usage
 

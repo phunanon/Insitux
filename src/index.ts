@@ -20,7 +20,7 @@ let stack: Val[] = [];
 let lets: { [key: string]: Val }[] = [];
 const _boo = (v: boolean) => stack.push({ t: "bool", v });
 const _num = (v: number) => stack.push({ t: "num", v });
-const _str = (v: string = "") => stack.push({ t: "str", v });
+const _str = (v = "") => stack.push({ t: "str", v });
 const _vec = (v: Val[] = []) => stack.push({ t: "vec", v });
 const _dic = (v: Dict) => stack.push({ t: "dict", v });
 const _nul = () => stack.push({ t: "null", v: undefined });
@@ -956,7 +956,8 @@ async function exeFunc(
       case "clo":
       case "par":
         {
-          let [name, cins] = ins.value;
+          const name = ins.value[0];
+          let cins = ins.value[1];
           const isCapture = ({ typ, value }: Ins, i: number) =>
             (typ === "ref" &&
               !cins.find(i => i.typ === "let" && i.value === value)) ||

@@ -351,7 +351,7 @@ export async function doTests(
     sourceId: string,
     print: boolean,
   ) => Promise<InvokeError[]>,
-  terse: boolean = true,
+  terse = true,
 ): Promise<string[]> {
   const results: {
     okErr: boolean;
