@@ -1,4 +1,4 @@
-export const insituxVersion = 20211011;
+export const insituxVersion = 20211012;
 import { asBoo, isEqual } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -298,124 +298,146 @@ async function exeOp(
     case "filter":
     case "remove":
     case "find":
-    case "count":
-      {
-        const closure = getExe(ctx, args.shift()!, errCtx);
-        const okT = (t: Val["t"]) => t === "vec" || t === "str" || t === "dict";
-        const badArg =
-          op === "map" || op === "for"
-            ? args.findIndex(({ t }) => !okT(t))
-            : okT(args[0].t)
-            ? -1
-            : 0;
+    case "count": {
+      const closure = getExe(ctx, args.shift()!, errCtx);
+      if (op === "map" || op === "for") {
+        const badArg = args.findIndex(
+          ({ t }) => t !== "vec" && t !== "str" && t !== "dict",
+        );
         if (badArg !== -1) {
           const badType = typeNames[args[badArg].t];
           return tErr(
-            `argument 2 must be either: string, vector, dictionary, not ${badType}`,
+            `argument ${
+              badArg + 2
+            } must be either: string, vector, dictionary, not ${badType}`,
           );
         }
+      }
 
-        if (op === "for") {
-          const arrays = args.map(asArray);
-          const lims = arrays.map(len);
-          const divisors = lims.map((_, i) =>
-            slice(lims, 0, i + 1).reduce((sum, l) => sum * l),
-          );
-          divisors.unshift(1);
-          const lim = divisors.pop()!;
-          if (lim > ctx.loopBudget) {
-            return [{ e: "Budget", m: "would exceed loop budget", errCtx }];
-          }
-          const array: Val[] = [];
-          for (let t = 0; t < lim; ++t) {
-            const argIdxs = divisors.map((d, i) => floor((t / d) % lims[i]));
-            const errors = await closure(arrays.map((a, i) => a[argIdxs[i]]));
-            if (errors) {
-              return errors;
-            }
-            array.push(stack.pop()!);
-          }
-          _vec(array);
-          return;
+      if (op === "for") {
+        const arrays = args.map(asArray);
+        const lims = arrays.map(len);
+        const divisors = lims.map((_, i) =>
+          slice(lims, 0, i + 1).reduce((sum, l) => sum * l),
+        );
+        divisors.unshift(1);
+        const lim = divisors.pop()!;
+        if (lim > ctx.loopBudget) {
+          return [{ e: "Budget", m: "would exceed loop budget", errCtx }];
         }
-
-        if (op === "map") {
-          const arrays = args.map(asArray);
-          const shortest = min(...arrays.map(len));
-          const array: Val[] = [];
-          for (let i = 0; i < shortest; ++i) {
-            const errors = await closure(arrays.map(a => a[i]));
-            if (errors) {
-              return errors;
-            }
-            array.push(stack.pop()!);
-          }
-          _vec(array);
-          return;
-        }
-
-        const array = asArray(args.shift()!);
-        if (op !== "reduce") {
-          const isRemove = op === "remove",
-            isFind = op === "find",
-            isCount = op === "count";
-          const filtered: Val[] = [];
-          let count = 0;
-          for (let i = 0, lim = len(array); i < lim; ++i) {
-            const errors = await closure([array[i], ...args]);
-            if (errors) {
-              return errors;
-            }
-            const b = asBoo(stack.pop()!);
-            if (isCount) {
-              count += b ? 1 : 0;
-              continue;
-            }
-            if (isFind && b) {
-              stack.push(array[i]);
-              return;
-            }
-            if (!isFind && b !== isRemove) {
-              filtered.push(array[i]);
-            }
-          }
-          switch (op) {
-            case "count":
-              _num(count);
-              return;
-            case "find":
-              _nul();
-              return;
-            default:
-              _vec(filtered);
-              return;
-          }
-        }
-
-        if (!len(array)) {
-          if (len(args)) {
-            stack.push(args[0]);
-          } else {
-            _vec();
-          }
-          return;
-        }
-        if (len(array) < 2 && !len(args)) {
-          push(stack, array);
-          return;
-        }
-
-        let reduction: Val = (len(args) ? args : array).shift()!;
-        for (let i = 0, lim = len(array); i < lim; ++i) {
-          const errors = await closure([reduction, array[i]]);
+        const array: Val[] = [];
+        for (let t = 0; t < lim; ++t) {
+          const argIdxs = divisors.map((d, i) => floor((t / d) % lims[i]));
+          const errors = await closure(arrays.map((a, i) => a[argIdxs[i]]));
           if (errors) {
             return errors;
           }
-          reduction = stack.pop()!;
+          array.push(stack.pop()!);
         }
-        stack.push(reduction);
+        _vec(array);
+        return;
       }
+
+      if (op === "map") {
+        const arrays = args.map(asArray);
+        const shortest = min(...arrays.map(len));
+        const array: Val[] = [];
+        for (let i = 0; i < shortest; ++i) {
+          const errors = await closure(arrays.map(a => a[i]));
+          if (errors) {
+            return errors;
+          }
+          array.push(stack.pop()!);
+        }
+        _vec(array);
+        return;
+      }
+
+      const array = asArray(args.shift()!);
+      if (op !== "reduce") {
+        const isRemove = op === "remove",
+          isFind = op === "find",
+          isCount = op === "count";
+        const filtered: Val[] = [];
+        let count = 0;
+        for (let i = 0, lim = len(array); i < lim; ++i) {
+          const errors = await closure([array[i], ...args]);
+          if (errors) {
+            return errors;
+          }
+          const b = asBoo(stack.pop()!);
+          if (isCount) {
+            count += b ? 1 : 0;
+          } else if (isFind) {
+            if (b) {
+              stack.push(array[i]);
+              return;
+            }
+          } else if (b !== isRemove) {
+            filtered.push(array[i]);
+          }
+        }
+        switch (op) {
+          case "count":
+            _num(count);
+            return;
+          case "find":
+            _nul();
+            return;
+        }
+        _vec(filtered);
+        return;
+      }
+
+      if (!len(array)) {
+        if (len(args)) {
+          stack.push(args[0]);
+        } else {
+          _vec();
+        }
+        return;
+      }
+      if (len(array) < 2 && !len(args)) {
+        push(stack, array);
+        return;
+      }
+
+      let reduction: Val = (len(args) ? args : array).shift()!;
+      for (let i = 0, lim = len(array); i < lim; ++i) {
+        const errors = await closure([reduction, array[i]]);
+        if (errors) {
+          return errors;
+        }
+        reduction = stack.pop()!;
+      }
+      stack.push(reduction);
       return;
+    }
+    case "repeat": {
+      const toRepeat = args.shift()!;
+      const result: Val[] = [];
+      const count = num(args[0]);
+      if (count > ctx.rangeBudget) {
+        return [{ e: "Budget", m: "would exceed range budget", errCtx }];
+      }
+      ctx.rangeBudget -= count;
+      if (toRepeat.t === "func" || toRepeat.t === "clo") {
+        const closure = getExe(ctx, toRepeat, errCtx);
+        for (let i = 0; i < count; ++i) {
+          const errors = await closure([{ t: "num", v: i }]);
+          if (errors) {
+            return errors;
+          }
+          result.push(stack.pop()!);
+        }
+      } else {
+        for (let i = 0; i < count; ++i) {
+          result.push(toRepeat);
+        }
+      }
+      _vec(result);
+      return;
+    }
     case "rand-int":
     case "rand":
       {
@@ -573,7 +595,7 @@ async function exeOp(
         return;
       }
       if (count > ctx.rangeBudget) {
-        return [{ e: "Budget", m: "range budget depleted", errCtx }];
+        return [{ e: "Budget", m: "would exceed range budget", errCtx }];
       }
       ctx.rangeBudget -= count;
       const nums = range(count).map(n => n * step + x);
@@ -676,7 +698,13 @@ function getExe(
   errCtx: ErrCtx,
   checkArity = true,
 ): (params: Val[]) => Promise<InvokeError[] | undefined> {
-  const monoArityError = [{ e: "Arity", m: `one argument required`, errCtx }];
+  const monoArityError = [
+    {
+      e: "Arity",
+      m: `${typeNames[op.t]} as op requires one sole argument`,
+      errCtx,
+    },
+  ];
   if (op.t === "str" || op.t === "func") {
     const name = op.v;
     if (ops[name]) {
@@ -996,7 +1024,15 @@ async function exeFunc(
           //Rewrite partial closure to #(... func [args] args)
           if (ins.typ === "par") {
             const { value: exeNumArgs, errCtx } = cins.pop()!;
-            cins.unshift(cins.pop()!);
+            //If has expression as head
+            if (len(cins) > 0 && cins[len(cins) - 1].typ === "exe") {
+              const headStartIdx = cins.findIndex(i => i.typ === "exp");
+              const head = splice(cins, headStartIdx, len(cins) - headStartIdx);
+              push(head, cins);
+              cins = head;
+            } else {
+              cins.unshift(cins.pop()!);
+            }
             cins.push({ typ: "upa", value: -1, errCtx });
             cins.push({
               typ: "val",
@@ -1007,6 +1043,8 @@ async function exeFunc(
           }
           stack.push(<Val>{ t: "clo", v: <Func>{ name, ins: cins } });
         }
+        break;
+      case "exp":
         break;
       default:
         assertUnreachable(ins);

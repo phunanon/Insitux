@@ -264,6 +264,11 @@ const tests: {
     code: `(@[] 1 2 3)`,
     out: `[1 2 3]`,
   },
+  {
+    name: "Partial closure 2",
+    code: `(@((do +) 2) 2)`,
+    out: `4`,
+  },
   //Runtime errors
   {
     name: "String instead of number",

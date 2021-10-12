@@ -40,7 +40,7 @@
 					"(and null (print \"hi\"))",
 					"syntax and function",
 					"Tests each argument and returns true or false if all arguments are truthy.",
-					"Note: short-circuits evaluation after falsey argument."
+					"Note: short-circuits evaluation after falsy argument."
 				]
 			},
 			{
@@ -545,6 +545,14 @@
 					"(count odd? (range 10))",
 					"function",
 					"Returns the number of items or characters in a vector or string matching a predicate, optionally passing extra arguments"
+				]
+			},
+			{
+				"directory": "repeat",
+				"description": [
+					"(repeat 1 10)",
+					"function",
+					"Returns a vector of either a function called N times with the incrementation, or a value repeated N times"
 				]
 			},
 			{

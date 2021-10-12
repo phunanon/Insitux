@@ -260,9 +260,9 @@ built-in operations each within an example, with results after a `→`.
 (for * [0 1 2] [1 10 100])
 → [0 1 2 0 10 20 0 100 200]
 
-;"Reduces" a vector into one value through a function, also accepting an initial
-;  value as its second argument
-;Note: will return sole vector item or initial value if there are too few values
+;"Reduces" a vector, string, or dictionary into one value through a function,
+;  also accepting an initial value as its second argument
+;Note: will return sole item or initial value if there are too few values
 (reduce + [1 2 3])   → 6
 (reduce + [1 2 3] 3) → 9
 (reduce + [1] 1)     → 2
@@ -328,6 +328,11 @@ etc
 ;  predicate, optionally passing extra arguments
 (count odd? (range 10)) → 5
 (count = [1 1 2 3 3] 1) → 2
+
+;Returns a vector of either a function called N times with the incrementation,
+; or a value repeated N times
+(repeat 1 5)   → [1 1 1 1 1]
+(repeat val 5) → [0 1 2 3 4]
 
 ;Returns the reverse of a vector or string
 (reverse "Hello") → "olleH"
@@ -676,10 +681,10 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
            y  (+ (* 2 x y) c_im)
            x  x2
            i  (inc i)))
-    (str (if (zero? %) "\n" "") (if (< i depth) "#" " ")))
+    (str ((zero? %) "\n" "") (i "ABCDEFGHIJ ")))
     (range width) (range height))))
 
-(mandelbrot 48 32 10)
+(mandelbrot 56 32 10)
 
 
 ; Convert nested arrays and dictionaries into HTML

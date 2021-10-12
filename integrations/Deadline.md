@@ -264,7 +264,7 @@ internal insitux functions
 (and null (print "hi"))
 ;; syntax and function
 ;; Tests each argument and returns true or false if all arguments are truthy.
-;; Note: short-circuits evaluation after falsey argument.
+;; Note: short-circuits evaluation after falsy argument.
 
 (and null true (print "hi"))
 ;; syntax and function

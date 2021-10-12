@@ -244,11 +244,20 @@ const ops = {
   idx: { minArity: 2, maxArity: 3, types: [["str", "vec"]], returns: ["num"] },
   map: { minArity: 2, returns: ["vec"] },
   for: { minArity: 2, returns: ["vec"] },
-  reduce: { minArity: 2, maxArity: 3 },
-  filter: { minArity: 2, returns: ["vec"] },
-  remove: { minArity: 2, returns: ["vec"] },
-  find: { minArity: 2 },
-  count: { minArity: 2, returns: ["num"] },
+  reduce: { minArity: 2, maxArity: 3, types: [[], ["vec", "dict", "str"]] },
+  filter: {
+    minArity: 2,
+    types: [[], ["vec", "dict", "str"]],
+    returns: ["vec"]
+  },
+  remove: {
+    minArity: 2,
+    types: [[], ["vec", "dict", "str"]],
+    returns: ["vec"]
+  },
+  find: { minArity: 2, types: [[], ["vec", "dict", "str"]] },
+  count: { minArity: 2, types: [[], ["vec", "dict", "str"]], returns: ["num"] },
+  repeat: { minArity: 2, types: [[], "num"] },
   str: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
   "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },
@@ -281,7 +290,7 @@ const ops = {
   vals: { exactArity: 1, types: ["dict"] },
   do: { minArity: 1 },
   val: { minArity: 1 },
-  range: { minArity: 1, maxArity: 3, numeric: true },
+  range: { minArity: 1, maxArity: 3, numeric: "in only", returns: ["vec"] },
   "empty?": {
     exactArity: 1,
     types: [["str", "vec", "dict"]],
@@ -481,7 +490,7 @@ function typeCheck(op, args, errCtx, optimistic = false) {
     }
     const argTypes = args[i];
     if (isArray(need)) {
-      if (optimistic ? !len(argTypes) || argTypes.some((t) => has(need, t)) : len(argTypes) === 1 && has(need, argTypes[0])) {
+      if (!len(need) || (optimistic ? !len(argTypes) || argTypes.some((t) => has(need, t)) : len(argTypes) === 1 && has(need, argTypes[0]))) {
         return false;
       }
       const names = argTypes.map((t) => typeNames[t]);
@@ -667,7 +676,7 @@ function parseAllArgs(tokens, params) {
   }
   return body;
 }
-function parseForm(tokens, params, checkArity = true) {
+function parseForm(tokens, params, inPartial = true) {
   const head = tokens.shift();
   if (!head) {
     return [];
@@ -791,6 +800,9 @@ function parseForm(tokens, params, checkArity = true) {
   if (typ === "(" || parse_has(params, text) || parse_sub("%#@", parse_strIdx(text, 0))) {
     tokens.unshift(head);
     const ins = parseArg(tokens, params);
+    if (inPartial) {
+      headIns.push({ typ: "exp", value: parse_len(ins), errCtx });
+    }
     parse_push(headIns, ins);
   }
   const body = [];
@@ -805,7 +817,7 @@ function parseForm(tokens, params, checkArity = true) {
   if (op === "return") {
     return [...body, { typ: "ret", value: !!parse_len(body), errCtx }];
   }
-  if (ops[op] && checkArity) {
+  if (ops[op] && !inPartial) {
     const errors = arityCheck(op, nArgs, errCtx);
     parse_push(headIns, errors?.map((e) => err(e.m)[0]) ?? []);
     if (!errors) {
@@ -823,14 +835,14 @@ function parseForm(tokens, params, checkArity = true) {
   }
   return [...body, ...headIns];
 }
-function parseArg(tokens, params, checkArity = true) {
+function parseArg(tokens, params, inPartial = false) {
   if (!parse_len(tokens)) {
     return [];
   }
   const { typ, text, errCtx } = tokens.shift();
   if (typ === "sym" && parse_sub("#@", text) && parse_len(tokens) && tokens[0].typ === "(") {
     const texts = tokens.map((t) => t.text);
-    const body = parseArg(tokens, params, text !== "@");
+    const body = parseArg(tokens, params, text === "@");
     const err = body.find((t) => t.typ === "err");
     if (err) {
       return [err];
@@ -873,7 +885,7 @@ function parseArg(tokens, params, checkArity = true) {
       }
       return [{ typ: "ref", value: text, errCtx }];
     case "(":
-      return parseForm(tokens, params, checkArity);
+      return parseForm(tokens, params, inPartial);
     case ")":
     case "rem":
       return [];
@@ -906,9 +918,11 @@ function syntaxise({ name, tokens }, errCtx) {
   while (parse_len(body)) {
     parse_push(ins, parseArg(body, params.map((p) => p.text)));
   }
-  const parseError = ins.find((i) => i.typ === "err");
-  if (parseError) {
-    return err(parseError.value, parseError.errCtx);
+  for (let i = 0, lim = parse_len(ins); i < lim; i++) {
+    const x = ins[i];
+    if (x.typ === "err") {
+      return err(x.value, x.errCtx);
+    }
   }
   return ["func", { name, ins }];
 }
@@ -989,9 +1003,12 @@ function insErrorDetect(fins) {
             return keyOpErr(ins.errCtx, args[badArg].types);
           }
           stack.push({});
+        } else if (headIs("str") || headIs("bool")) {
+          stack.push({});
         }
         break;
       }
+      case "exp":
       case "cat":
       case "or":
       case "var":
@@ -1314,6 +1331,11 @@ null`
     out: `[1 2 3]`
   },
   {
+    name: "Partial closure 2",
+    code: `(@((do +) 2) 2)`,
+    out: `4`
+  },
+  {
     name: "String instead of number",
     code: `(function sum (.. + args))
            (print (sum 2 2))
@@ -1431,7 +1453,7 @@ async function doTests(invoke, terse = true) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211011;
+const insituxVersion = 20211012;
 
 
 
@@ -1688,108 +1710,131 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "filter":
     case "remove":
     case "find":
-    case "count":
-      {
-        const closure = getExe(ctx, args.shift(), errCtx);
-        const okT = (t) => t === "vec" || t === "str" || t === "dict";
-        const badArg = op === "map" || op === "for" ? args.findIndex(({ t }) => !okT(t)) : okT(args[0].t) ? -1 : 0;
+    case "count": {
+      const closure = getExe(ctx, args.shift(), errCtx);
+      if (op === "map" || op === "for") {
+        const badArg = args.findIndex(({ t }) => t !== "vec" && t !== "str" && t !== "dict");
         if (badArg !== -1) {
           const badType = typeNames[args[badArg].t];
-          return tErr(`argument 2 must be either: string, vector, dictionary, not ${badType}`);
+          return tErr(`argument ${badArg + 2} must be either: string, vector, dictionary, not ${badType}`);
         }
-        if (op === "for") {
-          const arrays = args.map(asArray);
-          const lims = arrays.map(src_len);
-          const divisors = lims.map((_, i) => src_slice(lims, 0, i + 1).reduce((sum, l) => sum * l));
-          divisors.unshift(1);
-          const lim = divisors.pop();
-          if (lim > ctx.loopBudget) {
-            return [{ e: "Budget", m: "would exceed loop budget", errCtx }];
-          }
-          const array2 = [];
-          for (let t = 0; t < lim; ++t) {
-            const argIdxs = divisors.map((d, i) => src_floor(t / d % lims[i]));
-            const errors = await closure(arrays.map((a, i) => a[argIdxs[i]]));
-            if (errors) {
-              return errors;
-            }
-            array2.push(stack.pop());
-          }
-          _vec(array2);
-          return;
+      }
+      if (op === "for") {
+        const arrays = args.map(asArray);
+        const lims = arrays.map(src_len);
+        const divisors = lims.map((_, i) => src_slice(lims, 0, i + 1).reduce((sum, l) => sum * l));
+        divisors.unshift(1);
+        const lim = divisors.pop();
+        if (lim > ctx.loopBudget) {
+          return [{ e: "Budget", m: "would exceed loop budget", errCtx }];
         }
-        if (op === "map") {
-          const arrays = args.map(asArray);
-          const shortest = src_min(...arrays.map(src_len));
-          const array2 = [];
-          for (let i = 0; i < shortest; ++i) {
-            const errors = await closure(arrays.map((a) => a[i]));
-            if (errors) {
-              return errors;
-            }
-            array2.push(stack.pop());
-          }
-          _vec(array2);
-          return;
-        }
-        const array = asArray(args.shift());
-        if (op !== "reduce") {
-          const isRemove = op === "remove", isFind = op === "find", isCount = op === "count";
-          const filtered = [];
-          let count = 0;
-          for (let i = 0, lim = src_len(array); i < lim; ++i) {
-            const errors = await closure([array[i], ...args]);
-            if (errors) {
-              return errors;
-            }
-            const b = asBoo(stack.pop());
-            if (isCount) {
-              count += b ? 1 : 0;
-              continue;
-            }
-            if (isFind && b) {
-              stack.push(array[i]);
-              return;
-            }
-            if (!isFind && b !== isRemove) {
-              filtered.push(array[i]);
-            }
-          }
-          switch (op) {
-            case "count":
-              _num(count);
-              return;
-            case "find":
-              _nul();
-              return;
-            default:
-              _vec(filtered);
-              return;
-          }
-        }
-        if (!src_len(array)) {
-          if (src_len(args)) {
-            stack.push(args[0]);
-          } else {
-            _vec();
-          }
-          return;
-        }
-        if (src_len(array) < 2 && !src_len(args)) {
-          src_push(stack, array);
-          return;
-        }
-        let reduction = (src_len(args) ? args : array).shift();
-        for (let i = 0, lim = src_len(array); i < lim; ++i) {
-          const errors = await closure([reduction, array[i]]);
+        const array2 = [];
+        for (let t = 0; t < lim; ++t) {
+          const argIdxs = divisors.map((d, i) => src_floor(t / d % lims[i]));
+          const errors = await closure(arrays.map((a, i) => a[argIdxs[i]]));
           if (errors) {
             return errors;
           }
-          reduction = stack.pop();
+          array2.push(stack.pop());
         }
-        stack.push(reduction);
+        _vec(array2);
+        return;
       }
+      if (op === "map") {
+        const arrays = args.map(asArray);
+        const shortest = src_min(...arrays.map(src_len));
+        const array2 = [];
+        for (let i = 0; i < shortest; ++i) {
+          const errors = await closure(arrays.map((a) => a[i]));
+          if (errors) {
+            return errors;
+          }
+          array2.push(stack.pop());
+        }
+        _vec(array2);
+        return;
+      }
+      const array = asArray(args.shift());
+      if (op !== "reduce") {
+        const isRemove = op === "remove", isFind = op === "find", isCount = op === "count";
+        const filtered = [];
+        let count = 0;
+        for (let i = 0, lim = src_len(array); i < lim; ++i) {
+          const errors = await closure([array[i], ...args]);
+          if (errors) {
+            return errors;
+          }
+          const b = asBoo(stack.pop());
+          if (isCount) {
+            count += b ? 1 : 0;
+          } else if (isFind) {
+            if (b) {
+              stack.push(array[i]);
+              return;
+            }
+          } else if (b !== isRemove) {
+            filtered.push(array[i]);
+          }
+        }
+        switch (op) {
+          case "count":
+            _num(count);
+            return;
+          case "find":
+            _nul();
+            return;
+        }
+        _vec(filtered);
+        return;
+      }
+      if (!src_len(array)) {
+        if (src_len(args)) {
+          stack.push(args[0]);
+        } else {
+          _vec();
+        }
+        return;
+      }
+      if (src_len(array) < 2 && !src_len(args)) {
+        src_push(stack, array);
+        return;
+      }
+      let reduction = (src_len(args) ? args : array).shift();
+      for (let i = 0, lim = src_len(array); i < lim; ++i) {
+        const errors = await closure([reduction, array[i]]);
+        if (errors) {
+          return errors;
+        }
+        reduction = stack.pop();
+      }
+      stack.push(reduction);
       return;
+    }
+    case "repeat": {
+      const toRepeat = args.shift();
+      const result = [];
+      const count = num(args[0]);
+      if (count > ctx.rangeBudget) {
+        return [{ e: "Budget", m: "would exceed range budget", errCtx }];
+      }
+      ctx.rangeBudget -= count;
+      if (toRepeat.t === "func" || toRepeat.t === "clo") {
+        const closure = getExe(ctx, toRepeat, errCtx);
+        for (let i = 0; i < count; ++i) {
+          const errors = await closure([{ t: "num", v: i }]);
+          if (errors) {
+            return errors;
+          }
+          result.push(stack.pop());
+        }
+      } else {
+        for (let i = 0; i < count; ++i) {
+          result.push(toRepeat);
+        }
+      }
+      _vec(result);
+      return;
+    }
     case "rand-int":
     case "rand":
       {
@@ -1936,7 +1981,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
         return;
       }
       if (count > ctx.rangeBudget) {
-        return [{ e: "Budget", m: "range budget depleted", errCtx }];
+        return [{ e: "Budget", m: "would exceed range budget", errCtx }];
       }
       ctx.rangeBudget -= count;
       const nums = src_range(count).map((n) => n * step + x);
@@ -2010,7 +2055,13 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
   return [{ e: "Unexpected", m: "operation doesn't exist", errCtx }];
 }
 function getExe(ctx, op, errCtx, checkArity = true) {
-  const monoArityError = [{ e: "Arity", m: `one argument required`, errCtx }];
+  const monoArityError = [
+    {
+      e: "Arity",
+      m: `${typeNames[op.t]} as op requires one sole argument`,
+      errCtx
+    }
+  ];
   if (op.t === "str" || op.t === "func") {
     const name = op.v;
     if (ops[name]) {
@@ -2294,7 +2345,14 @@ async function exeFunc(ctx, func, args, inClosure = false) {
           cins = cins.map((ins2, i2) => isCapture(ins2, i2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
           if (ins.typ === "par") {
             const { value: exeNumArgs, errCtx: errCtx2 } = cins.pop();
-            cins.unshift(cins.pop());
+            if (src_len(cins) > 0 && cins[src_len(cins) - 1].typ === "exe") {
+              const headStartIdx = cins.findIndex((i2) => i2.typ === "exp");
+              const head = src_splice(cins, headStartIdx, src_len(cins) - headStartIdx);
+              src_push(head, cins);
+              cins = head;
+            } else {
+              cins.unshift(cins.pop());
+            }
             cins.push({ typ: "upa", value: -1, errCtx: errCtx2 });
             cins.push({
               typ: "val",
@@ -2305,6 +2363,8 @@ async function exeFunc(ctx, func, args, inClosure = false) {
           }
           stack.push({ t: "clo", v: { name, ins: cins } });
         }
+        break;
+      case "exp":
         break;
       default:
         assertUnreachable(ins);
@@ -2415,8 +2475,8 @@ const fs = __webpack_require__(147);
 
 const env = new Map();
 async function repl_get(key) {
-  return env.has(key) ? { value: env.get(key), err: void 0 } : {
-    value: { v: void 0, t: "null" },
+  return env.has(key) ? { kind: "val", value: env.get(key) } : {
+    kind: "err",
     err: `key ${key} not found`
   };
 }
@@ -2443,31 +2503,30 @@ async function repl_exe(name, args) {
       if (name === "print") {
         process.stdout.write("\n");
       }
-      break;
+      return { kind: "val", value: nullVal };
     case "read": {
       const path = args[0].v;
       if (!fs.existsSync(path)) {
-        return { value: nullVal };
+        return { kind: "val", value: nullVal };
       }
       return {
+        kind: "val",
         value: { t: "str", v: fs.readFileSync(path).toString() }
       };
     }
-    default:
-      if (args.length) {
-        const a = args[0];
-        if (a.t === "str" && a.v.startsWith("$")) {
-          if (args.length === 1) {
-            return await repl_get(`${a.v.substring(1)}.${name}`);
-          } else {
-            await repl_set(`${a.v.substring(1)}.${name}`, args[1]);
-            return { value: args[1] };
-          }
-        }
-      }
-      return { value: nullVal, err: `operation ${name} does not exist` };
   }
-  return { value: nullVal };
+  if (args.length) {
+    const a = args[0];
+    if (a.t === "str" && a.v.startsWith("$")) {
+      if (args.length === 1) {
+        return await repl_get(`${a.v.substring(1)}.${name}`);
+      } else {
+        await repl_set(`${a.v.substring(1)}.${name}`, args[1]);
+        return { kind: "val", value: args[1] };
+      }
+    }
+  }
+  return { kind: "err", err: `operation ${name} does not exist` };
 }
 function completer(line) {
   const input = line.split(parensRx).pop();

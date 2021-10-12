@@ -6,11 +6,11 @@ import { ErrorOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
 const env = new Map<string, Val>();
 
-async function get(key: string) {
+async function get(key: string): Promise<ValAndErr> {
   return env.has(key)
-    ? { value: env.get(key)!, err: undefined }
+    ? { kind: "val", value: env.get(key)! }
     : {
-        value: <Val>{ v: undefined, t: "null" },
+        kind: "err",
         err: `key ${key} not found`,
       };
 }
@@ -40,31 +40,30 @@ async function exe(name: string, args: Val[]): Promise<ValAndErr> {
       if (name === "print") {
         process.stdout.write("\n");
       }
-      break;
+      return { kind: "val", value: nullVal };
     case "read": {
       const path = args[0].v as string;
       if (!fs.existsSync(path)) {
-        return { value: nullVal };
+        return { kind: "val", value: nullVal };
       }
       return {
+        kind: "val",
         value: { t: "str", v: fs.readFileSync(path).toString() },
       };
     }
-    default:
-      if (args.length) {
-        const a = args[0];
-        if (a.t === "str" && a.v.startsWith("$")) {
-          if (args.length === 1) {
-            return await get(`${a.v.substring(1)}.${name}`);
-          } else {
-            await set(`${a.v.substring(1)}.${name}`, args[1]);
-            return { value: args[1] };
-          }
-        }
-      }
-      return { value: nullVal, err: `operation ${name} does not exist` };
   }
-  return { value: nullVal };
+  if (args.length) {
+    const a = args[0];
+    if (a.t === "str" && a.v.startsWith("$")) {
+      if (args.length === 1) {
+        return await get(`${a.v.substring(1)}.${name}`);
+      } else {
+        await set(`${a.v.substring(1)}.${name}`, args[1]);
+        return { kind: "val", value: args[1] };
+      }
+    }
+  }
+  return { kind: "err", err: `operation ${name} does not exist` };
 }
 
 function completer(line: string) {
