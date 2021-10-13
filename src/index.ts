@@ -964,7 +964,7 @@ async function exeFunc(
         break;
       case "ret":
         if (ins.value) {
-          splice(stack, 0, len(stack) - 1);
+          splice(stack, stackLen - 1, len(stack) - stackLen - 1);
         } else {
           _nul();
         }
@@ -1141,11 +1141,12 @@ export async function invokeFunction(
  * @returns List of symbols defined in Insitux, including built-in operations, (optionally) syntax, constants, and user-defined functions.
  */
 export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
-  let syms = alsoSyntax ? ["function", "let", "var"] : [];
+  let syms = alsoSyntax ? ["function", "let", "var", "if", "if!", "while"] : [];
   push(syms, ["args", "PI", "E"]);
   syms = concat(syms, objKeys(ops));
   syms = concat(syms, objKeys(ctx.env.funcs));
   syms = concat(syms, objKeys(ctx.env.vars));
   const hidden = ["entry"];
-  return syms.filter(o => !has(hidden, o));
+  syms = syms.filter(o => !has(hidden, o));
+  return sortBy(syms, (a, b) => (a > b ? 1 : -1));
 }

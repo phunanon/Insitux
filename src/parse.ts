@@ -233,13 +233,17 @@ function parseForm(
       push(ins, val);
       ins.push({ typ: op, value: def.value, errCtx });
     }
-  } else if (op === "if" || op === "when") {
+  } else if (op === "if" || op === "if!" || op === "when") {
     const cond = parseArg(tokens, params);
     if (!len(cond)) {
       return err("must provide condition");
     }
     const ins: ParserIns[] = cond;
-    if (op === "if") {
+    if (op === "if!") {
+      ins.push({ typ: "val", value: { t: "func", v: "!" }, errCtx });
+      ins.push({ typ: "exe", value: 1, errCtx });
+    }
+    if (op === "if" || op === "if!") {
       const ifT = parseArg(tokens, params);
       if (!len(ifT)) {
         return err("must provide a branch");

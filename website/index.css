@@ -73,4 +73,5 @@ examples {
   font-weight: bold;
   display: block;
   padding: 1rem;
+  max-width: 30rem;
 }

@@ -158,7 +158,6 @@ export const ops: {
   str: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
   "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },
-  while: {},
   "..": { minArity: 2 },
   "...": { minArity: 2 },
   into: {

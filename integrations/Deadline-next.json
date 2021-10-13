@@ -35,6 +35,14 @@
 				]
 			},
 			{
+				"directory": "if!",
+				"description": [
+					"(if! true (print \"hi\") (print \"bye\"))",
+					"syntax",
+					"Tests a condition and executes either the third or second argument (or null)."
+				]
+			},
+			{
 				"directory": "and",
 				"description": [
 					"(and null (print \"hi\"))",

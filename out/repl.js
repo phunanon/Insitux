@@ -261,7 +261,6 @@ const ops = {
   str: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
   "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },
-  while: {},
   "..": { minArity: 2 },
   "...": { minArity: 2 },
   into: {
@@ -714,13 +713,17 @@ function parseForm(tokens, params, inPartial = true) {
       parse_push(ins, val);
       ins.push({ typ: op, value: def.value, errCtx });
     }
-  } else if (op === "if" || op === "when") {
+  } else if (op === "if" || op === "if!" || op === "when") {
     const cond = parseArg(tokens, params);
     if (!parse_len(cond)) {
       return err("must provide condition");
     }
     const ins = cond;
-    if (op === "if") {
+    if (op === "if!") {
+      ins.push({ typ: "val", value: { t: "func", v: "!" }, errCtx });
+      ins.push({ typ: "exe", value: 1, errCtx });
+    }
+    if (op === "if" || op === "if!") {
       const ifT = parseArg(tokens, params);
       if (!parse_len(ifT)) {
         return err("must provide a branch");
@@ -2303,7 +2306,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
         break;
       case "ret":
         if (ins.value) {
-          src_splice(stack, 0, src_len(stack) - 1);
+          src_splice(stack, stackLen - 1, src_len(stack) - stackLen - 1);
         } else {
           _nul();
         }
@@ -2414,13 +2417,14 @@ async function invokeFunction(ctx, funcName, args) {
   return errors ? { kind: "errors", errors } : value ? { kind: "val", value } : { kind: "empty" };
 }
 function symbols(ctx, alsoSyntax = true) {
-  let syms = alsoSyntax ? ["function", "let", "var"] : [];
+  let syms = alsoSyntax ? ["function", "let", "var", "if", "if!", "while"] : [];
   src_push(syms, ["args", "PI", "E"]);
   syms = src_concat(syms, src_objKeys(ops));
   syms = src_concat(syms, src_objKeys(ctx.env.funcs));
   syms = src_concat(syms, src_objKeys(ctx.env.vars));
   const hidden = ["entry"];
-  return syms.filter((o) => !src_has(hidden, o));
+  syms = syms.filter((o) => !src_has(hidden, o));
+  return src_sortBy(syms, (a, b) => a > b ? 1 : -1);
 }
 
 ;// CONCATENATED MODULE: ./src/invoker.ts

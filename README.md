@@ -98,17 +98,20 @@ built-in operations each within an example, with results after a `→`.
 → ["Patrick" 1 2 3]
 
 ;Tests a condition and executes either the second or third argument
-(if true 1 2) → 1
-(if 1 2 3)    → 2
-(if false 1)  → null
-(if null 1 2) → 2
+;Note: doesn't evaluate the other conditional branch
+(if true 1 2)  → 1
+(if 1 2 3)     → 2
+(if false 1)   → null
+(if null 1 2)  → 2
 (if false
   (print "hi")
   (print "bye"))
-→ bye
+→ "bye"
+(if! true 1 2) → 1
+etc
 
 ;Tests each argument and returns true or false if all arguments are truthy
-;Note: short-circuits evaluation after falsey argument
+;Note: short-circuits evaluation after falsy argument
 (and null (print "hi")) → false
 (and true 1 2 3)        → true
 (.. and [0 1 false])    → false
@@ -689,20 +692,21 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 
 ; Convert nested arrays and dictionaries into HTML
 (function vec->html v
-  (if (vec? v)
-    (let has-attr (dict? (1 v))
-         attr (if has-attr (map #(str " " (0 %) "=\"" (1 %)) (1 v)) "")
-         tag (0 v)
-         html (.. str "<" tag attr ">"
-                (map vec->html (sect v (if has-attr 2 1)))
-                "</" tag ">"))
-    v))
+  (if! (vec? v) (return v))
+  (let has-attr (dict? (1 v))
+       attr (if! has-attr ""
+              (map #(str " " (0 %) "=\"" (1 %) "\"") (1 v)))
+       tag (0 v)
+       html (.. str "<" tag attr ">"
+              (map vec->html (sect v (if has-attr 2 1)))
+              "</" tag ">")))
 
 (vec->html
   ["div"
     ["h2" "Hello"]
-    ["p" ".PI is " ["b" PI] "."]
-    ["p" "Find more info about Insitux on "
+    ["p" ".PI is " ["b" (round PI 2)] "."]
+    ["p" "Find more about Insitux on "
        ["a" {"href" "https://github.com/phunanon/Insitux"}
           "Github"]]])
+→ "<div><h2>Hello</h2><p>.PI is <b>3.14</b>.</p><p>Find more about Insitux on <a href="https://github.com/phunanon/Insitux">Github</a></p></div>"
 ```
