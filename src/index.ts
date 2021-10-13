@@ -1,4 +1,4 @@
-export const insituxVersion = 20211012;
+export const insituxVersion = 20211013;
 import { asBoo, isEqual } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -11,8 +11,8 @@ const { trim, trimStart, trimEnd } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
-import { assertUnreachable, typeNames, InvokeError } from "./types";
-import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops } from "./types";
+import { assertUnreachable, InvokeError, InvokeResult } from "./types";
+import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, num, str, stringify, toDict, val2str, vec } from "./val";
 import { dic, dictDrop, dictGet, dictSet } from "./val";
 
@@ -1076,56 +1076,63 @@ async function parseAndExe(
 /**
  * Parses and executes the given code.
  * @param ctx An environment context you retain.
- * @param code The code you want to have parsed and executed.
- * @param sourceId A unique ID for this source, used in immediate or future errors.
- * @param printResult Whether you want to automatically print the final returned value of this invocation.
- * @returns Invocation errors caused during execution of the code.
+ * @param code The code to parse and execute.
+ * @param sourceId A unique ID used in immediate or future invocation errors.
+ * @param printResult Automatically print the final value of this invocation?
+ * @returns Invocation errors caused during execution of the code,
+ *          or the final value of the invocation.
  */
 export async function invoke(
   ctx: Ctx,
   code: string,
   sourceId: string,
   printResult = false,
-): Promise<InvokeError[]> {
+): Promise<InvokeResult> {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   const errors = await parseAndExe(ctx, code, sourceId);
-  ctx.callBudget = callBudget;
-  ctx.recurBudget = recurBudget;
-  ctx.loopBudget = loopBudget;
-  ctx.rangeBudget = rangeBudget;
+  [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
+  [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
-  if (!errors && printResult && len(stack)) {
-    await ctx.exe("print", [{ t: "str", v: val2str(stack[len(stack) - 1]) }]);
+  const value = stack.pop();
+  [stack, lets] = [[], []];
+  if (printResult && !errors && value) {
+    await ctx.exe("print", [{ t: "str", v: val2str(value) }]);
   }
-  stack = [];
-  lets = [];
-  return errors ?? [];
+  return errors
+    ? { kind: "errors", errors }
+    : value
+    ? { kind: "val", value }
+    : { kind: "empty" };
 }
 
 /**
  * Executes a user-defined Insitux function by name.
  * @param ctx An environment context you retain.
- * @param funcName The function you want to execute.
- * @param args The arguments you want to pass to the function.
- * @returns Invocation errors caused during execution of the function, or undefined if the function was not found.
+ * @param funcName The function to execute.
+ * @param args The arguments to pass to the function.
+ * @returns Invocation errors caused during execution of the function,
+ *          or the final value of the invocation,
+ *          or undefined if the function was not found.
  */
 export async function invokeFunction(
   ctx: Ctx,
   funcName: string,
   args: Val[],
-): Promise<undefined | InvokeError[]> {
+): Promise<InvokeResult | undefined> {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
   const errors = await exeFunc(ctx, ctx.env.funcs[funcName], args);
-  ctx.callBudget = callBudget;
-  ctx.recurBudget = recurBudget;
-  ctx.loopBudget = loopBudget;
-  ctx.rangeBudget = rangeBudget;
-  stack = [];
-  lets = [];
-  return errors ?? [];
+  [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
+  [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
+  const value = stack.pop()!;
+  [stack, lets] = [[], []];
+  return errors
+    ? { kind: "errors", errors }
+    : value
+    ? { kind: "val", value }
+    : { kind: "empty" };
 }
 
 /**

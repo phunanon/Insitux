@@ -1,9 +1,9 @@
 import { concat, getTimeMs, len, padEnd, trim } from "./poly-fills";
-import { Ctx, Env, InvokeError, Val, ValAndErr } from "./types";
+import { Ctx, Env, Val, ValOrErr, InvokeResult } from "./types";
 
 type State = { dict: Map<string, Val>; output: string };
 
-async function get(state: State, key: string): Promise<ValAndErr> {
+async function get(state: State, key: string): Promise<ValOrErr> {
   if (!state.dict.has(key)) {
     return { kind: "err", err: `"${key} not found.` };
   }
@@ -19,11 +19,7 @@ async function set(
   return undefined;
 }
 
-async function exe(
-  state: State,
-  name: string,
-  args: Val[],
-): Promise<ValAndErr> {
+async function exe(state: State, name: string, args: Val[]): Promise<ValOrErr> {
   const nullVal: Val = { t: "null", v: undefined };
   switch (name) {
     case "print-str":
@@ -355,7 +351,7 @@ export async function doTests(
     code: string,
     sourceId: string,
     print: boolean,
-  ) => Promise<InvokeError[]>,
+  ) => Promise<InvokeResult>,
   terse = true,
 ): Promise<string[]> {
   const results: {
@@ -372,7 +368,7 @@ export async function doTests(
     };
     const env: Env = { funcs: {}, vars: {} };
     const startTime = getTimeMs();
-    const errors = await invoke(
+    const valOrErrs = await invoke(
       {
         get: (key: string) => get(state, key),
         set: (key: string, val: Val) => set(state, key, val),
@@ -387,6 +383,7 @@ export async function doTests(
       "testing",
       true,
     );
+    const errors = valOrErrs.kind === "errors" ? valOrErrs.errors : [];
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
     const okOut = !out || trim(state.output) === out;
     const elapsedMs = getTimeMs() - startTime;

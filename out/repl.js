@@ -1420,7 +1420,7 @@ async function doTests(invoke, terse = true) {
     };
     const env = { funcs: {}, vars: {} };
     const startTime = getTimeMs();
-    const errors = await invoke({
+    const valOrErrs = await invoke({
       get: (key) => get(state, key),
       set: (key, val) => set(state, key, val),
       exe: (name2, args) => exe(state, name2, args),
@@ -1430,6 +1430,7 @@ async function doTests(invoke, terse = true) {
       callBudget: 1e3,
       recurBudget: 1e4
     }, code, "testing", true);
+    const errors = valOrErrs.kind === "errors" ? valOrErrs.errors : [];
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
     const okOut = !out || trim(state.output) === out;
     const elapsedMs = getTimeMs() - startTime;
@@ -1453,7 +1454,7 @@ async function doTests(invoke, terse = true) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211012;
+const insituxVersion = 20211013;
 
 
 
@@ -2390,17 +2391,15 @@ async function parseAndExe(ctx, code, sourceId) {
 async function invoke(ctx, code, sourceId, printResult = false) {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   const errors = await parseAndExe(ctx, code, sourceId);
-  ctx.callBudget = callBudget;
-  ctx.recurBudget = recurBudget;
-  ctx.loopBudget = loopBudget;
-  ctx.rangeBudget = rangeBudget;
+  [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
+  [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
-  if (!errors && printResult && src_len(stack)) {
-    await ctx.exe("print", [{ t: "str", v: val2str(stack[src_len(stack) - 1]) }]);
+  const value = stack.pop();
+  [stack, lets] = [[], []];
+  if (printResult && !errors && value) {
+    await ctx.exe("print", [{ t: "str", v: val2str(value) }]);
   }
-  stack = [];
-  lets = [];
-  return errors ?? [];
+  return errors ? { kind: "errors", errors } : value ? { kind: "val", value } : { kind: "empty" };
 }
 async function invokeFunction(ctx, funcName, args) {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
@@ -2408,13 +2407,11 @@ async function invokeFunction(ctx, funcName, args) {
     return;
   }
   const errors = await exeFunc(ctx, ctx.env.funcs[funcName], args);
-  ctx.callBudget = callBudget;
-  ctx.recurBudget = recurBudget;
-  ctx.loopBudget = loopBudget;
-  ctx.rangeBudget = rangeBudget;
-  stack = [];
-  lets = [];
-  return errors ?? [];
+  [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
+  [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
+  const value = stack.pop();
+  [stack, lets] = [[], []];
+  return errors ? { kind: "errors", errors } : value ? { kind: "val", value } : { kind: "empty" };
 }
 function symbols(ctx, alsoSyntax = true) {
   let syms = alsoSyntax ? ["function", "let", "var"] : [];
@@ -2434,9 +2431,12 @@ const parensRx = /[\[\]\(\) ,]/;
 async function invoker(ctx, code) {
   const uuid = getTimeMs().toString();
   invocations.set(uuid, code);
-  const errors = await invoke(ctx, code, uuid, true);
+  const valOrErrs = await invoke(ctx, code, uuid, true);
+  if (valOrErrs.kind !== "errors") {
+    return [];
+  }
   let out = [];
-  errors.forEach(({ e, m, errCtx: { line, col, sourceId } }) => {
+  valOrErrs.errors.forEach(({ e, m, errCtx: { line, col, sourceId } }) => {
     const invocation = invocations.get(sourceId);
     if (!invocation) {
       out.push({

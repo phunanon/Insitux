@@ -1,12 +1,12 @@
 import readline = require("readline");
 import fs = require("fs");
 import { symbols, insituxVersion } from ".";
-import { Ctx, Val, ValAndErr } from "./types";
-import { ErrorOutput, invoker, parensRx } from "./invoker";
+import { Ctx, Val, ValOrErr } from "./types";
+import { InvokeOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
 const env = new Map<string, Val>();
 
-async function get(key: string): Promise<ValAndErr> {
+async function get(key: string): Promise<ValOrErr> {
   return env.has(key)
     ? { kind: "val", value: env.get(key)! }
     : {
@@ -31,7 +31,7 @@ const ctx: Ctx = {
   recurBudget: 1e4,
 };
 
-async function exe(name: string, args: Val[]): Promise<ValAndErr> {
+async function exe(name: string, args: Val[]): Promise<ValOrErr> {
   const nullVal: Val = { v: undefined, t: "null" };
   switch (name) {
     case "print":
@@ -123,7 +123,7 @@ rl.on("close", () => {
 console.log(`Insitux ${insituxVersion} REPL.`);
 rl.prompt();
 
-function printErrorOutput(lines: ErrorOutput) {
+function printErrorOutput(lines: InvokeOutput) {
   const colours = { error: 31, message: 35 };
   lines.forEach(({ type, text }) => {
     process.stdout.write(`\x1b[${colours[type]}m${text}\x1b[0m`);

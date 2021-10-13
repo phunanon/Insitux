@@ -9,9 +9,18 @@ export type Val =
 
 export type ErrCtx = { sourceId: string; line: number; col: number };
 export type InvokeError = { e: string; m: string; errCtx: ErrCtx };
-export type ValAndErr =
+export type ValOrErr =
   | { kind: "val"; value: Val }
   | { kind: "err"; err: string };
+/**
+ * @summary "empty" occurs when there was only function declaration;
+ *          "val" occurs when there were no errors and there is a final value;
+ *          "errors" occurs when there were any errors.
+ */
+export type InvokeResult =
+  | { kind: "empty" }
+  | { kind: "val"; value: Val }
+  | { kind: "errors"; errors: InvokeError[] };
 
 export type Dict = {
   keys: Val[];
@@ -30,8 +39,8 @@ export type Env = {
 
 export type Ctx = {
   set: (key: string, val: Val) => Promise<string | undefined>;
-  get: (key: string) => Promise<ValAndErr>;
-  exe: (name: string, args: Val[]) => Promise<ValAndErr>;
+  get: (key: string) => Promise<ValOrErr>;
+  exe: (name: string, args: Val[]) => Promise<ValOrErr>;
   env: Env;
   loopBudget: number;
   rangeBudget: number;

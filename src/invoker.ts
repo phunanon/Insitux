@@ -2,7 +2,7 @@ import { invoke } from ".";
 import { getTimeMs, padEnd, slen, substr, trimStart } from "./poly-fills";
 import { Ctx } from "./types";
 
-export type ErrorOutput = {
+export type InvokeOutput = {
   type: "message" | "error";
   text: string;
 }[];
@@ -10,12 +10,15 @@ export type ErrorOutput = {
 const invocations = new Map<string, string>();
 export const parensRx = /[\[\]\(\) ,]/;
 
-export async function invoker(ctx: Ctx, code: string): Promise<ErrorOutput> {
+export async function invoker(ctx: Ctx, code: string): Promise<InvokeOutput> {
   const uuid = getTimeMs().toString();
   invocations.set(uuid, code);
-  const errors = await invoke(ctx, code, uuid, true);
-  let out: ErrorOutput = [];
-  errors.forEach(({ e, m, errCtx: { line, col, sourceId } }) => {
+  const valOrErrs = await invoke(ctx, code, uuid, true);
+  if (valOrErrs.kind !== "errors") {
+    return [];
+  }
+  let out: InvokeOutput = [];
+  valOrErrs.errors.forEach(({ e, m, errCtx: { line, col, sourceId } }) => {
     const invocation = invocations.get(sourceId);
     if (!invocation) {
       out.push({
