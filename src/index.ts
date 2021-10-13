@@ -1,5 +1,5 @@
 export const insituxVersion = 20211013;
-import { asBoo, isEqual } from "./checks";
+import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
 import * as pf from "./poly-fills";
@@ -13,8 +13,8 @@ const { isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
 import { assertUnreachable, InvokeError, InvokeResult } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
-import { asArray, num, str, stringify, toDict, val2str, vec } from "./val";
-import { dic, dictDrop, dictGet, dictSet } from "./val";
+import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
+import { dic, dictDrop, dictGet, dictSet, toDict } from "./val";
 
 let stack: Val[] = [];
 let lets: { [key: string]: Val }[] = [];

@@ -1,41 +1,8 @@
 import { has, isArray, len } from "./poly-fills";
-import { ErrCtx, Func, InvokeError, ops, typeNames, Val } from "./types";
-import { assertUnreachable } from "./types";
-import { dic, str, vec } from "./val";
+import { ErrCtx, InvokeError, ops, typeNames, Val } from "./types";
 
 export const asBoo = (val: Val) =>
   val.t === "bool" ? val.v : val.t !== "null";
-
-export const isVecEqual = (a: Val[], b: Val[]): boolean =>
-  len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
-
-export const isEqual = (a: Val, b: Val) => {
-  if (a.t !== b.t) {
-    return false;
-  }
-  switch (a.t) {
-    case "null":
-      return true;
-    case "bool":
-      return a.v === b.v;
-    case "num":
-      return a.v === b.v;
-    case "vec":
-      return isVecEqual(a.v, vec(b));
-    case "dict": {
-      const bd = dic(b);
-      return len(a.v.keys) === len(bd.keys) && isVecEqual(a.v.keys, bd.keys);
-    }
-    case "str":
-    case "ref":
-    case "key":
-    case "func":
-      return str(a) === str(b);
-    case "clo":
-      return (<Func>a.v).name === (<Func>b.v).name;
-  }
-  return assertUnreachable(a);
-};
 
 export function arityCheck(op: string, nArg: number, errCtx: ErrCtx) {
   const { exactArity, maxArity, minArity } = ops[op];

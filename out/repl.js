@@ -326,124 +326,10 @@ const typeNames = {
 };
 const assertUnreachable = (_x) => 0;
 
-;// CONCATENATED MODULE: ./src/val.ts
-
-
-const num = ({ v }) => v;
-const str = ({ v }) => v;
-const vec = ({ v }) => v;
-const dic = ({ v }) => v;
-const stringify = (vals) => vals.reduce((cat, v) => cat + val2str(v), "");
-const val2str = (val) => {
-  const quoted = (v) => v.t === "str" ? `"${v.v}"` : val2str(v);
-  if (val.t === "clo") {
-    return `#${val.v.name}`;
-  } else if (val.t === "vec") {
-    return `[${val.v.map(quoted).join(" ")}]`;
-  } else if (val.t === "dict") {
-    const { keys, vals } = val.v;
-    const [ks, vs] = [keys.map(quoted), vals.map(quoted)];
-    const entries = ks.map((k, i) => `${k} ${vs[i]}`);
-    return `{${entries.join(", ")}}`;
-  } else if (val.t === "null") {
-    return "null";
-  }
-  return `${val.v}`;
-};
-const asArray = (val) => val.t === "vec" ? slice(val.v) : val.t === "str" ? [...val.v].map((s) => ({ t: "str", v: s })) : val.t === "dict" ? val.v.keys.map((k, i) => ({
-  t: "vec",
-  v: [k, val.v.vals[i]]
-})) : [];
-const toDict = (args) => {
-  if (len(args) % 2 === 1) {
-    args.pop();
-  }
-  const keys = args.filter((_, i) => i % 2 === 0);
-  const vals = args.filter((_, i) => i % 2 === 1);
-  const ddKeys = [], ddVals = [];
-  keys.forEach((key, i) => {
-    const existingIdx = ddKeys.findIndex((k) => isEqual(k, key));
-    if (existingIdx === -1) {
-      ddKeys.push(key);
-      ddVals.push(vals[i]);
-    } else {
-      ddVals[existingIdx] = vals[i];
-    }
-  });
-  return {
-    t: "dict",
-    v: { keys: ddKeys, vals: ddVals }
-  };
-};
-const dictGet = ({ keys, vals }, key) => {
-  const idx = keys.findIndex((k) => isEqual(k, key));
-  return idx === -1 ? { t: "null", v: void 0 } : vals[idx];
-};
-const dictSet = ({ keys, vals }, key, val) => {
-  const [nKeys, nVals] = [slice(keys), slice(vals)];
-  const idx = keys.findIndex((k) => isEqual(k, key));
-  if (idx !== -1) {
-    nVals[idx] = val;
-  } else {
-    nKeys.push(key);
-    nVals.push(val);
-  }
-  return { keys: nKeys, vals: nVals };
-};
-const dictDrop = ({ keys, vals }, key) => {
-  const [nKeys, nVals] = [slice(keys), slice(vals)];
-  const idx = keys.findIndex((k) => isEqual(k, key));
-  if (idx !== -1) {
-    splice(nKeys, idx, 1);
-    splice(nVals, idx, 1);
-  }
-  return { t: "dict", v: { keys: nKeys, vals: nVals } };
-};
-function errorsToDict(errors) {
-  const newKey = (d, k, v) => dictSet(d, { t: "key", v: k }, v);
-  return errors.map(({ e, m, errCtx }) => {
-    let dict = newKey({ keys: [], vals: [] }, ":e", { t: "str", v: e });
-    dict = newKey(dict, ":m", { t: "str", v: m });
-    dict = newKey(dict, ":line", { t: "num", v: errCtx.line });
-    dict = newKey(dict, ":col", { t: "num", v: errCtx.col });
-    return { t: "dict", v: dict };
-  });
-}
-
 ;// CONCATENATED MODULE: ./src/checks.ts
 
 
-
-
 const asBoo = (val) => val.t === "bool" ? val.v : val.t !== "null";
-const isVecEqual = (a, b) => len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
-const isEqual = (a, b) => {
-  if (a.t !== b.t) {
-    return false;
-  }
-  switch (a.t) {
-    case "null":
-      return true;
-    case "bool":
-      return a.v === b.v;
-    case "num":
-      return a.v === b.v;
-    case "vec":
-      return isVecEqual(a.v, vec(b));
-    case "dict": {
-      const bd = dic(b);
-      return len(a.v.keys) === len(bd.keys) && isVecEqual(a.v.keys, bd.keys);
-    }
-    case "str":
-    case "ref":
-    case "key":
-    case "func":
-      return str(a) === str(b);
-    case "clo":
-      return a.v.name === b.v.name;
-  }
-  return assertUnreachable(a);
-};
 function arityCheck(op, nArg, errCtx) {
   const { exactArity, maxArity, minArity } = ops[op];
   const aErr = (msg, amount) => [
@@ -1454,6 +1340,118 @@ async function doTests(invoke, terse = true) {
   const totalMs = results.reduce((sum, { elapsedMs }) => sum + elapsedMs, 0);
   const numPassed = len(results.filter(({ okOut, okErr }) => okOut && okErr));
   return concat(results.filter((r) => !terse || !r.okOut || !r.okErr).map((r) => r.display), [`---- ${numPassed}/${len(results)} tests passed in ${totalMs}ms.`]);
+}
+
+;// CONCATENATED MODULE: ./src/val.ts
+
+
+const num = ({ v }) => v;
+const str = ({ v }) => v;
+const vec = ({ v }) => v;
+const dic = ({ v }) => v;
+const isVecEqual = (a, b) => len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
+const isEqual = (a, b) => {
+  if (a.t !== b.t) {
+    return false;
+  }
+  switch (a.t) {
+    case "null":
+      return true;
+    case "bool":
+      return a.v === b.v;
+    case "num":
+      return a.v === b.v;
+    case "vec":
+      return isVecEqual(a.v, vec(b));
+    case "dict": {
+      const bd = dic(b);
+      return len(a.v.keys) === len(bd.keys) && isVecEqual(a.v.keys, bd.keys);
+    }
+    case "str":
+    case "ref":
+    case "key":
+    case "func":
+      return str(a) === str(b);
+    case "clo":
+      return a.v.name === b.v.name;
+  }
+  return assertUnreachable(a);
+};
+const stringify = (vals) => vals.reduce((cat, v) => cat + val2str(v), "");
+const val2str = (val) => {
+  const quoted = (v) => v.t === "str" ? `"${v.v}"` : val2str(v);
+  if (val.t === "clo") {
+    return `#${val.v.name}`;
+  } else if (val.t === "vec") {
+    return `[${val.v.map(quoted).join(" ")}]`;
+  } else if (val.t === "dict") {
+    const { keys, vals } = val.v;
+    const [ks, vs] = [keys.map(quoted), vals.map(quoted)];
+    const entries = ks.map((k, i) => `${k} ${vs[i]}`);
+    return `{${entries.join(", ")}}`;
+  } else if (val.t === "null") {
+    return "null";
+  }
+  return `${val.v}`;
+};
+const asArray = (val) => val.t === "vec" ? slice(val.v) : val.t === "str" ? [...val.v].map((s) => ({ t: "str", v: s })) : val.t === "dict" ? val.v.keys.map((k, i) => ({
+  t: "vec",
+  v: [k, val.v.vals[i]]
+})) : [];
+const toDict = (args) => {
+  if (len(args) % 2 === 1) {
+    args.pop();
+  }
+  const keys = args.filter((_, i) => i % 2 === 0);
+  const vals = args.filter((_, i) => i % 2 === 1);
+  const ddKeys = [], ddVals = [];
+  keys.forEach((key, i) => {
+    const existingIdx = ddKeys.findIndex((k) => isEqual(k, key));
+    if (existingIdx === -1) {
+      ddKeys.push(key);
+      ddVals.push(vals[i]);
+    } else {
+      ddVals[existingIdx] = vals[i];
+    }
+  });
+  return {
+    t: "dict",
+    v: { keys: ddKeys, vals: ddVals }
+  };
+};
+const dictGet = ({ keys, vals }, key) => {
+  const idx = keys.findIndex((k) => isEqual(k, key));
+  return idx === -1 ? { t: "null", v: void 0 } : vals[idx];
+};
+const dictSet = ({ keys, vals }, key, val) => {
+  const [nKeys, nVals] = [slice(keys), slice(vals)];
+  const idx = keys.findIndex((k) => isEqual(k, key));
+  if (idx !== -1) {
+    nVals[idx] = val;
+  } else {
+    nKeys.push(key);
+    nVals.push(val);
+  }
+  return { keys: nKeys, vals: nVals };
+};
+const dictDrop = ({ keys, vals }, key) => {
+  const [nKeys, nVals] = [slice(keys), slice(vals)];
+  const idx = keys.findIndex((k) => isEqual(k, key));
+  if (idx !== -1) {
+    splice(nKeys, idx, 1);
+    splice(nVals, idx, 1);
+  }
+  return { t: "dict", v: { keys: nKeys, vals: nVals } };
+};
+function errorsToDict(errors) {
+  const newKey = (d, k, v) => dictSet(d, { t: "key", v: k }, v);
+  return errors.map(({ e, m, errCtx }) => {
+    let dict = newKey({ keys: [], vals: [] }, ":e", { t: "str", v: e });
+    dict = newKey(dict, ":m", { t: "str", v: m });
+    dict = newKey(dict, ":line", { t: "num", v: errCtx.line });
+    dict = newKey(dict, ":col", { t: "num", v: errCtx.col });
+    return { t: "dict", v: dict };
+  });
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts

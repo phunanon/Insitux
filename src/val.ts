@@ -1,11 +1,41 @@
-import { isEqual } from "./checks";
 import { len, slice, splice } from "./poly-fills";
-import { Dict, InvokeError, Val } from "./types";
+import { assertUnreachable, Dict, Func, InvokeError, Val } from "./types";
 
 export const num = ({ v }: Val) => v as number;
 export const str = ({ v }: Val) => v as string;
 export const vec = ({ v }: Val) => v as Val[];
 export const dic = ({ v }: Val) => v as Dict;
+
+export const isVecEqual = (a: Val[], b: Val[]): boolean =>
+  len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
+
+export const isEqual = (a: Val, b: Val) => {
+  if (a.t !== b.t) {
+    return false;
+  }
+  switch (a.t) {
+    case "null":
+      return true;
+    case "bool":
+      return a.v === b.v;
+    case "num":
+      return a.v === b.v;
+    case "vec":
+      return isVecEqual(a.v, vec(b));
+    case "dict": {
+      const bd = dic(b);
+      return len(a.v.keys) === len(bd.keys) && isVecEqual(a.v.keys, bd.keys);
+    }
+    case "str":
+    case "ref":
+    case "key":
+    case "func":
+      return str(a) === str(b);
+    case "clo":
+      return (<Func>a.v).name === (<Func>b.v).name;
+  }
+  return assertUnreachable(a);
+};
 
 export const stringify = (vals: Val[]) =>
   vals.reduce((cat, v) => cat + val2str(v), "");
