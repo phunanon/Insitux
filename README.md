@@ -401,6 +401,11 @@ etc
 (function f (return) (print "hi"))
 (f) → null
 
+;Treats its arguments as an expression, first argument as the expression head
+(. + 2 2) → 4
+(map @(.) [+ -] [10 12] [13 6])
+→ [23 6]
+
 ;Applies a vector's items and other arguments as a function's parameters
 (.. + [0 1 2] 3 [4 5 6])
 → 21

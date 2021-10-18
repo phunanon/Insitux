@@ -1,4 +1,4 @@
-export const insituxVersion = 20211013;
+export const insituxVersion = 20211018;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -457,9 +457,13 @@ async function exeOp(
     case "val":
       stack.push(op === "do" ? args.pop()! : args.shift()!);
       return;
+    case ".":
     case "..":
     case "...": {
       const closure = getExe(ctx, args.shift()!, errCtx);
+      if (op === ".") {
+        return await closure(args);
+      }
       let flatArgs: Val[] = args;
       if (op === "..") {
         flatArgs = flat(args.map(a => (a.t === "vec" ? a.v : [a])));

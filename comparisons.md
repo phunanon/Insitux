@@ -19,3 +19,38 @@ TypeScript
 const isPalindrome = text =>
   text.reverse().reduce((acc, ch, i) => acc && ch == text[i], true);
 ```
+
+Insitux
+```clj
+(function total-state items
+  (let weights [:success :warning :error]
+       states  (map :state items))
+  ((.. max (map @(idx weights) states)) weights))
+
+(var health-items
+  (map @{:state} [:success :warning :success :error]))
+
+(total-state health-items)
+;Returns :error as it's the worst state
+```
+TypeScript
+```
+type State = "success" | "warning" | "error";
+type HealthItem = { state: State };
+
+function totalState(items: { state: State }[]) {
+  const weights: State[] = ["success", "warning", "error"];
+  const states = items.map(i => i.state);
+  return weights[Math.max(...states.map(weights.indexOf))];
+}
+
+const healthItems: HealthItem[] = [
+  { state: "success" },
+  { state: "warning" },
+  { state: "success" },
+  { state: "error" },
+];
+
+totalState(healthItems);
+//Returns "error" as it's the worst state
+```

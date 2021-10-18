@@ -261,6 +261,7 @@ const ops = {
   str: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
   "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },
+  ".": { minArity: 1 },
   "..": { minArity: 2 },
   "...": { minArity: 2 },
   into: {
@@ -1455,7 +1456,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211013;
+const insituxVersion = 20211018;
 
 
 
@@ -1852,9 +1853,13 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "val":
       stack.push(op === "do" ? args.pop() : args.shift());
       return;
+    case ".":
     case "..":
     case "...": {
       const closure = getExe(ctx, args.shift(), errCtx);
+      if (op === ".") {
+        return await closure(args);
+      }
       let flatArgs = args;
       if (op === "..") {
         flatArgs = src_flat(args.map((a) => a.t === "vec" ? a.v : [a]));

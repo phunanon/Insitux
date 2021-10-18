@@ -417,6 +417,14 @@
 				]
 			},
 			{
+				"directory": ".",
+				"description": [
+					"(. + 2 2)",
+					"function",
+					"Treats its arguments as an expression, first argument as the expression head."
+				]
+			},
+			{
 				"directory": "..",
 				"description": [
 					"(.. + [0 1] 2 [3 4])",
