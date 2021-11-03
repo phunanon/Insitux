@@ -1,4 +1,5 @@
 const path = require("path");
+const webpack = require('webpack');
 
 const standard = {
   module: {
@@ -44,6 +45,9 @@ module.exports = [
       filename: "repl.js",
       path: path.resolve(__dirname, "out"),
     },
+    plugins: [
+      new webpack.BannerPlugin({ banner: "#!/usr/bin/env node", raw: true }),
+    ],
     optimization: { minimize: false },
   },
   //Web tokenise

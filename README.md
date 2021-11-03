@@ -621,11 +621,17 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 
 
 ; Palindrome checker
-(function palindrome? text
-  (.. and (map = text (reverse text))))
+;Note: returning non-false or null is truthy in Insitux
+(function palindrome? x
+  (.. and (map = x (reverse x))))
+;or
+(function palindrome? x
+  (= x (reverse x))) ;Works even for lists as Insitux does deep equality checks
 
-(palindrome? "aabbxbbaa") → true
+(palindrome? "aabbxbbaa") → "aabbxbbaa"
 (palindrome? "abcd")      → false
+(palindrome? [0 1 2])     → false
+(palindrome? [2 1 2])     → [2 1 2]
 
 
 ; Clojure's juxt

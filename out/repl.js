@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
@@ -2535,6 +2536,48 @@ async function repl_exe(name, args) {
   }
   return { kind: "err", err: `operation ${name} does not exist` };
 }
+if (process.argv.length > 2) {
+  const [x, y, path] = process.argv;
+  if (fs.existsSync(path)) {
+    const code = fs.readFileSync(path).toString();
+    invoker(ctx, code).then(printErrorOutput);
+  }
+} else {
+  console.log(`Insitux ${insituxVersion} REPL.`);
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: "> ",
+    completer,
+    history: fs.existsSync(".repl-history") ? fs.readFileSync(".repl-history").toString().split("\n").reverse() : []
+  });
+  rl.on("line", async (line) => {
+    lines.push(line);
+    const input = lines.join("\n");
+    if (isFinished(input)) {
+      if (lines.length === 1) {
+        fs.appendFileSync(".repl-history", `
+${input}`);
+      }
+      lines = [];
+      if (input === "quit") {
+        rl.close();
+        return;
+      }
+      if (input.trim()) {
+        printErrorOutput(await invoker(ctx, input));
+      }
+      rl.setPrompt("> ");
+    } else {
+      rl.setPrompt(". ");
+    }
+    rl.prompt();
+  });
+  rl.on("close", () => {
+    console.log();
+  });
+  rl.prompt();
+}
 function completer(line) {
   const input = line.split(parensRx).pop();
   const completions = symbols(ctx);
@@ -2544,13 +2587,6 @@ function completer(line) {
   const hits = completions.filter((c) => c.startsWith(input));
   return [hits.length ? hits : completions, input];
 }
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  prompt: "> ",
-  completer,
-  history: fs.existsSync(".repl-history") ? fs.readFileSync(".repl-history").toString().split("\n").reverse() : []
-});
 let lines = [];
 function isFinished(code) {
   const { tokens } = tokenise(code, "");
@@ -2558,33 +2594,6 @@ function isFinished(code) {
   const numR = tokens.filter((t) => t.typ === ")").length;
   return numL <= numR;
 }
-rl.on("line", async (line) => {
-  lines.push(line);
-  const input = lines.join("\n");
-  if (isFinished(input)) {
-    if (lines.length === 1) {
-      fs.appendFileSync(".repl-history", `
-${input}`);
-    }
-    lines = [];
-    if (input === "quit") {
-      rl.close();
-      return;
-    }
-    if (input.trim()) {
-      printErrorOutput(await invoker(ctx, input));
-    }
-    rl.setPrompt("> ");
-  } else {
-    rl.setPrompt(". ");
-  }
-  rl.prompt();
-});
-rl.on("close", () => {
-  console.log();
-});
-console.log(`Insitux ${insituxVersion} REPL.`);
-rl.prompt();
 function printErrorOutput(lines2) {
   const colours = { error: 31, message: 35 };
   lines2.forEach(({ type, text }) => {
