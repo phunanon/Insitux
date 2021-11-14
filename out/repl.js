@@ -554,14 +554,16 @@ function funcise(segments) {
 }
 function parseAllArgs(tokens, params) {
   const body = [];
-  while (true) {
+  let nArgs = 0;
+  while (parse_len(tokens)) {
     const exp = parseArg(tokens, params);
     if (!parse_len(exp)) {
       break;
     }
     parse_push(body, exp);
+    ++nArgs;
   }
-  return body;
+  return { body, nArgs };
 }
 function parseForm(tokens, params, inPartial = true) {
   const head = tokens.shift();
@@ -576,7 +578,7 @@ function parseForm(tokens, params, inPartial = true) {
       return err("argument 1 must be expression");
     }
     const body2 = parseArg(tokens, params);
-    const when = parseAllArgs(tokens, params);
+    const when = parseAllArgs(tokens, params).body;
     if (!parse_len(body2) || !parse_len(when)) {
       return err("must provide at least 2 arguments");
     }
@@ -601,6 +603,27 @@ function parseForm(tokens, params, inPartial = true) {
       parse_push(ins, val);
       ins.push({ typ: op, value: def.value, errCtx });
     }
+  } else if (op === "var!" || op === "let!") {
+    const ins = [];
+    const defIns = parseArg(tokens, params);
+    if (!parse_len(defIns)) {
+      return err(`must provide declaration name`);
+    }
+    const def = defIns[0];
+    if (def.typ !== "ref") {
+      return err("declaration name must be symbol");
+    }
+    const func = parseArg(tokens, params);
+    if (!parse_len(func)) {
+      return err("must provide an operation");
+    }
+    const { body: body2, nArgs: nArgs2 } = parseAllArgs(tokens, params);
+    ins.push({ typ: "ref", value: def.value, errCtx });
+    parse_push(ins, body2);
+    parse_push(ins, func);
+    ins.push({ typ: "exe", value: nArgs2 + 1, errCtx });
+    ins.push({ typ: op === "var!" ? "var" : "let", value: def.value, errCtx });
+    return ins;
   } else if (op === "if" || op === "if!" || op === "when") {
     const cond = parseArg(tokens, params);
     if (!parse_len(cond)) {
@@ -630,7 +653,7 @@ function parseForm(tokens, params, inPartial = true) {
         ins.push({ typ: "val", value: nullVal, errCtx });
       }
     } else {
-      const body2 = parseAllArgs(tokens, params);
+      const { body: body2 } = parseAllArgs(tokens, params);
       ins.push({ typ: "if", value: parse_len(body2) + 1, errCtx });
       parse_push(ins, body2);
       ins.push({ typ: "jmp", value: 1, errCtx });
@@ -687,7 +710,6 @@ function parseForm(tokens, params, inPartial = true) {
     return ins;
   }
   const headIns = [];
-  let nArgs = 0;
   if (typ === "(" || parse_has(params, text) || parse_sub("%#@", parse_strIdx(text, 0))) {
     tokens.unshift(head);
     const ins = parseArg(tokens, params);
@@ -696,15 +718,7 @@ function parseForm(tokens, params, inPartial = true) {
     }
     parse_push(headIns, ins);
   }
-  const body = [];
-  while (parse_len(tokens)) {
-    const parsed = parseArg(tokens, params);
-    if (!parse_len(parsed)) {
-      break;
-    }
-    ++nArgs;
-    parse_push(body, parsed);
-  }
+  const { body, nArgs } = parseAllArgs(tokens, params);
   if (op === "return") {
     return [...body, { typ: "ret", value: !!parse_len(body), errCtx }];
   }
@@ -1061,6 +1075,12 @@ null`
     name: "Define num and call",
     code: `(var f 1) (f [:a :b :c])`,
     out: `:b`
+  },
+  { name: "Apply op to var", code: `(var a 10) (var! a + 10)`, out: `20` },
+  {
+    name: "Apply op to let",
+    code: `(let a 10) (let! a (if true + -) (+ 2 3) 5)`,
+    out: `20`
   },
   { name: "Print simple vector", code: `[1 2 3]`, out: `[1 2 3]` },
   { name: "Boolean select", code: `[(true 1 2) (false 1)]`, out: `[1 null]` },
@@ -1457,7 +1477,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211018;
+const insituxVersion = 20211114;
 
 
 

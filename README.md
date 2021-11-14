@@ -82,13 +82,14 @@ built-in operations each within an example, with results after a `→`.
 (print-str "world!")
 → Hello, world!
 
-;Defines one or more variables for later use anywhere in the program
+;Defines or redefines one or more variables for later use anywhere
+;Note: (var a 1 b 2) internally becomes (var a 1) (var b 2)
 (var my-number 123) → 123
 (print my-number)   → 123
 (var a 1 b 2 c 3)   → 3
 [a b c]             → [1 2 3]
 
-;Defines one or more variables for use only within one function call
+;Defines or redefines one or more variables for use only within a function call
 ;Note: (let a 1 b 2) internally becomes (let a 1) (let b 2)
 (function test
   (let name "Patrick")
@@ -96,6 +97,15 @@ built-in operations each within an example, with results after a `→`.
   [name a b c])
 (test)
 → ["Patrick" 1 2 3]
+
+;Redefines a var or let by applying a function and arguments to it
+;Note: internally rewrites the expression e.g. (var! a + 10) → (var a (+ a 10))
+(var a 10)
+(let b [:a :b :c])
+(var! a inc)  → 11
+(var! a + 10) → 21
+(let! b 1) → :b
+[a b] → [21 :b]
 
 ;Tests a condition and executes either the second or third argument
 ;Note: doesn't evaluate the other conditional branch

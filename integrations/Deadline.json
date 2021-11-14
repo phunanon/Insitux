@@ -27,6 +27,22 @@
 				]
 			},
 			{
+        "directory": "var!",
+				"description": [
+					"(var! a inc)",
+					"syntax",
+					"Redefines a var by applying a function and arguments to it."
+				]
+			},
+			{
+        "directory": "let!",
+				"description": [
+					"(let! a inc)",
+					"syntax",
+					"Redefines a let by applying a function and arguments to it."
+				]
+			},
+			{
 				"directory": "if",
 				"description": [
 					"(if true (print \"hi\") (print \"bye\"))",

@@ -181,14 +181,16 @@ function funcise(segments: Token[][]): NamedTokens[] {
 
 function parseAllArgs(tokens: Token[], params: string[]) {
   const body: ParserIns[] = [];
-  while (true) {
+  let nArgs = 0;
+  while (len(tokens)) {
     const exp = parseArg(tokens, params);
     if (!len(exp)) {
       break;
     }
     push(body, exp);
+    ++nArgs;
   }
-  return body;
+  return { body, nArgs };
 }
 
 function parseForm(
@@ -208,7 +210,7 @@ function parseForm(
       return err("argument 1 must be expression");
     }
     const body = parseArg(tokens, params);
-    const when = parseAllArgs(tokens, params);
+    const when = parseAllArgs(tokens, params).body;
     if (!len(body) || !len(when)) {
       return err("must provide at least 2 arguments");
     }
@@ -233,6 +235,28 @@ function parseForm(
       push(ins, val);
       ins.push({ typ: op, value: def.value, errCtx });
     }
+  } else if (op === "var!" || op === "let!") {
+    const ins: Ins[] = [];
+    //Rewrite e.g. (var! a + 1) -> (var a (+ a 1))
+    const defIns = parseArg(tokens, params);
+    if (!len(defIns)) {
+      return err(`must provide declaration name`);
+    }
+    const def = defIns[0];
+    if (def.typ !== "ref") {
+      return err("declaration name must be symbol");
+    }
+    const func = parseArg(tokens, params);
+    if (!len(func)) {
+      return err("must provide an operation");
+    }
+    const { body, nArgs } = parseAllArgs(tokens, params);
+    ins.push({ typ: "ref", value: def.value, errCtx });
+    push(ins, body);
+    push(ins, func);
+    ins.push({ typ: "exe", value: nArgs + 1, errCtx });
+    ins.push({ typ: op === "var!" ? "var" : "let", value: def.value, errCtx });
+    return ins;
   } else if (op === "if" || op === "if!" || op === "when") {
     const cond = parseArg(tokens, params);
     if (!len(cond)) {
@@ -262,7 +286,7 @@ function parseForm(
         ins.push({ typ: "val", value: nullVal, errCtx });
       }
     } else {
-      const body = parseAllArgs(tokens, params);
+      const { body } = parseAllArgs(tokens, params);
       ins.push({ typ: "if", value: len(body) + 1, errCtx });
       push(ins, body);
       ins.push({ typ: "jmp", value: 1, errCtx });
@@ -319,7 +343,6 @@ function parseForm(
     return ins;
   }
   const headIns: Ins[] = [];
-  let nArgs = 0;
   //Head is a expression or parameter
   if (typ === "(" || has(params, text) || sub("%#@", strIdx(text, 0))) {
     tokens.unshift(head);
@@ -329,15 +352,7 @@ function parseForm(
     }
     push(headIns, ins);
   }
-  const body: Ins[] = [];
-  while (len(tokens)) {
-    const parsed = parseArg(tokens, params);
-    if (!len(parsed)) {
-      break;
-    }
-    ++nArgs;
-    push(body, parsed);
-  }
+  const { body, nArgs } = parseAllArgs(tokens, params);
   if (op === "return") {
     return [...body, { typ: "ret", value: !!len(body), errCtx }];
   }

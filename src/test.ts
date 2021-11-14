@@ -103,6 +103,12 @@ const tests: {
     code: `(var f 1) (f [:a :b :c])`,
     out: `:b`,
   },
+  { name: "Apply op to var", code: `(var a 10) (var! a + 10)`, out: `20` },
+  {
+    name: "Apply op to let",
+    code: `(let a 10) (let! a (if true + -) (+ 2 3) 5)`,
+    out: `20`,
+  },
   { name: "Print simple vector", code: `[1 2 3]`, out: `[1 2 3]` },
   { name: "Boolean select", code: `[(true 1 2) (false 1)]`, out: `[1 null]` },
   {

@@ -3,9 +3,7 @@
   "version": "0.0.1",
   "description": "Extensible scripting language written in portable TypeScript.",
   "main": "webpack.config.js",
-  "dependencies": {
-    "readline": "^1.3.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^16.9.1",
     "esbuild-loader": "^2.15.1",

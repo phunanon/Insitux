@@ -94,7 +94,7 @@ async function insituxInvoke(code, exe) {
       set: insituxSet,
       rangeBudget: 1000,
       loopBudget: 10000,
-      callBudget: 1000,
+      callBudget: 10000,
       recurBudget: 10000,
     },
     code,
