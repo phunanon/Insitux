@@ -18,6 +18,7 @@ import { dic, dictDrop, dictGet, dictSet, toDict } from "./val";
 
 let stack: Val[] = [];
 let lets: { [key: string]: Val }[] = [];
+let recurArgs: undefined | Val[];
 const _boo = (v: boolean) => stack.push({ t: "bool", v });
 const _num = (v: number) => stack.push({ t: "num", v });
 const _str = (v = "") => stack.push({ t: "str", v });
@@ -26,14 +27,13 @@ const _dic = (v: Dict) => stack.push({ t: "dict", v });
 const _nul = () => stack.push({ t: "null", v: undefined });
 const _fun = (v: string) => stack.push({ t: "func", v });
 
-let recurArgs: undefined | Val[];
-async function exeOp(
+function exeOp(
   op: string,
   args: Val[],
   ctx: Ctx,
   errCtx: ErrCtx,
   checkArity: boolean,
-): Promise<InvokeError[] | undefined> {
+): InvokeError[] | undefined {
   const tErr = (msg: string) => [typeErr(msg, errCtx)];
   //Optional arity check
   if (checkArity) {
@@ -360,7 +360,7 @@ async function exeOp(
         const array: Val[] = [];
         for (let t = 0; t < lim; ++t) {
           const argIdxs = divisors.map((d, i) => floor((t / d) % lims[i]));
-          const errors = await closure(arrays.map((a, i) => a[argIdxs[i]]));
+          const errors = closure(arrays.map((a, i) => a[argIdxs[i]]));
           if (errors) {
             return errors;
           }
@@ -375,7 +375,7 @@ async function exeOp(
         const shortest = min(...arrays.map(len));
         const array: Val[] = [];
         for (let i = 0; i < shortest; ++i) {
-          const errors = await closure(arrays.map(a => a[i]));
+          const errors = closure(arrays.map(a => a[i]));
           if (errors) {
             return errors;
           }
@@ -393,7 +393,7 @@ async function exeOp(
         const filtered: Val[] = [];
         let count = 0;
         for (let i = 0, lim = len(array); i < lim; ++i) {
-          const errors = await closure([array[i], ...args]);
+          const errors = closure([array[i], ...args]);
           if (errors) {
             return errors;
           }
@@ -436,7 +436,7 @@ async function exeOp(
 
       let reduction: Val = (len(args) ? args : array).shift()!;
       for (let i = 0, lim = len(array); i < lim; ++i) {
-        const errors = await closure([reduction, array[i]]);
+        const errors = closure([reduction, array[i]]);
         if (errors) {
           return errors;
         }
@@ -456,7 +456,7 @@ async function exeOp(
       if (toRepeat.t === "func" || toRepeat.t === "clo") {
         const closure = getExe(ctx, toRepeat, errCtx);
         for (let i = 0; i < count; ++i) {
-          const errors = await closure([{ t: "num", v: i }]);
+          const errors = closure([{ t: "num", v: i }]);
           if (errors) {
             return errors;
           }
@@ -494,7 +494,7 @@ async function exeOp(
     case "...": {
       const closure = getExe(ctx, args.shift()!, errCtx);
       if (op === ".") {
-        return await closure(args);
+        return closure(args);
       }
       let flatArgs: Val[] = args;
       if (op === "..") {
@@ -503,7 +503,7 @@ async function exeOp(
         const a = flatArgs.pop()!;
         push(flatArgs, flat([a.t === "vec" ? a.v : [a]]));
       }
-      return await closure(flatArgs);
+      return closure(flatArgs);
     }
     case "into": {
       if (args[0].t === "vec") {
@@ -600,7 +600,7 @@ async function exeOp(
       } else {
         const closure = getExe(ctx, args.pop()!, errCtx);
         for (let i = 0, lim = len(src); i < lim; ++i) {
-          const errors = await closure([src[i]]);
+          const errors = closure([src[i]]);
           if (errors) {
             return errors;
           }
@@ -696,7 +696,7 @@ async function exeOp(
       _num(insituxVersion);
       return;
     case "tests":
-      _str((await doTests(invoke, !(len(args) && asBoo(args[0])))).join("\n"));
+      _str(doTests(invoke, !(len(args) && asBoo(args[0]))).join("\n"));
       return;
     case "symbols":
       _vec(symbols(ctx, false).map(v => ({ t: "str", v })));
@@ -705,7 +705,7 @@ async function exeOp(
       delete ctx.env.funcs["entry"];
       const sLen = len(stack);
       const sourceId = `${errCtx.sourceId} eval`;
-      const errors = await parseAndExe(ctx, str(args[0]), sourceId);
+      const errors = parseAndExe(ctx, str(args[0]), sourceId);
       if (errors) {
         return [
           { e: "Eval", m: "error within evaluated code", errCtx },
@@ -736,7 +736,7 @@ function getExe(
   op: Val,
   errCtx: ErrCtx,
   checkArity = true,
-): (params: Val[]) => Promise<InvokeError[] | undefined> {
+): (params: Val[]) => InvokeError[] | undefined {
   const monoArityError = [
     {
       e: "Arity",
@@ -759,17 +759,17 @@ function getExe(
       return getExe(ctx, lets[len(lets) - 1][name], errCtx);
     }
     if (starts(name, "$")) {
-      return async (params: Val[]) => {
+      return (params: Val[]) => {
         if (!len(params)) {
           return monoArityError;
         }
-        const err = await ctx.set(substr(name, 1), params[0]);
+        const err = ctx.set(substr(name, 1), params[0]);
         stack.push(params[0]);
         return err ? [{ e: "External", m: err, errCtx }] : undefined;
       };
     }
-    return async (params: Val[]) => {
-      const valAndErr = await ctx.exe(name, params);
+    return (params: Val[]) => {
+      const valAndErr = ctx.exe(name, params);
       if (valAndErr.kind === "val") {
         stack.push(valAndErr.value);
         return;
@@ -779,7 +779,7 @@ function getExe(
   } else if (op.t === "clo") {
     return (params: Val[]) => exeFunc(ctx, op.v, params);
   } else if (op.t === "key") {
-    return async (params: Val[]) => {
+    return (params: Val[]) => {
       if (!len(params)) {
         return monoArityError;
       }
@@ -795,7 +795,7 @@ function getExe(
     };
   } else if (op.t === "num") {
     const n = floor(op.v);
-    return async (params: Val[]) => {
+    return (params: Val[]) => {
       if (!len(params)) {
         return monoArityError;
       }
@@ -815,7 +815,7 @@ function getExe(
     };
   } else if (op.t === "vec") {
     const { v } = op;
-    return async (params: Val[]) => {
+    return (params: Val[]) => {
       if (!len(params)) {
         return monoArityError;
       }
@@ -829,7 +829,7 @@ function getExe(
     };
   } else if (op.t === "dict") {
     const dict = op.v;
-    return async (params: Val[]) => {
+    return (params: Val[]) => {
       if (len(params) === 1) {
         stack.push(dictGet(dict, params[0]));
       } else if (len(params) === 2) {
@@ -847,7 +847,7 @@ function getExe(
     };
   } else if (op.t === "bool") {
     const cond = op.v;
-    return async (params: Val[]) => {
+    return (params: Val[]) => {
       if (!len(params) || len(params) > 2) {
         return [
           {
@@ -867,7 +867,7 @@ function getExe(
       return;
     };
   }
-  return async _ => [
+  return _ => [
     { e: "Operation", m: `${val2str(op)} is an invalid operation`, errCtx },
   ];
 }
@@ -884,12 +884,12 @@ function errorsToDict(errors: InvokeError[]) {
   });
 }
 
-async function exeFunc(
+function exeFunc(
   ctx: Ctx,
   func: Func,
   args: Val[],
   inClosure = false,
-): Promise<InvokeError[] | undefined> {
+): InvokeError[] | undefined {
   --ctx.callBudget;
   if (!inClosure) {
     lets.push({});
@@ -939,7 +939,7 @@ async function exeFunc(
           if (ops[name]) {
             _fun(name);
           } else if (starts(name, "$")) {
-            const valAndErr = await ctx.get(substr(name, 1));
+            const valAndErr = ctx.get(substr(name, 1));
             if (valAndErr.kind === "err") {
               return [{ e: "External", m: valAndErr.err, errCtx }];
             }
@@ -960,7 +960,7 @@ async function exeFunc(
           const closure = getExe(ctx, stack.pop()!, errCtx, false);
           const nArgs = ins.value;
           const params = splice(stack, len(stack) - nArgs, nArgs);
-          const errors = await closure(params);
+          const errors = closure(params);
           if (errors) {
             //Find next catch statement
             const nextCat = slice(func.ins, i).findIndex(
@@ -1049,7 +1049,7 @@ async function exeFunc(
               })
               .filter(isCapture),
           };
-          const errors = await exeFunc(ctx, derefFunc, args, true);
+          const errors = exeFunc(ctx, derefFunc, args, true);
           if (errors) {
             return errors;
           }
@@ -1096,11 +1096,11 @@ async function exeFunc(
   return;
 }
 
-async function parseAndExe(
+function parseAndExe(
   ctx: Ctx,
   code: string,
   sourceId: string,
-): Promise<InvokeError[] | undefined> {
+): InvokeError[] | undefined {
   const parsed = parse(code, sourceId);
   if (len(parsed.errors)) {
     return parsed.errors;
@@ -1109,7 +1109,7 @@ async function parseAndExe(
   if (!("entry" in ctx.env.funcs)) {
     return;
   }
-  return await exeFunc(ctx, ctx.env.funcs["entry"], []);
+  return exeFunc(ctx, ctx.env.funcs["entry"], []);
 }
 
 /**
@@ -1121,21 +1121,21 @@ async function parseAndExe(
  * @returns Invocation errors caused during execution of the code,
  *          or the final value of the invocation.
  */
-export async function invoke(
+export function invoke(
   ctx: Ctx,
   code: string,
   sourceId: string,
   printResult = false,
-): Promise<InvokeResult> {
+): InvokeResult {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
-  const errors = await parseAndExe(ctx, code, sourceId);
+  const errors = parseAndExe(ctx, code, sourceId);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
   const value = stack.pop();
   [stack, lets] = [[], []];
   if (printResult && !errors && value) {
-    await ctx.exe("print", [{ t: "str", v: val2str(value) }]);
+    ctx.exe("print", [{ t: "str", v: val2str(value) }]);
   }
   return errors
     ? { kind: "errors", errors }
@@ -1153,16 +1153,16 @@ export async function invoke(
  *          or the final value of the invocation,
  *          or undefined if the function was not found.
  */
-export async function invokeFunction(
+export function invokeFunction(
   ctx: Ctx,
   funcName: string,
   args: Val[],
-): Promise<InvokeResult | undefined> {
+): InvokeResult | undefined {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
-  const errors = await exeFunc(ctx, ctx.env.funcs[funcName], args);
+  const errors = exeFunc(ctx, ctx.env.funcs[funcName], args);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   const value = stack.pop()!;

@@ -3,23 +3,19 @@ import { Ctx, Env, Val, ValOrErr, InvokeResult } from "./types";
 
 type State = { dict: Map<string, Val>; output: string };
 
-async function get(state: State, key: string): Promise<ValOrErr> {
+function get(state: State, key: string): ValOrErr {
   if (!state.dict.has(key)) {
     return { kind: "err", err: `"${key} not found.` };
   }
   return { kind: "val", value: state.dict.get(key)! };
 }
 
-async function set(
-  state: State,
-  key: string,
-  val: Val,
-): Promise<string | undefined> {
+function set(state: State, key: string, val: Val): string | undefined {
   state.dict.set(key, val);
   return undefined;
 }
 
-async function exe(state: State, name: string, args: Val[]): Promise<ValOrErr> {
+function exe(state: State, name: string, args: Val[]): ValOrErr {
   const nullVal: Val = { t: "null", v: undefined };
   switch (name) {
     case "print-str":
@@ -351,15 +347,15 @@ const tests: {
   },
 ];
 
-export async function doTests(
+export function doTests(
   invoke: (
     ctx: Ctx,
     code: string,
     sourceId: string,
     print: boolean,
-  ) => Promise<InvokeResult>,
+  ) => InvokeResult,
   terse = true,
-): Promise<string[]> {
+): string[] {
   const results: {
     okErr: boolean;
     okOut: boolean;
@@ -374,7 +370,7 @@ export async function doTests(
     };
     const env: Env = { funcs: {}, vars: {} };
     const startTime = getTimeMs();
-    const valOrErrs = await invoke(
+    const valOrErrs = invoke(
       {
         get: (key: string) => get(state, key),
         set: (key: string, val: Val) => set(state, key, val),

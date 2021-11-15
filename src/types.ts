@@ -38,9 +38,9 @@ export type Env = {
 };
 
 export type Ctx = {
-  set: (key: string, val: Val) => Promise<string | undefined>;
-  get: (key: string) => Promise<ValOrErr>;
-  exe: (name: string, args: Val[]) => Promise<ValOrErr>;
+  set: (key: string, val: Val) => string | undefined;
+  get: (key: string) => ValOrErr;
+  exe: (name: string, args: Val[]) => ValOrErr;
   env: Env;
   loopBudget: number;
   rangeBudget: number;

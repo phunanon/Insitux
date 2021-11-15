@@ -55,7 +55,7 @@ function insituxHighlight(code) {
 const addCss = s =>
   (document.head.appendChild(document.createElement("style")).innerHTML = s);
 
-document.addEventListener("DOMContentLoaded", async function () {
+document.addEventListener("DOMContentLoaded", function () {
   const css = `
 rem { color: #0f0; }
 op { color: #aaf; }

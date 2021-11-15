@@ -10,10 +10,10 @@ export type InvokeOutput = {
 const invocations = new Map<string, string>();
 export const parensRx = /[\[\]\(\) ,]/;
 
-export async function invoker(ctx: Ctx, code: string): Promise<InvokeOutput> {
+export function invoker(ctx: Ctx, code: string): InvokeOutput {
   const uuid = getTimeMs().toString();
   invocations.set(uuid, code);
-  const valOrErrs = await invoke(ctx, code, uuid, true);
+  const valOrErrs = invoke(ctx, code, uuid, true);
   if (valOrErrs.kind !== "errors") {
     return [];
   }

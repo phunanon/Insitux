@@ -6,7 +6,7 @@ import { InvokeOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
 const env = new Map<string, Val>();
 
-async function get(key: string): Promise<ValOrErr> {
+function get(key: string): ValOrErr {
   return env.has(key)
     ? { kind: "val", value: env.get(key)! }
     : {
@@ -15,7 +15,7 @@ async function get(key: string): Promise<ValOrErr> {
       };
 }
 
-async function set(key: string, val: Val) {
+function set(key: string, val: Val) {
   env.set(key, val);
   return undefined;
 }
@@ -31,7 +31,7 @@ const ctx: Ctx = {
   recurBudget: 1e4,
 };
 
-async function exe(name: string, args: Val[]): Promise<ValOrErr> {
+function exe(name: string, args: Val[]): ValOrErr {
   const nullVal: Val = { v: undefined, t: "null" };
   switch (name) {
     case "print":
@@ -56,9 +56,9 @@ async function exe(name: string, args: Val[]): Promise<ValOrErr> {
     const a = args[0];
     if (a.t === "str" && a.v.startsWith("$")) {
       if (args.length === 1) {
-        return await get(`${a.v.substring(1)}.${name}`);
+        return get(`${a.v.substring(1)}.${name}`);
       } else {
-        await set(`${a.v.substring(1)}.${name}`, args[1]);
+        set(`${a.v.substring(1)}.${name}`, args[1]);
         return { kind: "val", value: args[1] };
       }
     }
@@ -70,7 +70,7 @@ if (process.argv.length > 2) {
   const [x, y, path] = process.argv;
   if (fs.existsSync(path)) {
     const code = fs.readFileSync(path).toString();
-    invoker(ctx, code).then(printErrorOutput);
+    printErrorOutput(invoker(ctx, code));
   }
 } else {
   console.log(`Insitux ${insituxVersion} REPL.`);
@@ -98,7 +98,7 @@ if (process.argv.length > 2) {
         return;
       }
       if (input.trim()) {
-        printErrorOutput(await invoker(ctx, input));
+        printErrorOutput(invoker(ctx, input));
       }
       rl.setPrompt("> ");
     } else {

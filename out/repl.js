@@ -996,17 +996,17 @@ function parse(code, sourceId) {
 
 ;// CONCATENATED MODULE: ./src/test.ts
 
-async function get(state, key) {
+function get(state, key) {
   if (!state.dict.has(key)) {
     return { kind: "err", err: `"${key} not found.` };
   }
   return { kind: "val", value: state.dict.get(key) };
 }
-async function set(state, key, val) {
+function set(state, key, val) {
   state.dict.set(key, val);
   return void 0;
 }
-async function exe(state, name, args) {
+function exe(state, name, args) {
   const nullVal = { t: "null", v: void 0 };
   switch (name) {
     case "print-str":
@@ -1330,7 +1330,7 @@ null` },
     err: ["Type"]
   }
 ];
-async function doTests(invoke, terse = true) {
+function doTests(invoke, terse = true) {
   const results = [];
   for (let t = 0; t < len(tests); ++t) {
     const { name, code, err, out } = tests[t];
@@ -1340,7 +1340,7 @@ async function doTests(invoke, terse = true) {
     };
     const env = { funcs: {}, vars: {} };
     const startTime = getTimeMs();
-    const valOrErrs = await invoke({
+    const valOrErrs = invoke({
       get: (key) => get(state, key),
       set: (key, val) => set(state, key, val),
       exe: (name2, args) => exe(state, name2, args),
@@ -1505,6 +1505,7 @@ const { isNum: src_isNum, len: src_len, objKeys: src_objKeys, range: src_range, 
 
 let stack = [];
 let lets = [];
+let recurArgs;
 const _boo = (v) => stack.push({ t: "bool", v });
 const _num = (v) => stack.push({ t: "num", v });
 const _str = (v = "") => stack.push({ t: "str", v });
@@ -1512,8 +1513,7 @@ const _vec = (v = []) => stack.push({ t: "vec", v });
 const _dic = (v) => stack.push({ t: "dict", v });
 const _nul = () => stack.push({ t: "null", v: void 0 });
 const _fun = (v) => stack.push({ t: "func", v });
-let recurArgs;
-async function exeOp(op, args, ctx, errCtx, checkArity) {
+function exeOp(op, args, ctx, errCtx, checkArity) {
   const tErr = (msg) => [typeErr(msg, errCtx)];
   if (checkArity) {
     const violations = arityCheck(op, src_len(args), errCtx);
@@ -1784,7 +1784,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
         const array2 = [];
         for (let t = 0; t < lim; ++t) {
           const argIdxs = divisors.map((d, i) => src_floor(t / d % lims[i]));
-          const errors = await closure(arrays.map((a2, i) => a2[argIdxs[i]]));
+          const errors = closure(arrays.map((a2, i) => a2[argIdxs[i]]));
           if (errors) {
             return errors;
           }
@@ -1798,7 +1798,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
         const shortest = src_min(...arrays.map(src_len));
         const array2 = [];
         for (let i = 0; i < shortest; ++i) {
-          const errors = await closure(arrays.map((a2) => a2[i]));
+          const errors = closure(arrays.map((a2) => a2[i]));
           if (errors) {
             return errors;
           }
@@ -1813,7 +1813,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
         const filtered = [];
         let count = 0;
         for (let i = 0, lim = src_len(array); i < lim; ++i) {
-          const errors = await closure([array[i], ...args]);
+          const errors = closure([array[i], ...args]);
           if (errors) {
             return errors;
           }
@@ -1854,7 +1854,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
       }
       let reduction = (src_len(args) ? args : array).shift();
       for (let i = 0, lim = src_len(array); i < lim; ++i) {
-        const errors = await closure([reduction, array[i]]);
+        const errors = closure([reduction, array[i]]);
         if (errors) {
           return errors;
         }
@@ -1874,7 +1874,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
       if (toRepeat.t === "func" || toRepeat.t === "clo") {
         const closure = getExe(ctx, toRepeat, errCtx);
         for (let i = 0; i < count; ++i) {
-          const errors = await closure([{ t: "num", v: i }]);
+          const errors = closure([{ t: "num", v: i }]);
           if (errors) {
             return errors;
           }
@@ -1908,7 +1908,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "...": {
       const closure = getExe(ctx, args.shift(), errCtx);
       if (op === ".") {
-        return await closure(args);
+        return closure(args);
       }
       let flatArgs = args;
       if (op === "..") {
@@ -1917,7 +1917,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
         const a2 = flatArgs.pop();
         src_push(flatArgs, src_flat([a2.t === "vec" ? a2.v : [a2]]));
       }
-      return await closure(flatArgs);
+      return closure(flatArgs);
     }
     case "into": {
       if (args[0].t === "vec") {
@@ -2008,7 +2008,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
       } else {
         const closure = getExe(ctx, args.pop(), errCtx);
         for (let i = 0, lim = src_len(src); i < lim; ++i) {
-          const errors = await closure([src[i]]);
+          const errors = closure([src[i]]);
           if (errors) {
             return errors;
           }
@@ -2081,7 +2081,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
       _num(insituxVersion);
       return;
     case "tests":
-      _str((await doTests(invoke, !(src_len(args) && asBoo(args[0])))).join("\n"));
+      _str(doTests(invoke, !(src_len(args) && asBoo(args[0]))).join("\n"));
       return;
     case "symbols":
       _vec(symbols(ctx, false).map((v) => ({ t: "str", v })));
@@ -2090,7 +2090,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
       delete ctx.env.funcs["entry"];
       const sLen = src_len(stack);
       const sourceId = `${errCtx.sourceId} eval`;
-      const errors = await parseAndExe(ctx, str(args[0]), sourceId);
+      const errors = parseAndExe(ctx, str(args[0]), sourceId);
       if (errors) {
         return [
           { e: "Eval", m: "error within evaluated code", errCtx },
@@ -2137,17 +2137,17 @@ function getExe(ctx, op, errCtx, checkArity = true) {
       return getExe(ctx, lets[src_len(lets) - 1][name], errCtx);
     }
     if (src_starts(name, "$")) {
-      return async (params) => {
+      return (params) => {
         if (!src_len(params)) {
           return monoArityError;
         }
-        const err = await ctx.set(src_substr(name, 1), params[0]);
+        const err = ctx.set(src_substr(name, 1), params[0]);
         stack.push(params[0]);
         return err ? [{ e: "External", m: err, errCtx }] : void 0;
       };
     }
-    return async (params) => {
-      const valAndErr = await ctx.exe(name, params);
+    return (params) => {
+      const valAndErr = ctx.exe(name, params);
       if (valAndErr.kind === "val") {
         stack.push(valAndErr.value);
         return;
@@ -2157,7 +2157,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
   } else if (op.t === "clo") {
     return (params) => exeFunc(ctx, op.v, params);
   } else if (op.t === "key") {
-    return async (params) => {
+    return (params) => {
       if (!src_len(params)) {
         return monoArityError;
       }
@@ -2173,7 +2173,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
     };
   } else if (op.t === "num") {
     const n = src_floor(op.v);
-    return async (params) => {
+    return (params) => {
       if (!src_len(params)) {
         return monoArityError;
       }
@@ -2193,7 +2193,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
     };
   } else if (op.t === "vec") {
     const { v } = op;
-    return async (params) => {
+    return (params) => {
       if (!src_len(params)) {
         return monoArityError;
       }
@@ -2207,7 +2207,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
     };
   } else if (op.t === "dict") {
     const dict = op.v;
-    return async (params) => {
+    return (params) => {
       if (src_len(params) === 1) {
         stack.push(dictGet(dict, params[0]));
       } else if (src_len(params) === 2) {
@@ -2225,7 +2225,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
     };
   } else if (op.t === "bool") {
     const cond = op.v;
-    return async (params) => {
+    return (params) => {
       if (!src_len(params) || src_len(params) > 2) {
         return [
           {
@@ -2239,7 +2239,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
       return;
     };
   }
-  return async (_) => [
+  return (_) => [
     { e: "Operation", m: `${val2str(op)} is an invalid operation`, errCtx }
   ];
 }
@@ -2253,7 +2253,7 @@ function src_errorsToDict(errors) {
     return { t: "dict", v: dict };
   });
 }
-async function exeFunc(ctx, func, args, inClosure = false) {
+function exeFunc(ctx, func, args, inClosure = false) {
   --ctx.callBudget;
   if (!inClosure) {
     lets.push({});
@@ -2301,7 +2301,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
           if (ops[name]) {
             _fun(name);
           } else if (src_starts(name, "$")) {
-            const valAndErr = await ctx.get(src_substr(name, 1));
+            const valAndErr = ctx.get(src_substr(name, 1));
             if (valAndErr.kind === "err") {
               return [{ e: "External", m: valAndErr.err, errCtx }];
             }
@@ -2322,7 +2322,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
           const closure = getExe(ctx, stack.pop(), errCtx, false);
           const nArgs = ins.value;
           const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
-          const errors = await closure(params);
+          const errors = closure(params);
           if (errors) {
             const nextCat = src_slice(func.ins, i).findIndex((ins2) => ins2.typ === "cat");
             if (nextCat !== -1) {
@@ -2396,7 +2396,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
               return possibleLet ? { typ: "val", value: possibleLet } : ins2;
             }).filter(isCapture)
           };
-          const errors = await exeFunc(ctx, derefFunc, args, true);
+          const errors = exeFunc(ctx, derefFunc, args, true);
           if (errors) {
             return errors;
           }
@@ -2436,7 +2436,7 @@ async function exeFunc(ctx, func, args, inClosure = false) {
   }
   return;
 }
-async function parseAndExe(ctx, code, sourceId) {
+function parseAndExe(ctx, code, sourceId) {
   const parsed = parse(code, sourceId);
   if (src_len(parsed.errors)) {
     return parsed.errors;
@@ -2445,27 +2445,27 @@ async function parseAndExe(ctx, code, sourceId) {
   if (!("entry" in ctx.env.funcs)) {
     return;
   }
-  return await exeFunc(ctx, ctx.env.funcs["entry"], []);
+  return exeFunc(ctx, ctx.env.funcs["entry"], []);
 }
-async function invoke(ctx, code, sourceId, printResult = false) {
+function invoke(ctx, code, sourceId, printResult = false) {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
-  const errors = await parseAndExe(ctx, code, sourceId);
+  const errors = parseAndExe(ctx, code, sourceId);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
   const value = stack.pop();
   [stack, lets] = [[], []];
   if (printResult && !errors && value) {
-    await ctx.exe("print", [{ t: "str", v: val2str(value) }]);
+    ctx.exe("print", [{ t: "str", v: val2str(value) }]);
   }
   return errors ? { kind: "errors", errors } : value ? { kind: "val", value } : { kind: "empty" };
 }
-async function invokeFunction(ctx, funcName, args) {
+function invokeFunction(ctx, funcName, args) {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
-  const errors = await exeFunc(ctx, ctx.env.funcs[funcName], args);
+  const errors = exeFunc(ctx, ctx.env.funcs[funcName], args);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   const value = stack.pop();
@@ -2488,10 +2488,10 @@ function symbols(ctx, alsoSyntax = true) {
 
 const invocations = new Map();
 const parensRx = /[\[\]\(\) ,]/;
-async function invoker(ctx, code) {
+function invoker(ctx, code) {
   const uuid = getTimeMs().toString();
   invocations.set(uuid, code);
-  const valOrErrs = await invoke(ctx, code, uuid, true);
+  const valOrErrs = invoke(ctx, code, uuid, true);
   if (valOrErrs.kind !== "errors") {
     return [];
   }
@@ -2534,13 +2534,13 @@ const fs = __webpack_require__(147);
 
 
 const env = new Map();
-async function repl_get(key) {
+function repl_get(key) {
   return env.has(key) ? { kind: "val", value: env.get(key) } : {
     kind: "err",
     err: `key ${key} not found`
   };
 }
-async function repl_set(key, val) {
+function repl_set(key, val) {
   env.set(key, val);
   return void 0;
 }
@@ -2554,7 +2554,7 @@ const ctx = {
   callBudget: 1e8,
   recurBudget: 1e4
 };
-async function repl_exe(name, args) {
+function repl_exe(name, args) {
   const nullVal = { v: void 0, t: "null" };
   switch (name) {
     case "print":
@@ -2579,9 +2579,9 @@ async function repl_exe(name, args) {
     const a = args[0];
     if (a.t === "str" && a.v.startsWith("$")) {
       if (args.length === 1) {
-        return await repl_get(`${a.v.substring(1)}.${name}`);
+        return repl_get(`${a.v.substring(1)}.${name}`);
       } else {
-        await repl_set(`${a.v.substring(1)}.${name}`, args[1]);
+        repl_set(`${a.v.substring(1)}.${name}`, args[1]);
         return { kind: "val", value: args[1] };
       }
     }
@@ -2592,7 +2592,7 @@ if (process.argv.length > 2) {
   const [x, y, path] = process.argv;
   if (fs.existsSync(path)) {
     const code = fs.readFileSync(path).toString();
-    invoker(ctx, code).then(printErrorOutput);
+    printErrorOutput(invoker(ctx, code));
   }
 } else {
   console.log(`Insitux ${insituxVersion} REPL.`);
@@ -2617,7 +2617,7 @@ ${input}`);
         return;
       }
       if (input.trim()) {
-        printErrorOutput(await invoker(ctx, input));
+        printErrorOutput(invoker(ctx, input));
       }
       rl.setPrompt("> ");
     } else {
