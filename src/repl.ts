@@ -26,7 +26,7 @@ const ctx: Ctx = {
   set,
   exe,
   loopBudget: 1e6,
-  rangeBudget: 1e4,
+  rangeBudget: 1e6,
   callBudget: 1e8,
   recurBudget: 1e4,
 };

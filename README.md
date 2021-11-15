@@ -132,6 +132,12 @@ etc
 (or null false 1 2 3)                → 1
 (.. or [null false null])            → false
 
+;Returns the sole truthy of two arguments else false
+(xor false null) → false
+(xor false 1)    → 1
+(xor [] null)    → []
+(xor 1 true)     → false
+
 ;Like if, but either executes all arguments or returns null
 (when true (print-str "hi") 123)
 → hi123
@@ -143,6 +149,12 @@ etc
 (* 10 10 10) → 1000
 (/ 10 3)     → 3.333333
 (// 10 3)    → 3
+(& 10 13)    → 8
+(| 10 12)    → 14
+(^ 10 12)    → 6
+(<< 10 1)    → 20 ;Zero-fill
+(>> -5 1)    → -3 ;Signed
+(>>> 5 1)    → 2  ;Zero-fill
 
 ;Various arithmetic and test functions which take one argument only
 (inc 100)    → 101
@@ -157,6 +169,7 @@ etc
 (logn 1)     → 0
 (log2 8)     → 3
 (log10 1000) → 3
+(~ 10)       → -11 ;Bitwise NOT
 (odd? 5) (even? 6) (pos? 5) (neg? -5) (zero? 0)
 (null? null) (num? 123) (bool? true) (str? "hi")
 (dict? {}) (vec? []) (key? :abc) (func? +)
@@ -595,7 +608,7 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 ### Various examples
 
 ```clj
-; Test if 2D coordinate are inside 2D area
+; Test if 2D point is inside 2D area
 (function inside-2d? X Y areaX areaY areaW areaH
   (and (<= areaX X (+ areaX areaW))
        (<= areaY Y (+ areaY areaH))))
@@ -631,7 +644,7 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 
 
 ; Palindrome checker
-;Note: returning non-false or null is truthy in Insitux
+;Note: returning non-false or non-null is truthy in Insitux
 (function palindrome? x
   (.. and (map = x (reverse x))))
 ;or
@@ -687,7 +700,7 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 
 ; Time a function call
 (function measure
-  (let report [(time) (.. .. args) (time)])
+  (let report [(time) (.. . args) (time)])
   (str (1 report) " took " (- (2 report) (0 report)) "ms"))
 
 (measure fib 35) → "9227465 took 45500ms"

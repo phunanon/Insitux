@@ -69,6 +69,14 @@
 				]
 			},
 			{
+				"directory": "xor",
+				"description": [
+					"(xor true false)",
+					"function",
+					"Returns the sole truthy of two arguments else false."
+				]
+			},
+			{
 				"directory": "when",
 				"description": [
 					"(when true (print \"hi\") (print \"bye\"))",
@@ -130,6 +138,54 @@
 					"(// 10 3)",
 					"function",
 					"Divides and retains the quotient each argument by the next in turn."
+				]
+			},
+			{
+				"directory": "&",
+				"description": [
+					"(& 10 13)",
+					"function",
+					"Returns the bitwise AND of its two arguments."
+				]
+			},
+			{
+				"directory": "|",
+				"description": [
+					"(| 10 12)",
+					"function",
+					"Returns the bitwise OR of its two arguments."
+				]
+			},
+			{
+				"directory": "^",
+				"description": [
+					"(^ 10 12)",
+					"function",
+					"Returns the bitwise XOR of its two arguments."
+				]
+			},
+			{
+				"directory": "<<",
+				"description": [
+					"(<< 10 1)",
+					"function",
+					"Returns a bitwise zero-fill left shift of its first argument by its second."
+				]
+			},
+			{
+				"directory": ">>",
+				"description": [
+					"(>> -5 1)",
+					"function",
+					"Returns a bitwise signed right shift of its first argument by its second."
+				]
+			},
+			{
+				"directory": ">>>",
+				"description": [
+					"(>>> 5 1)",
+					"function",
+					"Returns a bitwise zero-fill right shift of its first argument by its second."
 				]
 			},
 			{

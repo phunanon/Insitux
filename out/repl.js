@@ -215,6 +215,14 @@ const ops = {
   log10: { exactArity: 1, numeric: true },
   and: { minArity: 1 },
   or: { minArity: 1 },
+  xor: { exactArity: 2 },
+  "&": { exactArity: 2, numeric: true },
+  "|": { exactArity: 2, numeric: true },
+  "^": { exactArity: 2, numeric: true },
+  "~": { exactArity: 1, numeric: true },
+  "<<": { exactArity: 2, numeric: true },
+  ">>": { exactArity: 2, numeric: true },
+  ">>>": { exactArity: 2, numeric: true },
   "odd?": { exactArity: 1, numeric: "in only", returns: ["bool"] },
   "even?": { exactArity: 1, numeric: "in only", returns: ["bool"] },
   "pos?": { exactArity: 1, numeric: "in only", returns: ["bool"] },
@@ -1477,7 +1485,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211114;
+const insituxVersion = 20211115;
 
 
 
@@ -1631,8 +1639,8 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "<=":
     case ">=":
       for (let i = 1, lim = src_len(args); i < lim; ++i) {
-        const [a, b] = [args[i - 1].v, args[i].v];
-        if (op === "<" && a >= b || op === ">" && a <= b || op === "<=" && a > b || op === ">=" && a < b) {
+        const [a2, b2] = [args[i - 1].v, args[i].v];
+        if (op === "<" && a2 >= b2 || op === ">" && a2 <= b2 || op === "<=" && a2 > b2 || op === ">=" && a2 < b2) {
           _boo(false);
           return;
         }
@@ -1672,6 +1680,25 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
       return;
     case "or":
       _boo(args.some(asBoo));
+      return;
+    case "xor":
+      if (asBoo(args[0]) !== asBoo(args[1])) {
+        stack.push(asBoo(args[0]) ? args[0] : args[1]);
+      } else {
+        _boo(false);
+      }
+      return;
+    case "&":
+    case "|":
+    case "^":
+    case "<<":
+    case ">>":
+    case ">>>":
+      const [a, b] = [num(args[0]), num(args[1])];
+      _num(op === "&" ? a & b : op === "|" ? a | b : op === "^" ? a ^ b : op === "<<" ? a << b : op === ">>" ? a >> b : a >>> b);
+      return;
+    case "~":
+      _num(~num(args[0]));
       return;
     case "odd?":
     case "even?":
@@ -1713,7 +1740,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
         }
       } else if (args[0].t === "vec") {
         if (src_len(args) < 3) {
-          i = args[0].v.findIndex((a) => isEqual(a, args[1]));
+          i = args[0].v.findIndex((a2) => isEqual(a2, args[1]));
         } else {
           const v = src_slice(args[0].v);
           v[num(args[2])] = args[1];
@@ -1755,7 +1782,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
         const array2 = [];
         for (let t = 0; t < lim; ++t) {
           const argIdxs = divisors.map((d, i) => src_floor(t / d % lims[i]));
-          const errors = await closure(arrays.map((a, i) => a[argIdxs[i]]));
+          const errors = await closure(arrays.map((a2, i) => a2[argIdxs[i]]));
           if (errors) {
             return errors;
           }
@@ -1769,7 +1796,7 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
         const shortest = src_min(...arrays.map(src_len));
         const array2 = [];
         for (let i = 0; i < shortest; ++i) {
-          const errors = await closure(arrays.map((a) => a[i]));
+          const errors = await closure(arrays.map((a2) => a2[i]));
           if (errors) {
             return errors;
           }
@@ -1788,15 +1815,15 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
           if (errors) {
             return errors;
           }
-          const b = asBoo(stack.pop());
+          const b2 = asBoo(stack.pop());
           if (isCount) {
-            count += b ? 1 : 0;
+            count += b2 ? 1 : 0;
           } else if (isFind) {
-            if (b) {
+            if (b2) {
               stack.push(array[i]);
               return;
             }
-          } else if (b !== isRemove) {
+          } else if (b2 !== isRemove) {
             filtered.push(array[i]);
           }
         }
@@ -1863,11 +1890,11 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "rand":
       {
         const nArgs = src_len(args);
-        const [a, b] = [
+        const [a2, b2] = [
           nArgs < 2 ? 0 : num(args[0]),
           nArgs === 0 ? 1 + src_toNum(op === "rand-int") : nArgs === 1 ? num(args[0]) : num(args[1])
         ];
-        _num(op === "rand-int" ? src_randInt(a, b) : src_randNum(a, b));
+        _num(op === "rand-int" ? src_randInt(a2, b2) : src_randNum(a2, b2));
       }
       return;
     case "do":
@@ -1883,10 +1910,10 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
       }
       let flatArgs = args;
       if (op === "..") {
-        flatArgs = src_flat(args.map((a) => a.t === "vec" ? a.v : [a]));
+        flatArgs = src_flat(args.map((a2) => a2.t === "vec" ? a2.v : [a2]));
       } else {
-        const a = flatArgs.pop();
-        src_push(flatArgs, src_flat([a.t === "vec" ? a.v : [a]]));
+        const a2 = flatArgs.pop();
+        src_push(flatArgs, src_flat([a2.t === "vec" ? a2.v : [a2]]));
       }
       return await closure(flatArgs);
     }
@@ -1925,38 +1952,38 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
     case "sect": {
       const v = args[0];
       const vlen = v.t === "vec" ? src_len(v.v) : src_slen(str(v));
-      let a = 0, b = vlen;
+      let a2 = 0, b2 = vlen;
       switch (src_len(args)) {
         case 1:
-          a = 1;
+          a2 = 1;
           break;
         case 2: {
           const del = num(args[1]);
           if (del < 0) {
-            b += del;
+            b2 += del;
           } else {
-            a += del;
+            a2 += del;
           }
           break;
         }
         case 3: {
           const skip = num(args[1]);
           const take = num(args[2]);
-          a = skip < 0 ? vlen + skip + (take < 0 ? take : 0) : a + skip;
-          b = (take < 0 ? b : a) + take;
+          a2 = skip < 0 ? vlen + skip + (take < 0 ? take : 0) : a2 + skip;
+          b2 = (take < 0 ? b2 : a2) + take;
           break;
         }
       }
-      a = src_max(a, 0);
-      b = src_min(b, vlen);
-      if (a > b) {
+      a2 = src_max(a2, 0);
+      b2 = src_min(b2, vlen);
+      if (a2 > b2) {
         (v.t === "vec" ? _vec : _str)();
         return;
       }
       if (v.t === "vec") {
-        _vec(src_slice(v.v, a, b));
+        _vec(src_slice(v.v, a2, b2));
       } else {
-        _str(src_substr(str(args[0]), a, b - a));
+        _str(src_substr(str(args[0]), a2, b2 - a2));
       }
       return;
     }
@@ -1991,17 +2018,17 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
         return tErr("can only sort by all number or all string");
       }
       if (mapped[0][1].t === "num") {
-        src_sortBy(mapped, ([x, a], [y, b]) => num(a) > num(b) ? 1 : -1);
+        src_sortBy(mapped, ([x, a2], [y, b2]) => num(a2) > num(b2) ? 1 : -1);
       } else {
-        src_sortBy(mapped, ([x, a], [y, b]) => str(a) > str(b) ? 1 : -1);
+        src_sortBy(mapped, ([x, a2], [y, b2]) => str(a2) > str(b2) ? 1 : -1);
       }
       _vec(mapped.map(([v]) => v));
       return;
     }
     case "range": {
-      const [a, b, s] = args.map(num);
-      const edgeCase = s && s < 0 && a < b;
-      const [x, y] = src_len(args) > 1 ? edgeCase ? [b - 1, a - 1] : [a, b] : [0, a];
+      const [a2, b2, s] = args.map(num);
+      const edgeCase = s && s < 0 && a2 < b2;
+      const [x, y] = src_len(args) > 1 ? edgeCase ? [b2 - 1, a2 - 1] : [a2, b2] : [0, a2];
       const step = src_sign((y - x) * (s || 1)) * (s || 1);
       const count = src_ceil(src_abs((y - x) / step));
       if (!count) {
@@ -2518,7 +2545,7 @@ const ctx = {
   set: repl_set,
   exe: repl_exe,
   loopBudget: 1e6,
-  rangeBudget: 1e4,
+  rangeBudget: 1e6,
   callBudget: 1e8,
   recurBudget: 1e4
 };

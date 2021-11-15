@@ -1,4 +1,4 @@
-export const insituxVersion = 20211114;
+export const insituxVersion = 20211115;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -227,6 +227,37 @@ async function exeOp(
       return;
     case "or":
       _boo(args.some(asBoo));
+      return;
+    case "xor":
+      if (asBoo(args[0]) !== asBoo(args[1])) {
+        stack.push(asBoo(args[0]) ? args[0] : args[1]);
+      } else {
+        _boo(false);
+      }
+      return;
+    case "&":
+    case "|":
+    case "^":
+    case "<<":
+    case ">>":
+    case ">>>":
+      const [a, b] = [num(args[0]), num(args[1])];
+      _num(
+        op === "&"
+          ? a & b
+          : op === "|"
+          ? a | b
+          : op === "^"
+          ? a ^ b
+          : op === "<<"
+          ? a << b
+          : op === ">>"
+          ? a >> b
+          : a >>> b,
+      );
+      return;
+    case "~":
+      _num(~num(args[0]));
       return;
     case "odd?":
     case "even?":
