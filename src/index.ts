@@ -26,6 +26,7 @@ const _dic = (v: Dict) => stack.push({ t: "dict", v });
 const _nul = () => stack.push({ t: "null", v: undefined });
 const _fun = (v: string) => stack.push({ t: "func", v });
 
+let recurArgs: undefined | Val[];
 async function exeOp(
   op: string,
   args: Val[],
@@ -716,6 +717,9 @@ async function exeOp(
       }
       return;
     }
+    case "recur":
+      recurArgs = args;
+      return;
     case "reset":
       ctx.env.vars = {};
       ctx.env.funcs = {};
@@ -972,6 +976,18 @@ async function exeFunc(
             }
             return errors;
           }
+          if (recurArgs) {
+            lets[len(lets) - 1] = {};
+            i = -1;
+            const nArgs = ins.value;
+            args = recurArgs;
+            recurArgs = undefined;
+            --ctx.recurBudget;
+            if (!ctx.recurBudget) {
+              return [{ e: "Budget", m: `recurred too many times`, errCtx }];
+            }
+            break;
+          }
         }
         break;
       case "or":
@@ -999,24 +1015,12 @@ async function exeFunc(
         break;
       case "ret":
         if (ins.value) {
-          splice(stack, stackLen - 1, len(stack) - stackLen - 1);
+          splice(stack, stackLen, len(stack) - stackLen - 1);
         } else {
           _nul();
         }
         i = lim;
         break;
-      case "rec":
-        {
-          lets[len(lets) - 1] = {};
-          i = -1;
-          const nArgs = ins.value;
-          args = splice(stack, len(stack) - nArgs, nArgs);
-          --ctx.recurBudget;
-          if (!ctx.recurBudget) {
-            return [{ e: "Budget", m: `recurred too many times`, errCtx }];
-          }
-        }
-        continue;
       case "clo":
       case "par":
         {

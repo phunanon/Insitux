@@ -11,6 +11,22 @@
 				]
 			},
 			{
+				"directory": "recur",
+				"description": [
+					"(recur 1 2 3)",
+					"syntax and function",
+					"Immediately recall the function with new arguments."
+				]
+			},
+			{
+				"directory": "return",
+				"description": [
+					"(return 123)",
+					"syntax",
+					"Immediately return a value from a function."
+				]
+			},
+			{
 				"directory": "var",
 				"description": [
 					"(var variable-name 123)",

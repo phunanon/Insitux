@@ -684,6 +684,17 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 → {"h" 1, "e" 1, "l" 2, "o" 1}
 
 
+; Clojure's -> analog
+(function ->>
+  (if (= (len args) 1) (return (0 args)))
+  (... recur ((1 args) (0 args)) (sect args 2)))
+(->> (range 10)
+    @(filter odd?)
+    @(map #(* % %))
+    @(reduce +))
+→ 165
+
+
 ; Deduplicate a list recursively
 (function dedupe list -out
   (let out  (or -out [])

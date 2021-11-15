@@ -320,7 +320,8 @@ const ops = {
   tests: { minArity: 0, maxArity: 1, types: ["bool"], returns: ["str"] },
   symbols: { exactArity: 0, returns: ["vec"] },
   eval: { exactArity: 1, types: ["str"] },
-  reset: { exactArity: 0 }
+  reset: { exactArity: 0 },
+  recur: {}
 };
 const typeNames = {
   null: "null",
@@ -668,7 +669,7 @@ function parseForm(tokens, params, inPartial = true) {
       ins.push({ typ: "val", value: nullVal, errCtx });
     }
     return ins;
-  } else if (op === "and" || op === "or" || op === "while" || op === "recur") {
+  } else if (op === "and" || op === "or" || op === "while") {
     const args = [];
     let insCount = 0;
     while (true) {
@@ -678,9 +679,6 @@ function parseForm(tokens, params, inPartial = true) {
       }
       args.push(arg);
       insCount += parse_len(arg);
-    }
-    if (op === "recur") {
-      return [...parse_flat(args), { typ: "rec", value: parse_len(args), errCtx }];
     }
     if (parse_len(args) < 2) {
       return err("requires at least two arguments");
@@ -898,6 +896,10 @@ function insErrorDetect(fins) {
         const badMatch = (okTypes) => args.findIndex(({ types }) => types && !okTypes.find((t) => parse_has(types, t)));
         const headIs = (t) => head.val ? head.val.t === t : head.types && parse_len(head.types) === 1 && head.types[0] === t;
         if (head.val && head.val.t === "func") {
+          if (head.val.v === "recur") {
+            parse_splice(stack, parse_len(stack) - ins.value, ins.value);
+            break;
+          }
           const errors = typeCheck(head.val.v, args.map((a) => a.types ?? []), ins.errCtx, true);
           if (errors) {
             return errors;
@@ -953,7 +955,6 @@ function insErrorDetect(fins) {
         break;
       }
       case "pop":
-      case "rec":
         parse_splice(stack, parse_len(stack) - ins.value, ins.value);
         break;
       case "ret":
@@ -1511,6 +1512,7 @@ const _vec = (v = []) => stack.push({ t: "vec", v });
 const _dic = (v) => stack.push({ t: "dict", v });
 const _nul = () => stack.push({ t: "null", v: void 0 });
 const _fun = (v) => stack.push({ t: "func", v });
+let recurArgs;
 async function exeOp(op, args, ctx, errCtx, checkArity) {
   const tErr = (msg) => [typeErr(msg, errCtx)];
   if (checkArity) {
@@ -2100,6 +2102,9 @@ async function exeOp(op, args, ctx, errCtx, checkArity) {
       }
       return;
     }
+    case "recur":
+      recurArgs = args;
+      return;
     case "reset":
       ctx.env.vars = {};
       ctx.env.funcs = {};
@@ -2330,6 +2335,18 @@ async function exeFunc(ctx, func, args, inClosure = false) {
             }
             return errors;
           }
+          if (recurArgs) {
+            lets[src_len(lets) - 1] = {};
+            i = -1;
+            const nArgs2 = ins.value;
+            args = recurArgs;
+            recurArgs = void 0;
+            --ctx.recurBudget;
+            if (!ctx.recurBudget) {
+              return [{ e: "Budget", m: `recurred too many times`, errCtx }];
+            }
+            break;
+          }
         }
         break;
       case "or":
@@ -2357,24 +2374,12 @@ async function exeFunc(ctx, func, args, inClosure = false) {
         break;
       case "ret":
         if (ins.value) {
-          src_splice(stack, stackLen - 1, src_len(stack) - stackLen - 1);
+          src_splice(stack, stackLen, src_len(stack) - stackLen - 1);
         } else {
           _nul();
         }
         i = lim;
         break;
-      case "rec":
-        {
-          lets[src_len(lets) - 1] = {};
-          i = -1;
-          const nArgs = ins.value;
-          args = src_splice(stack, src_len(stack) - nArgs, nArgs);
-          --ctx.recurBudget;
-          if (!ctx.recurBudget) {
-            return [{ e: "Budget", m: `recurred too many times`, errCtx }];
-          }
-        }
-        continue;
       case "clo":
       case "par":
         {

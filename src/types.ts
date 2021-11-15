@@ -56,7 +56,6 @@ export type Ins = { errCtx: ErrCtx } & (
   | { typ: "exp"; value: number } //Marks the start of an expression as head for potential partial closures
   | { typ: "or" | "if" | "jmp" | "loo" | "cat"; value: number } //number of instructions
   | { typ: "ret"; value: boolean } //Return, with value?
-  | { typ: "rec"; value: number } //Recur, number of args
   | { typ: "pop"; value: number } //Truncate stack, by number of values
   | { typ: "clo" | "par"; value: [string, Ins[]] } //Closure and partial, text representation and instructions
 );
@@ -217,6 +216,7 @@ export const ops: {
   symbols: { exactArity: 0, returns: ["vec"] },
   eval: { exactArity: 1, types: ["str"] },
   reset: { exactArity: 0 },
+  recur: {},
 };
 
 export const typeNames = {

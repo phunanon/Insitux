@@ -293,7 +293,7 @@ function parseForm(
       ins.push({ typ: "val", value: nullVal, errCtx });
     }
     return ins;
-  } else if (op === "and" || op === "or" || op === "while" || op === "recur") {
+  } else if (op === "and" || op === "or" || op === "while") {
     const args: ParserIns[][] = [];
     let insCount = 0;
     while (true) {
@@ -303,9 +303,6 @@ function parseForm(
       }
       args.push(arg);
       insCount += len(arg);
-    }
-    if (op === "recur") {
-      return [...flat(args), { typ: "rec", value: len(args), errCtx }];
     }
     if (len(args) < 2) {
       return err("requires at least two arguments");
@@ -598,6 +595,10 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
             ? head.val.t === t
             : head.types && len(head.types) === 1 && head.types[0] === t;
         if (head.val && head.val.t === "func") {
+          if (head.val.v === "recur") {
+            splice(stack, len(stack) - ins.value, ins.value);
+            break;
+          }
           const errors = typeCheck(
             head.val.v,
             args.map(a => a.types ?? []),
@@ -662,7 +663,6 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
         break;
       }
       case "pop":
-      case "rec":
         splice(stack, len(stack) - ins.value, ins.value);
         break;
       case "ret":
