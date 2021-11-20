@@ -18,6 +18,7 @@ type NamedTokens = {
 };
 type ParserIns = Ins | { typ: "err"; value: string; errCtx: ErrCtx };
 const nullVal: Val = { t: "null", v: undefined };
+const falseVal = <Val>{ t: "bool", v: false };
 
 export function tokenise(
   code: string,
@@ -179,18 +180,16 @@ function funcise(segments: Token[][]): NamedTokens[] {
     : described;
 }
 
-function parseAllArgs(tokens: Token[], params: string[]) {
-  const body: ParserIns[] = [];
-  let nArgs = 0;
-  while (len(tokens)) {
-    const exp = parseArg(tokens, params);
-    if (!len(exp)) {
+function parseAll(tokens: Token[], params: string[]) {
+  const args: ParserIns[][] = [];
+  while (true) {
+    const arg = parseArg(tokens, params);
+    if (!len(arg)) {
       break;
     }
-    push(body, exp);
-    ++nArgs;
+    args.push(arg);
   }
-  return { body, nArgs };
+  return args;
 }
 
 function parseForm(
@@ -210,7 +209,7 @@ function parseForm(
       return err("argument 1 must be expression");
     }
     const body = parseArg(tokens, params);
-    const when = parseAllArgs(tokens, params).body;
+    const when = flat(parseAll(tokens, params));
     if (!len(body) || !len(when)) {
       return err("must provide at least 2 arguments");
     }
@@ -250,11 +249,11 @@ function parseForm(
     if (!len(func)) {
       return err("must provide an operation");
     }
-    const { body, nArgs } = parseAllArgs(tokens, params);
+    const args = parseAll(tokens, params);
     ins.push({ typ: "ref", value: def.value, errCtx });
-    push(ins, body);
+    push(ins, flat(args));
     push(ins, func);
-    ins.push({ typ: "exe", value: nArgs + 1, errCtx });
+    ins.push({ typ: "exe", value: len(args) + 1, errCtx });
     ins.push({ typ: op === "var!" ? "var" : "let", value: def.value, errCtx });
     return ins;
   } else if (op === "if" || op === "if!" || op === "when") {
@@ -286,7 +285,7 @@ function parseForm(
         ins.push({ typ: "val", value: nullVal, errCtx });
       }
     } else {
-      const { body } = parseAllArgs(tokens, params);
+      const body = flat(parseAll(tokens, params));
       ins.push({ typ: "if", value: len(body) + 1, errCtx });
       push(ins, body);
       ins.push({ typ: "jmp", value: 1, errCtx });
@@ -294,16 +293,8 @@ function parseForm(
     }
     return ins;
   } else if (op === "and" || op === "or" || op === "while") {
-    const args: ParserIns[][] = [];
-    let insCount = 0;
-    while (true) {
-      const arg = parseArg(tokens, params);
-      if (!len(arg)) {
-        break;
-      }
-      args.push(arg);
-      insCount += len(arg);
-    }
+    const args = parseAll(tokens, params);
+    let insCount = args.reduce((acc, a) => acc + len(a), 0);
     if (len(args) < 2) {
       return err("requires at least two arguments");
     }
@@ -332,10 +323,39 @@ function parseForm(
       push(ins, [
         { typ: "val", value: <Val>{ t: "bool", v: true }, errCtx },
         { typ: "jmp", value: 1, errCtx },
-        { typ: "val", value: <Val>{ t: "bool", v: false }, errCtx },
+        { typ: "val", value: falseVal, errCtx },
       ]);
     } else {
-      ins.push({ typ: "val", value: <Val>{ t: "bool", v: false }, errCtx });
+      ins.push({ typ: "val", value: falseVal, errCtx });
+    }
+    return ins;
+  } else if (op === "match") {
+    const cond = parseArg(tokens, params);
+    if (!len(cond)) {
+      return err("must provide condition");
+    }
+    const args = parseAll(tokens, params);
+    const otherwise: ParserIns[] = len(args) % 2 ? args.pop()! : [];
+    if (!len(args)) {
+      return err("must provide at least one case");
+    }
+    let insCount =
+      args.reduce((acc, a) => acc + len(a) + 1, len(otherwise) ? -1 : 0) + 2;
+    const ins: ParserIns[] = cond;
+    while (len(args) > 1) {
+      const a = args.shift()!;
+      const when = args.shift()!;
+      push(ins, a);
+      ins.push({ typ: "mat", value: len(when) + 1, errCtx });
+      push(ins, when);
+      insCount -= len(a) + len(when) + 2;
+      ins.push({ typ: "jmp", value: insCount, errCtx });
+    }
+    if (len(otherwise)) {
+      push(ins, otherwise);
+    } else {
+      ins.push({ typ: "pop", value: 1, errCtx });
+      ins.push({ typ: "val", value: falseVal, errCtx });
     }
     return ins;
   }
@@ -349,7 +369,8 @@ function parseForm(
     }
     push(headIns, ins);
   }
-  const { body, nArgs } = parseAllArgs(tokens, params);
+  const parsedArgs = parseAll(tokens, params);
+  const [body, nArgs] = [flat(parsedArgs), len(parsedArgs)];
   if (op === "return") {
     return [...body, { typ: "ret", value: !!len(body), errCtx }];
   }
@@ -668,6 +689,14 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
           return errors;
         }
         i += ins.value - 1;
+        break;
+      }
+      case "mat": {
+        stack.pop(); //first match
+        stack.pop(); //cond
+        i += ins.value;
+        i += fins[i].value as number; //The first jmp
+        stack.push({});
         break;
       }
       case "pop":

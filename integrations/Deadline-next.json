@@ -43,6 +43,14 @@
 				]
 			},
 			{
+				"directory": "match",
+				"description": [
+					"(match something, [:a :b] 0, [_ :a] 1)",
+					"syntax",
+					"Matches a value with each case and executes and returns the corresponding value, else a default final value or false."
+				]
+			},
+			{
 				"directory": "and",
 				"description": [
 					"(and null (print \"hi\"))",

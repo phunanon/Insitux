@@ -53,6 +53,14 @@ const tests: {
     code: `[(when 123 (print "hi") 234) (when false (print "bye"))]`,
     out: `hi\n[234 null]`,
   },
+  {
+    name: "match and wildcard",
+    code: `(match [1 2]
+             [0 0] (print "hello")
+             [0 2] (print "bye")
+             [1 _] "hey")`,
+    out: `hey`,
+  },
   { name: "Cond number head", code: `((if false 1 2) [:a :b :c])`, out: `:c` },
   {
     name: "and & short-circuit",
@@ -317,7 +325,7 @@ const tests: {
     code: `(function frequencies list
              (reduce #(push % %1 (inc (or (% %1) 0))) list {}))
            (frequencies "12121212")`,
-    out: `{"1" 4, "2" 4}`
+    out: `{"1" 4, "2" 4}`,
   },
   //Test environment functions
   {

@@ -289,7 +289,7 @@ function exeOp(
           (op === "vec?" && args[0].t === "vec") ||
           (op === "key?" && args[0].t === "key") ||
           (op === "func?" && (args[0].t === "func" || args[0].t === "clo")) ||
-          (op === "wild?" && (args[0].t === "wild")),
+          (op === "wild?" && args[0].t === "wild"),
       );
       return;
     case "has?":
@@ -999,6 +999,15 @@ function exeFunc(
           stack.pop();
         }
         break;
+      case "mat": {
+        const a = stack[len(stack) - 2];
+        if (!isEqual(a, stack.pop()!)) {
+          i += ins.value;
+        } else {
+          stack.pop();
+        }
+        break;
+      }
       case "if":
         if (!asBoo(stack.pop()!)) {
           i += ins.value;

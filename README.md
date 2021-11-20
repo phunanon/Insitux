@@ -107,7 +107,7 @@ built-in operations each within an example, with results after a `→`.
 (let! b 1) → :b
 [a b] → [21 :b]
 
-;Tests a condition and executes either the second or third argument
+;Tests a condition and executes and returns either the second or third argument
 ;Note: doesn't evaluate the other conditional branch
 (if true 1 2)  → 1
 (if 1 2 3)     → 2
@@ -119,6 +119,27 @@ built-in operations each within an example, with results after a `→`.
 → "bye"
 (if! true 1 2) → 1
 etc
+
+;Executes and returns argument[x+2] where argument[x+1] is equal to argument[0]
+; else the last argument if an even number of arguments else false
+;Note: doesn't evaluate any argument[x+2] unless upon return
+;Note: commas for readability not syntactic requirement
+(match 1, 1 2)     → 2
+(match 1, 2 3)     → false
+(match 1, 2 3, 4)  → 4
+(match 1
+  2 (print-str "hi ")
+  1 0)
+→ 0
+(match 1
+  1 (print-str "hi ")
+  2 0)
+→ hi null
+(match [1 2]
+  [0 0] "hello"
+  [0 2] "bye"
+  [1 _] "hey")
+→ "hey"
 
 ;Tests each argument and returns true or false if all arguments are truthy
 ;Note: short-circuits evaluation after falsy argument
@@ -637,6 +658,18 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 
 (fib 13) → 233
 
+
+; Fizzbuzz with match syntax
+(function fizzbuzz n
+  (let rems (for rem [n] [3 5]))
+  (match rems
+    [0 0] "fizzbuzz"
+    [0 _] "fizz"
+    [_ 0] "buzz"
+    n))
+
+(map fizzbuzz (range 10 16))
+→ ["buzz" 11 "fizz" 13 14 "fizzbuzz"]
 
 ; Filter for vectors and strings above a certain length
 (filter 2 [[1] [:a :b :c] "hello" "hi"])

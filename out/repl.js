@@ -441,6 +441,7 @@ const { isNum: parse_isNum, len: parse_len, toNum: parse_toNum } = poly_fills_na
 
 
 const nullVal = { t: "null", v: void 0 };
+const falseVal = { t: "bool", v: false };
 function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
   const tokens = [];
   const digits = "0123456789";
@@ -573,18 +574,16 @@ function funcise(segments) {
     }
   ]) : described;
 }
-function parseAllArgs(tokens, params) {
-  const body = [];
-  let nArgs = 0;
-  while (parse_len(tokens)) {
-    const exp = parseArg(tokens, params);
-    if (!parse_len(exp)) {
+function parseAll(tokens, params) {
+  const args = [];
+  while (true) {
+    const arg = parseArg(tokens, params);
+    if (!parse_len(arg)) {
       break;
     }
-    parse_push(body, exp);
-    ++nArgs;
+    args.push(arg);
   }
-  return { body, nArgs };
+  return args;
 }
 function parseForm(tokens, params, inPartial = true) {
   const head = tokens.shift();
@@ -599,7 +598,7 @@ function parseForm(tokens, params, inPartial = true) {
       return err("argument 1 must be expression");
     }
     const body2 = parseArg(tokens, params);
-    const when = parseAllArgs(tokens, params).body;
+    const when = parse_flat(parseAll(tokens, params));
     if (!parse_len(body2) || !parse_len(when)) {
       return err("must provide at least 2 arguments");
     }
@@ -638,11 +637,11 @@ function parseForm(tokens, params, inPartial = true) {
     if (!parse_len(func)) {
       return err("must provide an operation");
     }
-    const { body: body2, nArgs: nArgs2 } = parseAllArgs(tokens, params);
+    const args = parseAll(tokens, params);
     ins.push({ typ: "ref", value: def.value, errCtx });
-    parse_push(ins, body2);
+    parse_push(ins, parse_flat(args));
     parse_push(ins, func);
-    ins.push({ typ: "exe", value: nArgs2 + 1, errCtx });
+    ins.push({ typ: "exe", value: parse_len(args) + 1, errCtx });
     ins.push({ typ: op === "var!" ? "var" : "let", value: def.value, errCtx });
     return ins;
   } else if (op === "if" || op === "if!" || op === "when") {
@@ -674,7 +673,7 @@ function parseForm(tokens, params, inPartial = true) {
         ins.push({ typ: "val", value: nullVal, errCtx });
       }
     } else {
-      const { body: body2 } = parseAllArgs(tokens, params);
+      const body2 = parse_flat(parseAll(tokens, params));
       ins.push({ typ: "if", value: parse_len(body2) + 1, errCtx });
       parse_push(ins, body2);
       ins.push({ typ: "jmp", value: 1, errCtx });
@@ -682,16 +681,8 @@ function parseForm(tokens, params, inPartial = true) {
     }
     return ins;
   } else if (op === "and" || op === "or" || op === "while") {
-    const args = [];
-    let insCount = 0;
-    while (true) {
-      const arg = parseArg(tokens, params);
-      if (!parse_len(arg)) {
-        break;
-      }
-      args.push(arg);
-      insCount += parse_len(arg);
-    }
+    const args = parseAll(tokens, params);
+    let insCount = args.reduce((acc, a) => acc + parse_len(a), 0);
     if (parse_len(args) < 2) {
       return err("requires at least two arguments");
     }
@@ -720,10 +711,38 @@ function parseForm(tokens, params, inPartial = true) {
       parse_push(ins, [
         { typ: "val", value: { t: "bool", v: true }, errCtx },
         { typ: "jmp", value: 1, errCtx },
-        { typ: "val", value: { t: "bool", v: false }, errCtx }
+        { typ: "val", value: falseVal, errCtx }
       ]);
     } else {
-      ins.push({ typ: "val", value: { t: "bool", v: false }, errCtx });
+      ins.push({ typ: "val", value: falseVal, errCtx });
+    }
+    return ins;
+  } else if (op === "match") {
+    const cond = parseArg(tokens, params);
+    if (!parse_len(cond)) {
+      return err("must provide condition");
+    }
+    const args = parseAll(tokens, params);
+    const otherwise = parse_len(args) % 2 ? args.pop() : [];
+    if (!parse_len(args)) {
+      return err("must provide at least one case");
+    }
+    let insCount = args.reduce((acc, a) => acc + parse_len(a) + 1, parse_len(otherwise) ? -1 : 0) + 2;
+    const ins = cond;
+    while (parse_len(args) > 1) {
+      const a = args.shift();
+      const when = args.shift();
+      parse_push(ins, a);
+      ins.push({ typ: "mat", value: parse_len(when) + 1, errCtx });
+      parse_push(ins, when);
+      insCount -= parse_len(a) + parse_len(when) + 2;
+      ins.push({ typ: "jmp", value: insCount, errCtx });
+    }
+    if (parse_len(otherwise)) {
+      parse_push(ins, otherwise);
+    } else {
+      ins.push({ typ: "pop", value: 1, errCtx });
+      ins.push({ typ: "val", value: falseVal, errCtx });
     }
     return ins;
   }
@@ -736,7 +755,8 @@ function parseForm(tokens, params, inPartial = true) {
     }
     parse_push(headIns, ins);
   }
-  const { body, nArgs } = parseAllArgs(tokens, params);
+  const parsedArgs = parseAll(tokens, params);
+  const [body, nArgs] = [parse_flat(parsedArgs), parse_len(parsedArgs)];
   if (op === "return") {
     return [...body, { typ: "ret", value: !!parse_len(body), errCtx }];
   }
@@ -974,6 +994,14 @@ function insErrorDetect(fins) {
         i += ins.value - 1;
         break;
       }
+      case "mat": {
+        stack.pop();
+        stack.pop();
+        i += ins.value;
+        i += fins[i].value;
+        stack.push({});
+        break;
+      }
       case "pop":
         parse_splice(stack, parse_len(stack) - ins.value, ins.value);
         break;
@@ -1058,6 +1086,14 @@ null`
     code: `[(when 123 (print "hi") 234) (when false (print "bye"))]`,
     out: `hi
 [234 null]`
+  },
+  {
+    name: "match and wildcard",
+    code: `(match [1 2]
+             [0 0] (print "hello")
+             [0 2] (print "bye")
+             [1 _] "hey")`,
+    out: `hey`
   },
   { name: "Cond number head", code: `((if false 1 2) [:a :b :c])`, out: `:c` },
   {
@@ -2389,6 +2425,15 @@ function exeFunc(ctx, func, args, inClosure = false) {
           stack.pop();
         }
         break;
+      case "mat": {
+        const a = stack[src_len(stack) - 2];
+        if (!isEqual(a, stack.pop())) {
+          i += ins.value;
+        } else {
+          stack.pop();
+        }
+        break;
+      }
       case "if":
         if (!asBoo(stack.pop())) {
           i += ins.value;
