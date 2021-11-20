@@ -236,6 +236,7 @@ const ops = {
   "dict?": { exactArity: 1, returns: ["bool"] },
   "key?": { exactArity: 1, returns: ["bool"] },
   "func?": { exactArity: 1, returns: ["bool"] },
+  "wild?": { exactArity: 1, returns: ["bool"] },
   rem: { minArity: 2, numeric: true },
   sin: { exactArity: 1, numeric: true },
   cos: { exactArity: 1, numeric: true },
@@ -343,7 +344,8 @@ const typeNames = {
   vec: "vector",
   dict: "dictionary",
   func: "function",
-  clo: "closure"
+  clo: "closure",
+  wild: "wildcard"
 };
 const assertUnreachable = (_x) => 0;
 
@@ -786,6 +788,8 @@ function parseArg(tokens, params, inPartial = false) {
         ];
       } else if (text === "null") {
         return [{ typ: "val", value: nullVal, errCtx }];
+      } else if (text === "_") {
+        return [{ typ: "val", value: { t: "wild", v: void 0 }, errCtx }];
       } else if (parse_starts(text, ":")) {
         return [{ typ: "val", value: { t: "key", v: text }, errCtx }];
       } else if (parse_starts(text, "%") && parse_isNum(parse_substr(text, 1))) {
@@ -1405,6 +1409,9 @@ const vec = ({ v }) => v;
 const dic = ({ v }) => v;
 const isVecEqual = (a, b) => len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
 const isEqual = (a, b) => {
+  if (a.t === "wild" || b.t === "wild") {
+    return true;
+  }
   if (a.t !== b.t) {
     return false;
   }
@@ -1445,6 +1452,8 @@ const val2str = (val) => {
     return `{${entries.join(", ")}}`;
   } else if (val.t === "null") {
     return "null";
+  } else if (val.t === "wild") {
+    return "_";
   }
   return `${val.v}`;
 };
@@ -1509,7 +1518,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211118;
+const insituxVersion = 20211120;
 
 
 
@@ -1744,7 +1753,8 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
     case "vec?":
     case "key?":
     case "func?":
-      _boo(op === "null?" && args[0].t === "null" || op === "num?" && args[0].t === "num" || op === "bool?" && args[0].t === "bool" || op === "str?" && args[0].t === "str" || op === "dict?" && args[0].t === "dict" || op === "vec?" && args[0].t === "vec" || op === "key?" && args[0].t === "key" || op === "func?" && (args[0].t === "func" || args[0].t === "clo"));
+    case "wild?":
+      _boo(op === "null?" && args[0].t === "null" || op === "num?" && args[0].t === "num" || op === "bool?" && args[0].t === "bool" || op === "str?" && args[0].t === "str" || op === "dict?" && args[0].t === "dict" || op === "vec?" && args[0].t === "vec" || op === "key?" && args[0].t === "key" || op === "func?" && (args[0].t === "func" || args[0].t === "clo") || op === "wild?" && args[0].t === "wild");
       return;
     case "has?":
       _boo(src_sub(str(args[0]), str(args[1])));

@@ -10,6 +10,9 @@ export const isVecEqual = (a: Val[], b: Val[]): boolean =>
   len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
 
 export const isEqual = (a: Val, b: Val) => {
+  if (a.t === "wild" || b.t === "wild") {
+    return true;
+  }
   if (a.t !== b.t) {
     return false;
   }
@@ -53,6 +56,8 @@ export const val2str = (val: Val): string => {
     return `{${entries.join(", ")}}`;
   } else if (val.t === "null") {
     return "null";
+  } else if (val.t === "wild") {
+    return "_";
   }
   return `${val.v}`;
 };

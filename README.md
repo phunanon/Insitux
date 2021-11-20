@@ -172,7 +172,7 @@ etc
 (~ 10)       → -11 ;Bitwise NOT
 (odd? 5) (even? 6) (pos? 5) (neg? -5) (zero? 0)
 (null? null) (num? 123) (bool? true) (str? "hi")
-(dict? {}) (vec? []) (key? :abc) (func? +)
+(dict? {}) (vec? []) (key? :abc) (func? +) (wild? _)
 
 ;Various arithmetic functions which take two, or two or more arguments
 (rem 100 40)   → 20
@@ -494,6 +494,13 @@ etc
   same as `%0`.
 
   - Accessing too high a number will return `null`.
+
+- `_` is a wildcard type and is equal to any value. Example:  
+
+```clj
+(= 1 _) → 1
+(= [:a :b] [:a _]) → [:a :b]
+```
 
 - Parameters take precedence over lets and defines.
 

@@ -425,6 +425,8 @@ function parseArg(
         ];
       } else if (text === "null") {
         return [{ typ: "val", value: nullVal, errCtx }];
+      } else if (text === "_") {
+        return [{ typ: "val", value: { t: "wild", v: undefined }, errCtx }];
       } else if (starts(text, ":")) {
         return [{ typ: "val", value: <Val>{ t: "key", v: text }, errCtx }];
       } else if (starts(text, "%") && isNum(substr(text, 1))) {

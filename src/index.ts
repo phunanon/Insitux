@@ -1,4 +1,4 @@
-export const insituxVersion = 20211118;
+export const insituxVersion = 20211120;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -279,6 +279,7 @@ function exeOp(
     case "vec?":
     case "key?":
     case "func?":
+    case "wild?":
       _boo(
         (op === "null?" && args[0].t === "null") ||
           (op === "num?" && args[0].t === "num") ||
@@ -287,7 +288,8 @@ function exeOp(
           (op === "dict?" && args[0].t === "dict") ||
           (op === "vec?" && args[0].t === "vec") ||
           (op === "key?" && args[0].t === "key") ||
-          (op === "func?" && (args[0].t === "func" || args[0].t === "clo")),
+          (op === "func?" && (args[0].t === "func" || args[0].t === "clo")) ||
+          (op === "wild?" && (args[0].t === "wild")),
       );
       return;
     case "has?":

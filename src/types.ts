@@ -2,6 +2,7 @@ export type Val =
   | { t: "vec"; v: Val[] }
   | { t: "str" | "func" | "key" | "ref"; v: string }
   | { t: "null"; v: undefined }
+  | { t: "wild"; v: undefined }
   | { t: "bool"; v: boolean }
   | { t: "num"; v: number }
   | { t: "clo"; v: Func }
@@ -131,6 +132,7 @@ export const ops: {
   "dict?": { exactArity: 1, returns: ["bool"] },
   "key?": { exactArity: 1, returns: ["bool"] },
   "func?": { exactArity: 1, returns: ["bool"] },
+  "wild?": { exactArity: 1, returns: ["bool"] },
   rem: { minArity: 2, numeric: true },
   sin: { exactArity: 1, numeric: true },
   cos: { exactArity: 1, numeric: true },
@@ -240,6 +242,7 @@ export const typeNames = {
   dict: "dictionary",
   func: "function",
   clo: "closure",
+  wild: "wildcard",
 };
 
 export const assertUnreachable = (_x: never): never => <never>0;
