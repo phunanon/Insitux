@@ -289,12 +289,13 @@ etc
 ;"Reduces" a vector, string, or dictionary into one value through a function,
 ;  also accepting an initial value as its second argument
 ;Note: will return sole item or initial value if there are too few values
-(reduce + [1 2 3])   → 6
-(reduce + [1 2 3] 3) → 9
-(reduce + [1] 1)     → 2
-(reduce + [1])       → 1  ;
-(reduce + [] 1)      → 1  ;
-(reduce + [])        → [] ; + is never called
+(reduce + [1 2 3])     → 6
+(reduce vec [0 1 2 3]) → [[[0 1] 2] 3]
+(reduce + [1 2 3] 3)   → 9
+(reduce + [1] 1)       → 2
+(reduce + [1])         → 1  ;
+(reduce + [] 1)        → 1  ;
+(reduce + [])          → [] ; + is never called
 
 ;Continues looping until condition becomes false
 ;Note: returns the final value or null if the first evaluated condition is false
@@ -364,11 +365,14 @@ etc
 (reverse "Hello") → "olleH"
 (reverse [1 2 3]) → [3 2 1]
 
-;Returns a vector sorted, optionally by the return of a function of each item
+;Returns a vector, dictionary, or string characters sorted,
+; optionally by the return of a function of each item
 ;Note: will only sort all number or all string
 (sort [0 7 8 9 8 6])    → [0 6 7 8 8 9]
 (sort [0 1 8 9 65] str) → [0 1 65 8 9]
 (sort [{:a 23} {:a 24} {:a 19}] :a) → [{:a 19} {:a 23} {:a 24}]
+(sort {1 3 2 2 3 1} 1)  → [[3 1] [2 2] [1 3]]
+(sort "hello")          → ["e" "h" "l" "l" "o"]
 
 ;Generates a range of numbers
 ;Note: the first argument is always inclusive, second exclusive
@@ -387,8 +391,9 @@ etc
 (split "Hello" "e") → ["H" "llo"]
 (split "hi hi!")    → ["hi" "hi!"]
 
-;Joins a vector by spaces or provided string
+;Joins a vector, dictionary, or string by spaces or a provided string
 (join [1 2 3])      → "1 2 3"
+(join "hello")      → "h e l l o"
 (join [1 2 3] ", ") → "1, 2, 3"
 
 ;Tests if a string starts with and ends with another string
@@ -684,7 +689,7 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 → {"h" 1, "e" 1, "l" 2, "o" 1}
 
 
-; Clojure's -> analog
+; Clojure's ->> analog
 (function ->>
   (if (= (len args) 1) (return (0 args)))
   (... recur ((1 args) (0 args)) (sect args 2)))
@@ -701,9 +706,12 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
        next (if (out (0 list)) [] [(0 list)]))
   (if (empty? list) out
     (recur (sect list) (into out next))))
-;or deduplicate a list via dictionary keys
+;or via dictionary keys
 (function dedupe list
   (keys (.. .. dict (for vec list [0]))))
+;or via reduction
+(function dedupe list
+  (reduce #(if (% %1) % (push % %1)) list []))
 
 (dedupe [1 2 3 3])
 → [1 2 3]

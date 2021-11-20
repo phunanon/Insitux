@@ -312,6 +312,13 @@ const tests: {
            (dedupe [1 1 2 3 3 3])`,
     out: `[1 2 3]`,
   },
+  {
+    name: "frequencies",
+    code: `(function frequencies list
+             (reduce #(push % %1 (inc (or (% %1) 0))) list {}))
+           (frequencies "12121212")`,
+    out: `{"1" 4, "2" 4}`
+  },
   //Test environment functions
   {
     name: "set get",

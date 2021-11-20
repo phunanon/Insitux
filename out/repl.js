@@ -294,7 +294,12 @@ const ops = {
     returns: ["vec", "str"]
   },
   reverse: { exactArity: 1, types: [["vec", "str"]], returns: ["vec", "str"] },
-  sort: { minArity: 1, maxArity: 2, types: ["vec"], returns: ["vec"] },
+  sort: {
+    minArity: 1,
+    maxArity: 2,
+    types: [["vec", "dict", "str"]],
+    returns: ["vec"]
+  },
   keys: { exactArity: 1, types: ["dict"] },
   vals: { exactArity: 1, types: ["dict"] },
   do: { minArity: 1 },
@@ -306,7 +311,12 @@ const ops = {
     returns: ["bool"]
   },
   split: { minArity: 1, maxArity: 2, types: ["str", "str"], returns: ["vec"] },
-  join: { minArity: 1, maxArity: 2, types: ["vec", "str"], returns: ["str"] },
+  join: {
+    minArity: 1,
+    maxArity: 2,
+    types: [["vec", "dict", "str"], "str"],
+    returns: ["str"]
+  },
   "starts-with?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
   "ends-with?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
   "lower-case": { exactArity: 1, types: ["str"], returns: ["str"] },
@@ -920,12 +930,18 @@ function insErrorDetect(fins) {
           stack.push({});
         } else if (headIs("str") || headIs("bool")) {
           stack.push({});
+        } else if (!head.types && !head.val) {
+          stack.push({});
         }
         break;
       }
+      case "or":
+        stack.pop();
+        stack.push({});
+        i += ins.value;
+        break;
       case "exp":
       case "cat":
-      case "or":
       case "var":
       case "let":
       case "loo":
@@ -1299,6 +1315,13 @@ null`
     out: `[1 2 3]`
   },
   {
+    name: "frequencies",
+    code: `(function frequencies list
+             (reduce #(push % %1 (inc (or (% %1) 0))) list {}))
+           (frequencies "12121212")`,
+    out: `{"1" 4, "2" 4}`
+  },
+  {
     name: "set get",
     code: `[($globals.time_offset 5.5) $globals.time_offset]`,
     out: `[5.5 5.5]`
@@ -1486,7 +1509,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211115;
+const insituxVersion = 20211118;
 
 
 
@@ -1997,11 +2020,11 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       }
       return;
     case "sort": {
-      if (!src_len(vec(args[0]))) {
+      const src = asArray(args[0]);
+      if (!src_len(src)) {
         _vec();
         return;
       }
-      const src = asArray(args[0]);
       const mapped = [];
       if (src_len(args) === 1) {
         src_push(mapped, src.map((v) => [v, v]));
@@ -2056,7 +2079,7 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       _vec(str(args[0]).split(src_len(args) > 1 ? str(args[1]) : " ").map((v) => ({ t: "str", v })));
       return;
     case "join":
-      _str(vec(args[0]).map(val2str).join(src_len(args) > 1 ? str(args[1]) : " "));
+      _str(asArray(args[0]).map(val2str).join(src_len(args) > 1 ? str(args[1]) : " "));
       return;
     case "starts-with?":
     case "ends-with?":
@@ -2549,13 +2572,13 @@ const ctx = {
   get: repl_get,
   set: repl_set,
   exe: repl_exe,
-  loopBudget: 1e6,
+  loopBudget: 1e7,
   rangeBudget: 1e6,
   callBudget: 1e8,
   recurBudget: 1e4
 };
 function repl_exe(name, args) {
-  const nullVal = { v: void 0, t: "null" };
+  const nullVal = { kind: "val", value: { v: void 0, t: "null" } };
   switch (name) {
     case "print":
     case "print-str":
@@ -2563,16 +2586,23 @@ function repl_exe(name, args) {
       if (name === "print") {
         process.stdout.write("\n");
       }
-      return { kind: "val", value: nullVal };
+      return nullVal;
     case "read": {
       const path = args[0].v;
       if (!fs.existsSync(path)) {
-        return { kind: "val", value: nullVal };
+        return nullVal;
       }
       return {
         kind: "val",
         value: { t: "str", v: fs.readFileSync(path).toString() }
       };
+    }
+    case "append":
+    case "write": {
+      const path = args[0].v;
+      const content = args[1].v;
+      (name === "write" ? fs.writeFileSync : fs.appendFileSync)(path, content);
+      return nullVal;
     }
   }
   if (args.length) {

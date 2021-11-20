@@ -25,14 +25,15 @@ const ctx: Ctx = {
   get,
   set,
   exe,
-  loopBudget: 1e6,
+  loopBudget: 1e7,
   rangeBudget: 1e6,
   callBudget: 1e8,
   recurBudget: 1e4,
 };
 
+//TODO: argument arity/type checking
 function exe(name: string, args: Val[]): ValOrErr {
-  const nullVal: Val = { v: undefined, t: "null" };
+  const nullVal: ValOrErr = { kind: "val", value: { v: undefined, t: "null" } };
   switch (name) {
     case "print":
     case "print-str":
@@ -40,16 +41,23 @@ function exe(name: string, args: Val[]): ValOrErr {
       if (name === "print") {
         process.stdout.write("\n");
       }
-      return { kind: "val", value: nullVal };
+      return nullVal;
     case "read": {
       const path = args[0].v as string;
       if (!fs.existsSync(path)) {
-        return { kind: "val", value: nullVal };
+        return nullVal;
       }
       return {
         kind: "val",
         value: { t: "str", v: fs.readFileSync(path).toString() },
       };
+    }
+    case "append":
+    case "write": {
+      const path = args[0].v as string;
+      const content = args[1].v as string;
+      (name === "write" ? fs.writeFileSync : fs.appendFileSync)(path, content);
+      return nullVal;
     }
   }
   if (args.length) {

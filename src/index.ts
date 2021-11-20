@@ -1,4 +1,4 @@
-export const insituxVersion = 20211115;
+export const insituxVersion = 20211118;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -586,11 +586,11 @@ function exeOp(
       }
       return;
     case "sort": {
-      if (!len(vec(args[0]))) {
+      const src = asArray(args[0]);
+      if (!len(src)) {
         _vec();
         return;
       }
-      const src = asArray(args[0]);
       const mapped: Val[][] = [];
       if (len(args) === 1) {
         push(
@@ -654,7 +654,7 @@ function exeOp(
       return;
     case "join":
       _str(
-        vec(args[0])
+        asArray(args[0])
           .map(val2str)
           .join(len(args) > 1 ? str(args[1]) : " "),
       );

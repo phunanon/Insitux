@@ -628,12 +628,18 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
           stack.push({});
         } else if (headIs("str") || headIs("bool")) {
           stack.push({});
+        } else if (!head.types && !head.val) {
+          stack.push({});
         }
         break;
       }
+      case "or":
+        stack.pop();
+        stack.push({});
+        i += ins.value;
+        break;
       case "exp":
       case "cat":
-      case "or":
       case "var":
       case "let":
       case "loo":
