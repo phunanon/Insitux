@@ -339,11 +339,10 @@ const tests: {
   { name: "Imbalanced parens 1", code: `(print ("hello!")`, err: ["Parse"] },
   { name: "Imbalanced parens 2", code: `print "hello!")`, err: ["Parse"] },
   {
-    name: "Imbalanced quotes 1",
+    name: "Imbalanced quotes",
     code: `(print "Hello)`,
-    err: ["Parse", "Parse"],
+    err: ["Parse"],
   },
-  { name: "Imbalanced quotes 2", code: `print "Hello")`, err: ["Parse"] },
   { name: "Function as op", code: `(function)`, err: ["Parse"] },
   { name: "Function without name", code: `(function (+))`, err: ["Parse"] },
   { name: "Function without body", code: `(function func)`, err: ["Parse"] },

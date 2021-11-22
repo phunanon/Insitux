@@ -891,6 +891,11 @@ function tokenErrorDetect(stringError, tokens) {
   const sourceId = parse_len(tokens) ? tokens[0].errCtx.sourceId : "";
   const errors = [];
   const err = (m, errCtx) => errors.push({ e: "Parse", m, errCtx });
+  if (stringError) {
+    const [line, col] = stringError;
+    err("unmatched double quotation marks", { sourceId, line, col });
+    return errors;
+  }
   const countTyp = (t) => parse_len(tokens.filter(({ typ }) => typ === t));
   const [numL, numR] = [countTyp("("), countTyp(")")];
   {
@@ -898,10 +903,6 @@ function tokenErrorDetect(stringError, tokens) {
     if (line + col) {
       err("unmatched parenthesis", { sourceId, line, col });
     }
-  }
-  if (stringError) {
-    const [line, col] = stringError;
-    err("unmatched double quotation marks", { sourceId, line, col });
   }
   let emptyHead;
   for (let t = 0, lastWasL = false; t < parse_len(tokens); ++t) {
@@ -1372,11 +1373,10 @@ null` },
   { name: "Imbalanced parens 1", code: `(print ("hello!")`, err: ["Parse"] },
   { name: "Imbalanced parens 2", code: `print "hello!")`, err: ["Parse"] },
   {
-    name: "Imbalanced quotes 1",
+    name: "Imbalanced quotes",
     code: `(print "Hello)`,
-    err: ["Parse", "Parse"]
+    err: ["Parse"]
   },
-  { name: "Imbalanced quotes 2", code: `print "Hello")`, err: ["Parse"] },
   { name: "Function as op", code: `(function)`, err: ["Parse"] },
   { name: "Function without name", code: `(function (+))`, err: ["Parse"] },
   { name: "Function without body", code: `(function func)`, err: ["Parse"] },
@@ -1554,7 +1554,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211120;
+const insituxVersion = 20211122;
 
 
 

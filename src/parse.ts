@@ -561,6 +561,13 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   const err = (m: string, errCtx: ErrCtx) =>
     errors.push({ e: "Parse", m, errCtx });
 
+  //Check for double-quote imbalance
+  if (stringError) {
+    const [line, col] = stringError;
+    err("unmatched double quotation marks", { sourceId: sourceId, line, col });
+    return errors;
+  }
+
   //Check for paren imbalance
   const countTyp = (t: Token["typ"]) =>
     len(tokens.filter(({ typ }) => typ === t));
@@ -570,12 +577,6 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
     if (line + col) {
       err("unmatched parenthesis", { sourceId: sourceId, line, col });
     }
-  }
-
-  //Check for double-quote imbalance
-  if (stringError) {
-    const [line, col] = stringError;
-    err("unmatched double quotation marks", { sourceId: sourceId, line, col });
   }
 
   //Check for any empty expressions
