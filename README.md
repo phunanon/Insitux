@@ -58,7 +58,7 @@ making lists, causing things to happen, etc. You can also write your own custom
 operations called _functions_. An example:
 
 ```clj
-(function say-name
+(function say-hello name
   (var greeting "Hello")
   (print greeting ", " name "!"))
 ```
