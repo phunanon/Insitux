@@ -222,6 +222,12 @@ export const ops: {
   "trim-start": { exactArity: 1, types: ["str"], returns: ["str"] },
   "trim-end": { exactArity: 1, types: ["str"], returns: ["str"] },
   "str*": { exactArity: 2, types: ["str", "num"], returns: ["str"] },
+  "char-code": {
+    minArity: 1,
+    maxArity: 2,
+    types: [["str", "num"], "num"],
+    returns: ["str", "num", "null"],
+  },
   time: { exactArity: 0, returns: ["num"] },
   version: { exactArity: 0, returns: ["num"] },
   tests: { minArity: 0, maxArity: 1, types: ["bool"], returns: ["str"] },

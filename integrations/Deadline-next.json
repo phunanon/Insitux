@@ -636,6 +636,15 @@
 				]
 			},
 			{
+				"directory": "char-code",
+				"description": [
+					"(char-code \"hello \")",
+					"function",
+					"Returns the code associated with a string's first or Nth character, or null",
+					"Or returns a string with the associated supplied character code"
+				]
+			},
+			{
 				"directory": "split",
 				"description": [
 					"(split \"hello\" \"e\")",

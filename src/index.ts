@@ -1,4 +1,4 @@
-export const insituxVersion = 20211122;
+export const insituxVersion = 20211125;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -7,7 +7,7 @@ const { abs, cos, sin, tan, sign, sqrt, floor, ceil, round, max, min } = pf;
 const { logn, log2, log10 } = pf;
 const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
 const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
-const { trim, trimStart, trimEnd } = pf;
+const { trim, trimStart, trimEnd, charCode, codeChar, strIdx } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
@@ -689,6 +689,20 @@ function exeOp(
           .map(n => text)
           .join(""),
       );
+      return;
+    }
+    case "char-code": {
+      if (args[0].t === "str") {
+        const n = len(args) > 1 ? num(args[1]) : 0;
+        const s = str(args[0]);
+        if (slen(s) <= n || n < 0) {
+          _nul();
+        } else {
+          _num(charCode(strIdx(s, n)));
+        }
+      } else {
+        _str(codeChar(num(args[0])));
+      }
       return;
     }
     case "time":

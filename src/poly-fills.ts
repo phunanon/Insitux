@@ -26,6 +26,8 @@ export const trim = (str: string) => str.trim();
 export const trimStart = (str: string) => str.trimStart();
 export const trimEnd = (str: string) => str.trimEnd();
 export const padEnd = (str: string, by: number) => str.padEnd(by);
+export const charCode = (str: string): number => str.charCodeAt(0);
+export const codeChar = (num: number): string => String.fromCharCode(num);
 export const randNum = (a: number, b: number) => a + Math.random() * (b - a);
 export const randInt = (a: number, b: number) => Math.floor(randNum(a, b));
 export const range = (len: number) => [...Array(len).keys()];

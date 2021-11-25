@@ -203,7 +203,9 @@ function parseForm(
   }
   const { typ, text, errCtx } = head;
   let op = text;
-  const err = (value: string) => [<ParserIns>{ typ: "err", value, errCtx }];
+  const err = (value: string, eCtx = errCtx) => [
+    <ParserIns>{ typ: "err", value, errCtx: eCtx },
+  ];
   if (op === "catch") {
     if (tokens[0].typ !== "(") {
       return err("argument 1 must be expression");
@@ -229,7 +231,13 @@ function parseForm(
       }
       const def = defIns[0];
       if (def.typ !== "ref") {
-        return err("declaration name must be symbol");
+        return [
+          <ParserIns>{
+            typ: "err",
+            value: `${op} declaration name must be a symbol`,
+            errCtx: def.errCtx,
+          },
+        ];
       }
       push(ins, val);
       ins.push({ typ: op, value: def.value, errCtx });
@@ -277,8 +285,12 @@ function parseForm(
       if (len(ifF)) {
         ins.push({ typ: "jmp", value: len(ifF), errCtx });
         push(ins, ifF);
-        if (len(parseArg(tokens, params))) {
-          return err("too many branches");
+        const extraneousBranch = parseArg(tokens, params);
+        if (len(extraneousBranch)) {
+          return err(
+            "too many branches; delete this branch",
+            extraneousBranch[0].errCtx,
+          );
         }
       } else {
         ins.push({ typ: "jmp", value: 1, errCtx });

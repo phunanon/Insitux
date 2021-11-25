@@ -83,6 +83,8 @@ __webpack_require__.r(poly_fills_namespaceObject);
 __webpack_require__.d(poly_fills_namespaceObject, {
   "abs": () => (abs),
   "ceil": () => (ceil),
+  "charCode": () => (charCode),
+  "codeChar": () => (codeChar),
   "concat": () => (concat),
   "cos": () => (cos),
   "ends": () => (ends),
@@ -153,6 +155,8 @@ const trim = (str) => str.trim();
 const trimStart = (str) => str.trimStart();
 const trimEnd = (str) => str.trimEnd();
 const padEnd = (str, by) => str.padEnd(by);
+const charCode = (str) => str.charCodeAt(0);
+const codeChar = (num) => String.fromCharCode(num);
 const randNum = (a, b) => a + Math.random() * (b - a);
 const randInt = (a, b) => Math.floor(randNum(a, b));
 const range = (len2) => [...Array(len2).keys()];
@@ -326,6 +330,12 @@ const ops = {
   "trim-start": { exactArity: 1, types: ["str"], returns: ["str"] },
   "trim-end": { exactArity: 1, types: ["str"], returns: ["str"] },
   "str*": { exactArity: 2, types: ["str", "num"], returns: ["str"] },
+  "char-code": {
+    minArity: 1,
+    maxArity: 2,
+    types: [["str", "num"], "num"],
+    returns: ["str", "num", "null"]
+  },
   time: { exactArity: 0, returns: ["num"] },
   version: { exactArity: 0, returns: ["num"] },
   tests: { minArity: 0, maxArity: 1, types: ["bool"], returns: ["str"] },
@@ -592,7 +602,9 @@ function parseForm(tokens, params, inPartial = true) {
   }
   const { typ, text, errCtx } = head;
   let op = text;
-  const err = (value) => [{ typ: "err", value, errCtx }];
+  const err = (value, eCtx = errCtx) => [
+    { typ: "err", value, errCtx: eCtx }
+  ];
   if (op === "catch") {
     if (tokens[0].typ !== "(") {
       return err("argument 1 must be expression");
@@ -618,7 +630,13 @@ function parseForm(tokens, params, inPartial = true) {
       }
       const def = defIns[0];
       if (def.typ !== "ref") {
-        return err("declaration name must be symbol");
+        return [
+          {
+            typ: "err",
+            value: `${op} declaration name must be a symbol`,
+            errCtx: def.errCtx
+          }
+        ];
       }
       parse_push(ins, val);
       ins.push({ typ: op, value: def.value, errCtx });
@@ -665,8 +683,9 @@ function parseForm(tokens, params, inPartial = true) {
       if (parse_len(ifF)) {
         ins.push({ typ: "jmp", value: parse_len(ifF), errCtx });
         parse_push(ins, ifF);
-        if (parse_len(parseArg(tokens, params))) {
-          return err("too many branches");
+        const extraneousBranch = parseArg(tokens, params);
+        if (parse_len(extraneousBranch)) {
+          return err("too many branches; delete this branch", extraneousBranch[0].errCtx);
         }
       } else {
         ins.push({ typ: "jmp", value: 1, errCtx });
@@ -1554,7 +1573,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211122;
+const insituxVersion = 20211125;
 
 
 
@@ -1563,7 +1582,7 @@ const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, sign: src_sign, 
 const { logn: src_logn, log2: src_log2, log10: src_log10 } = poly_fills_namespaceObject;
 const { concat: src_concat, has: src_has, flat: src_flat, push: src_push, reverse: src_reverse, slice: src_slice, splice: src_splice, sortBy: src_sortBy } = poly_fills_namespaceObject;
 const { ends: src_ends, slen: src_slen, starts: src_starts, sub: src_sub, subIdx: src_subIdx, substr: src_substr, upperCase: src_upperCase, lowerCase: src_lowerCase } = poly_fills_namespaceObject;
-const { trim: src_trim, trimStart: src_trimStart, trimEnd: src_trimEnd } = poly_fills_namespaceObject;
+const { trim: src_trim, trimStart: src_trimStart, trimEnd: src_trimEnd, charCode: src_charCode, codeChar: src_codeChar, strIdx: src_strIdx } = poly_fills_namespaceObject;
 const { getTimeMs: src_getTimeMs, randInt: src_randInt, randNum: src_randNum } = poly_fills_namespaceObject;
 const { isNum: src_isNum, len: src_len, objKeys: src_objKeys, range: src_range, toNum: src_toNum } = poly_fills_namespaceObject;
 
@@ -2141,6 +2160,20 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
     case "str*": {
       const text = str(args[0]);
       _str(src_range(src_max(num(args[1]), 0)).map((n) => text).join(""));
+      return;
+    }
+    case "char-code": {
+      if (args[0].t === "str") {
+        const n = src_len(args) > 1 ? num(args[1]) : 0;
+        const s = str(args[0]);
+        if (src_slen(s) <= n || n < 0) {
+          _nul();
+        } else {
+          _num(src_charCode(src_strIdx(s, n)));
+        }
+      } else {
+        _str(src_codeChar(num(args[0])));
+      }
       return;
     }
     case "time":

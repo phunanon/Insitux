@@ -107,6 +107,12 @@ built-in operations each within an example, with results after a `→`.
 (let! b 1) → :b
 [a b] → [21 :b]
 
+;Returns its last argument early from a function with a value, or null
+(function f (return 123) (print "hello"))
+(f) → 123
+(function f (return) (print "hi"))
+(f) → null
+
 ;Tests a condition and executes and returns either the second or third argument
 ;Note: doesn't evaluate the other conditional branch
 (if true 1 2)  → 1
@@ -428,6 +434,13 @@ etc
 ;Returns a string repeated a specified number of times
 (str* "x" 6) → "xxxxxx"
 
+;Returns the code associated with a string's first or Nth character, or null
+;Or returns a string with the associated supplied character code
+(char-code "hello")   → 104
+(char-code "hello" 1) → 101
+(char-code "hello" 9) → null
+(char-code 104)       → "h"
+
 ;Returns the keys and values of a dictionary
 (var d {0 1 :a "hello" "hi" 123})
 (keys d) → [0 :a "hi"]
@@ -443,12 +456,6 @@ etc
 (idx "Hello" "ll")   → 2
 (idx [1 2 3 4] :a 2) → [1 2 :a 4]
 (idx "hello" "H" 0)  → "Hello"
-
-;Returns its last argument early from a function with a value, or null
-(function f (return 123) (print "hello"))
-(f) → 123
-(function f (return) (print "hi"))
-(f) → null
 
 ;Treats its arguments as an expression, first argument as the expression head
 (. + 2 2) → 4
@@ -671,6 +678,7 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (map fizzbuzz (range 10 16))
 → ["buzz" 11 "fizz" 13 14 "fizzbuzz"]
 
+
 ; Filter for vectors and strings above a certain length
 (filter 2 [[1] [:a :b :c] "hello" "hi"])
 → [[:a :b :c] "hello"]
@@ -762,7 +770,7 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
   (let report [(time) (.. . args) (time)])
   (str (1 report) " took " (- (2 report) (0 report)) "ms"))
 
-(measure fib 35) → "9227465 took 45500ms"
+(measure fib 35) → "9227465 took 38003ms"
 
 
 ; Display the Mandelbrot fractal as ASCII
@@ -802,4 +810,31 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
        ["a" {"href" "https://github.com/phunanon/Insitux"}
           "Github"]]])
 → "<div><h2>Hello</h2><p>.PI is <b>3.14</b>.</p><p>Find more about Insitux on <a href="https://github.com/phunanon/Insitux">Github</a></p></div>"
+
+
+; Neural network for genetic algorithms with two hidden layers
+(function sigmoid (/ 1 (inc (** E (- %)))))
+(function m (< .8 (rand)))
+
+(function make-brain  num-inputs num-outputs num-hidden
+  (let make-neuron #{:bias 0 :weights (repeat 1 %)})
+  [(repeat #(make-neuron num-inputs) num-hidden)
+   (repeat #(make-neuron num-hidden) num-hidden)
+   (repeat #(make-neuron num-hidden) num-outputs)])
+
+(function mutate  brain
+  (let mutate-neuron
+    #{:bias    ((m) (rand -2 2) (:bias %))
+      :weights (map @((m) (rand -1 1)) (:weights %))})
+  (map @(map mutate-neuron) brain))
+
+(function neuron-think  neuron inputs
+  (let weighted (map * (:weights neuron) inputs)
+       average  (/ (.. + weighted) (len inputs)))
+  (sigmoid (+ average (:bias neuron))))
+
+(function think  brain inputs
+  (let thoughts (map #(neuron-think % inputs)   (0 brain))
+       thoughts (map #(neuron-think % thoughts) (1 brain))
+       thoughts (map #(neuron-think % thoughts) (2 brain))))
 ```
