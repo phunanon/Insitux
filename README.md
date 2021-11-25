@@ -58,7 +58,7 @@ making lists, causing things to happen, etc. You can also write your own custom
 operations called _functions_. An example:
 
 ```clj
-(function say-hello name
+(function say-name
   (var greeting "Hello")
   (print greeting ", " name "!"))
 ```
@@ -372,7 +372,7 @@ etc
 (filter = [1 1 2 2 3 3] 3) → [3 3]
 (remove odd? [0 1 2 3])    → [0 2]
 (remove = [1 1 2 2 3 3] 3) → [1 1 2 2]
-(remove = "hello!" "e")    → "e"
+(remove = "hello!" "e")    → "hllo!"
 
 ;Returns the first item or character in a vector or string matching a predicate,
 ;  optionally passing extra arguments
