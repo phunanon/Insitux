@@ -544,7 +544,7 @@
 				"description": [
 					"(filter odd? [0 1 2 3])",
 					"function",
-					"Filters a vector or string by a function, optionally passing extra arguments."
+					"Filters a vector or string by a function, optionally passing extra arguments. Returns the same type that is provided."
 				]
 			},
 			{
@@ -552,7 +552,7 @@
 				"description": [
 					"(remove odd? [0 1 2 3])",
 					"function",
-					"Negatively filters a vector or string by a function, optionally passing extra arguments."
+					"Negatively filters a vector or string by a function, optionally passing extra arguments. Returns the same type that is provided."
 				]
 			},
 			{
