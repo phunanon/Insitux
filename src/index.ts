@@ -422,7 +422,7 @@ function exeOp(
         if (args[0].t === "str") {
           _str(filtered.map(v => v.v).join(""))
         } else if (args[0].t === "dict") {
-          _dict(filtered);
+          _dic(filtered);
         } else {
           _vec(filtered)
         }
