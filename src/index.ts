@@ -422,7 +422,7 @@ function exeOp(
         if (args[0].t == "str") {
           _str(filtered.map(v => v.v).join(""))
         } else {
-        _vec(filtered);
+          _vec(filtered);
         }
         return;
       }
