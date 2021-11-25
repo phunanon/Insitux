@@ -419,7 +419,7 @@ function exeOp(
             _nul();
             return;
         }
-        if (args[0].t == "str") {
+        if (args[0].t === "str") {
           _str(filtered.map(v => v.v).join(""))
         } else {
           _vec(filtered);
