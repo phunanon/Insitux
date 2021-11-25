@@ -367,7 +367,7 @@ etc
 
 ;Filter a vector or string by a function, optionally passing extra arguments. Returns the type of the second argument provided.
 (filter odd? [0 1 2 3])    → [1 3]
-(filter ["e" "l"] "Hello") → ["e" "l" "l"]
+(filter ["e" "l"] "Hello") → "ell"
 (filter = [1 1 2 2 3 3] 3) → [3 3]
 (remove odd? [0 1 2 3])    → [0 2]
 (remove = [1 1 2 2 3 3] 3) → [1 1 2 2]
