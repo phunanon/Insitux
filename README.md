@@ -371,7 +371,7 @@ etc
 (filter = [1 1 2 2 3 3] 3) → [3 3]
 (remove odd? [0 1 2 3])    → [0 2]
 (remove = [1 1 2 2 3 3] 3) → [1 1 2 2]
-(remove 2 "hello!") → "hello!"
+(remove = "hello!" "e") → "e"
 
 ;Returns the first item or character in a vector or string matching a predicate,
 ;  optionally passing extra arguments
