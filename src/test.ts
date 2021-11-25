@@ -108,6 +108,7 @@ const tests: {
     out: `:b`,
   },
   { name: "Apply op to var", code: `(var a 10) (var! a + 10)`, out: `20` },
+  { name: "Remove returns correct type", code: `(remove 2 "hello!")`, out: `hello!` },
   {
     name: "Apply op to let",
     code: `(let a 10) (let! a (if true + -) (+ 2 3) 5)`,
