@@ -33,7 +33,7 @@ const ctx: Ctx = {
 
 //TODO: argument arity/type checking
 function exe(name: string, args: Val[]): ValOrErr {
-  const nullVal: ValOrErr = { kind: "val", value: { v: undefined, t: "null" } };
+  const nullVal: ValOrErr = { kind: "val", value: { t: "null", v: undefined } };
   switch (name) {
     case "print":
     case "print-str":

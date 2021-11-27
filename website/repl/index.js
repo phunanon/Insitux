@@ -92,7 +92,7 @@ function insituxInvoke(code, exe) {
       exe,
       get: insituxGet,
       set: insituxSet,
-      rangeBudget: 1000,
+      rangeBudget: 10000,
       loopBudget: 10000,
       callBudget: 10000,
       recurBudget: 10000,

@@ -710,6 +710,17 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (palindrome? [2 1 2])     → [2 1 2]
 
 
+; Matrix addition
+(let A [[3  8] [4  6]])
+(let B [[4  0] [1 -9]])
+(map @(map +) A B)
+
+
+; Matrix negation
+(let M [[2 -4] [7 10]])
+(map @(map -) M)
+
+
 ; Clojure's juxt
 (function juxt
   (let funcs args)
@@ -797,17 +808,17 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
   (let has-attr (dict? (1 v))
        attr (if! has-attr ""
               (map #(str " " (0 %) "=\"" (1 %) "\"") (1 v)))
-       tag (0 v)
+       tag (sect (str (0 v)))
        html (.. str "<" tag attr ">"
               (map vec->html (sect v (if has-attr 2 1)))
               "</" tag ">")))
 
 (vec->html
-  ["div"
-    ["h2" "Hello"]
-    ["p" ".PI is " ["b" (round PI 2)] "."]
-    ["p" "Find more about Insitux on "
-       ["a" {"href" "https://github.com/phunanon/Insitux"}
+  [:div
+    [:h2 "Hello"]
+    [:p ".PI is " [:b (round PI 2)] "."]
+    [:p "Find more about Insitux on "
+       [:a {"href" "https://github.com/phunanon/Insitux"}
           "Github"]]])
 → "<div><h2>Hello</h2><p>.PI is <b>3.14</b>.</p><p>Find more about Insitux on <a href="https://github.com/phunanon/Insitux">Github</a></p></div>"
 

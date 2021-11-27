@@ -2666,7 +2666,7 @@ const ctx = {
   recurBudget: 1e4
 };
 function repl_exe(name, args) {
-  const nullVal = { kind: "val", value: { v: void 0, t: "null" } };
+  const nullVal = { kind: "val", value: { t: "null", v: void 0 } };
   switch (name) {
     case "print":
     case "print-str":

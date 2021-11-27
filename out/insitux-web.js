@@ -4,41 +4,42 @@ const e = el => document.querySelector(el);
 const loaderEnv = { funcs: {}, vars: {} };
 const state = new Map();
 
-async function loaderGet(key) {
+function loaderGet(key) {
   return { value: state.get(key) };
 }
 
-async function loaderSet(key, val) {
+function loaderSet(key, val) {
   return state.set(key, val) && undefined;
 }
 
-async function loaderExe(name, args) {
-  const nullVal = { t: "null", v: undefined };
+function loaderExe(name, args) {
+  const nullVal = { kind: "val", value: { t: "null", v: undefined } };
   switch (name) {
     case "print-str":
     case "print":
       console.log(args[0].v);
-      break;
+      return nullVal;
     case "inner-html":
       e(args[0].v).innerHTML = args[1].v;
-      break;
+      return nullVal;
     default:
       if (args.length && args[0].t == "str" && args[0].v.startsWith("$")) {
         if (args.length === 1) {
-          return await loaderGet(`${args[0].v.substring(1)}.${name}`);
+          return loaderGet(`${args[0].v.substring(1)}.${name}`);
         } else {
           loaderSet(`${args[0].v.substring(1)}.${name}`, args[1]);
-          return { value: args[1] };
+          return { kind: "val", value: args[1] };
         }
       }
-      return { value: nullVal, err: `operation ${name} does not exist` };
+      return { kind: "err", err: `operation ${name} does not exist` };
   }
-  return { value: nullVal };
 }
 
-const insituxLoader = () => {
-  const code = document.querySelector(`script[type="text/insitux"]`).innerHTML;
-  insitux(
+const loadScript = async scriptEl => {
+  const code = scriptEl.src
+    ? await (await fetch(scriptEl.src)).text()
+    : scriptEl.innerHTML;
+  const errors = insitux(
     {
       env: loaderEnv,
       exe: loaderExe,
@@ -51,6 +52,15 @@ const insituxLoader = () => {
     },
     code,
   );
-};
+  if (errors.length > 0) {
+    console.log(`Insitux:
+${errors.map(err => err.text).join("")}`);
+  }
+}
 
-window.onload = insituxLoader;
+window.onload = async () => {
+  const scripts = document.querySelectorAll(`script[type="text/insitux"]`);
+  for (let s = 0; s < scripts.length; ++s) {
+    await loadScript(scripts[s]);
+  }
+};
