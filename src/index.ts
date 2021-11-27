@@ -1,4 +1,4 @@
-export const insituxVersion = 20211125;
+export const insituxVersion = 20211127;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -470,6 +470,16 @@ function exeOp(
         }
       }
       _vec(result);
+      return;
+    }
+    case "->": {
+      stack.push(args.shift()!);
+      for (let i = 0, end = len(args); i < end; ++i) {
+        const errors = getExe(ctx, args[i], errCtx)([stack.pop()!]);
+        if (errors) {
+          return errors;
+        }
+      }
       return;
     }
     case "rand-int":

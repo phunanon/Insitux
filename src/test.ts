@@ -275,6 +275,7 @@ const tests: {
     code: `(@((do +) 2) 2)`,
     out: `4`,
   },
+  { name: "Threading", code: "(-> 1 inc @(+ 10))", out: `12` },
   //Runtime errors
   {
     name: "String instead of number",

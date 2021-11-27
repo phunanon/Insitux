@@ -388,6 +388,10 @@ etc
 (repeat 1 5)   → [1 1 1 1 1]
 (repeat val 5) → [0 1 2 3 4]
 
+;"Thread" return values into the next function, seeded with first argument
+(-> "hello" 1 upper-case)      → "E"
+(-> [0 1] #(push % 2) reverse) → [2 1 0]
+
 ;Returns the reverse of a vector or string
 (reverse "Hello") → "olleH"
 (reverse [1 2 3]) → [3 2 1]
@@ -748,17 +752,6 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 → {"h" 1, "e" 1, "l" 2, "o" 1}
 
 
-; Clojure's ->> analog
-(function ->>
-  (if (= (len args) 1) (return (0 args)))
-  (... recur ((1 args) (0 args)) (sect args 2)))
-(->> (range 10)
-    @(filter odd?)
-    @(map #(* % %))
-    @(reduce +))
-→ 165
-
-
 ; Deduplicate a list recursively
 (function dedupe list -out
   (let out  (or -out [])
@@ -800,6 +793,18 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
     (range width) (range height))))
 
 (mandelbrot 56 32 10)
+
+
+; Strong password generator
+(function rand-char-maker a b
+  #(char-code (rand-int a b)))
+(-> #(repeat (rand-char-maker % %1) 4)
+   #(map % [97 65 48 33] [123 91 58 48])
+   @(.. .. vec)
+   #(sort % #(rand-int 100))
+   #(join % ""))
+
+→ "d$W1iP*tO9'V9(y8"
 
 
 ; Convert nested arrays and dictionaries into HTML

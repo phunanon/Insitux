@@ -272,6 +272,7 @@ const ops = {
   find: { minArity: 2, types: [[], ["vec", "dict", "str"]] },
   count: { minArity: 2, types: [[], ["vec", "dict", "str"]], returns: ["num"] },
   repeat: { minArity: 2, types: [[], "num"] },
+  "->": { minArity: 2 },
   str: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
   "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },
@@ -1331,6 +1332,7 @@ null`
     code: `(@((do +) 2) 2)`,
     out: `4`
   },
+  { name: "Threading", code: "(-> 1 inc @(+ 10))", out: `12` },
   {
     name: "String instead of number",
     code: `(function sum (.. + args))
@@ -1573,7 +1575,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211125;
+const insituxVersion = 20211127;
 
 
 
@@ -1974,6 +1976,16 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
         }
       }
       _vec(result);
+      return;
+    }
+    case "->": {
+      stack.push(args.shift());
+      for (let i = 0, end = src_len(args); i < end; ++i) {
+        const errors = getExe(ctx, args[i], errCtx)([stack.pop()]);
+        if (errors) {
+          return errors;
+        }
+      }
       return;
     }
     case "rand-int":

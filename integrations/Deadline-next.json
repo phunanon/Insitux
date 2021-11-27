@@ -580,6 +580,14 @@
 				]
 			},
 			{
+				"directory": "->",
+				"description": [
+					"(-> \"hello\" 1 upper-case)",
+					"function",
+					"\"Thread\" return values into the next function, seeded with first argument"
+				]
+			},
+			{
 				"directory": "reverse",
 				"description": [
 					"(reverse [0 1 2 3])",
