@@ -798,23 +798,51 @@ function parseForm(tokens, params, inPartial = true) {
   }
   return [...body, ...headIns];
 }
+function spliceParams(tokens) {
+  const firstNonParam = tokens.findIndex((t) => t.typ !== "sym" || parse_sub("%#@", t.text));
+  return parse_splice(tokens, 0, firstNonParam);
+}
 function parseArg(tokens, params, inPartial = false) {
   if (!parse_len(tokens)) {
     return [];
   }
   const { typ, text, errCtx } = tokens.shift();
-  if (typ === "sym" && parse_sub("#@", text) && parse_len(tokens) && tokens[0].typ === "(") {
+  const isClosure = typ === "sym" && parse_sub("#@", text) && parse_len(tokens) && tokens[0].typ === "(";
+  const isParamClosure = typ === "(" && parse_len(tokens) && tokens[0].text === "fn";
+  if (isClosure || isParamClosure) {
     const texts = tokens.map((t) => t.text);
-    const body = parseArg(tokens, params, text === "@");
-    const err = body.find((t) => t.typ === "err");
-    if (err) {
-      return [err];
+    const fnIns = isParamClosure ? tokens.shift() : void 0;
+    const paramTokens = spliceParams(tokens);
+    if (isParamClosure) {
+      if (tokens[0].typ === ")") {
+        return [
+          {
+            typ: "err",
+            value: `fn requires a body, not just parameters`,
+            errCtx: fnIns.errCtx
+          }
+        ];
+      }
+      tokens.unshift({ typ: "sym", text: "do", errCtx });
+      tokens.unshift({ typ: "(", text: "(", errCtx });
+    }
+    const body = parseArg(tokens, isParamClosure ? paramTokens.map((t) => t.text) : params, text === "@");
+    const errors = body.filter((t) => t.typ === "err");
+    if (parse_len(errors)) {
+      return errors;
+    }
+    if (isParamClosure) {
+      body.forEach((ins) => {
+        if (ins.typ === "npa") {
+          ins.typ = "upa";
+        }
+      });
     }
     const value = [
-      parse_slice(texts, 0, parse_len(texts) - parse_len(tokens)).join(" "),
+      (isParamClosure ? "(" : text) + parse_slice(texts, 0, parse_len(texts) - parse_len(tokens)).join(" "),
       body
     ];
-    return [{ typ: text === "#" ? "clo" : "par", value, errCtx }];
+    return [{ typ: text === "@" ? "par" : "clo", value, errCtx }];
   }
   switch (typ) {
     case "str":
@@ -860,28 +888,26 @@ function parseArg(tokens, params, inPartial = false) {
 }
 function syntaxise({ name, tokens }, errCtx) {
   const err = (m, eCtx = errCtx) => ["err", { e: "Parse", m, errCtx: eCtx }];
-  const firstNonParam = tokens.findIndex((t) => t.typ !== "sym" || parse_sub("%#@", t.text));
-  const params = parse_slice(tokens, 0, firstNonParam);
-  const body = parse_slice(tokens, firstNonParam);
+  const params = spliceParams(tokens);
   if (name === "(") {
     return err("nameless function");
   }
-  if (!parse_len(params) && !parse_len(body)) {
+  if (!parse_len(params) && !parse_len(tokens)) {
     return err("empty function body");
   }
-  if (parse_len(body) && body[0].typ === ")") {
+  if (parse_len(tokens) && tokens[0].typ === ")") {
     if (parse_len(params)) {
-      body.unshift(params.pop());
+      tokens.unshift(params.pop());
     } else {
       return err("empty function body");
     }
   }
-  if (parse_len(params) && !parse_len(body)) {
-    body.push(params.pop());
+  if (parse_len(params) && !parse_len(tokens)) {
+    tokens.push(params.pop());
   }
   const ins = [];
-  while (parse_len(body)) {
-    parse_push(ins, parseArg(body, params.map((p) => p.text)));
+  while (parse_len(tokens)) {
+    parse_push(ins, parseArg(tokens, params.map((p) => p.text)));
   }
   for (let i = 0, lim = parse_len(ins); i < lim; i++) {
     const x = ins[i];
@@ -1332,6 +1358,21 @@ null`
     code: `(@((do +) 2) 2)`,
     out: `4`
   },
+  {
+    name: "Parameterised closure 1",
+    code: `((fn a b (+ a b)) 2 2)`,
+    out: `4`
+  },
+  {
+    name: "Parameterised closure 2",
+    code: `((fn a b (print-str a b) (+ a b)) 2 2)`,
+    out: `224`
+  },
+  {
+    name: "Parameterised closure 3",
+    code: `(((fn (fn 1))))`,
+    out: `1`
+  },
   { name: "Threading", code: "(-> 1 inc @(+ 10))", out: `12` },
   {
     name: "String instead of number",
@@ -1499,7 +1540,7 @@ const stringify = (vals) => vals.reduce((cat, v) => cat + val2str(v), "");
 const val2str = (val) => {
   const quoted = (v) => v.t === "str" ? `"${v.v}"` : val2str(v);
   if (val.t === "clo") {
-    return `#${val.v.name}`;
+    return val.v.name;
   } else if (val.t === "vec") {
     return `[${val.v.map(quoted).join(" ")}]`;
   } else if (val.t === "dict") {

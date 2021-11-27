@@ -11,6 +11,14 @@
 				]
 			},
 			{
+				"directory": "fn",
+				"description": [
+					"(fn a b (+ a b))",
+					"syntax",
+					"Creates a parameterised closure."
+				]
+			},
+			{
 				"directory": "var",
 				"description": [
 					"(var a 1 b 2 c 3)",

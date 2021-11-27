@@ -605,7 +605,7 @@ less memory and perform faster.
 **Closures**
 
 A closure is an anonymous (unnamed) function which also "captures" the data
-context around them. The syntax of a closure is:
+context around them. The syntax of a non-parameterised closure is:
 
 ```clj
 #(+ 2 2)
@@ -649,7 +649,21 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (@{:a} 5)   → {:a 5}
 ```
 
-### Various examples
+There are also parameterised closures that can specify parameter names.  
+They accept multiple expressions in their body, with the return value being
+from the last expression.  
+Also useful for passing outer-closure parameters into inner-closures.
+
+```clj
+((fn a b (+ a b)) 2 2) → 4
+((fn a b (repeat #(rand-int a b) 4))
+ 10 20)
+→ [18 13 14 19]
+(var closure (fn x (print-str "hi") (+ x x)))
+(closure 2.5) → hi5
+```
+
+## Various examples
 
 ```clj
 ; Test if 2D point is inside 2D area
@@ -795,10 +809,8 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (mandelbrot 56 32 10)
 
 
-; Strong password generator
-(function rand-char-maker a b
-  #(char-code (rand-int a b)))
-(-> #(repeat (rand-char-maker % %1) 4)
+; Generate random strong password
+(-> (fn a b (repeat #(char-code (rand-int a b)) 4))
    #(map % [97 65 48 33] [123 91 58 48])
    @(.. .. vec)
    #(sort % #(rand-int 100))

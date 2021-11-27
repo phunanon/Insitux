@@ -275,6 +275,21 @@ const tests: {
     code: `(@((do +) 2) 2)`,
     out: `4`,
   },
+  {
+    name: "Parameterised closure 1",
+    code: `((fn a b (+ a b)) 2 2)`,
+    out: `4`,
+  },
+  {
+    name: "Parameterised closure 2",
+    code: `((fn a b (print-str a b) (+ a b)) 2 2)`,
+    out: `224`,
+  },
+  {
+    name: "Parameterised closure 3",
+    code: `(((fn (fn 1))))`,
+    out: `1`,
+  },
   { name: "Threading", code: "(-> 1 inc @(+ 10))", out: `12` },
   //Runtime errors
   {

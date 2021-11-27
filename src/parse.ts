@@ -418,6 +418,13 @@ function parseForm(
   return [...body, ...headIns];
 }
 
+function spliceParams(tokens: Token[]) {
+  const firstNonParam = tokens.findIndex(
+    t => t.typ !== "sym" || sub("%#@", t.text),
+  );
+  return splice(tokens, 0, firstNonParam);
+}
+
 function parseArg(
   tokens: Token[],
   params: string[],
@@ -428,23 +435,48 @@ function parseArg(
   }
   const { typ, text, errCtx } = tokens.shift() as Token;
   //Upon closure
-  if (
-    typ === "sym" &&
-    sub("#@", text) &&
-    len(tokens) &&
-    tokens[0].typ === "("
-  ) {
+  const isClosure =
+    typ === "sym" && sub("#@", text) && len(tokens) && tokens[0].typ === "(";
+  const isParamClosure = typ === "(" && len(tokens) && tokens[0].text === "fn";
+  if (isClosure || isParamClosure) {
     const texts = tokens.map(t => t.text);
-    const body = parseArg(tokens, params, text === "@");
-    const err = body.find(t => t.typ === "err");
-    if (err) {
-      return [err];
+    const fnIns = isParamClosure ? tokens.shift() : undefined;
+    const paramTokens = spliceParams(tokens);
+    if (isParamClosure) {
+      if (tokens[0].typ === ")") {
+        return [
+          {
+            typ: "err",
+            value: `fn requires a body, not just parameters`,
+            errCtx: fnIns!.errCtx,
+          },
+        ];
+      }
+      tokens.unshift({ typ: "sym", text: "do", errCtx });
+      tokens.unshift({ typ: "(", text: "(", errCtx });
+    }
+    const body = parseArg(
+      tokens,
+      isParamClosure ? paramTokens.map(t => t.text) : params,
+      text === "@",
+    );
+    const errors = body.filter(t => t.typ === "err");
+    if (len(errors)) {
+      return errors;
+    }
+    if (isParamClosure) {
+      body.forEach(ins => {
+        if (ins.typ === "npa") {
+          ins.typ = "upa";
+        }
+      });
     }
     const value: [string, Ins[]] = [
-      slice(texts, 0, len(texts) - len(tokens)).join(" "),
+      (isParamClosure ? "(" : text) +
+        slice(texts, 0, len(texts) - len(tokens)).join(" "),
       <Ins[]>body,
     ];
-    return [{ typ: text === "#" ? "clo" : "par", value, errCtx }];
+    return [{ typ: text === "@" ? "par" : "clo", value, errCtx }];
   }
   switch (typ) {
     case "str":
@@ -495,38 +527,34 @@ function syntaxise(
 ): ["func", Func] | ["err", InvokeError] {
   const err = (m: string, eCtx = errCtx) =>
     <ReturnType<typeof syntaxise>>["err", { e: "Parse", m, errCtx: eCtx }];
-  const firstNonParam = tokens.findIndex(
-    t => t.typ !== "sym" || sub("%#@", t.text),
-  );
-  const params = slice(tokens, 0, firstNonParam);
-  const body = slice(tokens, firstNonParam);
+  const params = spliceParams(tokens);
   //In the case of e.g. (function (+))
   if (name === "(") {
     return err("nameless function");
   }
   //In the case of e.g. (function)
-  if (!len(params) && !len(body)) {
+  if (!len(params) && !len(tokens)) {
     return err("empty function body");
   }
-  if (len(body) && body[0].typ === ")") {
+  if (len(tokens) && tokens[0].typ === ")") {
     if (len(params)) {
       //In the case of e.g. (function f %) or (function x y z)
-      body.unshift(params.pop()!);
+      tokens.unshift(params.pop()!);
     } else {
       //In the case of e.g. (function name)
       return err("empty function body");
     }
   }
   //In the case of e.g. (function entry x y z)
-  if (len(params) && !len(body)) {
-    body.push(params.pop()!);
+  if (len(params) && !len(tokens)) {
+    tokens.push(params.pop()!);
   }
   const ins: ParserIns[] = [];
-  while (len(body)) {
+  while (len(tokens)) {
     push(
       ins,
       parseArg(
-        body,
+        tokens,
         params.map(p => p.text),
       ),
     );

@@ -46,7 +46,7 @@ export const stringify = (vals: Val[]) =>
 export const val2str = (val: Val): string => {
   const quoted = (v: Val) => (v.t === "str" ? `"${v.v}"` : val2str(v));
   if (val.t === "clo") {
-    return `#${val.v.name}`;
+    return val.v.name;
   } else if (val.t === "vec") {
     return `[${val.v.map(quoted).join(" ")}]`;
   } else if (val.t === "dict") {
