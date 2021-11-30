@@ -814,7 +814,7 @@ Also useful for passing outer-closure parameters into inner-closures.
    #(map % [97 65 48 33] [123 91 58 48])
    @(.. .. vec)
    #(sort % #(rand-int 100))
-   #(join % ""))
+   @(.. str))
 
 → "d$W1iP*tO9'V9(y8"
 

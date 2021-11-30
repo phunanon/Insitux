@@ -747,7 +747,7 @@ function parseForm(tokens, params, inPartial = true) {
     if (!parse_len(args)) {
       return err("must provide at least one case");
     }
-    let insCount = args.reduce((acc, a) => acc + parse_len(a) + 1, parse_len(otherwise) ? -1 : 0) + 2;
+    let insCount = args.reduce((acc, a) => acc + parse_len(a) + 1, parse_len(otherwise) ? parse_len(otherwise) - 2 : 0) + 2;
     const ins = cond;
     while (parse_len(args) > 1) {
       const a = args.shift();
@@ -1616,7 +1616,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211127;
+const insituxVersion = 20211130;
 
 
 
@@ -2212,7 +2212,7 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       return;
     case "str*": {
       const text = str(args[0]);
-      _str(src_range(src_max(num(args[1]), 0)).map((n) => text).join(""));
+      _str(src_range(src_max(src_ceil(num(args[1])), 0)).map((n) => text).join(""));
       return;
     }
     case "char-code": {

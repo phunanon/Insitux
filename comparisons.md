@@ -11,17 +11,6 @@ const frequencies = <T>(arr: T[]) =>
 
 Insitux
 ```clj
-(function palindrome? text
-  (.. and (map = text (reverse text))))
-```
-TypeScript
-```ts
-const isPalindrome = text =>
-  text.reverse().reduce((acc, ch, i) => acc && ch == text[i], true);
-```
-
-Insitux
-```clj
 (function total-state items
   (let weights [:success :warning :error]
        states  (map :state items))

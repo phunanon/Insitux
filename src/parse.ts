@@ -352,7 +352,10 @@ function parseForm(
       return err("must provide at least one case");
     }
     let insCount =
-      args.reduce((acc, a) => acc + len(a) + 1, len(otherwise) ? -1 : 0) + 2;
+      args.reduce(
+        (acc, a) => acc + len(a) + 1,
+        len(otherwise) ? len(otherwise) - 2 : 0,
+      ) + 2;
     const ins: ParserIns[] = cond;
     while (len(args) > 1) {
       const a = args.shift()!;

@@ -1,4 +1,4 @@
-export const insituxVersion = 20211127;
+export const insituxVersion = 20211130;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -695,7 +695,7 @@ function exeOp(
     case "str*": {
       const text = str(args[0]);
       _str(
-        range(max(num(args[1]), 0))
+        range(max(ceil(num(args[1])), 0))
           .map(n => text)
           .join(""),
       );
