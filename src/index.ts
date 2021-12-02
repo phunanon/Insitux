@@ -1,4 +1,4 @@
-export const insituxVersion = 20211130;
+export const insituxVersion = 20211202;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -12,10 +12,12 @@ const { getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
 import { assertUnreachable, InvokeError, InvokeResult } from "./types";
+import { Operation, ExternalHandler } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
 import { dic, dictDrop, dictGet, dictSet, toDict } from "./val";
 
+const externalOps: { [name: string]: ExternalHandler } = {};
 let stack: Val[] = [];
 let lets: { [key: string]: Val }[] = [];
 let recurArgs: undefined | Val[];
@@ -63,10 +65,8 @@ function exeOp(
       return;
     case "print":
     case "print-str":
-      {
-        ctx.exe(op, [{ t: "str", v: stringify(args) }]);
+        ctx.print(stringify(args), op === "print");
         _nul();
-      }
       return;
     case "vec":
       _vec(args);
@@ -773,6 +773,15 @@ function getExe(
   if (op.t === "str" || op.t === "func") {
     const name = op.v;
     if (ops[name]) {
+      if (ops[name].external) {
+        return (params: Val[]) => {
+          const valOrErr = externalOps[name](params);
+          if (valOrErr.kind === "err") {
+            return [{ e: "External", m: valOrErr.err, errCtx }];
+          }
+          stack.push(valOrErr.value);
+        };
+      }
       return (params: Val[]) => exeOp(name, params, ctx, errCtx, checkArity);
     }
     if (name in ctx.env.funcs) {
@@ -1148,13 +1157,28 @@ function parseAndExe(
 }
 
 /**
+ * Registers a new operation in Insitux, usable by all contexts.
+ */
+export function addOperation(
+  name: string,
+  definition: Operation,
+  handler: ExternalHandler,
+) {
+  if (ops[name] && !externalOps[name]) {
+    throw "Redefining internal operations is disallowed.";
+  }
+  ops[name] = { ...definition, external: true };
+  externalOps[name] = handler;
+}
+
+/**
  * Parses and executes the given code.
  * @param ctx An environment context you retain.
  * @param code The code to parse and execute.
  * @param sourceId A unique ID used in immediate or future invocation errors.
  * @param printResult Automatically print the final value of this invocation?
  * @returns Invocation errors caused during execution of the code,
- *          or the final value of the invocation.
+ * or the final value of the invocation.
  */
 export function invoke(
   ctx: Ctx,
@@ -1170,7 +1194,7 @@ export function invoke(
   const value = stack.pop();
   [stack, lets] = [[], []];
   if (printResult && !errors && value) {
-    ctx.exe("print", [{ t: "str", v: val2str(value) }]);
+    ctx.print(val2str(value), true);
   }
   return errors
     ? { kind: "errors", errors }
@@ -1183,21 +1207,21 @@ export function invoke(
  * Executes a user-defined Insitux function by name.
  * @param ctx An environment context you retain.
  * @param funcName The function to execute.
- * @param args The arguments to pass to the function.
+ * @param params The parameters to pass to the function.
  * @returns Invocation errors caused during execution of the function,
- *          or the final value of the invocation,
- *          or undefined if the function was not found.
+ * or the final value of the invocation,
+ * or undefined if the function was not found.
  */
 export function invokeFunction(
   ctx: Ctx,
   funcName: string,
-  args: Val[],
+  params: Val[],
 ): InvokeResult | undefined {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
-  const errors = exeFunc(ctx, ctx.env.funcs[funcName], args);
+  const errors = exeFunc(ctx, ctx.env.funcs[funcName], params);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   const value = stack.pop()!;
@@ -1212,7 +1236,8 @@ export function invokeFunction(
 /**
  * @param ctx An environment context you retain.
  * @param alsoSyntax To optionally include syntax symbols.
- * @returns List of symbols defined in Insitux, including built-in operations, (optionally) syntax, constants, and user-defined functions.
+ * @returns List of symbols defined in Insitux, including built-in operations,
+ * (optionally) syntax, constants, and user-defined functions.
  */
 export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
   let syms = alsoSyntax ? ["function", "let", "var", "if", "if!", "while"] : [];

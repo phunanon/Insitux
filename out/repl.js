@@ -247,31 +247,35 @@ const ops = {
   tan: { exactArity: 1, numeric: true },
   vec: { returns: ["vec"] },
   dict: { returns: ["dict"] },
-  len: { exactArity: 1, types: [["str", "vec", "dict"]], returns: ["num"] },
+  len: { exactArity: 1, params: [["str", "vec", "dict"]], returns: ["num"] },
   "to-num": {
     exactArity: 1,
-    types: [["str", "num"]],
+    params: [["str", "num"]],
     returns: ["num", "null"]
   },
-  "to-key": { exactArity: 1, types: [["str", "num"]], returns: ["key"] },
-  "has?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
-  idx: { minArity: 2, maxArity: 3, types: [["str", "vec"]], returns: ["num"] },
+  "to-key": { exactArity: 1, params: [["str", "num"]], returns: ["key"] },
+  "has?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  idx: { minArity: 2, maxArity: 3, params: [["str", "vec"]], returns: ["num"] },
   map: { minArity: 2, returns: ["vec"] },
   for: { minArity: 2, returns: ["vec"] },
-  reduce: { minArity: 2, maxArity: 3, types: [[], ["vec", "dict", "str"]] },
+  reduce: { minArity: 2, maxArity: 3, params: [[], ["vec", "dict", "str"]] },
   filter: {
     minArity: 2,
-    types: [[], ["vec", "dict", "str"]],
+    params: [[], ["vec", "dict", "str"]],
     returns: ["vec"]
   },
   remove: {
     minArity: 2,
-    types: [[], ["vec", "dict", "str"]],
+    params: [[], ["vec", "dict", "str"]],
     returns: ["vec"]
   },
-  find: { minArity: 2, types: [[], ["vec", "dict", "str"]] },
-  count: { minArity: 2, types: [[], ["vec", "dict", "str"]], returns: ["num"] },
-  repeat: { minArity: 2, types: [[], "num"] },
+  find: { minArity: 2, params: [[], ["vec", "dict", "str"]] },
+  count: {
+    minArity: 2,
+    params: [[], ["vec", "dict", "str"]],
+    returns: ["num"]
+  },
+  repeat: { minArity: 2, params: [[], "num"] },
   "->": { minArity: 2 },
   str: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
@@ -281,7 +285,7 @@ const ops = {
   "...": { minArity: 2 },
   into: {
     exactArity: 2,
-    types: [
+    params: [
       ["vec", "dict"],
       ["vec", "dict"]
     ],
@@ -290,58 +294,58 @@ const ops = {
   push: {
     minArity: 2,
     maxArity: 3,
-    types: [["vec", "dict"]],
+    params: [["vec", "dict"]],
     returns: ["vec", "dict"]
   },
   sect: {
     minArity: 1,
     maxArity: 3,
-    types: [["vec", "str"], "num", "num"],
+    params: [["vec", "str"], "num", "num"],
     returns: ["vec", "str"]
   },
-  reverse: { exactArity: 1, types: [["vec", "str"]], returns: ["vec", "str"] },
+  reverse: { exactArity: 1, params: [["vec", "str"]], returns: ["vec", "str"] },
   sort: {
     minArity: 1,
     maxArity: 2,
-    types: [["vec", "dict", "str"]],
+    params: [["vec", "dict", "str"]],
     returns: ["vec"]
   },
-  keys: { exactArity: 1, types: ["dict"] },
-  vals: { exactArity: 1, types: ["dict"] },
+  keys: { exactArity: 1, params: ["dict"] },
+  vals: { exactArity: 1, params: ["dict"] },
   do: { minArity: 1 },
   val: { minArity: 1 },
   range: { minArity: 1, maxArity: 3, numeric: "in only", returns: ["vec"] },
   "empty?": {
     exactArity: 1,
-    types: [["str", "vec", "dict"]],
+    params: [["str", "vec", "dict"]],
     returns: ["bool"]
   },
-  split: { minArity: 1, maxArity: 2, types: ["str", "str"], returns: ["vec"] },
+  split: { minArity: 1, maxArity: 2, params: ["str", "str"], returns: ["vec"] },
   join: {
     minArity: 1,
     maxArity: 2,
-    types: [["vec", "dict", "str"], "str"],
+    params: [["vec", "dict", "str"], "str"],
     returns: ["str"]
   },
-  "starts-with?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
-  "ends-with?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
-  "lower-case": { exactArity: 1, types: ["str"], returns: ["str"] },
-  "upper-case": { exactArity: 1, types: ["str"], returns: ["str"] },
-  trim: { exactArity: 1, types: ["str"], returns: ["str"] },
-  "trim-start": { exactArity: 1, types: ["str"], returns: ["str"] },
-  "trim-end": { exactArity: 1, types: ["str"], returns: ["str"] },
-  "str*": { exactArity: 2, types: ["str", "num"], returns: ["str"] },
+  "starts-with?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  "ends-with?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  "lower-case": { exactArity: 1, params: ["str"], returns: ["str"] },
+  "upper-case": { exactArity: 1, params: ["str"], returns: ["str"] },
+  trim: { exactArity: 1, params: ["str"], returns: ["str"] },
+  "trim-start": { exactArity: 1, params: ["str"], returns: ["str"] },
+  "trim-end": { exactArity: 1, params: ["str"], returns: ["str"] },
+  "str*": { exactArity: 2, params: ["str", "num"], returns: ["str"] },
   "char-code": {
     minArity: 1,
     maxArity: 2,
-    types: [["str", "num"], "num"],
+    params: [["str", "num"], "num"],
     returns: ["str", "num", "null"]
   },
   time: { exactArity: 0, returns: ["num"] },
   version: { exactArity: 0, returns: ["num"] },
-  tests: { minArity: 0, maxArity: 1, types: ["bool"], returns: ["str"] },
+  tests: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["str"] },
   symbols: { exactArity: 0, returns: ["vec"] },
-  eval: { exactArity: 1, types: ["str"] },
+  eval: { exactArity: 1, params: ["str"] },
   reset: { exactArity: 0 },
   recur: {}
 };
@@ -388,7 +392,7 @@ function arityCheck(op, nArg, errCtx) {
   }
 }
 function typeCheck(op, args, errCtx, optimistic = false) {
-  const { types, numeric: onlyNum } = ops[op];
+  const { params: types, numeric: onlyNum } = ops[op];
   const nArg = len(args);
   if (onlyNum) {
     const nonNumArgIdx = args.findIndex((a) => !!len(a) && (optimistic ? !a.find((t) => t === "num") : a[0] !== "num"));
@@ -1104,10 +1108,6 @@ function set(state, key, val) {
 function exe(state, name, args) {
   const nullVal = { t: "null", v: void 0 };
   switch (name) {
-    case "print-str":
-      state.output += args[0].v;
-      break;
-    case "print":
     case "test.function":
       state.output += args[0].v + "\n";
       break;
@@ -1469,6 +1469,9 @@ function doTests(invoke, terse = true) {
       get: (key) => get(state, key),
       set: (key, val) => set(state, key, val),
       exe: (name2, args) => exe(state, name2, args),
+      print(str, withNewLine) {
+        state.output += str + (withNewLine ? "\n" : "");
+      },
       env,
       loopBudget: 1e4,
       rangeBudget: 1e3,
@@ -1616,7 +1619,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211130;
+const insituxVersion = 20211202;
 
 
 
@@ -1633,6 +1636,7 @@ const { isNum: src_isNum, len: src_len, objKeys: src_objKeys, range: src_range, 
 
 
 
+const externalOps = {};
 let stack = [];
 let lets = [];
 let recurArgs;
@@ -1666,10 +1670,8 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       return;
     case "print":
     case "print-str":
-      {
-        ctx.exe(op, [{ t: "str", v: stringify(args) }]);
-        _nul();
-      }
+      ctx.print(stringify(args), op === "print");
+      _nul();
       return;
     case "vec":
       _vec(args);
@@ -2280,6 +2282,15 @@ function getExe(ctx, op, errCtx, checkArity = true) {
   if (op.t === "str" || op.t === "func") {
     const name = op.v;
     if (ops[name]) {
+      if (ops[name].external) {
+        return (params) => {
+          const valOrErr = externalOps[name](params);
+          if (valOrErr.kind === "err") {
+            return [{ e: "External", m: valOrErr.err, errCtx }];
+          }
+          stack.push(valOrErr.value);
+        };
+      }
       return (params) => exeOp(name, params, ctx, errCtx, checkArity);
     }
     if (name in ctx.env.funcs) {
@@ -2611,6 +2622,13 @@ function parseAndExe(ctx, code, sourceId) {
   }
   return exeFunc(ctx, ctx.env.funcs["entry"], []);
 }
+function addOperation(name, definition, handler) {
+  if (ops[name] && !externalOps[name]) {
+    throw "Redefining internal operations is disallowed.";
+  }
+  ops[name] = { ...definition, external: true };
+  externalOps[name] = handler;
+}
 function invoke(ctx, code, sourceId, printResult = false) {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   const errors = parseAndExe(ctx, code, sourceId);
@@ -2620,16 +2638,16 @@ function invoke(ctx, code, sourceId, printResult = false) {
   const value = stack.pop();
   [stack, lets] = [[], []];
   if (printResult && !errors && value) {
-    ctx.exe("print", [{ t: "str", v: val2str(value) }]);
+    ctx.print(val2str(value), true);
   }
   return errors ? { kind: "errors", errors } : value ? { kind: "val", value } : { kind: "empty" };
 }
-function invokeFunction(ctx, funcName, args) {
+function invokeFunction(ctx, funcName, params) {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
-  const errors = exeFunc(ctx, ctx.env.funcs[funcName], args);
+  const errors = exeFunc(ctx, ctx.env.funcs[funcName], params);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   const value = stack.pop();
@@ -2697,6 +2715,32 @@ const fs = __webpack_require__(147);
 
 
 
+const repl_nullVal = { kind: "val", value: { t: "null", v: void 0 } };
+addOperation("read", {
+  exactArity: 1,
+  params: ["str"],
+  returns: ["str"]
+}, (params) => {
+  const path = params[0].v;
+  if (!fs.existsSync(path)) {
+    return repl_nullVal;
+  }
+  return {
+    kind: "val",
+    value: { t: "str", v: fs.readFileSync(path).toString() }
+  };
+});
+function writeOrAppend(path, content, isAppend = false) {
+  (isAppend ? fs.appendFileSync : fs.writeFileSync)(path, content);
+  return repl_nullVal;
+}
+const writingOpDef = {
+  exactArity: 2,
+  params: ["str", "str"],
+  returns: ["str"]
+};
+addOperation("write", writingOpDef, (params) => writeOrAppend(params[0].v, params[1].v));
+addOperation("append", writingOpDef, (params) => writeOrAppend(params[0].v, params[1].v, true));
 const env = new Map();
 function repl_get(key) {
   return env.has(key) ? { kind: "val", value: env.get(key) } : {
@@ -2713,39 +2757,15 @@ const ctx = {
   get: repl_get,
   set: repl_set,
   exe: repl_exe,
+  print(str, withNewLine) {
+    process.stdout.write(`[32m${str}[0m${withNewLine ? "\n" : ""}`);
+  },
   loopBudget: 1e7,
   rangeBudget: 1e6,
   callBudget: 1e8,
   recurBudget: 1e4
 };
 function repl_exe(name, args) {
-  const nullVal = { kind: "val", value: { t: "null", v: void 0 } };
-  switch (name) {
-    case "print":
-    case "print-str":
-      process.stdout.write(`[32m${args[0].v}[0m`);
-      if (name === "print") {
-        process.stdout.write("\n");
-      }
-      return nullVal;
-    case "read": {
-      const path = args[0].v;
-      if (!fs.existsSync(path)) {
-        return nullVal;
-      }
-      return {
-        kind: "val",
-        value: { t: "str", v: fs.readFileSync(path).toString() }
-      };
-    }
-    case "append":
-    case "write": {
-      const path = args[0].v;
-      const content = args[1].v;
-      (name === "write" ? fs.writeFileSync : fs.appendFileSync)(path, content);
-      return nullVal;
-    }
-  }
   if (args.length) {
     const a = args[0];
     if (a.t === "str" && a.v.startsWith("$")) {
@@ -2774,7 +2794,7 @@ if (process.argv.length > 2) {
     completer,
     history: fs.existsSync(".repl-history") ? fs.readFileSync(".repl-history").toString().split("\n").reverse() : []
   });
-  rl.on("line", async (line) => {
+  rl.on("line", (line) => {
     lines.push(line);
     const input = lines.join("\n");
     if (isFinished(input)) {

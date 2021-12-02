@@ -742,7 +742,7 @@ Also useful for passing outer-closure parameters into inner-closures.
 ; Clojure's juxt
 (function juxt
   (let funcs args)
-  #(for #(.. %1 %) [args] funcs))
+  #(for ... funcs [args]))
 
 ((juxt + - * /) 10 8)
 → [18 2 80 1.25]

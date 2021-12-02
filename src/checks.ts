@@ -34,7 +34,7 @@ export function typeCheck(
   errCtx: ErrCtx,
   optimistic = false,
 ): InvokeError[] | undefined {
-  const { types, numeric: onlyNum } = ops[op];
+  const { params: types, numeric: onlyNum } = ops[op];
   const nArg = len(args);
   if (onlyNum) {
     const nonNumArgIdx = args.findIndex(

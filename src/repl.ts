@@ -1,9 +1,51 @@
 import readline = require("readline");
 import fs = require("fs");
-import { symbols, insituxVersion } from ".";
-import { Ctx, Val, ValOrErr } from "./types";
+import { addOperation, symbols, insituxVersion } from ".";
+import { Ctx, Operation, Val, ValOrErr } from "./types";
 import { InvokeOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
+
+const nullVal: ValOrErr = { kind: "val", value: { t: "null", v: undefined } };
+
+//#region External operations
+addOperation(
+  "read",
+  {
+    exactArity: 1,
+    params: ["str"],
+    returns: ["str"],
+  },
+  (params: Val[]) => {
+    const path = <string>params[0].v;
+    if (!fs.existsSync(path)) {
+      return nullVal;
+    }
+    return {
+      kind: "val",
+      value: { t: "str", v: fs.readFileSync(path).toString() },
+    };
+  },
+);
+
+function writeOrAppend(path: string, content: string, isAppend = false) {
+  (isAppend ? fs.appendFileSync : fs.writeFileSync)(path, content);
+  return nullVal;
+}
+
+const writingOpDef: Operation = {
+  exactArity: 2,
+  params: ["str", "str"],
+  returns: ["str"],
+};
+addOperation("write", writingOpDef, (params: Val[]) =>
+  writeOrAppend(<string>params[0].v, <string>params[1].v),
+);
+addOperation("append", writingOpDef, (params: Val[]) =>
+  writeOrAppend(<string>params[0].v, <string>params[1].v, true),
+);
+//#endregion
+
+//#region Context and implementations
 const env = new Map<string, Val>();
 
 function get(key: string): ValOrErr {
@@ -25,41 +67,16 @@ const ctx: Ctx = {
   get,
   set,
   exe,
+  print(str, withNewLine) {
+    process.stdout.write(`\x1b[32m${str}\x1b[0m${withNewLine ? "\n" : ""}`);
+  },
   loopBudget: 1e7,
   rangeBudget: 1e6,
   callBudget: 1e8,
   recurBudget: 1e4,
 };
 
-//TODO: argument arity/type checking
 function exe(name: string, args: Val[]): ValOrErr {
-  const nullVal: ValOrErr = { kind: "val", value: { t: "null", v: undefined } };
-  switch (name) {
-    case "print":
-    case "print-str":
-      process.stdout.write(`\x1b[32m${args[0].v}\x1b[0m`);
-      if (name === "print") {
-        process.stdout.write("\n");
-      }
-      return nullVal;
-    case "read": {
-      const path = args[0].v as string;
-      if (!fs.existsSync(path)) {
-        return nullVal;
-      }
-      return {
-        kind: "val",
-        value: { t: "str", v: fs.readFileSync(path).toString() },
-      };
-    }
-    case "append":
-    case "write": {
-      const path = args[0].v as string;
-      const content = args[1].v as string;
-      (name === "write" ? fs.writeFileSync : fs.appendFileSync)(path, content);
-      return nullVal;
-    }
-  }
   if (args.length) {
     const a = args[0];
     if (a.t === "str" && a.v.startsWith("$")) {
@@ -73,7 +90,9 @@ function exe(name: string, args: Val[]): ValOrErr {
   }
   return { kind: "err", err: `operation ${name} does not exist` };
 }
+//#endregion
 
+//#region REPL input
 if (process.argv.length > 2) {
   const [x, y, path] = process.argv;
   if (fs.existsSync(path)) {
@@ -93,7 +112,7 @@ if (process.argv.length > 2) {
       : [],
   });
 
-  rl.on("line", async line => {
+  rl.on("line", line => {
     lines.push(line);
     const input = lines.join("\n");
     if (isFinished(input)) {
@@ -106,7 +125,7 @@ if (process.argv.length > 2) {
         return;
       }
       if (input.trim()) {
-        printErrorOutput(invoker(ctx, input));
+        printErrorOutput(invoker(ctx, input))
       }
       rl.setPrompt("> ");
     } else {
@@ -140,6 +159,7 @@ function isFinished(code: string): boolean {
   const numR = tokens.filter(t => t.typ === ")").length;
   return numL <= numR;
 }
+//#endregion
 
 function printErrorOutput(lines: InvokeOutput) {
   const colours = { error: 31, message: 35 };
