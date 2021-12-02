@@ -54,7 +54,7 @@ export function tokenise(
       isEscaped = false;
       if (inString) {
         tokens[len(tokens) - 1].text +=
-          { n: "\n", t: "\t", '"': '"' }[c] || `\\${c}`;
+          { n: "\n", t: "\t", r: "\r", '"': '"' }[c] || `\\${c}`;
       }
       continue;
     }

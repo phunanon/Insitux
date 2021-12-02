@@ -8,23 +8,28 @@ import { tokenise } from "./parse";
 const nullVal: ValOrErr = { kind: "val", value: { t: "null", v: undefined } };
 
 //#region External operations
+function read(path: string, asLines: boolean) {
+  if (!fs.existsSync(path)) {
+    return nullVal;
+  }
+  const content = fs.readFileSync(path).toString();
+  const str = (v: string) => <Val>{ t: "str", v };
+  return <ValOrErr>{
+    kind: "val",
+    value: asLines
+      ? { t: "vec", v: content.split(/\r?\n/).map(str) }
+      : str(content),
+  };
+}
 addOperation(
   "read",
-  {
-    exactArity: 1,
-    params: ["str"],
-    returns: ["str"],
-  },
-  (params: Val[]) => {
-    const path = <string>params[0].v;
-    if (!fs.existsSync(path)) {
-      return nullVal;
-    }
-    return {
-      kind: "val",
-      value: { t: "str", v: fs.readFileSync(path).toString() },
-    };
-  },
+  { exactArity: 1, params: ["str"], returns: ["str"] },
+  (params: Val[]) => read(<string>params[0].v, false),
+);
+addOperation(
+  "read-lines",
+  { exactArity: 1, params: ["str"], returns: ["vec"] },
+  (params: Val[]) => read(<string>params[0].v, true),
 );
 
 function writeOrAppend(path: string, content: string, isAppend = false) {
@@ -92,7 +97,7 @@ function exe(name: string, args: Val[]): ValOrErr {
 }
 //#endregion
 
-//#region REPL input
+//#region REPL IO
 if (process.argv.length > 2) {
   const [x, y, path] = process.argv;
   if (fs.existsSync(path)) {
@@ -125,7 +130,7 @@ if (process.argv.length > 2) {
         return;
       }
       if (input.trim()) {
-        printErrorOutput(invoker(ctx, input))
+        printErrorOutput(invoker(ctx, input));
       }
       rl.setPrompt("> ");
     } else {
@@ -159,7 +164,6 @@ function isFinished(code: string): boolean {
   const numR = tokens.filter(t => t.typ === ")").length;
   return numL <= numR;
 }
-//#endregion
 
 function printErrorOutput(lines: InvokeOutput) {
   const colours = { error: 31, message: 35 };
@@ -167,3 +171,4 @@ function printErrorOutput(lines: InvokeOutput) {
     process.stdout.write(`\x1b[${colours[type]}m${text}\x1b[0m`);
   });
 }
+//#endregion

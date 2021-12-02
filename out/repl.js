@@ -477,7 +477,7 @@ function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
     if (isEscaped) {
       isEscaped = false;
       if (inString) {
-        tokens[parse_len(tokens) - 1].text += { n: "\n", t: "	", '"': '"' }[c] || `\\${c}`;
+        tokens[parse_len(tokens) - 1].text += { n: "\n", t: "	", r: "\r", '"': '"' }[c] || `\\${c}`;
       }
       continue;
     }
@@ -2716,20 +2716,19 @@ const fs = __webpack_require__(147);
 
 
 const repl_nullVal = { kind: "val", value: { t: "null", v: void 0 } };
-addOperation("read", {
-  exactArity: 1,
-  params: ["str"],
-  returns: ["str"]
-}, (params) => {
-  const path = params[0].v;
+function read(path, asLines) {
   if (!fs.existsSync(path)) {
     return repl_nullVal;
   }
+  const content = fs.readFileSync(path).toString();
+  const str = (v) => ({ t: "str", v });
   return {
     kind: "val",
-    value: { t: "str", v: fs.readFileSync(path).toString() }
+    value: asLines ? { t: "vec", v: content.split(/\r?\n/).map(str) } : str(content)
   };
-});
+}
+addOperation("read", { exactArity: 1, params: ["str"], returns: ["str"] }, (params) => read(params[0].v, false));
+addOperation("read-lines", { exactArity: 1, params: ["str"], returns: ["vec"] }, (params) => read(params[0].v, true));
 function writeOrAppend(path, content, isAppend = false) {
   (isAppend ? fs.appendFileSync : fs.writeFileSync)(path, content);
   return repl_nullVal;
