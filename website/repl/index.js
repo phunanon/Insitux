@@ -28,9 +28,8 @@ function historyAppend(str) {
 function browserExe(name, args) {
   const nullVal = { t: "null", v: undefined };
   switch (name) {
-    case "print-str":
-    case "print":
-      historyAppend(args[0].v + (name == "print" ? "\n" : ""));
+    case "prompt":
+      return { kind: "val", value: { t: "str", v: prompt(args[0].v) } };
       break;
     case "clear":
       setTimeout(() => ($history.innerHTML = ""), 1000);
@@ -92,6 +91,9 @@ function insituxInvoke(code, exe) {
       exe,
       get: insituxGet,
       set: insituxSet,
+      print(str, withNewLine) {
+        historyAppend(`${str}${withNewLine ? "\n" : ""}`);
+      },
       rangeBudget: 10000,
       loopBudget: 10000,
       callBudget: 10000,
