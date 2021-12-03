@@ -1,6 +1,17 @@
 let $input, $history;
 const id = Date.now();
 
+function executeInput(input) {
+  $history.innerHTML += `<code><a href="?precode=${utf8_to_b64(input)}" target="_self">&#x1f517;</a>${insituxHighlight(input)}</code>\n`;
+  const errors = insituxInvoke(input)
+    .map(({ type, text }) =>
+      type == "message" ? `<m>${text}</m>` : `<e>${text}</e>`,
+    )
+    .join("");
+  $history.innerHTML += errors;
+  $history.scrollTo(0, $history.scrollHeight);
+}
+
 function DomKeydown({ keyCode, shiftKey }) {
   if (![13, 9].includes(keyCode) || shiftKey) {
     return true;
@@ -10,14 +21,7 @@ function DomKeydown({ keyCode, shiftKey }) {
     $input.value = "";
     DomInputResize($input);
   }, 10);
-  $history.innerHTML += `<code>${insituxHighlight(input)}</code>\n`;
-  const errors = insituxInvoke(input, browserExe)
-    .map(({ type, text }) =>
-      type == "message" ? `<m>${text}</m>` : `<e>${text}</e>`,
-    )
-    .join("");
-  $history.innerHTML += errors;
-  $history.scrollTo(0, $history.scrollHeight);
+  executeInput(input);
   return false;
 }
 
@@ -63,7 +67,16 @@ function DomLoad() {
   $input.addEventListener("keydown", DomKeydown);
   $input.focus();
   DomInputResize($input);
-  insituxInvoke('(str "Insitux version " (version))', browserExe);
+  insituxInvoke('(str "Insitux version " (version))');
+
+  //Pre-filled code from URL query
+  const params = new URLSearchParams(window.location.search);
+  const precodeQuery = params.get("precode");
+  if (!precodeQuery) {
+    return;
+  }
+  const precode = b64_to_utf8(precodeQuery);
+  executeInput(precode);
 }
 
 function DomInputResize(that) {
@@ -84,11 +97,11 @@ function insituxSet(key, val) {
   localStorage.setItem("repl", JSON.stringify(state));
 }
 
-function insituxInvoke(code, exe) {
+function insituxInvoke(code) {
   return insitux(
     {
       env: insituxEnv,
-      exe,
+      exe: browserExe,
       get: insituxGet,
       set: insituxSet,
       print(str, withNewLine) {
@@ -101,4 +114,12 @@ function insituxInvoke(code, exe) {
     },
     code,
   );
+}
+
+function utf8_to_b64(str) {
+  return window.btoa(encodeURIComponent(str));
+}
+
+function b64_to_utf8(str) {
+  return decodeURIComponent(window.atob(str));
 }
