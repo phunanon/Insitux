@@ -4,6 +4,7 @@ import { addOperation, symbols, insituxVersion } from ".";
 import { Ctx, Operation, Val, ValOrErr } from "./types";
 import { InvokeOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
+import prompt = require("prompt-sync");
 
 const nullVal: ValOrErr = { kind: "val", value: { t: "null", v: undefined } };
 
@@ -47,6 +48,22 @@ addOperation("write", writingOpDef, (params: Val[]) =>
 );
 addOperation("append", writingOpDef, (params: Val[]) =>
   writeOrAppend(<string>params[0].v, <string>params[1].v, true),
+);
+
+addOperation(
+  "prompt",
+  {
+    exactArity: 1,
+    params: ["str"],
+    returns: ["str"],
+  },
+  (params: Val[]) => ({
+    kind: "val",
+    value: {
+      t: "str",
+      v: prompt()(<string>params[0].v),
+    },
+  }),
 );
 //#endregion
 
