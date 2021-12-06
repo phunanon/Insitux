@@ -286,6 +286,31 @@ const tests: {
     code: `(((fn (fn 1))))`,
     out: `1`,
   },
+  {
+    name: "Destructure var",
+    code: `(var [x [y]] [1 [2]]) [y x]`,
+    out: `[2 1]`,
+  },
+  {
+    name: "Destructure string",
+    code: `(let [a b c] "hello") [a b c]`,
+    out: `["h" "e" "l"]`,
+  },
+  {
+    name: "Destructure function",
+    code: `(function f a [[b c] d] e [e d c b a]) (f 0 [[1 2] 3] 4)`,
+    out: `[4 3 2 1 0]`,
+  },
+  {
+    name: "Destructuring closure",
+    code: `(let f (fn a [b [c]] d [d c b a])) (f 0 [1 [2]] 3)`,
+    out: `[3 2 1 0]`,
+  },
+  {
+    name: "Destructuring fn decoy",
+    code: `(let f (fn a [a [a]])) (f 0)`,
+    out: `[0 [0]]`,
+  },
   { name: "Threading", code: "(-> 1 inc @(+ 10))", out: `12` },
   //Runtime errors
   {
@@ -411,7 +436,7 @@ export function doTests(
         recurBudget: 10000,
       },
       code,
-      "testing",
+      code,
       true,
     );
     const errors = valOrErrs.kind === "errors" ? valOrErrs.errors : [];
@@ -422,7 +447,7 @@ export function doTests(
       padEnd(`${t + 1}`, 3),
       padEnd(name, 24),
       padEnd(`${elapsedMs}ms`, 6),
-      okOut || out + "\t=/=\t" + trim(state.output),
+      okOut || out + "\t!=\t" + trim(state.output),
       okErr ||
         errors.map(
           ({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`,

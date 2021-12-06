@@ -742,6 +742,7 @@ const { isNum: parse_isNum, len: parse_len, toNum: parse_toNum } = poly_fills_na
 
 const nullVal = { t: "null", v: void 0 };
 const falseVal = { t: "bool", v: false };
+const depthChange = ({ typ }) => parse_toNum(typ === "(") - parse_toNum(typ === ")");
 function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
   const tokens = [];
   const digits = "0123456789";
@@ -850,7 +851,7 @@ function segment(tokens) {
   let depth = 0;
   tokens.forEach((token) => {
     segments[parse_len(segments) - 1].push(token);
-    depth += parse_toNum(token.typ === "(") - parse_toNum(token.typ === ")");
+    depth += depthChange(token);
     if (depth === 0) {
       segments.push([]);
     }
@@ -908,18 +909,27 @@ function parseForm(tokens, params, inPartial = true) {
   } else if (op === "var" || op === "let") {
     const ins = [];
     while (true) {
-      const defIns = parseArg(tokens, params);
-      if (parse_len(ins) && !parse_len(defIns)) {
+      const parsedDestructuring = parseParams(tokens, true);
+      if (parse_len(parsedDestructuring.errors)) {
+        return parsedDestructuring.errors;
+      }
+      let def = void 0;
+      if (parse_len(parsedDestructuring.params)) {
+        def = { typ: "dva", value: parsedDestructuring.params, errCtx };
+      }
+      if (!def) {
+        [def] = parseArg(tokens, params);
+      }
+      if (parse_len(ins) && !def) {
         return ins;
       }
       const val = parseArg(tokens, params);
-      if (!parse_len(ins) && (!parse_len(defIns) || !parse_len(val))) {
+      if (!parse_len(ins) && (!def || !parse_len(val))) {
         return err(`must provide at least one declaration name and value`);
       } else if (!parse_len(val)) {
         return err(`must provide a value after each declaration name`);
       }
-      const def = defIns[0];
-      if (def.typ !== "ref") {
+      if (def.typ !== "ref" && def.typ !== "dva" && def.typ !== "dle") {
         return [
           {
             typ: "err",
@@ -929,7 +939,11 @@ function parseForm(tokens, params, inPartial = true) {
         ];
       }
       parse_push(ins, val);
-      ins.push({ typ: op, value: def.value, errCtx });
+      if (def.typ === "ref") {
+        ins.push({ typ: op, value: def.value, errCtx });
+      } else if (def.typ === "dva" || def.typ === "dle") {
+        ins.push({ typ: def.typ, value: def.value, errCtx });
+      }
     }
   } else if (op === "var!" || op === "let!") {
     const ins = [];
@@ -1056,7 +1070,7 @@ function parseForm(tokens, params, inPartial = true) {
     return ins;
   }
   const headIns = [];
-  if (typ === "(" || parse_has(params, text) || parse_sub("%#@", parse_strIdx(text, 0))) {
+  if (typ === "(" || parse_has(params.map(({ name }) => name), text) || parse_sub("%#@", parse_strIdx(text, 0))) {
     tokens.unshift(head);
     const ins = parseArg(tokens, params);
     if (inPartial) {
@@ -1087,10 +1101,6 @@ function parseForm(tokens, params, inPartial = true) {
   }
   return [...body, ...headIns];
 }
-function spliceParams(tokens) {
-  const firstNonParam = tokens.findIndex((t) => t.typ !== "sym" || parse_sub("%#@", t.text));
-  return parse_splice(tokens, 0, firstNonParam);
-}
 function parseArg(tokens, params, inPartial = false) {
   if (!parse_len(tokens)) {
     return [];
@@ -1101,8 +1111,11 @@ function parseArg(tokens, params, inPartial = false) {
   if (isClosure || isParamClosure) {
     const texts = tokens.map((t) => t.text);
     const fnIns = isParamClosure ? tokens.shift() : void 0;
-    const paramTokens = spliceParams(tokens);
+    const ins = [];
     if (isParamClosure) {
+      const parsedParams = parseParams(tokens);
+      params = parsedParams.params;
+      parse_push(ins, parsedParams.errors);
       if (tokens[0].typ === ")") {
         return [
           {
@@ -1115,21 +1128,21 @@ function parseArg(tokens, params, inPartial = false) {
       tokens.unshift({ typ: "sym", text: "do", errCtx });
       tokens.unshift({ typ: "(", text: "(", errCtx });
     }
-    const body = parseArg(tokens, isParamClosure ? paramTokens.map((t) => t.text) : params, text === "@");
-    const errors = body.filter((t) => t.typ === "err");
+    parse_push(ins, parseArg(tokens, params, text === "@"));
+    const errors = ins.filter((t) => t.typ === "err");
     if (parse_len(errors)) {
       return errors;
     }
     if (isParamClosure) {
-      body.forEach((ins) => {
-        if (ins.typ === "npa") {
-          ins.typ = "upa";
+      ins.forEach((i) => {
+        if (i.typ === "npa") {
+          i.typ = "upa";
         }
       });
     }
     const value = [
       (isParamClosure ? "(" : text) + parse_slice(texts, 0, parse_len(texts) - parse_len(tokens)).join(" "),
-      body
+      ins
     ];
     return [{ typ: text === "@" ? "par" : "clo", value, errCtx }];
   }
@@ -1155,8 +1168,12 @@ function parseArg(tokens, params, inPartial = false) {
           return [{ typ: "val", value: nullVal, errCtx }];
         }
         return [{ typ: "upa", value, errCtx }];
-      } else if (parse_has(params, text)) {
-        return [{ typ: "npa", value: params.indexOf(text), errCtx }];
+      } else if (parse_has(params.map(({ name }) => name), text)) {
+        const param = params.find(({ name }) => name === text);
+        if (parse_len(param.position) === 1) {
+          return [{ typ: "npa", value: param.position[0], errCtx }];
+        }
+        return [{ typ: "dpa", value: param.position, errCtx }];
       } else if (text === "args") {
         return [{ typ: "upa", value: -1, errCtx }];
       } else if (text === "PI" || text === "E") {
@@ -1175,28 +1192,98 @@ function parseArg(tokens, params, inPartial = false) {
       return assertUnreachable(typ);
   }
 }
-function syntaxise({ name, tokens }, errCtx) {
-  const err = (m, eCtx = errCtx) => ["err", { e: "Parse", m, errCtx: eCtx }];
-  const params = spliceParams(tokens);
-  if (name === "(") {
-    return err("nameless function");
+function parseParams(tokens, forVar = false) {
+  if (!parse_len(tokens) || tokens[0].typ === ")") {
+    return { params: [], errors: [] };
   }
-  if (!parse_len(params) && !parse_len(tokens)) {
-    return err("empty function body");
-  }
-  if (parse_len(tokens) && tokens[0].typ === ")") {
-    if (parse_len(params)) {
-      tokens.unshift(params.pop());
-    } else {
-      return err("empty function body");
+  let depth = 0;
+  const destructs = [];
+  let destruct = [];
+  let hitNonParam = 0;
+  while (parse_len(tokens)) {
+    if (!depth) {
+      destructs.push([]);
+      destruct = destructs[parse_len(destructs) - 1];
+    }
+    depth += depthChange(tokens[0]);
+    if (depth < 0) {
+      break;
+    }
+    destruct.push(tokens.shift());
+    if (destruct[0].typ === "sym" && parse_sub("#@%", destruct[0].text)) {
+      tokens.unshift(destruct[0]);
+      destructs.pop();
+      hitNonParam = 1;
+      break;
+    }
+    if (parse_len(destruct) > 1 && (destruct[1].typ !== "sym" || destruct[1].text !== "vec")) {
+      hitNonParam = 2;
+      break;
+    }
+    if (forVar && !depth) {
+      if (parse_len(destruct) === 1) {
+        tokens.unshift(destruct[0]);
+        return { params: [], errors: [] };
+      }
+      break;
     }
   }
-  if (parse_len(params) && !parse_len(tokens)) {
-    tokens.push(params.pop());
+  if (hitNonParam === 2 && depth > 0) {
+    tokens.unshift(destruct[1]);
+    tokens.unshift(destruct[0]);
+    destructs.pop();
+  } else {
+    if (depth < 0) {
+      destructs.pop();
+      destructs.pop().reverse().forEach((t) => tokens.unshift(t));
+    } else if (!hitNonParam && !forVar) {
+      const last = destructs.pop();
+      if (parse_len(last) === 1 && last[0].typ === ")") {
+        parse_push(tokens, destructs.pop());
+      }
+      parse_push(tokens, last);
+    }
   }
-  const ins = [];
+  const params = [];
+  const errors = [];
+  const position = [0];
+  destructs.forEach((destruct2) => {
+    destruct2.forEach(({ typ, text, errCtx }) => {
+      if (typ === "sym") {
+        if (text === "vec") {
+          return;
+        }
+        params.push({ name: text, position: parse_slice(position) });
+        ++position[parse_len(position) - 1];
+        return;
+      }
+      if (typ === "(") {
+        position.push(0);
+      } else if (typ === ")") {
+        position.pop();
+        ++position[parse_len(position) - 1];
+      } else {
+        errors.push({
+          typ: "err",
+          value: `disallowed in destructuring`,
+          errCtx
+        });
+      }
+    });
+  });
+  return { params, errors };
+}
+function syntaxise({ name, tokens }, errCtx) {
+  const err = (m, eCtx = errCtx) => ["err", { e: "Parse", m, errCtx: eCtx }];
+  if (name === "(" || name === ")") {
+    return err("nameless function");
+  }
+  if (tokens[0].typ === ")") {
+    return err("empty function body");
+  }
+  const { params, errors: ins } = parseParams(tokens);
   while (parse_len(tokens)) {
-    parse_push(ins, parseArg(tokens, params.map((p) => p.text)));
+    parse_push(ins, parseArg(tokens, params));
   }
   for (let i = 0, lim = parse_len(ins); i < lim; i++) {
     const x = ins[i];
@@ -1304,6 +1391,8 @@ function insErrorDetect(fins) {
       case "cat":
       case "var":
       case "let":
+      case "dva":
+      case "dle":
       case "loo":
       case "jmp":
         break;
@@ -1317,6 +1406,7 @@ function insErrorDetect(fins) {
       case "ref":
       case "npa":
       case "upa":
+      case "dpa":
         stack.push({});
         break;
       case "if": {
@@ -1658,6 +1748,31 @@ null`
     code: `(((fn (fn 1))))`,
     out: `1`
   },
+  {
+    name: "Destructure var",
+    code: `(var [x [y]] [1 [2]]) [y x]`,
+    out: `[2 1]`
+  },
+  {
+    name: "Destructure string",
+    code: `(let [a b c] "hello") [a b c]`,
+    out: `["h" "e" "l"]`
+  },
+  {
+    name: "Destructure function",
+    code: `(function f a [[b c] d] e [e d c b a]) (f 0 [[1 2] 3] 4)`,
+    out: `[4 3 2 1 0]`
+  },
+  {
+    name: "Destructuring closure",
+    code: `(let f (fn a [b [c]] d [d c b a])) (f 0 [1 [2]] 3)`,
+    out: `[3 2 1 0]`
+  },
+  {
+    name: "Destructuring fn decoy",
+    code: `(let f (fn a [a [a]])) (f 0)`,
+    out: `[0 [0]]`
+  },
   { name: "Threading", code: "(-> 1 inc @(+ 10))", out: `12` },
   {
     name: "String instead of number",
@@ -1762,7 +1877,7 @@ function doTests(invoke, terse = true) {
       rangeBudget: 1e3,
       callBudget: 1e3,
       recurBudget: 1e4
-    }, code, "testing", true);
+    }, code, code, true);
     const errors = valOrErrs.kind === "errors" ? valOrErrs.errors : [];
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
     const okOut = !out || trim(state.output) === out;
@@ -1771,7 +1886,7 @@ function doTests(invoke, terse = true) {
       padEnd(`${t + 1}`, 3),
       padEnd(name, 24),
       padEnd(`${elapsedMs}ms`, 6),
-      okOut || out + "	=/=	" + trim(state.output),
+      okOut || out + "	!=	" + trim(state.output),
       okErr || errors.map(({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`)
     ];
     results.push({
@@ -1904,7 +2019,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211202;
+const insituxVersion = 20211205;
 
 
 
@@ -2704,6 +2819,20 @@ function src_errorsToDict(errors) {
     return { t: "dict", v: dict };
   });
 }
+function destruct(args, shape) {
+  let arr = args;
+  for (let a = 0, b = src_len(shape) - 1; a < b; ++a) {
+    const val = arr[shape[a]];
+    if (val.t === "vec") {
+      arr = val.v;
+    } else if (val.t === "str" && a + 1 === b) {
+      return { t: "str", v: src_strIdx(val.v, shape[a + 1]) };
+    } else {
+      return { t: "null", v: void 0 };
+    }
+  }
+  return arr[shape[src_len(shape) - 1]];
+}
 function exeFunc(ctx, func, args, inClosure = false) {
   --ctx.callBudget;
   if (!inClosure) {
@@ -2733,73 +2862,88 @@ function exeFunc(ctx, func, args, inClosure = false) {
       case "let":
         lets[src_len(lets) - 1][ins.value] = stack[src_len(stack) - 1];
         break;
+      case "dle":
+      case "dva": {
+        const paramsShape = ins.value;
+        const val = stack.pop();
+        let last;
+        paramsShape.forEach(({ name, position }) => {
+          if (ins.typ === "dva") {
+            last = ctx.env.vars[name] = destruct([val], position);
+          } else {
+            last = lets[src_len(lets) - 1][name] = destruct([val], position);
+          }
+        });
+        stack.push(last);
+        break;
+      }
       case "npa":
-      case "upa":
-        {
-          const paramIdx = ins.value;
-          if (paramIdx === -1) {
-            _vec(args);
-          } else if (src_len(args) <= paramIdx) {
-            _nul();
-          } else {
-            stack.push(args[paramIdx]);
-          }
+      case "upa": {
+        const paramIdx = ins.value;
+        if (paramIdx === -1) {
+          _vec(args);
+        } else if (src_len(args) <= paramIdx) {
+          _nul();
+        } else {
+          stack.push(args[paramIdx]);
         }
         break;
-      case "ref":
-        {
-          const name = ins.value;
-          if (ops[name]) {
-            _fun(name);
-          } else if (src_starts(name, "$")) {
-            const valAndErr = ctx.get(src_substr(name, 1));
-            if (valAndErr.kind === "err") {
-              return [{ e: "External", m: valAndErr.err, errCtx }];
-            }
-            stack.push(valAndErr.value);
-          } else if (name in ctx.env.vars) {
-            stack.push(ctx.env.vars[name]);
-          } else if (name in lets[src_len(lets) - 1]) {
-            stack.push(lets[src_len(lets) - 1][name]);
-          } else if (name in ctx.env.funcs) {
-            _fun(name);
-          } else {
-            return [{ e: "Reference", m: `"${name}" did not exist`, errCtx }];
+      }
+      case "dpa":
+        stack.push(destruct(args, ins.value));
+        break;
+      case "ref": {
+        const name = ins.value;
+        if (ops[name]) {
+          _fun(name);
+        } else if (src_starts(name, "$")) {
+          const valAndErr = ctx.get(src_substr(name, 1));
+          if (valAndErr.kind === "err") {
+            return [{ e: "External", m: valAndErr.err, errCtx }];
           }
+          stack.push(valAndErr.value);
+        } else if (name in ctx.env.vars) {
+          stack.push(ctx.env.vars[name]);
+        } else if (name in lets[src_len(lets) - 1]) {
+          stack.push(lets[src_len(lets) - 1][name]);
+        } else if (name in ctx.env.funcs) {
+          _fun(name);
+        } else {
+          return [{ e: "Reference", m: `"${name}" did not exist`, errCtx }];
         }
         break;
-      case "exe":
-        {
-          const closure = getExe(ctx, stack.pop(), errCtx, false);
-          const nArgs = ins.value;
-          const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
-          const errors = closure(params);
-          if (errors) {
-            const nextCat = src_slice(func.ins, i).findIndex((ins2) => ins2.typ === "cat");
-            if (nextCat !== -1) {
-              i += nextCat;
-              lets[src_len(lets) - 1]["errors"] = {
-                t: "vec",
-                v: src_errorsToDict(errors)
-              };
-              break;
-            }
-            return errors;
-          }
-          if (recurArgs) {
-            lets[src_len(lets) - 1] = {};
-            i = -1;
-            const nArgs2 = ins.value;
-            args = recurArgs;
-            recurArgs = void 0;
-            --ctx.recurBudget;
-            if (!ctx.recurBudget) {
-              return [{ e: "Budget", m: `recurred too many times`, errCtx }];
-            }
+      }
+      case "exe": {
+        const closure = getExe(ctx, stack.pop(), errCtx, false);
+        const nArgs = ins.value;
+        const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
+        const errors = closure(params);
+        if (errors) {
+          const nextCat = src_slice(func.ins, i).findIndex((ins2) => ins2.typ === "cat");
+          if (nextCat !== -1) {
+            i += nextCat;
+            lets[src_len(lets) - 1]["errors"] = {
+              t: "vec",
+              v: src_errorsToDict(errors)
+            };
             break;
           }
+          return errors;
+        }
+        if (recurArgs) {
+          lets[src_len(lets) - 1] = {};
+          i = -1;
+          const nArgs2 = ins.value;
+          args = recurArgs;
+          recurArgs = void 0;
+          --ctx.recurBudget;
+          if (!ctx.recurBudget) {
+            return [{ e: "Budget", m: `recurred too many times`, errCtx }];
+          }
+          break;
         }
         break;
+      }
       case "or":
         if (asBoo(stack[src_len(stack) - 1])) {
           i += ins.value;
@@ -2841,49 +2985,48 @@ function exeFunc(ctx, func, args, inClosure = false) {
         i = lim;
         break;
       case "clo":
-      case "par":
-        {
-          const name = ins.value[0];
-          let cins = ins.value[1];
-          const isCapture = ({ typ, value }, i2) => typ === "ref" && !cins.find((i3) => i3.typ === "let" && i3.value === value) || typ === "npa" || typ === "val" && i2 + 1 !== src_len(cins) && cins[i2 + 1].typ === "exe";
-          const derefFunc = {
-            name: "",
-            ins: cins.map((ins2, i2) => {
-              if (i2 + 1 === src_len(cins)) {
-                return ins2;
-              }
-              const possibleLet = ins2.typ === "val" && ins2.value.t === "str" && cins[i2 + 1].typ === "exe" && lets[src_len(lets) - 1][ins2.value.v];
-              return possibleLet ? { typ: "val", value: possibleLet } : ins2;
-            }).filter(isCapture)
-          };
-          const errors = exeFunc(ctx, derefFunc, args, true);
-          if (errors) {
-            return errors;
-          }
-          const numIns = src_len(derefFunc.ins);
-          const captures = src_splice(stack, src_len(stack) - numIns, numIns);
-          cins = cins.map((ins2, i2) => isCapture(ins2, i2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
-          if (ins.typ === "par") {
-            const { value: exeNumArgs, errCtx: errCtx2 } = cins.pop();
-            if (src_len(cins) > 0 && cins[src_len(cins) - 1].typ === "exe") {
-              const headStartIdx = cins.findIndex((i2) => i2.typ === "exp");
-              const head = src_splice(cins, headStartIdx, src_len(cins) - headStartIdx);
-              src_push(head, cins);
-              cins = head;
-            } else {
-              cins.unshift(cins.pop());
+      case "par": {
+        const name = ins.value[0];
+        let cins = ins.value[1];
+        const isCapture = ({ typ, value }, i2) => typ === "ref" && !cins.find((i3) => i3.typ === "let" && i3.value === value) || typ === "npa" || typ === "val" && i2 + 1 !== src_len(cins) && cins[i2 + 1].typ === "exe";
+        const derefFunc = {
+          name: "",
+          ins: cins.map((ins2, i2) => {
+            if (i2 + 1 === src_len(cins)) {
+              return ins2;
             }
-            cins.push({ typ: "upa", value: -1, errCtx: errCtx2 });
-            cins.push({
-              typ: "val",
-              value: { t: "str", v: "..." },
-              errCtx: errCtx2
-            });
-            cins.push({ typ: "exe", value: exeNumArgs + 2, errCtx: errCtx2 });
-          }
-          stack.push({ t: "clo", v: { name, ins: cins } });
+            const possibleLet = ins2.typ === "val" && ins2.value.t === "str" && cins[i2 + 1].typ === "exe" && lets[src_len(lets) - 1][ins2.value.v];
+            return possibleLet ? { typ: "val", value: possibleLet } : ins2;
+          }).filter(isCapture)
+        };
+        const errors = exeFunc(ctx, derefFunc, args, true);
+        if (errors) {
+          return errors;
         }
+        const numIns = src_len(derefFunc.ins);
+        const captures = src_splice(stack, src_len(stack) - numIns, numIns);
+        cins = cins.map((ins2, i2) => isCapture(ins2, i2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
+        if (ins.typ === "par") {
+          const { value: exeNumArgs, errCtx: errCtx2 } = cins.pop();
+          if (src_len(cins) > 0 && cins[src_len(cins) - 1].typ === "exe") {
+            const headStartIdx = cins.findIndex((i2) => i2.typ === "exp");
+            const head = src_splice(cins, headStartIdx, src_len(cins) - headStartIdx);
+            src_push(head, cins);
+            cins = head;
+          } else {
+            cins.unshift(cins.pop());
+          }
+          cins.push({ typ: "upa", value: -1, errCtx: errCtx2 });
+          cins.push({
+            typ: "val",
+            value: { t: "str", v: "..." },
+            errCtx: errCtx2
+          });
+          cins.push({ typ: "exe", value: exeNumArgs + 2, errCtx: errCtx2 });
+        }
+        stack.push({ t: "clo", v: { name, ins: cins } });
         break;
+      }
       case "exp":
         break;
       default:

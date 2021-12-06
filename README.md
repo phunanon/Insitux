@@ -16,8 +16,7 @@
     </td>
     <td>
       <a href="https://discord.gg/w3Fc4YZ9Qw">
-        Talk with us
-        <img src="https://phunanon.github.io/Insitux/website/DiscordLogo.png" alt="Discord logo" height="16">
+        <img src="https://discord.com/api/guilds/877823554274590741/widget.png?style=banner2" alt="Discord invite" height="48">
       </a>
     </td>
   </tr>

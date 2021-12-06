@@ -1,4 +1,4 @@
-export const insituxVersion = 20211202;
+export const insituxVersion = 20211205;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -65,8 +65,8 @@ function exeOp(
       return;
     case "print":
     case "print-str":
-        ctx.print(stringify(args), op === "print");
-        _nul();
+      ctx.print(stringify(args), op === "print");
+      _nul();
       return;
     case "vec":
       _vec(args);
@@ -919,6 +919,21 @@ function errorsToDict(errors: InvokeError[]) {
   });
 }
 
+function destruct(args: Val[], shape: number[]): Val {
+  let arr: Val[] = args;
+  for (let a = 0, b = len(shape) - 1; a < b; ++a) {
+    const val = arr[shape[a]];
+    if (val.t === "vec") {
+      arr = val.v;
+    } else if (val.t === "str" && a + 1 === b) {
+      return { t: "str", v: strIdx(val.v, shape[a + 1]) };
+    } else {
+      return { t: "null", v: undefined };
+    }
+  }
+  return arr[shape[len(shape) - 1]];
+}
+
 function exeFunc(
   ctx: Ctx,
   func: Func,
@@ -955,76 +970,91 @@ function exeFunc(
       case "let":
         lets[len(lets) - 1][ins.value] = stack[len(stack) - 1];
         break;
+      case "dle":
+      case "dva": {
+        const paramsShape = ins.value;
+        const val = stack.pop()!;
+        let last: Val | undefined;
+        paramsShape.forEach(({ name, position }) => {
+          if (ins.typ === "dva") {
+            last = ctx.env.vars[name] = destruct([val], position);
+          } else {
+            last = lets[len(lets) - 1][name] = destruct([val], position);
+          }
+        });
+        stack.push(last!);
+        break;
+      }
       case "npa":
-      case "upa":
-        {
-          const paramIdx = ins.value;
-          if (paramIdx === -1) {
-            _vec(args);
-          } else if (len(args) <= paramIdx) {
-            _nul();
-          } else {
-            stack.push(args[paramIdx]);
-          }
+      case "upa": {
+        const paramIdx = ins.value;
+        if (paramIdx === -1) {
+          _vec(args);
+        } else if (len(args) <= paramIdx) {
+          _nul();
+        } else {
+          stack.push(args[paramIdx]);
         }
         break;
-      case "ref":
-        {
-          const name = ins.value;
-          if (ops[name]) {
-            _fun(name);
-          } else if (starts(name, "$")) {
-            const valAndErr = ctx.get(substr(name, 1));
-            if (valAndErr.kind === "err") {
-              return [{ e: "External", m: valAndErr.err, errCtx }];
-            }
-            stack.push(valAndErr.value);
-          } else if (name in ctx.env.vars) {
-            stack.push(ctx.env.vars[name]);
-          } else if (name in lets[len(lets) - 1]) {
-            stack.push(lets[len(lets) - 1][name]);
-          } else if (name in ctx.env.funcs) {
-            _fun(name);
-          } else {
-            return [{ e: "Reference", m: `"${name}" did not exist`, errCtx }];
+      }
+      case "dpa":
+        stack.push(destruct(args, ins.value));
+        break;
+      case "ref": {
+        const name = ins.value;
+        if (ops[name]) {
+          _fun(name);
+        } else if (starts(name, "$")) {
+          const valAndErr = ctx.get(substr(name, 1));
+          if (valAndErr.kind === "err") {
+            return [{ e: "External", m: valAndErr.err, errCtx }];
           }
+          stack.push(valAndErr.value);
+        } else if (name in ctx.env.vars) {
+          stack.push(ctx.env.vars[name]);
+        } else if (name in lets[len(lets) - 1]) {
+          stack.push(lets[len(lets) - 1][name]);
+        } else if (name in ctx.env.funcs) {
+          _fun(name);
+        } else {
+          return [{ e: "Reference", m: `"${name}" did not exist`, errCtx }];
         }
         break;
-      case "exe":
-        {
-          const closure = getExe(ctx, stack.pop()!, errCtx, false);
-          const nArgs = ins.value;
-          const params = splice(stack, len(stack) - nArgs, nArgs);
-          const errors = closure(params);
-          if (errors) {
-            //Find next catch statement
-            const nextCat = slice(func.ins, i).findIndex(
-              ins => ins.typ === "cat",
-            );
-            if (nextCat !== -1) {
-              i += nextCat;
-              lets[len(lets) - 1]["errors"] = {
-                t: "vec",
-                v: errorsToDict(errors),
-              };
-              break;
-            }
-            return errors;
-          }
-          if (recurArgs) {
-            lets[len(lets) - 1] = {};
-            i = -1;
-            const nArgs = ins.value;
-            args = recurArgs;
-            recurArgs = undefined;
-            --ctx.recurBudget;
-            if (!ctx.recurBudget) {
-              return [{ e: "Budget", m: `recurred too many times`, errCtx }];
-            }
+      }
+      case "exe": {
+        const closure = getExe(ctx, stack.pop()!, errCtx, false);
+        const nArgs = ins.value;
+        const params = splice(stack, len(stack) - nArgs, nArgs);
+        const errors = closure(params);
+        if (errors) {
+          //Find next catch statement
+          const nextCat = slice(func.ins, i).findIndex(
+            ins => ins.typ === "cat",
+          );
+          if (nextCat !== -1) {
+            i += nextCat;
+            lets[len(lets) - 1]["errors"] = {
+              t: "vec",
+              v: errorsToDict(errors),
+            };
             break;
           }
+          return errors;
+        }
+        if (recurArgs) {
+          lets[len(lets) - 1] = {};
+          i = -1;
+          const nArgs = ins.value;
+          args = recurArgs;
+          recurArgs = undefined;
+          --ctx.recurBudget;
+          if (!ctx.recurBudget) {
+            return [{ e: "Budget", m: `recurred too many times`, errCtx }];
+          }
+          break;
         }
         break;
+      }
       case "or":
         if (asBoo(stack[len(stack) - 1])) {
           i += ins.value;
@@ -1066,67 +1096,66 @@ function exeFunc(
         i = lim;
         break;
       case "clo":
-      case "par":
-        {
-          const name = ins.value[0];
-          let cins = ins.value[1];
-          const isCapture = ({ typ, value }: Ins, i: number) =>
-            (typ === "ref" &&
-              !cins.find(i => i.typ === "let" && i.value === value)) ||
-            typ === "npa" ||
-            (typ === "val" && i + 1 !== len(cins) && cins[i + 1].typ === "exe");
-          const derefFunc: Func = {
-            name: "",
-            ins: cins
-              .map((ins, i) => {
-                if (i + 1 === len(cins)) {
-                  return ins;
-                }
-                const possibleLet =
-                  ins.typ === "val" &&
-                  ins.value.t === "str" &&
-                  cins[i + 1].typ === "exe" &&
-                  lets[len(lets) - 1][ins.value.v];
-                return possibleLet
-                  ? <Ins>{ typ: "val", value: possibleLet }
-                  : ins;
-              })
-              .filter(isCapture),
-          };
-          const errors = exeFunc(ctx, derefFunc, args, true);
-          if (errors) {
-            return errors;
-          }
-          const numIns = len(derefFunc.ins);
-          const captures = splice(stack, len(stack) - numIns, numIns);
-          cins = cins.map((ins, i) =>
-            isCapture(ins, i)
-              ? <Ins>{ typ: "val", value: captures.shift()!, errCtx }
-              : ins,
-          );
-          //Rewrite partial closure to #(... func [args] args)
-          if (ins.typ === "par") {
-            const { value: exeNumArgs, errCtx } = cins.pop()!;
-            //If has expression as head
-            if (len(cins) > 0 && cins[len(cins) - 1].typ === "exe") {
-              const headStartIdx = cins.findIndex(i => i.typ === "exp");
-              const head = splice(cins, headStartIdx, len(cins) - headStartIdx);
-              push(head, cins);
-              cins = head;
-            } else {
-              cins.unshift(cins.pop()!);
-            }
-            cins.push({ typ: "upa", value: -1, errCtx });
-            cins.push({
-              typ: "val",
-              value: <Val>{ t: "str", v: "..." },
-              errCtx,
-            });
-            cins.push({ typ: "exe", value: <number>exeNumArgs + 2, errCtx });
-          }
-          stack.push(<Val>{ t: "clo", v: <Func>{ name, ins: cins } });
+      case "par": {
+        const name = ins.value[0];
+        let cins = ins.value[1];
+        const isCapture = ({ typ, value }: Ins, i: number) =>
+          (typ === "ref" &&
+            !cins.find(i => i.typ === "let" && i.value === value)) ||
+          typ === "npa" ||
+          (typ === "val" && i + 1 !== len(cins) && cins[i + 1].typ === "exe");
+        const derefFunc: Func = {
+          name: "",
+          ins: cins
+            .map((ins, i) => {
+              if (i + 1 === len(cins)) {
+                return ins;
+              }
+              const possibleLet =
+                ins.typ === "val" &&
+                ins.value.t === "str" &&
+                cins[i + 1].typ === "exe" &&
+                lets[len(lets) - 1][ins.value.v];
+              return possibleLet
+                ? <Ins>{ typ: "val", value: possibleLet }
+                : ins;
+            })
+            .filter(isCapture),
+        };
+        const errors = exeFunc(ctx, derefFunc, args, true);
+        if (errors) {
+          return errors;
         }
+        const numIns = len(derefFunc.ins);
+        const captures = splice(stack, len(stack) - numIns, numIns);
+        cins = cins.map((ins, i) =>
+          isCapture(ins, i)
+            ? <Ins>{ typ: "val", value: captures.shift()!, errCtx }
+            : ins,
+        );
+        //Rewrite partial closure to #(... func [args] args)
+        if (ins.typ === "par") {
+          const { value: exeNumArgs, errCtx } = cins.pop()!;
+          //If has expression as head
+          if (len(cins) > 0 && cins[len(cins) - 1].typ === "exe") {
+            const headStartIdx = cins.findIndex(i => i.typ === "exp");
+            const head = splice(cins, headStartIdx, len(cins) - headStartIdx);
+            push(head, cins);
+            cins = head;
+          } else {
+            cins.unshift(cins.pop()!);
+          }
+          cins.push({ typ: "upa", value: -1, errCtx });
+          cins.push({
+            typ: "val",
+            value: <Val>{ t: "str", v: "..." },
+            errCtx,
+          });
+          cins.push({ typ: "exe", value: <number>exeNumArgs + 2, errCtx });
+        }
+        stack.push(<Val>{ t: "clo", v: <Func>{ name, ins: cins } });
         break;
+      }
       case "exp":
         break;
       default:

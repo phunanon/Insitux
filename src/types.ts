@@ -63,10 +63,14 @@ export type Ctx = {
   recurBudget: number;
 };
 
+export type ParamsShape = { name: string; position: number[] }[];
+
 export type Ins = { errCtx: ErrCtx } & (
   | { typ: "val"; value: Val }
   | { typ: "npa" | "upa"; value: number } //Named and Unnamed parameters
+  | { typ: "dpa"; value: number[] } //Destructuring parameters
   | { typ: "var" | "let" | "ref"; value: string }
+  | { typ: "dva" | "dle"; value: ParamsShape } //Destructuring var/let
   | { typ: "exe"; value: number } //Execute last stack value, number of args
   | { typ: "exp"; value: number } //Marks the start of an expression as head for potential partial closures
   | { typ: "or" | "if" | "jmp" | "loo" | "cat" | "mat"; value: number } //Number of instructions
