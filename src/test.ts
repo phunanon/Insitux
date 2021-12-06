@@ -113,7 +113,7 @@ const tests: {
   { name: "Boolean select", code: `[(true 1 2) (false 1)]`, out: `[1 null]` },
   {
     name: "Sum vector of numbers",
-    code: `[(reduce + [1 2 3]) (reduce + [1 2 3] 3)]`,
+    code: `[(reduce + [1 2 3]) (reduce + 3 [1 2 3])]`,
     out: `[6 9]`,
   },
   {
@@ -360,7 +360,7 @@ const tests: {
   {
     name: "frequencies",
     code: `(function frequencies list
-             (reduce #(push % %1 (inc (or (% %1) 0))) list {}))
+             (reduce #(push % %1 (inc (or (% %1) 0))) {} list))
            (frequencies "12121212")`,
     out: `{"1" 4, "2" 4}`,
   },

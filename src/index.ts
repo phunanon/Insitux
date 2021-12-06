@@ -1,4 +1,4 @@
-export const insituxVersion = 20211205;
+export const insituxVersion = 20211206;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -387,8 +387,8 @@ function exeOp(
         return;
       }
 
-      const array = asArray(args.shift()!);
       if (op !== "reduce") {
+        const array = asArray(args.shift()!);
         const isRemove = op === "remove",
           isFind = op === "find",
           isCount = op === "count";
@@ -422,6 +422,15 @@ function exeOp(
         _vec(filtered);
         return;
       }
+      const arrayVal = args.pop()!;
+      if (!has(["vec", "dict", "str"], arrayVal.t)) {
+        return tErr(
+          `must reduce either: string, vector, dictionary, not ${
+            typeNames[arrayVal.t]
+          }`,
+        );
+      }
+      const array = asArray(arrayVal);
 
       if (!len(array)) {
         if (len(args)) {

@@ -313,14 +313,15 @@ etc
 → [0 1 2 0 10 20 0 100 200]
 
 ;"Reduces" a vector, string, or dictionary into one value through a function,
-;  also accepting an initial value as its second argument
+;  optionally accepting an initial value as its second argument
+;  with the collection as its third argument
 ;Note: will return sole item or initial value if there are too few values
 (reduce + [1 2 3])     → 6
 (reduce vec [0 1 2 3]) → [[[0 1] 2] 3]
-(reduce + [1 2 3] 3)   → 9
-(reduce + [1] 1)       → 2
+(reduce + 3 [1 2 3])   → 9
+(reduce + 1 [1])       → 2
 (reduce + [1])         → 1  ;
-(reduce + [] 1)        → 1  ;
+(reduce + 1 [])        → 1  ;
 (reduce + [])          → [] ; + is never called
 
 ;Continues looping until condition becomes false
@@ -751,7 +752,7 @@ Also useful for passing outer-closure parameters into inner-closures.
 (function comp f
   (let funcs (sect args))
   #(do (let 1st (.. f args))
-       (reduce #(%1 %) funcs 1st)))
+       (reduce #(%1 %) 1st funcs)))
 
 (map (comp + inc) [0 1 2 3 4] [0 1 2 3 4])
 → [1 3 5 7 9]
@@ -759,7 +760,7 @@ Also useful for passing outer-closure parameters into inner-closures.
 
 ; Clojure's frequencies
 (function frequencies list
-  (reduce #(push % %1 (inc (or (% %1) 0))) list {}))
+  (reduce #(push % %1 (inc (or (% %1) 0))) {} list))
 
 (frequencies "hello")
 → {"h" 1, "e" 1, "l" 2, "o" 1}
@@ -776,7 +777,7 @@ Also useful for passing outer-closure parameters into inner-closures.
   (keys (.. .. dict (for vec list [0]))))
 ;or via reduction
 (function dedupe list
-  (reduce #(if (% %1) % (push % %1)) list []))
+  (reduce #(if (% %1) % (push % %1)) [] list))
 
 (dedupe [1 2 3 3])
 → [1 2 3]

@@ -543,7 +543,7 @@ const ops = {
   idx: { minArity: 2, maxArity: 3, params: [["str", "vec"]], returns: ["num"] },
   map: { minArity: 2, returns: ["vec"] },
   for: { minArity: 2, returns: ["vec"] },
-  reduce: { minArity: 2, maxArity: 3, params: [[], ["vec", "dict", "str"]] },
+  reduce: { minArity: 2, maxArity: 3 },
   filter: {
     minArity: 2,
     params: [[], ["vec", "dict", "str"]],
@@ -1573,7 +1573,7 @@ null`
   { name: "Boolean select", code: `[(true 1 2) (false 1)]`, out: `[1 null]` },
   {
     name: "Sum vector of numbers",
-    code: `[(reduce + [1 2 3]) (reduce + [1 2 3] 3)]`,
+    code: `[(reduce + [1 2 3]) (reduce + 3 [1 2 3])]`,
     out: `[6 9]`
   },
   {
@@ -1820,7 +1820,7 @@ null`
   {
     name: "frequencies",
     code: `(function frequencies list
-             (reduce #(push % %1 (inc (or (% %1) 0))) list {}))
+             (reduce #(push % %1 (inc (or (% %1) 0))) {} list))
            (frequencies "12121212")`,
     out: `{"1" 4, "2" 4}`
   },
@@ -2019,7 +2019,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211205;
+const insituxVersion = 20211206;
 
 
 
@@ -2340,13 +2340,13 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
         _vec(array2);
         return;
       }
-      const array = asArray(args.shift());
       if (op !== "reduce") {
+        const array2 = asArray(args.shift());
         const isRemove = op === "remove", isFind = op === "find", isCount = op === "count";
         const filtered = [];
         let count = 0;
-        for (let i = 0, lim = src_len(array); i < lim; ++i) {
-          const errors = closure([array[i], ...args]);
+        for (let i = 0, lim = src_len(array2); i < lim; ++i) {
+          const errors = closure([array2[i], ...args]);
           if (errors) {
             return errors;
           }
@@ -2355,11 +2355,11 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
             count += b2 ? 1 : 0;
           } else if (isFind) {
             if (b2) {
-              stack.push(array[i]);
+              stack.push(array2[i]);
               return;
             }
           } else if (b2 !== isRemove) {
-            filtered.push(array[i]);
+            filtered.push(array2[i]);
           }
         }
         switch (op) {
@@ -2373,6 +2373,11 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
         _vec(filtered);
         return;
       }
+      const arrayVal = args.pop();
+      if (!src_has(["vec", "dict", "str"], arrayVal.t)) {
+        return tErr(`must reduce either: string, vector, dictionary, not ${typeNames[arrayVal.t]}`);
+      }
+      const array = asArray(arrayVal);
       if (!src_len(array)) {
         if (src_len(args)) {
           stack.push(args[0]);

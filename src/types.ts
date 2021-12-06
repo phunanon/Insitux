@@ -174,7 +174,7 @@ export const ops: {
   idx: { minArity: 2, maxArity: 3, params: [["str", "vec"]], returns: ["num"] },
   map: { minArity: 2, returns: ["vec"] },
   for: { minArity: 2, returns: ["vec"] },
-  reduce: { minArity: 2, maxArity: 3, params: [[], ["vec", "dict", "str"]] },
+  reduce: { minArity: 2, maxArity: 3 },
   filter: {
     minArity: 2,
     params: [[], ["vec", "dict", "str"]],
