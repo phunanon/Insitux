@@ -663,17 +663,17 @@
 			{
 				"directory": "split",
 				"description": [
-					"(split \"hello\" \"e\")",
+					"(split \"e\" \"hello\")",
 					"function",
-					"Splits a string into a vector by space or a provided string."
+					"Splits a string into a vector by spaces or a provided string."
 				]
 			},
 			{
 				"directory": "join",
 				"description": [
-					"(join [0 1 2 3])",
+					"(join \", \" [0 1 2 3])",
 					"function",
-					"Joins a vector into a string by spaces or a provided string."
+					"Joins a vector into a string by a provided string."
 				]
 			},
 			{

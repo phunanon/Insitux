@@ -668,17 +668,13 @@ function exeOp(
       return;
     case "split":
       _vec(
-        str(args[0])
-          .split(len(args) > 1 ? str(args[1]) : " ")
+        str(args[len(args) - 1])
+          .split(len(args) - 1 ? str(args[0]) : " ")
           .map(v => <Val>{ t: "str", v }),
       );
       return;
     case "join":
-      _str(
-        asArray(args[0])
-          .map(val2str)
-          .join(len(args) > 1 ? str(args[1]) : " "),
-      );
+      _str(asArray(args[1]).map(val2str).join(str(args[0])));
       return;
     case "starts-with?":
     case "ends-with?":

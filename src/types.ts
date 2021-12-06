@@ -238,9 +238,8 @@ export const ops: {
   },
   split: { minArity: 1, maxArity: 2, params: ["str", "str"], returns: ["vec"] },
   join: {
-    minArity: 1,
-    maxArity: 2,
-    params: [["vec", "dict", "str"], "str"],
+    exactArity: 2,
+    params: ["str", ["vec", "dict", "str"]],
     returns: ["str"],
   },
   "starts-with?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },

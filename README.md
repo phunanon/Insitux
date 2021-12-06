@@ -419,13 +419,13 @@ etc
 (range 0 4 0)  → [0 1 2 3]
 
 ;Splits a string by spaces or provided delimiting string
-(split "Hello" "e") → ["H" "llo"]
 (split "hi hi!")    → ["hi" "hi!"]
+(split "e" "Hello") → ["H" "llo"]
 
-;Joins a vector, dictionary, or string by spaces or a provided string
-(join [1 2 3])      → "1 2 3"
-(join "hello")      → "h e l l o"
-(join [1 2 3] ", ") → "1, 2, 3"
+;Joins a vector, dictionary, or string by a provided string
+(join " " [1 2 3])      → "1 2 3"
+(join " " "hello")      → "h e l l o"
+(join ", " [1 2 3]) → "1, 2, 3"
 
 ;Tests if a string starts with and ends with another string
 (starts-with? "Hello" "He") → true
