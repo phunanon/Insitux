@@ -746,7 +746,7 @@ const depthChange = ({ typ }) => parse_toNum(typ === "(") - parse_toNum(typ === 
 function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
   const tokens = [];
   const digits = "0123456789";
-  let inString = false, isEscaped = false, inStringAt = [0, 0], inSymbol = false, inNumber = false, inComment = false, line = 1, col = 0;
+  let inString = false, isEscaped = false, inStringAt = [0, 0], inSymbol = false, inNumber = false, inHex = false, inComment = false, line = 1, col = 0;
   for (let i = 0, l = parse_slen(code); i < l; ++i) {
     const c = parse_strIdx(code, i), nextCh = i + 1 !== l ? parse_strIdx(code, i + 1) : "";
     ++col;
@@ -807,7 +807,9 @@ function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
     const isDigit = (ch) => parse_sub(digits, ch);
     const isParen = parse_sub("()[]{}", c);
     if (inNumber && !isDigit(c)) {
-      inNumber = c === "." && !parse_sub(tokens[parse_len(tokens) - 1].text, ".");
+      const hexStart = c === "x" && tokens[parse_len(tokens) - 1].text === "0";
+      inHex = inHex || hexStart;
+      inNumber = c === "b" && tokens[parse_len(tokens) - 1].text === "0" || c === "." && !parse_sub(tokens[parse_len(tokens) - 1].text, ".") || inHex && (hexStart || parse_sub("ABCDEFabcdef", c));
       if (!inNumber && !isParen && !isWhite) {
         inSymbol = true;
         tokens[parse_len(tokens) - 1].typ = "sym";
@@ -838,6 +840,7 @@ function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
         continue;
       }
       inNumber = isDigit(c) || c === "." && isDigit(nextCh) || c === "-" && (isDigit(nextCh) || nextCh === ".");
+      inHex = false;
       inSymbol = !inNumber;
       const typ = inSymbol ? "sym" : "num";
       tokens.push({ typ, text: "", errCtx });

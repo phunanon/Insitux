@@ -1,4 +1,4 @@
-export const toNum = (x: unknown): number => Number(x);
+export const toNum = (x: unknown): number => Number(x); //Should also support 0b and 0x
 export const slice = <T>(arr: T[], start?: number, end?: number): T[] =>
   arr.slice(start, end);
 export const splice = <T>(arr: T[], start: number, numDel?: number): T[] =>

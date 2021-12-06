@@ -35,6 +35,7 @@ export function tokenise(
     inStringAt = [0, 0],
     inSymbol = false,
     inNumber = false,
+    inHex = false,
     inComment = false,
     line = 1,
     col = 0;
@@ -99,9 +100,14 @@ export function tokenise(
     const errCtx: ErrCtx = { sourceId: sourceId, line, col };
     const isDigit = (ch: string) => sub(digits, ch);
     const isParen = sub("()[]{}", c);
-    //Allow one . per number, or convert into symbol
+    //Allow one . per number, or hex, or binary, else convert into symbol
     if (inNumber && !isDigit(c)) {
-      inNumber = c === "." && !sub(tokens[len(tokens) - 1].text, ".");
+      const hexStart = c === "x" && tokens[len(tokens) - 1].text === "0";
+      inHex = inHex || hexStart;
+      inNumber =
+        (c === "b" && tokens[len(tokens) - 1].text === "0") ||
+        (c === "." && !sub(tokens[len(tokens) - 1].text, ".")) ||
+        (inHex && (hexStart || sub("ABCDEFabcdef", c)));
       if (!inNumber && !isParen && !isWhite) {
         inSymbol = true;
         tokens[len(tokens) - 1].typ = "sym";
@@ -137,6 +143,7 @@ export function tokenise(
         isDigit(c) ||
         (c === "." && isDigit(nextCh)) ||
         (c === "-" && (isDigit(nextCh) || nextCh === "."));
+      inHex = false;
       inSymbol = !inNumber;
       const typ: Token["typ"] = inSymbol ? "sym" : "num";
       tokens.push({ typ, text: "", errCtx });

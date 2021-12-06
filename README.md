@@ -518,6 +518,10 @@ etc
 
 - Write decimal numbers either `0.123` or `.123`.
 
+- Hexadecimal can be written as, for example `0xFFF`
+
+- Binary numbers can be written as, for example `0b0101001`
+
 - Pi and Euler's number are accessible through constants `PI` and `E`
 
 - `args` contains a vector of arguments the function was called with.
