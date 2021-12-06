@@ -663,6 +663,45 @@ Also useful for passing outer-closure parameters into inner-closures.
 (closure 2.5) → hi5
 ```
 
+**Destructuring**
+
+Destructuring is a syntax available as part of named function signatures,
+parameterised closure signatures, and var/let declarations. It capitalises on
+a space of otherwise nonsensical syntax - a vector declared but not returned;
+and the name/value pairs in var/let being easily determined between.  
+A "shape" of parameter names or var/let names can be provided in which each vector item or string character is
+"destructured" into.
+```clj
+(function f [x]
+  (str "Hello, " x))
+(f ["Patrick"])
+→ "Hello, Patrick"
+
+(var f (fn [x y]
+  [y x]))
+(f [:a :b :c])
+→ [:b :a]
+
+(function func x [y] z
+  [x y z])
+(func [1 2] [3 4] [5 6])
+→ [[1 2] 3 [5 6]]
+
+(var [x [y z]] [1 [2 3 4 5] 6])
+(str x y z)
+→ "123"
+
+; improper but never causes an error
+(var [x [y]] "hello")
+[x y]
+→ ["h" null]
+
+; also null if there aren't enough items
+(var [x y z] [0 1])
+[x y z]
+→ [0 1 null]
+```
+
 ## Various examples
 
 ```clj

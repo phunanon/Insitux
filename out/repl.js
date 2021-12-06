@@ -915,7 +915,11 @@ function parseForm(tokens, params, inPartial = true) {
       }
       let def = void 0;
       if (parse_len(parsedDestructuring.params)) {
-        def = { typ: "dva", value: parsedDestructuring.params, errCtx };
+        def = {
+          typ: op === "var" ? "dva" : "dle",
+          value: parsedDestructuring.params,
+          errCtx
+        };
       }
       if (!def) {
         [def] = parseArg(tokens, params);
@@ -1118,11 +1122,7 @@ function parseArg(tokens, params, inPartial = false) {
       parse_push(ins, parsedParams.errors);
       if (tokens[0].typ === ")") {
         return [
-          {
-            typ: "err",
-            value: `fn requires a body, not just parameters`,
-            errCtx: fnIns.errCtx
-          }
+          { typ: "err", value: `fn requires a body`, errCtx: fnIns.errCtx }
         ];
       }
       tokens.unshift({ typ: "sym", text: "do", errCtx });
@@ -2830,13 +2830,14 @@ function destruct(args, shape) {
     const val = arr[shape[a]];
     if (val.t === "vec") {
       arr = val.v;
-    } else if (val.t === "str" && a + 1 === b) {
+    } else if (val.t === "str" && a + 1 === b && shape[a + 1] < src_slen(val.v)) {
       return { t: "str", v: src_strIdx(val.v, shape[a + 1]) };
     } else {
       return { t: "null", v: void 0 };
     }
   }
-  return arr[shape[src_len(shape) - 1]];
+  const pos = shape[src_len(shape) - 1];
+  return pos >= src_len(arr) ? { t: "null", v: void 0 } : arr[pos];
 }
 function exeFunc(ctx, func, args, inClosure = false) {
   --ctx.callBudget;
@@ -3230,11 +3231,11 @@ if (process.argv.length > 2) {
     printErrorOutput(invoker(ctx, code));
   }
 } else {
-  console.log(`Insitux ${insituxVersion} REPL.`);
+  printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: "> ",
+    prompt: "\u276F ",
     completer,
     history: fs.existsSync(".repl-history") ? fs.readFileSync(".repl-history").toString().split("\n").reverse() : []
   });
@@ -3254,7 +3255,7 @@ ${input}`);
       if (input.trim()) {
         printErrorOutput(invoker(ctx, input));
       }
-      rl.setPrompt("> ");
+      rl.setPrompt("\u276F ");
     } else {
       rl.setPrompt(". ");
     }

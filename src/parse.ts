@@ -227,7 +227,11 @@ function parseForm(
       }
       let def: ParserIns | undefined = undefined;
       if (len(parsedDestructuring.params)) {
-        def = { typ: "dva", value: parsedDestructuring.params, errCtx };
+        def = {
+          typ: op === "var" ? "dva" : "dle",
+          value: parsedDestructuring.params,
+          errCtx,
+        };
       }
       if (!def) {
         [def] = parseArg(tokens, params);
@@ -464,14 +468,9 @@ function parseArg(
       const parsedParams = parseParams(tokens);
       params = parsedParams.params;
       push(ins, parsedParams.errors);
-      //TODO:
       if (tokens[0].typ === ")") {
         return [
-          {
-            typ: "err",
-            value: `fn requires a body, not just parameters`,
-            errCtx: fnIns!.errCtx,
-          },
+          { typ: "err", value: `fn requires a body`, errCtx: fnIns!.errCtx },
         ];
       }
       tokens.unshift({ typ: "sym", text: "do", errCtx });
@@ -625,7 +624,6 @@ function parseParams(
   const position: number[] = [0];
   destructs.forEach(destruct => {
     destruct.forEach(({ typ, text, errCtx }) => {
-      //TODO: error when position has no items
       if (typ === "sym") {
         if (text === "vec") {
           return;
@@ -667,8 +665,6 @@ function syntaxise(
     return err("empty function body");
   }
   const { params, errors: ins } = parseParams(tokens);
-  //Handle early function definition end  e.g. (function name)
-  //TODO: return err("empty function body");
   while (len(tokens)) {
     push(ins, parseArg(tokens, params));
   }

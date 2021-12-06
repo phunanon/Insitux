@@ -934,13 +934,14 @@ function destruct(args: Val[], shape: number[]): Val {
     const val = arr[shape[a]];
     if (val.t === "vec") {
       arr = val.v;
-    } else if (val.t === "str" && a + 1 === b) {
+    } else if (val.t === "str" && a + 1 === b && shape[a + 1] < slen(val.v)) {
       return { t: "str", v: strIdx(val.v, shape[a + 1]) };
     } else {
       return { t: "null", v: undefined };
     }
   }
-  return arr[shape[len(shape) - 1]];
+  const pos = shape[len(shape) - 1];
+  return pos >= len(arr) ? { t: "null", v: undefined } : arr[pos];
 }
 
 function exeFunc(

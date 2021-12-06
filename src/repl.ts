@@ -1,6 +1,6 @@
 import readline = require("readline");
 import fs = require("fs");
-import { addOperation, symbols, insituxVersion } from ".";
+import { addOperation, symbols } from ".";
 import { Ctx, Operation, Val, ValOrErr } from "./types";
 import { InvokeOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
@@ -122,12 +122,12 @@ if (process.argv.length > 2) {
     printErrorOutput(invoker(ctx, code));
   }
 } else {
-  console.log(`Insitux ${insituxVersion} REPL.`);
+  printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
 
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: "> ",
+    prompt: "❯ ",
     completer,
     history: fs.existsSync(".repl-history")
       ? fs.readFileSync(".repl-history").toString().split("\n").reverse()
@@ -149,7 +149,7 @@ if (process.argv.length > 2) {
       if (input.trim()) {
         printErrorOutput(invoker(ctx, input));
       }
-      rl.setPrompt("> ");
+      rl.setPrompt("❯ ");
     } else {
       rl.setPrompt(". ");
     }
