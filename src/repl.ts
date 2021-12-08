@@ -1,7 +1,7 @@
 import readline = require("readline");
 import fs = require("fs");
-import { addOperation, symbols } from ".";
-import { Ctx, Operation, Val, ValOrErr } from "./types";
+import { symbols } from ".";
+import { Ctx, ExternalFunction, Operation, Val, ValOrErr } from "./types";
 import { InvokeOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
 import prompt = require("prompt-sync");
@@ -22,16 +22,6 @@ function read(path: string, asLines: boolean) {
       : str(content),
   };
 }
-addOperation(
-  "read",
-  { exactArity: 1, params: ["str"], returns: ["str"] },
-  (params: Val[]) => read(<string>params[0].v, false),
-);
-addOperation(
-  "read-lines",
-  { exactArity: 1, params: ["str"], returns: ["vec"] },
-  (params: Val[]) => read(<string>params[0].v, true),
-);
 
 function writeOrAppend(path: string, content: string, isAppend = false) {
   (isAppend ? fs.appendFileSync : fs.writeFileSync)(path, content);
@@ -43,28 +33,46 @@ const writingOpDef: Operation = {
   params: ["str", "str"],
   returns: ["str"],
 };
-addOperation("write", writingOpDef, (params: Val[]) =>
-  writeOrAppend(<string>params[0].v, <string>params[1].v),
-);
-addOperation("append", writingOpDef, (params: Val[]) =>
-  writeOrAppend(<string>params[0].v, <string>params[1].v, true),
-);
 
-addOperation(
-  "prompt",
+const functions: ExternalFunction[] = [
   {
-    exactArity: 1,
-    params: ["str"],
-    returns: ["str"],
+    name: "read",
+    definition: { exactArity: 1, params: ["str"], returns: ["str"] },
+    handler: (params: Val[]) => read(<string>params[0].v, false),
   },
-  (params: Val[]) => ({
-    kind: "val",
-    value: {
-      t: "str",
-      v: prompt()(<string>params[0].v),
+  {
+    name: "read-lines",
+    definition: { exactArity: 1, params: ["str"], returns: ["vec"] },
+    handler: (params: Val[]) => read(<string>params[0].v, true),
+  },
+  {
+    name: "write",
+    definition: writingOpDef,
+    handler: (params: Val[]) =>
+      writeOrAppend(<string>params[0].v, <string>params[1].v),
+  },
+  {
+    name: "append",
+    definition: writingOpDef,
+    handler: (params: Val[]) =>
+      writeOrAppend(<string>params[0].v, <string>params[1].v, true),
+  },
+  {
+    name: "prompt",
+    definition: {
+      exactArity: 1,
+      params: ["str"],
+      returns: ["str"],
     },
-  }),
-);
+    handler: (params: Val[]) => ({
+      kind: "val",
+      value: {
+        t: "str",
+        v: prompt()(<string>params[0].v),
+      },
+    }),
+  },
+];
 //#endregion
 
 //#region Context and implementations
@@ -88,10 +96,11 @@ const ctx: Ctx = {
   env: { funcs: {}, vars: {} },
   get,
   set,
-  exe,
+  functions,
   print(str, withNewLine) {
     process.stdout.write(`\x1b[32m${str}\x1b[0m${withNewLine ? "\n" : ""}`);
   },
+  exe,
   loopBudget: 1e7,
   rangeBudget: 1e6,
   callBudget: 1e8,

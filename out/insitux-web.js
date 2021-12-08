@@ -45,6 +45,7 @@ const loadScript = async scriptEl => {
       exe: loaderExe,
       get: loaderGet,
       set: loaderSet,
+      functions: [],
       rangeBudget: 1e4,
       loopBudget: 1e4,
       callBudget: 1e4,

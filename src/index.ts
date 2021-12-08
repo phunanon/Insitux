@@ -1,4 +1,4 @@
-export const insituxVersion = 20211206;
+export const insituxVersion = 20211208;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -12,7 +12,7 @@ const { getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
 import { assertUnreachable, InvokeError, InvokeResult } from "./types";
-import { Operation, ExternalHandler } from "./types";
+import { ExternalFunction, ExternalHandler } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
 import { dic, dictDrop, dictGet, dictSet, toDict } from "./val";
@@ -1191,19 +1191,21 @@ function parseAndExe(
   return exeFunc(ctx, ctx.env.funcs["entry"], []);
 }
 
-/**
- * Registers a new operation in Insitux, usable by all contexts.
- */
-export function addOperation(
-  name: string,
-  definition: Operation,
-  handler: ExternalHandler,
-) {
-  if (ops[name] && !externalOps[name]) {
-    throw "Redefining internal operations is disallowed.";
-  }
-  ops[name] = { ...definition, external: true };
-  externalOps[name] = handler;
+function ingestExternalOperations(functions: ExternalFunction[]) {
+  functions.forEach(({ name, definition, handler }) => {
+    if (ops[name] && !externalOps[name]) {
+      throw "Redefining internal operations is disallowed.";
+    }
+    ops[name] = { ...definition, external: true };
+    externalOps[name] = handler;
+  });
+}
+
+function removeExternalOperations(functions: ExternalFunction[]) {
+  functions.forEach(({ name }) => {
+    delete ops[name];
+    delete externalOps[name];
+  });
 }
 
 /**
@@ -1222,7 +1224,9 @@ export function invoke(
   printResult = false,
 ): InvokeResult {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
+  ingestExternalOperations(ctx.functions);
   const errors = parseAndExe(ctx, code, sourceId);
+  removeExternalOperations(ctx.functions);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
@@ -1256,7 +1260,9 @@ export function invokeFunction(
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
+  ingestExternalOperations(ctx.functions);
   const errors = exeFunc(ctx, ctx.env.funcs[funcName], params);
+  removeExternalOperations(ctx.functions);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   const value = stack.pop()!;

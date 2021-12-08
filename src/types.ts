@@ -45,11 +45,13 @@ export type Ctx = {
   /** Called to retrieve an external variable,
    * returning the value or an error. */
   get: (key: string) => ValOrErr;
-  /** Called when Insitux cannot find a function and assumes it is external.
-   * You should return an error if unknown externally too. */
-  exe: (name: string, args: Val[]) => ValOrErr;
   /** Called to print data out of Insitux. */
   print: (str: string, withNewline: boolean) => void;
+  /** Extra function definitions to make available within this invocation */
+  functions: ExternalFunction[];
+  /** Called when Insitux cannot find a function definition otherwise.
+   * You should return an error if unknown externally too. */
+  exe: (name: string, args: Val[]) => ValOrErr;
   /** Function and variable definitions, retained by you for each invocation. */
   env: Env;
   /** The number of loops an invocation is permitted. */
@@ -91,6 +93,11 @@ export type Operation = {
   returns?: Val["t"][];
 };
 export type ExternalHandler = (params: Val[]) => ValOrErr;
+export type ExternalFunction = {
+  name: string;
+  definition: Operation;
+  handler: ExternalHandler;
+}
 
 export const ops: {
   [name: string]: Operation & { external?: boolean };

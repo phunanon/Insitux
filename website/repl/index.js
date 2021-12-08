@@ -107,6 +107,7 @@ function insituxInvoke(code) {
       print(str, withNewLine) {
         historyAppend(`${str}${withNewLine ? "\n" : ""}`);
       },
+      functions: [],
       rangeBudget: 10000,
       loopBudget: 10000,
       callBudget: 10000,

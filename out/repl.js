@@ -1870,10 +1870,11 @@ function doTests(invoke, terse = true) {
     const valOrErrs = invoke({
       get: (key) => get(state, key),
       set: (key, val) => set(state, key, val),
-      exe: (name2, args) => exe(state, name2, args),
       print(str, withNewLine) {
         state.output += str + (withNewLine ? "\n" : "");
       },
+      exe: (name2, args) => exe(state, name2, args),
+      functions: [],
       env,
       loopBudget: 1e4,
       rangeBudget: 1e3,
@@ -2021,7 +2022,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211206;
+const insituxVersion = 20211208;
 
 
 
@@ -3058,16 +3059,26 @@ function parseAndExe(ctx, code, sourceId) {
   }
   return exeFunc(ctx, ctx.env.funcs["entry"], []);
 }
-function addOperation(name, definition, handler) {
-  if (ops[name] && !externalOps[name]) {
-    throw "Redefining internal operations is disallowed.";
-  }
-  ops[name] = { ...definition, external: true };
-  externalOps[name] = handler;
+function ingestExternalOperations(functions) {
+  functions.forEach(({ name, definition, handler }) => {
+    if (ops[name] && !externalOps[name]) {
+      throw "Redefining internal operations is disallowed.";
+    }
+    ops[name] = { ...definition, external: true };
+    externalOps[name] = handler;
+  });
+}
+function removeExternalOperations(functions) {
+  functions.forEach(({ name }) => {
+    delete ops[name];
+    delete externalOps[name];
+  });
 }
 function invoke(ctx, code, sourceId, printResult = false) {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
+  ingestExternalOperations(ctx.functions);
   const errors = parseAndExe(ctx, code, sourceId);
+  removeExternalOperations(ctx.functions);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
@@ -3083,7 +3094,9 @@ function invokeFunction(ctx, funcName, params) {
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
+  ingestExternalOperations(ctx.functions);
   const errors = exeFunc(ctx, ctx.env.funcs[funcName], params);
+  removeExternalOperations(ctx.functions);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   const value = stack.pop();
@@ -3164,8 +3177,6 @@ function read(path, asLines) {
     value: asLines ? { t: "vec", v: content.split(/\r?\n/).map(str) } : str(content)
   };
 }
-addOperation("read", { exactArity: 1, params: ["str"], returns: ["str"] }, (params) => read(params[0].v, false));
-addOperation("read-lines", { exactArity: 1, params: ["str"], returns: ["vec"] }, (params) => read(params[0].v, true));
 function writeOrAppend(path, content, isAppend = false) {
   (isAppend ? fs.appendFileSync : fs.writeFileSync)(path, content);
   return repl_nullVal;
@@ -3175,19 +3186,43 @@ const writingOpDef = {
   params: ["str", "str"],
   returns: ["str"]
 };
-addOperation("write", writingOpDef, (params) => writeOrAppend(params[0].v, params[1].v));
-addOperation("append", writingOpDef, (params) => writeOrAppend(params[0].v, params[1].v, true));
-addOperation("prompt", {
-  exactArity: 1,
-  params: ["str"],
-  returns: ["str"]
-}, (params) => ({
-  kind: "val",
-  value: {
-    t: "str",
-    v: repl_prompt()(params[0].v)
+const functions = [
+  {
+    name: "read",
+    definition: { exactArity: 1, params: ["str"], returns: ["str"] },
+    handler: (params) => read(params[0].v, false)
+  },
+  {
+    name: "read-lines",
+    definition: { exactArity: 1, params: ["str"], returns: ["vec"] },
+    handler: (params) => read(params[0].v, true)
+  },
+  {
+    name: "write",
+    definition: writingOpDef,
+    handler: (params) => writeOrAppend(params[0].v, params[1].v)
+  },
+  {
+    name: "append",
+    definition: writingOpDef,
+    handler: (params) => writeOrAppend(params[0].v, params[1].v, true)
+  },
+  {
+    name: "prompt",
+    definition: {
+      exactArity: 1,
+      params: ["str"],
+      returns: ["str"]
+    },
+    handler: (params) => ({
+      kind: "val",
+      value: {
+        t: "str",
+        v: repl_prompt()(params[0].v)
+      }
+    })
   }
-}));
+];
 const env = new Map();
 function repl_get(key) {
   return env.has(key) ? { kind: "val", value: env.get(key) } : {
@@ -3203,10 +3238,11 @@ const ctx = {
   env: { funcs: {}, vars: {} },
   get: repl_get,
   set: repl_set,
-  exe: repl_exe,
+  functions,
   print(str, withNewLine) {
     process.stdout.write(`[32m${str}[0m${withNewLine ? "\n" : ""}`);
   },
+  exe: repl_exe,
   loopBudget: 1e7,
   rangeBudget: 1e6,
   callBudget: 1e8,

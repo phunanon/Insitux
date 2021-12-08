@@ -425,10 +425,11 @@ export function doTests(
       {
         get: (key: string) => get(state, key),
         set: (key: string, val: Val) => set(state, key, val),
-        exe: (name: string, args: Val[]) => exe(state, name, args),
         print(str, withNewLine) {
           state.output += str + (withNewLine ? "\n" : "");
         },
+        exe: (name: string, args: Val[]) => exe(state, name, args),
+        functions: [],
         env,
         loopBudget: 10000,
         rangeBudget: 1000,
