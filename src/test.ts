@@ -18,10 +18,6 @@ function set(state: State, key: string, val: Val): string | undefined {
 function exe(state: State, name: string, args: Val[]): ValOrErr {
   const nullVal: Val = { t: "null", v: undefined };
   switch (name) {
-    case "print-str":
-      state.output += args[0].v;
-      break;
-    case "print":
     case "test.function":
       state.output += args[0].v + "\n";
       break;
@@ -117,7 +113,7 @@ const tests: {
   { name: "Boolean select", code: `[(true 1 2) (false 1)]`, out: `[1 null]` },
   {
     name: "Sum vector of numbers",
-    code: `[(reduce + [1 2 3]) (reduce + [1 2 3] 3)]`,
+    code: `[(reduce + [1 2 3]) (reduce + 3 [1 2 3])]`,
     out: `[6 9]`,
   },
   {
@@ -275,6 +271,47 @@ const tests: {
     code: `(@((do +) 2) 2)`,
     out: `4`,
   },
+  {
+    name: "Parameterised closure 1",
+    code: `((fn a b (+ a b)) 2 2)`,
+    out: `4`,
+  },
+  {
+    name: "Parameterised closure 2",
+    code: `((fn a b (print-str a b) (+ a b)) 2 2)`,
+    out: `224`,
+  },
+  {
+    name: "Parameterised closure 3",
+    code: `(((fn (fn 1))))`,
+    out: `1`,
+  },
+  {
+    name: "Destructure var",
+    code: `(var [x [y]] [1 [2]]) [y x]`,
+    out: `[2 1]`,
+  },
+  {
+    name: "Destructure string",
+    code: `(let [a b c] "hello") [a b c]`,
+    out: `["h" "e" "l"]`,
+  },
+  {
+    name: "Destructure function",
+    code: `(function f a [[b c] d] e [e d c b a]) (f 0 [[1 2] 3] 4)`,
+    out: `[4 3 2 1 0]`,
+  },
+  {
+    name: "Destructuring closure",
+    code: `(let f (fn a [b [c]] d [d c b a])) (f 0 [1 [2]] 3)`,
+    out: `[3 2 1 0]`,
+  },
+  {
+    name: "Destructuring fn decoy",
+    code: `(let f (fn a [a [a]])) (f 0)`,
+    out: `[0 [0]]`,
+  },
+  { name: "Threading", code: "(-> 1 inc @(+ 10))", out: `12` },
   //Runtime errors
   {
     name: "String instead of number",
@@ -323,7 +360,7 @@ const tests: {
   {
     name: "frequencies",
     code: `(function frequencies list
-             (reduce #(push % %1 (inc (or (% %1) 0))) list {}))
+             (reduce #(push % %1 (inc (or (% %1) 0))) {} list))
            (frequencies "12121212")`,
     out: `{"1" 4, "2" 4}`,
   },
@@ -388,7 +425,11 @@ export function doTests(
       {
         get: (key: string) => get(state, key),
         set: (key: string, val: Val) => set(state, key, val),
+        print(str, withNewLine) {
+          state.output += str + (withNewLine ? "\n" : "");
+        },
         exe: (name: string, args: Val[]) => exe(state, name, args),
+        functions: [],
         env,
         loopBudget: 10000,
         rangeBudget: 1000,
@@ -396,7 +437,7 @@ export function doTests(
         recurBudget: 10000,
       },
       code,
-      "testing",
+      code,
       true,
     );
     const errors = valOrErrs.kind === "errors" ? valOrErrs.errors : [];
@@ -407,7 +448,7 @@ export function doTests(
       padEnd(`${t + 1}`, 3),
       padEnd(name, 24),
       padEnd(`${elapsedMs}ms`, 6),
-      okOut || out + "\t=/=\t" + trim(state.output),
+      okOut || out + "\t!=\t" + trim(state.output),
       okErr ||
         errors.map(
           ({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`,

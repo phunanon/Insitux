@@ -3,6 +3,291 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 277:
+/***/ ((module) => {
+
+
+
+module.exports = options => {
+	options = Object.assign({
+		onlyFirst: false
+	}, options);
+
+	const pattern = [
+		'[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
+		'(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))'
+	].join('|');
+
+	return new RegExp(pattern, options.onlyFirst ? undefined : 'g');
+};
+
+
+/***/ }),
+
+/***/ 161:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+
+var fs = __webpack_require__(147);
+var stripAnsi = __webpack_require__(3);
+var term = 13; // carriage return
+
+/**
+ * create -- sync function for reading user input from stdin
+ * @param   {Object} config {
+ *   sigint: {Boolean} exit on ^C
+ *   autocomplete: {StringArray} function({String})
+ *   history: {String} a history control object (see `prompt-sync-history`)
+ * }
+ * @returns {Function} prompt function
+ */
+
+ // for ANSI escape codes reference see https://en.wikipedia.org/wiki/ANSI_escape_code
+
+function create(config) {
+
+  config = config || {};
+  var sigint = config.sigint;
+  var eot = config.eot;
+  var autocomplete = config.autocomplete =
+    config.autocomplete || function(){return []};
+  var history = config.history;
+  prompt.history = history || {save: function(){}};
+  prompt.hide = function (ask) { return prompt(ask, {echo: ''}) };
+
+  return prompt;
+
+
+  /**
+   * prompt -- sync function for reading user input from stdin
+   *  @param {String} ask opening question/statement to prompt for
+   *  @param {String} value initial value for the prompt
+   *  @param   {Object} opts {
+   *   echo: set to a character to be echoed, default is '*'. Use '' for no echo
+   *   value: {String} initial value for the prompt
+   *   ask: {String} opening question/statement to prompt for, does not override ask param
+   *   autocomplete: {StringArray} function({String})
+   * }
+   *
+   * @returns {string} Returns the string input or (if sigint === false)
+   *                   null if user terminates with a ^C
+   */
+
+
+  function prompt(ask, value, opts) {
+    var insert = 0, savedinsert = 0, res, i, savedstr;
+    opts = opts || {};
+
+    if (Object(ask) === ask) {
+      opts = ask;
+      ask = opts.ask;
+    } else if (Object(value) === value) {
+      opts = value;
+      value = opts.value;
+    }
+    ask = ask || '';
+    var echo = opts.echo;
+    var masked = 'echo' in opts;
+    autocomplete = opts.autocomplete || autocomplete;
+
+    var fd = (process.platform === 'win32') ?
+      process.stdin.fd :
+      fs.openSync('/dev/tty', 'rs');
+
+    var wasRaw = process.stdin.isRaw;
+    if (!wasRaw) { process.stdin.setRawMode && process.stdin.setRawMode(true); }
+
+    var buf = Buffer.alloc(3);
+    var str = '', character, read;
+
+    savedstr = '';
+
+    if (ask) {
+      process.stdout.write(ask);
+    }
+
+    var cycle = 0;
+    var prevComplete;
+
+    while (true) {
+      read = fs.readSync(fd, buf, 0, 3);
+      if (read > 1) { // received a control sequence
+        switch(buf.toString()) {
+          case '\u001b[A':  //up arrow
+            if (masked) break;
+            if (!history) break;
+            if (history.atStart()) break;
+
+            if (history.atEnd()) {
+              savedstr = str;
+              savedinsert = insert;
+            }
+            str = history.prev();
+            insert = str.length;
+            process.stdout.write('\u001b[2K\u001b[0G' + ask + str);
+            break;
+          case '\u001b[B':  //down arrow
+            if (masked) break;
+            if (!history) break;
+            if (history.pastEnd()) break;
+
+            if (history.atPenultimate()) {
+              str = savedstr;
+              insert = savedinsert;
+              history.next();
+            } else {
+              str = history.next();
+              insert = str.length;
+            }
+            process.stdout.write('\u001b[2K\u001b[0G'+ ask + str + '\u001b['+(insert+ask.length+1)+'G');
+            break;
+          case '\u001b[D': //left arrow
+            if (masked) break;
+            var before = insert;
+            insert = (--insert < 0) ? 0 : insert;
+            if (before - insert)
+              process.stdout.write('\u001b[1D');
+            break;
+          case '\u001b[C': //right arrow
+            if (masked) break;
+            insert = (++insert > str.length) ? str.length : insert;
+            process.stdout.write('\u001b[' + (insert+ask.length+1) + 'G');
+            break;
+          default:
+            if (buf.toString()) {
+              str = str + buf.toString();
+              str = str.replace(/\0/g, '');
+              insert = str.length;
+              promptPrint(masked, ask, echo, str, insert);
+              process.stdout.write('\u001b[' + (insert+ask.length+1) + 'G');
+              buf = Buffer.alloc(3);
+            }
+        }
+        continue; // any other 3 character sequence is ignored
+      }
+
+      // if it is not a control character seq, assume only one character is read
+      character = buf[read-1];
+
+      // catch a ^C and return null
+      if (character == 3){
+        process.stdout.write('^C\n');
+        fs.closeSync(fd);
+
+        if (sigint) process.exit(130);
+
+        process.stdin.setRawMode && process.stdin.setRawMode(wasRaw);
+
+        return null;
+      }
+
+      // catch a ^D and exit
+      if (character == 4) {
+        if (str.length == 0 && eot) {
+          process.stdout.write('exit\n');
+          process.exit(0);
+        }
+      }
+
+      // catch the terminating character
+      if (character == term) {
+        fs.closeSync(fd);
+        if (!history) break;
+        if (!masked && str.length) history.push(str);
+        history.reset();
+        break;
+      }
+
+      // catch a TAB and implement autocomplete
+      if (character == 9) { // TAB
+        res = autocomplete(str);
+
+        if (str == res[0]) {
+          res = autocomplete('');
+        } else {
+          prevComplete = res.length;
+        }
+
+        if (res.length == 0) {
+          process.stdout.write('\t');
+          continue;
+        }
+
+        var item = res[cycle++] || res[cycle = 0, cycle++];
+
+        if (item) {
+          process.stdout.write('\r\u001b[K' + ask + item);
+          str = item;
+          insert = item.length;
+        }
+      }
+
+      if (character == 127 || (process.platform == 'win32' && character == 8)) { //backspace
+        if (!insert) continue;
+        str = str.slice(0, insert-1) + str.slice(insert);
+        insert--;
+        process.stdout.write('\u001b[2D');
+      } else {
+        if ((character < 32 ) || (character > 126))
+            continue;
+        str = str.slice(0, insert) + String.fromCharCode(character) + str.slice(insert);
+        insert++;
+      };
+
+      promptPrint(masked, ask, echo, str, insert);
+
+    }
+
+    process.stdout.write('\n')
+
+    process.stdin.setRawMode && process.stdin.setRawMode(wasRaw);
+
+    return str || value || '';
+  };
+
+
+  function promptPrint(masked, ask, echo, str, insert) {
+    if (masked) {
+        process.stdout.write('\u001b[2K\u001b[0G' + ask + Array(str.length+1).join(echo));
+    } else {
+      process.stdout.write('\u001b[s');
+      if (insert == str.length) {
+          process.stdout.write('\u001b[2K\u001b[0G'+ ask + str);
+      } else {
+        if (ask) {
+          process.stdout.write('\u001b[2K\u001b[0G'+ ask + str);
+        } else {
+          process.stdout.write('\u001b[2K\u001b[0G'+ str + '\u001b[' + (str.length - insert) + 'D');
+        }
+      }
+
+      // Reposition the cursor to the right of the insertion point
+      var askLength = stripAnsi(ask).length;
+      process.stdout.write(`\u001b[${askLength+1+(echo==''? 0:insert)}G`);
+    }
+  }
+};
+
+module.exports = create;
+
+
+/***/ }),
+
+/***/ 3:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+
+const ansiRegex = __webpack_require__(277);
+
+const stripAnsi = string => typeof string === 'string' ? string.replace(ansiRegex(), '') : string;
+
+module.exports = stripAnsi;
+module.exports["default"] = stripAnsi;
+
+
+/***/ }),
+
 /***/ 147:
 /***/ ((module) => {
 
@@ -247,31 +532,36 @@ const ops = {
   tan: { exactArity: 1, numeric: true },
   vec: { returns: ["vec"] },
   dict: { returns: ["dict"] },
-  len: { exactArity: 1, types: [["str", "vec", "dict"]], returns: ["num"] },
+  len: { exactArity: 1, params: [["str", "vec", "dict"]], returns: ["num"] },
   "to-num": {
     exactArity: 1,
-    types: [["str", "num"]],
+    params: [["str", "num"]],
     returns: ["num", "null"]
   },
-  "to-key": { exactArity: 1, types: [["str", "num"]], returns: ["key"] },
-  "has?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
-  idx: { minArity: 2, maxArity: 3, types: [["str", "vec"]], returns: ["num"] },
+  "to-key": { exactArity: 1, params: [["str", "num"]], returns: ["key"] },
+  "has?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  idx: { minArity: 2, maxArity: 3, params: [["str", "vec"]], returns: ["num"] },
   map: { minArity: 2, returns: ["vec"] },
   for: { minArity: 2, returns: ["vec"] },
-  reduce: { minArity: 2, maxArity: 3, types: [[], ["vec", "dict", "str"]] },
+  reduce: { minArity: 2, maxArity: 3 },
   filter: {
     minArity: 2,
-    types: [[], ["vec", "dict", "str"]],
+    params: [[], ["vec", "dict", "str"]],
     returns: ["vec"]
   },
   remove: {
     minArity: 2,
-    types: [[], ["vec", "dict", "str"]],
+    params: [[], ["vec", "dict", "str"]],
     returns: ["vec"]
   },
-  find: { minArity: 2, types: [[], ["vec", "dict", "str"]] },
-  count: { minArity: 2, types: [[], ["vec", "dict", "str"]], returns: ["num"] },
-  repeat: { minArity: 2, types: [[], "num"] },
+  find: { minArity: 2, params: [[], ["vec", "dict", "str"]] },
+  count: {
+    minArity: 2,
+    params: [[], ["vec", "dict", "str"]],
+    returns: ["num"]
+  },
+  repeat: { minArity: 2, params: [[], "num"] },
+  "->": { minArity: 2 },
   str: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
   "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },
@@ -280,7 +570,7 @@ const ops = {
   "...": { minArity: 2 },
   into: {
     exactArity: 2,
-    types: [
+    params: [
       ["vec", "dict"],
       ["vec", "dict"]
     ],
@@ -289,58 +579,57 @@ const ops = {
   push: {
     minArity: 2,
     maxArity: 3,
-    types: [["vec", "dict"]],
+    params: [["vec", "dict"]],
     returns: ["vec", "dict"]
   },
   sect: {
     minArity: 1,
     maxArity: 3,
-    types: [["vec", "str"], "num", "num"],
+    params: [["vec", "str"], "num", "num"],
     returns: ["vec", "str"]
   },
-  reverse: { exactArity: 1, types: [["vec", "str"]], returns: ["vec", "str"] },
+  reverse: { exactArity: 1, params: [["vec", "str"]], returns: ["vec", "str"] },
   sort: {
     minArity: 1,
     maxArity: 2,
-    types: [["vec", "dict", "str"]],
+    params: [["vec", "dict", "str"]],
     returns: ["vec"]
   },
-  keys: { exactArity: 1, types: ["dict"] },
-  vals: { exactArity: 1, types: ["dict"] },
+  keys: { exactArity: 1, params: ["dict"] },
+  vals: { exactArity: 1, params: ["dict"] },
   do: { minArity: 1 },
   val: { minArity: 1 },
   range: { minArity: 1, maxArity: 3, numeric: "in only", returns: ["vec"] },
   "empty?": {
     exactArity: 1,
-    types: [["str", "vec", "dict"]],
+    params: [["str", "vec", "dict"]],
     returns: ["bool"]
   },
-  split: { minArity: 1, maxArity: 2, types: ["str", "str"], returns: ["vec"] },
+  split: { minArity: 1, maxArity: 2, params: ["str", "str"], returns: ["vec"] },
   join: {
-    minArity: 1,
-    maxArity: 2,
-    types: [["vec", "dict", "str"], "str"],
+    exactArity: 2,
+    params: ["str", ["vec", "dict", "str"]],
     returns: ["str"]
   },
-  "starts-with?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
-  "ends-with?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
-  "lower-case": { exactArity: 1, types: ["str"], returns: ["str"] },
-  "upper-case": { exactArity: 1, types: ["str"], returns: ["str"] },
-  trim: { exactArity: 1, types: ["str"], returns: ["str"] },
-  "trim-start": { exactArity: 1, types: ["str"], returns: ["str"] },
-  "trim-end": { exactArity: 1, types: ["str"], returns: ["str"] },
-  "str*": { exactArity: 2, types: ["str", "num"], returns: ["str"] },
+  "starts-with?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  "ends-with?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  "lower-case": { exactArity: 1, params: ["str"], returns: ["str"] },
+  "upper-case": { exactArity: 1, params: ["str"], returns: ["str"] },
+  trim: { exactArity: 1, params: ["str"], returns: ["str"] },
+  "trim-start": { exactArity: 1, params: ["str"], returns: ["str"] },
+  "trim-end": { exactArity: 1, params: ["str"], returns: ["str"] },
+  "str*": { exactArity: 2, params: ["str", "num"], returns: ["str"] },
   "char-code": {
     minArity: 1,
     maxArity: 2,
-    types: [["str", "num"], "num"],
+    params: [["str", "num"], "num"],
     returns: ["str", "num", "null"]
   },
   time: { exactArity: 0, returns: ["num"] },
   version: { exactArity: 0, returns: ["num"] },
-  tests: { minArity: 0, maxArity: 1, types: ["bool"], returns: ["str"] },
+  tests: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["str"] },
   symbols: { exactArity: 0, returns: ["vec"] },
-  eval: { exactArity: 1, types: ["str"] },
+  eval: { exactArity: 1, params: ["str"] },
   reset: { exactArity: 0 },
   recur: {}
 };
@@ -387,7 +676,7 @@ function arityCheck(op, nArg, errCtx) {
   }
 }
 function typeCheck(op, args, errCtx, optimistic = false) {
-  const { types, numeric: onlyNum } = ops[op];
+  const { params: types, numeric: onlyNum } = ops[op];
   const nArg = len(args);
   if (onlyNum) {
     const nonNumArgIdx = args.findIndex((a) => !!len(a) && (optimistic ? !a.find((t) => t === "num") : a[0] !== "num"));
@@ -452,10 +741,11 @@ const { isNum: parse_isNum, len: parse_len, toNum: parse_toNum } = poly_fills_na
 
 const nullVal = { t: "null", v: void 0 };
 const falseVal = { t: "bool", v: false };
+const depthChange = ({ typ }) => parse_toNum(typ === "(") - parse_toNum(typ === ")");
 function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
   const tokens = [];
   const digits = "0123456789";
-  let inString = false, isEscaped = false, inStringAt = [0, 0], inSymbol = false, inNumber = false, inComment = false, line = 1, col = 0;
+  let inString = false, isEscaped = false, inStringAt = [0, 0], inSymbol = false, inNumber = false, inHex = false, inComment = false, line = 1, col = 0;
   for (let i = 0, l = parse_slen(code); i < l; ++i) {
     const c = parse_strIdx(code, i), nextCh = i + 1 !== l ? parse_strIdx(code, i + 1) : "";
     ++col;
@@ -472,7 +762,7 @@ function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
     if (isEscaped) {
       isEscaped = false;
       if (inString) {
-        tokens[parse_len(tokens) - 1].text += { n: "\n", t: "	", '"': '"' }[c] || `\\${c}`;
+        tokens[parse_len(tokens) - 1].text += { n: "\n", t: "	", r: "\r", '"': '"' }[c] || `\\${c}`;
       }
       continue;
     }
@@ -516,7 +806,9 @@ function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
     const isDigit = (ch) => parse_sub(digits, ch);
     const isParen = parse_sub("()[]{}", c);
     if (inNumber && !isDigit(c)) {
-      inNumber = c === "." && !parse_sub(tokens[parse_len(tokens) - 1].text, ".");
+      const hexStart = c === "x" && tokens[parse_len(tokens) - 1].text === "0";
+      inHex = inHex || hexStart;
+      inNumber = c === "b" && tokens[parse_len(tokens) - 1].text === "0" || c === "." && !parse_sub(tokens[parse_len(tokens) - 1].text, ".") || inHex && (hexStart || parse_sub("ABCDEFabcdef", c));
       if (!inNumber && !isParen && !isWhite) {
         inSymbol = true;
         tokens[parse_len(tokens) - 1].typ = "sym";
@@ -547,6 +839,7 @@ function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
         continue;
       }
       inNumber = isDigit(c) || c === "." && isDigit(nextCh) || c === "-" && (isDigit(nextCh) || nextCh === ".");
+      inHex = false;
       inSymbol = !inNumber;
       const typ = inSymbol ? "sym" : "num";
       tokens.push({ typ, text: "", errCtx });
@@ -560,7 +853,7 @@ function segment(tokens) {
   let depth = 0;
   tokens.forEach((token) => {
     segments[parse_len(segments) - 1].push(token);
-    depth += parse_toNum(token.typ === "(") - parse_toNum(token.typ === ")");
+    depth += depthChange(token);
     if (depth === 0) {
       segments.push([]);
     }
@@ -618,18 +911,31 @@ function parseForm(tokens, params, inPartial = true) {
   } else if (op === "var" || op === "let") {
     const ins = [];
     while (true) {
-      const defIns = parseArg(tokens, params);
-      if (parse_len(ins) && !parse_len(defIns)) {
+      const parsedDestructuring = parseParams(tokens, true);
+      if (parse_len(parsedDestructuring.errors)) {
+        return parsedDestructuring.errors;
+      }
+      let def = void 0;
+      if (parse_len(parsedDestructuring.params)) {
+        def = {
+          typ: op === "var" ? "dva" : "dle",
+          value: parsedDestructuring.params,
+          errCtx
+        };
+      }
+      if (!def) {
+        [def] = parseArg(tokens, params);
+      }
+      if (parse_len(ins) && !def) {
         return ins;
       }
       const val = parseArg(tokens, params);
-      if (!parse_len(ins) && (!parse_len(defIns) || !parse_len(val))) {
+      if (!parse_len(ins) && (!def || !parse_len(val))) {
         return err(`must provide at least one declaration name and value`);
       } else if (!parse_len(val)) {
         return err(`must provide a value after each declaration name`);
       }
-      const def = defIns[0];
-      if (def.typ !== "ref") {
+      if (def.typ !== "ref" && def.typ !== "dva" && def.typ !== "dle") {
         return [
           {
             typ: "err",
@@ -639,7 +945,11 @@ function parseForm(tokens, params, inPartial = true) {
         ];
       }
       parse_push(ins, val);
-      ins.push({ typ: op, value: def.value, errCtx });
+      if (def.typ === "ref") {
+        ins.push({ typ: op, value: def.value, errCtx });
+      } else if (def.typ === "dva" || def.typ === "dle") {
+        ins.push({ typ: def.typ, value: def.value, errCtx });
+      }
     }
   } else if (op === "var!" || op === "let!") {
     const ins = [];
@@ -746,7 +1056,7 @@ function parseForm(tokens, params, inPartial = true) {
     if (!parse_len(args)) {
       return err("must provide at least one case");
     }
-    let insCount = args.reduce((acc, a) => acc + parse_len(a) + 1, parse_len(otherwise) ? -1 : 0) + 2;
+    let insCount = args.reduce((acc, a) => acc + parse_len(a) + 1, parse_len(otherwise) ? parse_len(otherwise) - 2 : 0) + 2;
     const ins = cond;
     while (parse_len(args) > 1) {
       const a = args.shift();
@@ -766,7 +1076,7 @@ function parseForm(tokens, params, inPartial = true) {
     return ins;
   }
   const headIns = [];
-  if (typ === "(" || parse_has(params, text) || parse_sub("%#@", parse_strIdx(text, 0))) {
+  if (typ === "(" || parse_has(params.map(({ name }) => name), text) || parse_sub("%#@", parse_strIdx(text, 0))) {
     tokens.unshift(head);
     const ins = parseArg(tokens, params);
     if (inPartial) {
@@ -802,18 +1112,41 @@ function parseArg(tokens, params, inPartial = false) {
     return [];
   }
   const { typ, text, errCtx } = tokens.shift();
-  if (typ === "sym" && parse_sub("#@", text) && parse_len(tokens) && tokens[0].typ === "(") {
+  const isClosure = typ === "sym" && parse_sub("#@", text) && parse_len(tokens) && tokens[0].typ === "(";
+  const isParamClosure = typ === "(" && parse_len(tokens) && tokens[0].text === "fn";
+  if (isClosure || isParamClosure) {
     const texts = tokens.map((t) => t.text);
-    const body = parseArg(tokens, params, text === "@");
-    const err = body.find((t) => t.typ === "err");
-    if (err) {
-      return [err];
+    const fnIns = isParamClosure ? tokens.shift() : void 0;
+    const ins = [];
+    if (isParamClosure) {
+      const parsedParams = parseParams(tokens);
+      params = parsedParams.params;
+      parse_push(ins, parsedParams.errors);
+      if (tokens[0].typ === ")") {
+        return [
+          { typ: "err", value: `fn requires a body`, errCtx: fnIns.errCtx }
+        ];
+      }
+      tokens.unshift({ typ: "sym", text: "do", errCtx });
+      tokens.unshift({ typ: "(", text: "(", errCtx });
+    }
+    parse_push(ins, parseArg(tokens, params, text === "@"));
+    const errors = ins.filter((t) => t.typ === "err");
+    if (parse_len(errors)) {
+      return errors;
+    }
+    if (isParamClosure) {
+      ins.forEach((i) => {
+        if (i.typ === "npa") {
+          i.typ = "upa";
+        }
+      });
     }
     const value = [
-      parse_slice(texts, 0, parse_len(texts) - parse_len(tokens)).join(" "),
-      body
+      (isParamClosure ? "(" : text) + parse_slice(texts, 0, parse_len(texts) - parse_len(tokens)).join(" "),
+      ins
     ];
-    return [{ typ: text === "#" ? "clo" : "par", value, errCtx }];
+    return [{ typ: text === "@" ? "par" : "clo", value, errCtx }];
   }
   switch (typ) {
     case "str":
@@ -837,8 +1170,12 @@ function parseArg(tokens, params, inPartial = false) {
           return [{ typ: "val", value: nullVal, errCtx }];
         }
         return [{ typ: "upa", value, errCtx }];
-      } else if (parse_has(params, text)) {
-        return [{ typ: "npa", value: params.indexOf(text), errCtx }];
+      } else if (parse_has(params.map(({ name }) => name), text)) {
+        const param = params.find(({ name }) => name === text);
+        if (parse_len(param.position) === 1) {
+          return [{ typ: "npa", value: param.position[0], errCtx }];
+        }
+        return [{ typ: "dpa", value: param.position, errCtx }];
       } else if (text === "args") {
         return [{ typ: "upa", value: -1, errCtx }];
       } else if (text === "PI" || text === "E") {
@@ -857,30 +1194,98 @@ function parseArg(tokens, params, inPartial = false) {
       return assertUnreachable(typ);
   }
 }
-function syntaxise({ name, tokens }, errCtx) {
-  const err = (m, eCtx = errCtx) => ["err", { e: "Parse", m, errCtx: eCtx }];
-  const firstNonParam = tokens.findIndex((t) => t.typ !== "sym" || parse_sub("%#@", t.text));
-  const params = parse_slice(tokens, 0, firstNonParam);
-  const body = parse_slice(tokens, firstNonParam);
-  if (name === "(") {
-    return err("nameless function");
+function parseParams(tokens, forVar = false) {
+  if (!parse_len(tokens) || tokens[0].typ === ")") {
+    return { params: [], errors: [] };
   }
-  if (!parse_len(params) && !parse_len(body)) {
-    return err("empty function body");
-  }
-  if (parse_len(body) && body[0].typ === ")") {
-    if (parse_len(params)) {
-      body.unshift(params.pop());
-    } else {
-      return err("empty function body");
+  let depth = 0;
+  const destructs = [];
+  let destruct = [];
+  let hitNonParam = 0;
+  while (parse_len(tokens)) {
+    if (!depth) {
+      destructs.push([]);
+      destruct = destructs[parse_len(destructs) - 1];
+    }
+    depth += depthChange(tokens[0]);
+    if (depth < 0) {
+      break;
+    }
+    destruct.push(tokens.shift());
+    if (destruct[0].typ === "sym" && parse_sub("#@%", destruct[0].text)) {
+      tokens.unshift(destruct[0]);
+      destructs.pop();
+      hitNonParam = 1;
+      break;
+    }
+    if (parse_len(destruct) > 1 && (destruct[1].typ !== "sym" || destruct[1].text !== "vec")) {
+      hitNonParam = 2;
+      break;
+    }
+    if (forVar && !depth) {
+      if (parse_len(destruct) === 1) {
+        tokens.unshift(destruct[0]);
+        return { params: [], errors: [] };
+      }
+      break;
     }
   }
-  if (parse_len(params) && !parse_len(body)) {
-    body.push(params.pop());
+  if (hitNonParam === 2 && depth > 0) {
+    tokens.unshift(destruct[1]);
+    tokens.unshift(destruct[0]);
+    destructs.pop();
+  } else {
+    if (depth < 0) {
+      destructs.pop();
+      destructs.pop().reverse().forEach((t) => tokens.unshift(t));
+    } else if (!hitNonParam && !forVar) {
+      const last = destructs.pop();
+      if (parse_len(last) === 1 && last[0].typ === ")") {
+        parse_push(tokens, destructs.pop());
+      }
+      parse_push(tokens, last);
+    }
   }
-  const ins = [];
-  while (parse_len(body)) {
-    parse_push(ins, parseArg(body, params.map((p) => p.text)));
+  const params = [];
+  const errors = [];
+  const position = [0];
+  destructs.forEach((destruct2) => {
+    destruct2.forEach(({ typ, text, errCtx }) => {
+      if (typ === "sym") {
+        if (text === "vec") {
+          return;
+        }
+        params.push({ name: text, position: parse_slice(position) });
+        ++position[parse_len(position) - 1];
+        return;
+      }
+      if (typ === "(") {
+        position.push(0);
+      } else if (typ === ")") {
+        position.pop();
+        ++position[parse_len(position) - 1];
+      } else {
+        errors.push({
+          typ: "err",
+          value: `disallowed in destructuring`,
+          errCtx
+        });
+      }
+    });
+  });
+  return { params, errors };
+}
+function syntaxise({ name, tokens }, errCtx) {
+  const err = (m, eCtx = errCtx) => ["err", { e: "Parse", m, errCtx: eCtx }];
+  if (name === "(" || name === ")") {
+    return err("nameless function");
+  }
+  if (tokens[0].typ === ")") {
+    return err("empty function body");
+  }
+  const { params, errors: ins } = parseParams(tokens);
+  while (parse_len(tokens)) {
+    parse_push(ins, parseArg(tokens, params));
   }
   for (let i = 0, lim = parse_len(ins); i < lim; i++) {
     const x = ins[i];
@@ -988,6 +1393,8 @@ function insErrorDetect(fins) {
       case "cat":
       case "var":
       case "let":
+      case "dva":
+      case "dle":
       case "loo":
       case "jmp":
         break;
@@ -1001,6 +1408,7 @@ function insErrorDetect(fins) {
       case "ref":
       case "npa":
       case "upa":
+      case "dpa":
         stack.push({});
         break;
       case "if": {
@@ -1077,10 +1485,6 @@ function set(state, key, val) {
 function exe(state, name, args) {
   const nullVal = { t: "null", v: void 0 };
   switch (name) {
-    case "print-str":
-      state.output += args[0].v;
-      break;
-    case "print":
     case "test.function":
       state.output += args[0].v + "\n";
       break;
@@ -1171,7 +1575,7 @@ null`
   { name: "Boolean select", code: `[(true 1 2) (false 1)]`, out: `[1 null]` },
   {
     name: "Sum vector of numbers",
-    code: `[(reduce + [1 2 3]) (reduce + [1 2 3] 3)]`,
+    code: `[(reduce + [1 2 3]) (reduce + 3 [1 2 3])]`,
     out: `[6 9]`
   },
   {
@@ -1332,6 +1736,47 @@ null`
     out: `4`
   },
   {
+    name: "Parameterised closure 1",
+    code: `((fn a b (+ a b)) 2 2)`,
+    out: `4`
+  },
+  {
+    name: "Parameterised closure 2",
+    code: `((fn a b (print-str a b) (+ a b)) 2 2)`,
+    out: `224`
+  },
+  {
+    name: "Parameterised closure 3",
+    code: `(((fn (fn 1))))`,
+    out: `1`
+  },
+  {
+    name: "Destructure var",
+    code: `(var [x [y]] [1 [2]]) [y x]`,
+    out: `[2 1]`
+  },
+  {
+    name: "Destructure string",
+    code: `(let [a b c] "hello") [a b c]`,
+    out: `["h" "e" "l"]`
+  },
+  {
+    name: "Destructure function",
+    code: `(function f a [[b c] d] e [e d c b a]) (f 0 [[1 2] 3] 4)`,
+    out: `[4 3 2 1 0]`
+  },
+  {
+    name: "Destructuring closure",
+    code: `(let f (fn a [b [c]] d [d c b a])) (f 0 [1 [2]] 3)`,
+    out: `[3 2 1 0]`
+  },
+  {
+    name: "Destructuring fn decoy",
+    code: `(let f (fn a [a [a]])) (f 0)`,
+    out: `[0 [0]]`
+  },
+  { name: "Threading", code: "(-> 1 inc @(+ 10))", out: `12` },
+  {
     name: "String instead of number",
     code: `(function sum (.. + args))
            (print (sum 2 2))
@@ -1377,7 +1822,7 @@ null`
   {
     name: "frequencies",
     code: `(function frequencies list
-             (reduce #(push % %1 (inc (or (% %1) 0))) list {}))
+             (reduce #(push % %1 (inc (or (% %1) 0))) {} list))
            (frequencies "12121212")`,
     out: `{"1" 4, "2" 4}`
   },
@@ -1425,13 +1870,17 @@ function doTests(invoke, terse = true) {
     const valOrErrs = invoke({
       get: (key) => get(state, key),
       set: (key, val) => set(state, key, val),
+      print(str, withNewLine) {
+        state.output += str + (withNewLine ? "\n" : "");
+      },
       exe: (name2, args) => exe(state, name2, args),
+      functions: [],
       env,
       loopBudget: 1e4,
       rangeBudget: 1e3,
       callBudget: 1e3,
       recurBudget: 1e4
-    }, code, "testing", true);
+    }, code, code, true);
     const errors = valOrErrs.kind === "errors" ? valOrErrs.errors : [];
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
     const okOut = !out || trim(state.output) === out;
@@ -1440,7 +1889,7 @@ function doTests(invoke, terse = true) {
       padEnd(`${t + 1}`, 3),
       padEnd(name, 24),
       padEnd(`${elapsedMs}ms`, 6),
-      okOut || out + "	=/=	" + trim(state.output),
+      okOut || out + "	!=	" + trim(state.output),
       okErr || errors.map(({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`)
     ];
     results.push({
@@ -1497,7 +1946,7 @@ const stringify = (vals) => vals.reduce((cat, v) => cat + val2str(v), "");
 const val2str = (val) => {
   const quoted = (v) => v.t === "str" ? `"${v.v}"` : val2str(v);
   if (val.t === "clo") {
-    return `#${val.v.name}`;
+    return val.v.name;
   } else if (val.t === "vec") {
     return `[${val.v.map(quoted).join(" ")}]`;
   } else if (val.t === "dict") {
@@ -1573,7 +2022,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211125;
+const insituxVersion = 20211208;
 
 
 
@@ -1590,6 +2039,7 @@ const { isNum: src_isNum, len: src_len, objKeys: src_objKeys, range: src_range, 
 
 
 
+const externalOps = {};
 let stack = [];
 let lets = [];
 let recurArgs;
@@ -1623,10 +2073,8 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       return;
     case "print":
     case "print-str":
-      {
-        ctx.exe(op, [{ t: "str", v: stringify(args) }]);
-        _nul();
-      }
+      ctx.print(stringify(args), op === "print");
+      _nul();
       return;
     case "vec":
       _vec(args);
@@ -1895,13 +2343,13 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
         _vec(array2);
         return;
       }
-      const array = asArray(args.shift());
       if (op !== "reduce") {
+        const array2 = asArray(args.shift());
         const isRemove = op === "remove", isFind = op === "find", isCount = op === "count";
         const filtered = [];
         let count = 0;
-        for (let i = 0, lim = src_len(array); i < lim; ++i) {
-          const errors = closure([array[i], ...args]);
+        for (let i = 0, lim = src_len(array2); i < lim; ++i) {
+          const errors = closure([array2[i], ...args]);
           if (errors) {
             return errors;
           }
@@ -1910,11 +2358,11 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
             count += b2 ? 1 : 0;
           } else if (isFind) {
             if (b2) {
-              stack.push(array[i]);
+              stack.push(array2[i]);
               return;
             }
           } else if (b2 !== isRemove) {
-            filtered.push(array[i]);
+            filtered.push(array2[i]);
           }
         }
         switch (op) {
@@ -1928,6 +2376,11 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
         _vec(filtered);
         return;
       }
+      const arrayVal = args.pop();
+      if (!src_has(["vec", "dict", "str"], arrayVal.t)) {
+        return tErr(`must reduce either: string, vector, dictionary, not ${typeNames[arrayVal.t]}`);
+      }
+      const array = asArray(arrayVal);
       if (!src_len(array)) {
         if (src_len(args)) {
           stack.push(args[0]);
@@ -1974,6 +2427,16 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
         }
       }
       _vec(result);
+      return;
+    }
+    case "->": {
+      stack.push(args.shift());
+      for (let i = 0, end = src_len(args); i < end; ++i) {
+        const errors = getExe(ctx, args[i], errCtx)([stack.pop()]);
+        if (errors) {
+          return errors;
+        }
+      }
       return;
     }
     case "rand-int":
@@ -2141,10 +2604,10 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
       return;
     case "split":
-      _vec(str(args[0]).split(src_len(args) > 1 ? str(args[1]) : " ").map((v) => ({ t: "str", v })));
+      _vec(str(args[src_len(args) - 1]).split(src_len(args) - 1 ? str(args[0]) : " ").map((v) => ({ t: "str", v })));
       return;
     case "join":
-      _str(asArray(args[0]).map(val2str).join(src_len(args) > 1 ? str(args[1]) : " "));
+      _str(asArray(args[1]).map(val2str).join(str(args[0])));
       return;
     case "starts-with?":
     case "ends-with?":
@@ -2159,7 +2622,7 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       return;
     case "str*": {
       const text = str(args[0]);
-      _str(src_range(src_max(num(args[1]), 0)).map((n) => text).join(""));
+      _str(src_range(src_max(src_ceil(num(args[1])), 0)).map((n) => text).join(""));
       return;
     }
     case "char-code": {
@@ -2227,6 +2690,15 @@ function getExe(ctx, op, errCtx, checkArity = true) {
   if (op.t === "str" || op.t === "func") {
     const name = op.v;
     if (ops[name]) {
+      if (ops[name].external) {
+        return (params) => {
+          const valOrErr = externalOps[name](params);
+          if (valOrErr.kind === "err") {
+            return [{ e: "External", m: valOrErr.err, errCtx }];
+          }
+          stack.push(valOrErr.value);
+        };
+      }
       return (params) => exeOp(name, params, ctx, errCtx, checkArity);
     }
     if (name in ctx.env.funcs) {
@@ -2355,6 +2827,21 @@ function src_errorsToDict(errors) {
     return { t: "dict", v: dict };
   });
 }
+function destruct(args, shape) {
+  let arr = args;
+  for (let a = 0, b = src_len(shape) - 1; a < b; ++a) {
+    const val = arr[shape[a]];
+    if (val.t === "vec") {
+      arr = val.v;
+    } else if (val.t === "str" && a + 1 === b && shape[a + 1] < src_slen(val.v)) {
+      return { t: "str", v: src_strIdx(val.v, shape[a + 1]) };
+    } else {
+      return { t: "null", v: void 0 };
+    }
+  }
+  const pos = shape[src_len(shape) - 1];
+  return pos >= src_len(arr) ? { t: "null", v: void 0 } : arr[pos];
+}
 function exeFunc(ctx, func, args, inClosure = false) {
   --ctx.callBudget;
   if (!inClosure) {
@@ -2384,73 +2871,88 @@ function exeFunc(ctx, func, args, inClosure = false) {
       case "let":
         lets[src_len(lets) - 1][ins.value] = stack[src_len(stack) - 1];
         break;
+      case "dle":
+      case "dva": {
+        const paramsShape = ins.value;
+        const val = stack.pop();
+        let last;
+        paramsShape.forEach(({ name, position }) => {
+          if (ins.typ === "dva") {
+            last = ctx.env.vars[name] = destruct([val], position);
+          } else {
+            last = lets[src_len(lets) - 1][name] = destruct([val], position);
+          }
+        });
+        stack.push(last);
+        break;
+      }
       case "npa":
-      case "upa":
-        {
-          const paramIdx = ins.value;
-          if (paramIdx === -1) {
-            _vec(args);
-          } else if (src_len(args) <= paramIdx) {
-            _nul();
-          } else {
-            stack.push(args[paramIdx]);
-          }
+      case "upa": {
+        const paramIdx = ins.value;
+        if (paramIdx === -1) {
+          _vec(args);
+        } else if (src_len(args) <= paramIdx) {
+          _nul();
+        } else {
+          stack.push(args[paramIdx]);
         }
         break;
-      case "ref":
-        {
-          const name = ins.value;
-          if (ops[name]) {
-            _fun(name);
-          } else if (src_starts(name, "$")) {
-            const valAndErr = ctx.get(src_substr(name, 1));
-            if (valAndErr.kind === "err") {
-              return [{ e: "External", m: valAndErr.err, errCtx }];
-            }
-            stack.push(valAndErr.value);
-          } else if (name in ctx.env.vars) {
-            stack.push(ctx.env.vars[name]);
-          } else if (name in lets[src_len(lets) - 1]) {
-            stack.push(lets[src_len(lets) - 1][name]);
-          } else if (name in ctx.env.funcs) {
-            _fun(name);
-          } else {
-            return [{ e: "Reference", m: `"${name}" did not exist`, errCtx }];
+      }
+      case "dpa":
+        stack.push(destruct(args, ins.value));
+        break;
+      case "ref": {
+        const name = ins.value;
+        if (ops[name]) {
+          _fun(name);
+        } else if (src_starts(name, "$")) {
+          const valAndErr = ctx.get(src_substr(name, 1));
+          if (valAndErr.kind === "err") {
+            return [{ e: "External", m: valAndErr.err, errCtx }];
           }
+          stack.push(valAndErr.value);
+        } else if (name in ctx.env.vars) {
+          stack.push(ctx.env.vars[name]);
+        } else if (name in lets[src_len(lets) - 1]) {
+          stack.push(lets[src_len(lets) - 1][name]);
+        } else if (name in ctx.env.funcs) {
+          _fun(name);
+        } else {
+          return [{ e: "Reference", m: `"${name}" did not exist`, errCtx }];
         }
         break;
-      case "exe":
-        {
-          const closure = getExe(ctx, stack.pop(), errCtx, false);
-          const nArgs = ins.value;
-          const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
-          const errors = closure(params);
-          if (errors) {
-            const nextCat = src_slice(func.ins, i).findIndex((ins2) => ins2.typ === "cat");
-            if (nextCat !== -1) {
-              i += nextCat;
-              lets[src_len(lets) - 1]["errors"] = {
-                t: "vec",
-                v: src_errorsToDict(errors)
-              };
-              break;
-            }
-            return errors;
-          }
-          if (recurArgs) {
-            lets[src_len(lets) - 1] = {};
-            i = -1;
-            const nArgs2 = ins.value;
-            args = recurArgs;
-            recurArgs = void 0;
-            --ctx.recurBudget;
-            if (!ctx.recurBudget) {
-              return [{ e: "Budget", m: `recurred too many times`, errCtx }];
-            }
+      }
+      case "exe": {
+        const closure = getExe(ctx, stack.pop(), errCtx, false);
+        const nArgs = ins.value;
+        const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
+        const errors = closure(params);
+        if (errors) {
+          const nextCat = src_slice(func.ins, i).findIndex((ins2) => ins2.typ === "cat");
+          if (nextCat !== -1) {
+            i += nextCat;
+            lets[src_len(lets) - 1]["errors"] = {
+              t: "vec",
+              v: src_errorsToDict(errors)
+            };
             break;
           }
+          return errors;
+        }
+        if (recurArgs) {
+          lets[src_len(lets) - 1] = {};
+          i = -1;
+          const nArgs2 = ins.value;
+          args = recurArgs;
+          recurArgs = void 0;
+          --ctx.recurBudget;
+          if (!ctx.recurBudget) {
+            return [{ e: "Budget", m: `recurred too many times`, errCtx }];
+          }
+          break;
         }
         break;
+      }
       case "or":
         if (asBoo(stack[src_len(stack) - 1])) {
           i += ins.value;
@@ -2492,49 +2994,48 @@ function exeFunc(ctx, func, args, inClosure = false) {
         i = lim;
         break;
       case "clo":
-      case "par":
-        {
-          const name = ins.value[0];
-          let cins = ins.value[1];
-          const isCapture = ({ typ, value }, i2) => typ === "ref" && !cins.find((i3) => i3.typ === "let" && i3.value === value) || typ === "npa" || typ === "val" && i2 + 1 !== src_len(cins) && cins[i2 + 1].typ === "exe";
-          const derefFunc = {
-            name: "",
-            ins: cins.map((ins2, i2) => {
-              if (i2 + 1 === src_len(cins)) {
-                return ins2;
-              }
-              const possibleLet = ins2.typ === "val" && ins2.value.t === "str" && cins[i2 + 1].typ === "exe" && lets[src_len(lets) - 1][ins2.value.v];
-              return possibleLet ? { typ: "val", value: possibleLet } : ins2;
-            }).filter(isCapture)
-          };
-          const errors = exeFunc(ctx, derefFunc, args, true);
-          if (errors) {
-            return errors;
-          }
-          const numIns = src_len(derefFunc.ins);
-          const captures = src_splice(stack, src_len(stack) - numIns, numIns);
-          cins = cins.map((ins2, i2) => isCapture(ins2, i2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
-          if (ins.typ === "par") {
-            const { value: exeNumArgs, errCtx: errCtx2 } = cins.pop();
-            if (src_len(cins) > 0 && cins[src_len(cins) - 1].typ === "exe") {
-              const headStartIdx = cins.findIndex((i2) => i2.typ === "exp");
-              const head = src_splice(cins, headStartIdx, src_len(cins) - headStartIdx);
-              src_push(head, cins);
-              cins = head;
-            } else {
-              cins.unshift(cins.pop());
+      case "par": {
+        const name = ins.value[0];
+        let cins = ins.value[1];
+        const isCapture = ({ typ, value }, i2) => typ === "ref" && !cins.find((i3) => i3.typ === "let" && i3.value === value) || typ === "npa" || typ === "val" && i2 + 1 !== src_len(cins) && cins[i2 + 1].typ === "exe";
+        const derefFunc = {
+          name: "",
+          ins: cins.map((ins2, i2) => {
+            if (i2 + 1 === src_len(cins)) {
+              return ins2;
             }
-            cins.push({ typ: "upa", value: -1, errCtx: errCtx2 });
-            cins.push({
-              typ: "val",
-              value: { t: "str", v: "..." },
-              errCtx: errCtx2
-            });
-            cins.push({ typ: "exe", value: exeNumArgs + 2, errCtx: errCtx2 });
-          }
-          stack.push({ t: "clo", v: { name, ins: cins } });
+            const possibleLet = ins2.typ === "val" && ins2.value.t === "str" && cins[i2 + 1].typ === "exe" && lets[src_len(lets) - 1][ins2.value.v];
+            return possibleLet ? { typ: "val", value: possibleLet } : ins2;
+          }).filter(isCapture)
+        };
+        const errors = exeFunc(ctx, derefFunc, args, true);
+        if (errors) {
+          return errors;
         }
+        const numIns = src_len(derefFunc.ins);
+        const captures = src_splice(stack, src_len(stack) - numIns, numIns);
+        cins = cins.map((ins2, i2) => isCapture(ins2, i2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
+        if (ins.typ === "par") {
+          const { value: exeNumArgs, errCtx: errCtx2 } = cins.pop();
+          if (src_len(cins) > 0 && cins[src_len(cins) - 1].typ === "exe") {
+            const headStartIdx = cins.findIndex((i2) => i2.typ === "exp");
+            const head = src_splice(cins, headStartIdx, src_len(cins) - headStartIdx);
+            src_push(head, cins);
+            cins = head;
+          } else {
+            cins.unshift(cins.pop());
+          }
+          cins.push({ typ: "upa", value: -1, errCtx: errCtx2 });
+          cins.push({
+            typ: "val",
+            value: { t: "str", v: "..." },
+            errCtx: errCtx2
+          });
+          cins.push({ typ: "exe", value: exeNumArgs + 2, errCtx: errCtx2 });
+        }
+        stack.push({ t: "clo", v: { name, ins: cins } });
         break;
+      }
       case "exp":
         break;
       default:
@@ -2558,25 +3059,44 @@ function parseAndExe(ctx, code, sourceId) {
   }
   return exeFunc(ctx, ctx.env.funcs["entry"], []);
 }
+function ingestExternalOperations(functions) {
+  functions.forEach(({ name, definition, handler }) => {
+    if (ops[name] && !externalOps[name]) {
+      throw "Redefining internal operations is disallowed.";
+    }
+    ops[name] = { ...definition, external: true };
+    externalOps[name] = handler;
+  });
+}
+function removeExternalOperations(functions) {
+  functions.forEach(({ name }) => {
+    delete ops[name];
+    delete externalOps[name];
+  });
+}
 function invoke(ctx, code, sourceId, printResult = false) {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
+  ingestExternalOperations(ctx.functions);
   const errors = parseAndExe(ctx, code, sourceId);
+  removeExternalOperations(ctx.functions);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
   const value = stack.pop();
   [stack, lets] = [[], []];
   if (printResult && !errors && value) {
-    ctx.exe("print", [{ t: "str", v: val2str(value) }]);
+    ctx.print(val2str(value), true);
   }
   return errors ? { kind: "errors", errors } : value ? { kind: "val", value } : { kind: "empty" };
 }
-function invokeFunction(ctx, funcName, args) {
+function invokeFunction(ctx, funcName, params) {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
-  const errors = exeFunc(ctx, ctx.env.funcs[funcName], args);
+  ingestExternalOperations(ctx.functions);
+  const errors = exeFunc(ctx, ctx.env.funcs[funcName], params);
+  removeExternalOperations(ctx.functions);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   const value = stack.pop();
@@ -2644,6 +3164,65 @@ const fs = __webpack_require__(147);
 
 
 
+const repl_prompt = __webpack_require__(161);
+const repl_nullVal = { kind: "val", value: { t: "null", v: void 0 } };
+function read(path, asLines) {
+  if (!fs.existsSync(path)) {
+    return repl_nullVal;
+  }
+  const content = fs.readFileSync(path).toString();
+  const str = (v) => ({ t: "str", v });
+  return {
+    kind: "val",
+    value: asLines ? { t: "vec", v: content.split(/\r?\n/).map(str) } : str(content)
+  };
+}
+function writeOrAppend(path, content, isAppend = false) {
+  (isAppend ? fs.appendFileSync : fs.writeFileSync)(path, content);
+  return repl_nullVal;
+}
+const writingOpDef = {
+  exactArity: 2,
+  params: ["str", "str"],
+  returns: ["str"]
+};
+const functions = [
+  {
+    name: "read",
+    definition: { exactArity: 1, params: ["str"], returns: ["str"] },
+    handler: (params) => read(params[0].v, false)
+  },
+  {
+    name: "read-lines",
+    definition: { exactArity: 1, params: ["str"], returns: ["vec"] },
+    handler: (params) => read(params[0].v, true)
+  },
+  {
+    name: "write",
+    definition: writingOpDef,
+    handler: (params) => writeOrAppend(params[0].v, params[1].v)
+  },
+  {
+    name: "append",
+    definition: writingOpDef,
+    handler: (params) => writeOrAppend(params[0].v, params[1].v, true)
+  },
+  {
+    name: "prompt",
+    definition: {
+      exactArity: 1,
+      params: ["str"],
+      returns: ["str"]
+    },
+    handler: (params) => ({
+      kind: "val",
+      value: {
+        t: "str",
+        v: repl_prompt()(params[0].v)
+      }
+    })
+  }
+];
 const env = new Map();
 function repl_get(key) {
   return env.has(key) ? { kind: "val", value: env.get(key) } : {
@@ -2659,6 +3238,10 @@ const ctx = {
   env: { funcs: {}, vars: {} },
   get: repl_get,
   set: repl_set,
+  functions,
+  print(str, withNewLine) {
+    process.stdout.write(`[32m${str}[0m${withNewLine ? "\n" : ""}`);
+  },
   exe: repl_exe,
   loopBudget: 1e7,
   rangeBudget: 1e6,
@@ -2666,33 +3249,6 @@ const ctx = {
   recurBudget: 1e4
 };
 function repl_exe(name, args) {
-  const nullVal = { kind: "val", value: { v: void 0, t: "null" } };
-  switch (name) {
-    case "print":
-    case "print-str":
-      process.stdout.write(`[32m${args[0].v}[0m`);
-      if (name === "print") {
-        process.stdout.write("\n");
-      }
-      return nullVal;
-    case "read": {
-      const path = args[0].v;
-      if (!fs.existsSync(path)) {
-        return nullVal;
-      }
-      return {
-        kind: "val",
-        value: { t: "str", v: fs.readFileSync(path).toString() }
-      };
-    }
-    case "append":
-    case "write": {
-      const path = args[0].v;
-      const content = args[1].v;
-      (name === "write" ? fs.writeFileSync : fs.appendFileSync)(path, content);
-      return nullVal;
-    }
-  }
   if (args.length) {
     const a = args[0];
     if (a.t === "str" && a.v.startsWith("$")) {
@@ -2713,15 +3269,15 @@ if (process.argv.length > 2) {
     printErrorOutput(invoker(ctx, code));
   }
 } else {
-  console.log(`Insitux ${insituxVersion} REPL.`);
+  printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: "> ",
+    prompt: "\u276F ",
     completer,
     history: fs.existsSync(".repl-history") ? fs.readFileSync(".repl-history").toString().split("\n").reverse() : []
   });
-  rl.on("line", async (line) => {
+  rl.on("line", (line) => {
     lines.push(line);
     const input = lines.join("\n");
     if (isFinished(input)) {
@@ -2737,7 +3293,7 @@ ${input}`);
       if (input.trim()) {
         printErrorOutput(invoker(ctx, input));
       }
-      rl.setPrompt("> ");
+      rl.setPrompt("\u276F ");
     } else {
       rl.setPrompt(". ");
     }

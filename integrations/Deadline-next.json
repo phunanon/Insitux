@@ -11,6 +11,14 @@
 				]
 			},
 			{
+				"directory": "fn",
+				"description": [
+					"(fn a b (+ a b))",
+					"syntax",
+					"Creates a parameterised closure."
+				]
+			},
+			{
 				"directory": "var",
 				"description": [
 					"(var a 1 b 2 c 3)",
@@ -580,6 +588,14 @@
 				]
 			},
 			{
+				"directory": "->",
+				"description": [
+					"(-> \"hello\" 1 upper-case)",
+					"function",
+					"\"Thread\" return values into the next function, seeded with first argument"
+				]
+			},
+			{
 				"directory": "reverse",
 				"description": [
 					"(reverse [0 1 2 3])",
@@ -647,17 +663,17 @@
 			{
 				"directory": "split",
 				"description": [
-					"(split \"hello\" \"e\")",
+					"(split \"e\" \"hello\")",
 					"function",
-					"Splits a string into a vector by space or a provided string."
+					"Splits a string into a vector by spaces or a provided string."
 				]
 			},
 			{
 				"directory": "join",
 				"description": [
-					"(join [0 1 2 3])",
+					"(join \", \" [0 1 2 3])",
 					"function",
-					"Joins a vector into a string by spaces or a provided string."
+					"Joins a vector into a string by a provided string."
 				]
 			},
 			{

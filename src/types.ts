@@ -38,21 +38,41 @@ export type Env = {
   vars: { [key: string]: Val };
 };
 
+/** A context supplied with an Insitux invocation to provide its environment. */
 export type Ctx = {
-  set: (key: string, val: Val) => string | undefined;
+  /** Called to set an external variable, returning nothing or an error. */
+  set: (key: string, val: Val) => undefined | string;
+  /** Called to retrieve an external variable,
+   * returning the value or an error. */
   get: (key: string) => ValOrErr;
+  /** Called to print data out of Insitux. */
+  print: (str: string, withNewline: boolean) => void;
+  /** Extra function definitions to make available within this invocation */
+  functions: ExternalFunction[];
+  /** Called when Insitux cannot find a function definition otherwise.
+   * You should return an error if unknown externally too. */
   exe: (name: string, args: Val[]) => ValOrErr;
+  /** Function and variable definitions, retained by you for each invocation. */
   env: Env;
+  /** The number of loops an invocation is permitted. */
   loopBudget: number;
+  /** The total length of all `range` calls permitted. */
   rangeBudget: number;
+  /** The total number of function calls permitted. */
   callBudget: number;
+  /** The total number of explicit recursions permitted.
+   * Explicit recursions are unlikely to cause a stack-overflow. */
   recurBudget: number;
 };
+
+export type ParamsShape = { name: string; position: number[] }[];
 
 export type Ins = { errCtx: ErrCtx } & (
   | { typ: "val"; value: Val }
   | { typ: "npa" | "upa"; value: number } //Named and Unnamed parameters
+  | { typ: "dpa"; value: number[] } //Destructuring parameters
   | { typ: "var" | "let" | "ref"; value: string }
+  | { typ: "dva" | "dle"; value: ParamsShape } //Destructuring var/let
   | { typ: "exe"; value: number } //Execute last stack value, number of args
   | { typ: "exp"; value: number } //Marks the start of an expression as head for potential partial closures
   | { typ: "or" | "if" | "jmp" | "loo" | "cat" | "mat"; value: number } //Number of instructions
@@ -61,15 +81,26 @@ export type Ins = { errCtx: ErrCtx } & (
   | { typ: "clo" | "par"; value: [string, Ins[]] } //Closure and partial, text representation and instructions
 );
 
+/** Definition of an operation in Insitux,
+ * with guarantees made for arity (number of parameters) and parameter types.
+ * Return type is specified to inform the parse-time type-checker. */
+export type Operation = {
+  minArity?: number;
+  maxArity?: number;
+  exactArity?: number;
+  numeric?: true | "in only";
+  params?: (Val["t"] | Val["t"][])[];
+  returns?: Val["t"][];
+};
+export type ExternalHandler = (params: Val[]) => ValOrErr;
+export type ExternalFunction = {
+  name: string;
+  definition: Operation;
+  handler: ExternalHandler;
+}
+
 export const ops: {
-  [name: string]: {
-    minArity?: number;
-    maxArity?: number;
-    exactArity?: number;
-    numeric?: true | "in only";
-    types?: (Val["t"] | Val["t"][])[];
-    returns?: Val["t"][];
-  };
+  [name: string]: Operation & { external?: boolean };
 } = {
   print: { returns: ["null"] },
   "print-str": { returns: ["null"] },
@@ -139,31 +170,36 @@ export const ops: {
   tan: { exactArity: 1, numeric: true },
   vec: { returns: ["vec"] },
   dict: { returns: ["dict"] },
-  len: { exactArity: 1, types: [["str", "vec", "dict"]], returns: ["num"] },
+  len: { exactArity: 1, params: [["str", "vec", "dict"]], returns: ["num"] },
   "to-num": {
     exactArity: 1,
-    types: [["str", "num"]],
+    params: [["str", "num"]],
     returns: ["num", "null"],
   },
-  "to-key": { exactArity: 1, types: [["str", "num"]], returns: ["key"] },
-  "has?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
-  idx: { minArity: 2, maxArity: 3, types: [["str", "vec"]], returns: ["num"] },
+  "to-key": { exactArity: 1, params: [["str", "num"]], returns: ["key"] },
+  "has?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  idx: { minArity: 2, maxArity: 3, params: [["str", "vec"]], returns: ["num"] },
   map: { minArity: 2, returns: ["vec"] },
   for: { minArity: 2, returns: ["vec"] },
-  reduce: { minArity: 2, maxArity: 3, types: [[], ["vec", "dict", "str"]] },
+  reduce: { minArity: 2, maxArity: 3 },
   filter: {
     minArity: 2,
     types: [[], ["vec", "dict", "str"]],
-    returns: ["vec", "str"],
+    returns: ["vec", "str", "dict"],
   },
   remove: {
     minArity: 2,
     types: [[], ["vec", "dict", "str"]],
-    returns: ["vec", "str"],
+    returns: ["vec", "str", "dict"],
   },
-  find: { minArity: 2, types: [[], ["vec", "dict", "str"]] },
-  count: { minArity: 2, types: [[], ["vec", "dict", "str"]], returns: ["num"] },
-  repeat: { minArity: 2, types: [[], "num"] },
+  find: { minArity: 2, params: [[], ["vec", "dict", "str"]] },
+  count: {
+    minArity: 2,
+    params: [[], ["vec", "dict", "str"]],
+    returns: ["num"],
+  },
+  repeat: { minArity: 2, params: [[], "num"] },
+  "->": { minArity: 2 },
   str: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
   "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },
@@ -172,7 +208,7 @@ export const ops: {
   "...": { minArity: 2 },
   into: {
     exactArity: 2,
-    types: [
+    params: [
       ["vec", "dict"],
       ["vec", "dict"],
     ],
@@ -181,58 +217,57 @@ export const ops: {
   push: {
     minArity: 2,
     maxArity: 3,
-    types: [["vec", "dict"]],
+    params: [["vec", "dict"]],
     returns: ["vec", "dict"],
   },
   sect: {
     minArity: 1,
     maxArity: 3,
-    types: [["vec", "str"], "num", "num"],
+    params: [["vec", "str"], "num", "num"],
     returns: ["vec", "str"],
   },
-  reverse: { exactArity: 1, types: [["vec", "str"]], returns: ["vec", "str"] },
+  reverse: { exactArity: 1, params: [["vec", "str"]], returns: ["vec", "str"] },
   sort: {
     minArity: 1,
     maxArity: 2,
-    types: [["vec", "dict", "str"]],
+    params: [["vec", "dict", "str"]],
     returns: ["vec"],
   },
-  keys: { exactArity: 1, types: ["dict"] },
-  vals: { exactArity: 1, types: ["dict"] },
+  keys: { exactArity: 1, params: ["dict"] },
+  vals: { exactArity: 1, params: ["dict"] },
   do: { minArity: 1 },
   val: { minArity: 1 },
   range: { minArity: 1, maxArity: 3, numeric: "in only", returns: ["vec"] },
   "empty?": {
     exactArity: 1,
-    types: [["str", "vec", "dict"]],
+    params: [["str", "vec", "dict"]],
     returns: ["bool"],
   },
-  split: { minArity: 1, maxArity: 2, types: ["str", "str"], returns: ["vec"] },
+  split: { minArity: 1, maxArity: 2, params: ["str", "str"], returns: ["vec"] },
   join: {
-    minArity: 1,
-    maxArity: 2,
-    types: [["vec", "dict", "str"], "str"],
+    exactArity: 2,
+    params: ["str", ["vec", "dict", "str"]],
     returns: ["str"],
   },
-  "starts-with?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
-  "ends-with?": { exactArity: 2, types: ["str", "str"], returns: ["bool"] },
-  "lower-case": { exactArity: 1, types: ["str"], returns: ["str"] },
-  "upper-case": { exactArity: 1, types: ["str"], returns: ["str"] },
-  trim: { exactArity: 1, types: ["str"], returns: ["str"] },
-  "trim-start": { exactArity: 1, types: ["str"], returns: ["str"] },
-  "trim-end": { exactArity: 1, types: ["str"], returns: ["str"] },
-  "str*": { exactArity: 2, types: ["str", "num"], returns: ["str"] },
+  "starts-with?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  "ends-with?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  "lower-case": { exactArity: 1, params: ["str"], returns: ["str"] },
+  "upper-case": { exactArity: 1, params: ["str"], returns: ["str"] },
+  trim: { exactArity: 1, params: ["str"], returns: ["str"] },
+  "trim-start": { exactArity: 1, params: ["str"], returns: ["str"] },
+  "trim-end": { exactArity: 1, params: ["str"], returns: ["str"] },
+  "str*": { exactArity: 2, params: ["str", "num"], returns: ["str"] },
   "char-code": {
     minArity: 1,
     maxArity: 2,
-    types: [["str", "num"], "num"],
+    params: [["str", "num"], "num"],
     returns: ["str", "num", "null"],
   },
   time: { exactArity: 0, returns: ["num"] },
   version: { exactArity: 0, returns: ["num"] },
-  tests: { minArity: 0, maxArity: 1, types: ["bool"], returns: ["str"] },
+  tests: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["str"] },
   symbols: { exactArity: 0, returns: ["vec"] },
-  eval: { exactArity: 1, types: ["str"] },
+  eval: { exactArity: 1, params: ["str"] },
   reset: { exactArity: 0 },
   recur: {},
 };

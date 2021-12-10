@@ -16,8 +16,7 @@
     </td>
     <td>
       <a href="https://discord.gg/w3Fc4YZ9Qw">
-        Talk with us
-        <img src="https://phunanon.github.io/Insitux/website/DiscordLogo.png" alt="Discord logo" height="16">
+        <img src="https://discord.com/api/guilds/877823554274590741/widget.png?style=banner2" alt="Discord invite" height="48">
       </a>
     </td>
   </tr>
@@ -314,14 +313,15 @@ etc
 → [0 1 2 0 10 20 0 100 200]
 
 ;"Reduces" a vector, string, or dictionary into one value through a function,
-;  also accepting an initial value as its second argument
+;  optionally accepting an initial value as its second argument
+;  with the collection as its third argument
 ;Note: will return sole item or initial value if there are too few values
 (reduce + [1 2 3])     → 6
 (reduce vec [0 1 2 3]) → [[[0 1] 2] 3]
-(reduce + [1 2 3] 3)   → 9
-(reduce + [1] 1)       → 2
+(reduce + 3 [1 2 3])   → 9
+(reduce + 1 [1])       → 2
 (reduce + [1])         → 1  ;
-(reduce + [] 1)        → 1  ;
+(reduce + 1 [])        → 1  ;
 (reduce + [])          → [] ; + is never called
 
 ;Continues looping until condition becomes false
@@ -390,6 +390,10 @@ etc
 (repeat 1 5)   → [1 1 1 1 1]
 (repeat val 5) → [0 1 2 3 4]
 
+;"Thread" return values into the next function, seeded with first argument
+(-> "hello" 1 upper-case)      → "E"
+(-> [0 1] #(push % 2) reverse) → [2 1 0]
+
 ;Returns the reverse of a vector or string
 (reverse "Hello") → "olleH"
 (reverse [1 2 3]) → [3 2 1]
@@ -417,13 +421,13 @@ etc
 (range 0 4 0)  → [0 1 2 3]
 
 ;Splits a string by spaces or provided delimiting string
-(split "Hello" "e") → ["H" "llo"]
 (split "hi hi!")    → ["hi" "hi!"]
+(split "e" "Hello") → ["H" "llo"]
 
-;Joins a vector, dictionary, or string by spaces or a provided string
-(join [1 2 3])      → "1 2 3"
-(join "hello")      → "h e l l o"
-(join [1 2 3] ", ") → "1, 2, 3"
+;Joins a vector, dictionary, or string by a provided string
+(join " " [1 2 3])      → "1 2 3"
+(join " " "hello")      → "h e l l o"
+(join ", " [1 2 3]) → "1, 2, 3"
 
 ;Tests if a string starts with and ends with another string
 (starts-with? "Hello" "He") → true
@@ -516,6 +520,10 @@ etc
 
 - Write decimal numbers either `0.123` or `.123`.
 
+- Hexadecimal can be written as, for example `0xFFF`
+
+- Binary numbers can be written as, for example `0b0101001`
+
 - Pi and Euler's number are accessible through constants `PI` and `E`
 
 - `args` contains a vector of arguments the function was called with.
@@ -603,7 +611,7 @@ less memory and perform faster.
 **Closures**
 
 A closure is an anonymous (unnamed) function which also "captures" the data
-context around them. The syntax of a closure is:
+context around them. The syntax of a non-parameterised closure is:
 
 ```clj
 #(+ 2 2)
@@ -647,7 +655,60 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (@{:a} 5)   → {:a 5}
 ```
 
-### Various examples
+There are also parameterised closures that can specify parameter names.  
+They accept multiple expressions in their body, with the return value being
+from the last expression.  
+Also useful for passing outer-closure parameters into inner-closures.
+
+```clj
+((fn a b (+ a b)) 2 2) → 4
+((fn a b (repeat #(rand-int a b) 4))
+ 10 20)
+→ [18 13 14 19]
+(var closure (fn x (print-str "hi") (+ x x)))
+(closure 2.5) → hi5
+```
+
+**Destructuring**
+
+Destructuring is a syntax available as part of named function signatures,
+parameterised closure signatures, and var/let declarations. It capitalises on
+a space of otherwise nonsensical syntax - a vector declared but not returned;
+and the name/value pairs in var/let being easily determined between.  
+A "shape" of parameter names or var/let names can be provided in which each vector item or string character is
+"destructured" into.
+```clj
+(function f [x]
+  (str "Hello, " x))
+(f ["Patrick"])
+→ "Hello, Patrick"
+
+(var f (fn [x y]
+  [y x]))
+(f [:a :b :c])
+→ [:b :a]
+
+(function func x [y] z
+  [x y z])
+(func [1 2] [3 4] [5 6])
+→ [[1 2] 3 [5 6]]
+
+(var [x [y z]] [1 [2 3 4 5] 6])
+(str x y z)
+→ "123"
+
+; improper but never causes an error
+(var [x [y]] "hello")
+[x y]
+→ ["h" null]
+
+; also null if there aren't enough items
+(var [x y z] [0 1])
+[x y z]
+→ [0 1 null]
+```
+
+## Various examples
 
 ```clj
 ; Test if 2D point is inside 2D area
@@ -712,10 +773,21 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (palindrome? [2 1 2])     → [2 1 2]
 
 
+; Matrix addition
+(let A [[3  8] [4  6]])
+(let B [[4  0] [1 -9]])
+(map @(map +) A B)
+
+
+; Matrix negation
+(let M [[2 -4] [7 10]])
+(map @(map -) M)
+
+
 ; Clojure's juxt
 (function juxt
   (let funcs args)
-  #(for #(.. %1 %) [args] funcs))
+  #(for ... funcs [args]))
 
 ((juxt + - * /) 10 8)
 → [18 2 80 1.25]
@@ -725,7 +797,7 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (function comp f
   (let funcs (sect args))
   #(do (let 1st (.. f args))
-       (reduce #(%1 %) funcs 1st)))
+       (reduce #(%1 %) 1st funcs)))
 
 (map (comp + inc) [0 1 2 3 4] [0 1 2 3 4])
 → [1 3 5 7 9]
@@ -733,21 +805,10 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 
 ; Clojure's frequencies
 (function frequencies list
-  (reduce #(push % %1 (inc (or (% %1) 0))) list {}))
+  (reduce #(push % %1 (inc (or (% %1) 0))) {} list))
 
 (frequencies "hello")
 → {"h" 1, "e" 1, "l" 2, "o" 1}
-
-
-; Clojure's ->> analog
-(function ->>
-  (if (= (len args) 1) (return (0 args)))
-  (... recur ((1 args) (0 args)) (sect args 2)))
-(->> (range 10)
-    @(filter odd?)
-    @(map #(* % %))
-    @(reduce +))
-→ 165
 
 
 ; Deduplicate a list recursively
@@ -761,7 +822,7 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
   (keys (.. .. dict (for vec list [0]))))
 ;or via reduction
 (function dedupe list
-  (reduce #(if (% %1) % (push % %1)) list []))
+  (reduce #(if (% %1) % (push % %1)) [] list))
 
 (dedupe [1 2 3 3])
 → [1 2 3]
@@ -793,23 +854,33 @@ They can also be in the form of `#[]`, `#{}`, `@[]`, and `@{}`:
 (mandelbrot 56 32 10)
 
 
+; Generate random strong password
+(-> (fn a b (repeat #(char-code (rand-int a b)) 4))
+   #(map % [97 65 48 33] [123 91 58 48])
+   @(.. .. vec)
+   #(sort % #(rand-int 100))
+   @(.. str))
+
+→ "d$W1iP*tO9'V9(y8"
+
+
 ; Convert nested arrays and dictionaries into HTML
 (function vec->html v
   (if! (vec? v) (return v))
   (let has-attr (dict? (1 v))
        attr (if! has-attr ""
               (map #(str " " (0 %) "=\"" (1 %) "\"") (1 v)))
-       tag (0 v)
+       tag (sect (str (0 v)))
        html (.. str "<" tag attr ">"
               (map vec->html (sect v (if has-attr 2 1)))
               "</" tag ">")))
 
 (vec->html
-  ["div"
-    ["h2" "Hello"]
-    ["p" ".PI is " ["b" (round PI 2)] "."]
-    ["p" "Find more about Insitux on "
-       ["a" {"href" "https://github.com/phunanon/Insitux"}
+  [:div
+    [:h2 "Hello"]
+    [:p ".PI is " [:b (round PI 2)] "."]
+    [:p "Find more about Insitux on "
+       [:a {"href" "https://github.com/phunanon/Insitux"}
           "Github"]]])
 → "<div><h2>Hello</h2><p>.PI is <b>3.14</b>.</p><p>Find more about Insitux on <a href="https://github.com/phunanon/Insitux">Github</a></p></div>"
 

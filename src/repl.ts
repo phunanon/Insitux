@@ -1,9 +1,81 @@
 import readline = require("readline");
 import fs = require("fs");
-import { symbols, insituxVersion } from ".";
-import { Ctx, Val, ValOrErr } from "./types";
+import { symbols } from ".";
+import { Ctx, ExternalFunction, Operation, Val, ValOrErr } from "./types";
 import { InvokeOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
+import prompt = require("prompt-sync");
+
+const nullVal: ValOrErr = { kind: "val", value: { t: "null", v: undefined } };
+
+//#region External operations
+function read(path: string, asLines: boolean) {
+  if (!fs.existsSync(path)) {
+    return nullVal;
+  }
+  const content = fs.readFileSync(path).toString();
+  const str = (v: string) => <Val>{ t: "str", v };
+  return <ValOrErr>{
+    kind: "val",
+    value: asLines
+      ? { t: "vec", v: content.split(/\r?\n/).map(str) }
+      : str(content),
+  };
+}
+
+function writeOrAppend(path: string, content: string, isAppend = false) {
+  (isAppend ? fs.appendFileSync : fs.writeFileSync)(path, content);
+  return nullVal;
+}
+
+const writingOpDef: Operation = {
+  exactArity: 2,
+  params: ["str", "str"],
+  returns: ["str"],
+};
+
+const functions: ExternalFunction[] = [
+  {
+    name: "read",
+    definition: { exactArity: 1, params: ["str"], returns: ["str"] },
+    handler: (params: Val[]) => read(<string>params[0].v, false),
+  },
+  {
+    name: "read-lines",
+    definition: { exactArity: 1, params: ["str"], returns: ["vec"] },
+    handler: (params: Val[]) => read(<string>params[0].v, true),
+  },
+  {
+    name: "write",
+    definition: writingOpDef,
+    handler: (params: Val[]) =>
+      writeOrAppend(<string>params[0].v, <string>params[1].v),
+  },
+  {
+    name: "append",
+    definition: writingOpDef,
+    handler: (params: Val[]) =>
+      writeOrAppend(<string>params[0].v, <string>params[1].v, true),
+  },
+  {
+    name: "prompt",
+    definition: {
+      exactArity: 1,
+      params: ["str"],
+      returns: ["str"],
+    },
+    handler: (params: Val[]) => ({
+      kind: "val",
+      value: {
+        t: "str",
+        v: prompt()(<string>params[0].v),
+      },
+    }),
+  },
+];
+//#endregion
+
+//#region Context and implementations
 const env = new Map<string, Val>();
 
 function get(key: string): ValOrErr {
@@ -24,6 +96,10 @@ const ctx: Ctx = {
   env: { funcs: {}, vars: {} },
   get,
   set,
+  functions,
+  print(str, withNewLine) {
+    process.stdout.write(`\x1b[32m${str}\x1b[0m${withNewLine ? "\n" : ""}`);
+  },
   exe,
   loopBudget: 1e7,
   rangeBudget: 1e6,
@@ -31,35 +107,7 @@ const ctx: Ctx = {
   recurBudget: 1e4,
 };
 
-//TODO: argument arity/type checking
 function exe(name: string, args: Val[]): ValOrErr {
-  const nullVal: ValOrErr = { kind: "val", value: { v: undefined, t: "null" } };
-  switch (name) {
-    case "print":
-    case "print-str":
-      process.stdout.write(`\x1b[32m${args[0].v}\x1b[0m`);
-      if (name === "print") {
-        process.stdout.write("\n");
-      }
-      return nullVal;
-    case "read": {
-      const path = args[0].v as string;
-      if (!fs.existsSync(path)) {
-        return nullVal;
-      }
-      return {
-        kind: "val",
-        value: { t: "str", v: fs.readFileSync(path).toString() },
-      };
-    }
-    case "append":
-    case "write": {
-      const path = args[0].v as string;
-      const content = args[1].v as string;
-      (name === "write" ? fs.writeFileSync : fs.appendFileSync)(path, content);
-      return nullVal;
-    }
-  }
   if (args.length) {
     const a = args[0];
     if (a.t === "str" && a.v.startsWith("$")) {
@@ -73,7 +121,9 @@ function exe(name: string, args: Val[]): ValOrErr {
   }
   return { kind: "err", err: `operation ${name} does not exist` };
 }
+//#endregion
 
+//#region REPL IO
 if (process.argv.length > 2) {
   const [x, y, path] = process.argv;
   if (fs.existsSync(path)) {
@@ -81,19 +131,19 @@ if (process.argv.length > 2) {
     printErrorOutput(invoker(ctx, code));
   }
 } else {
-  console.log(`Insitux ${insituxVersion} REPL.`);
+  printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
 
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: "> ",
+    prompt: "❯ ",
     completer,
     history: fs.existsSync(".repl-history")
       ? fs.readFileSync(".repl-history").toString().split("\n").reverse()
       : [],
   });
 
-  rl.on("line", async line => {
+  rl.on("line", line => {
     lines.push(line);
     const input = lines.join("\n");
     if (isFinished(input)) {
@@ -108,7 +158,7 @@ if (process.argv.length > 2) {
       if (input.trim()) {
         printErrorOutput(invoker(ctx, input));
       }
-      rl.setPrompt("> ");
+      rl.setPrompt("❯ ");
     } else {
       rl.setPrompt(". ");
     }
@@ -147,3 +197,4 @@ function printErrorOutput(lines: InvokeOutput) {
     process.stdout.write(`\x1b[${colours[type]}m${text}\x1b[0m`);
   });
 }
+//#endregion

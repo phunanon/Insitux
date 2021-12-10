@@ -16,7 +16,7 @@ const standard = {
     ],
   },
   resolve: {
-    extensions: [".ts"],
+    extensions: [".ts", ".js"],
   },
   devtool: "source-map",
 };
