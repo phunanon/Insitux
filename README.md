@@ -365,12 +365,14 @@ etc
 (sect [0 1 2 3])       → [1 2 3]
 etc
 
-;Filter a vector or string by a function, optionally passing extra arguments
+;Filter a vector or string by a function, optionally passing extra arguments.
+;Return value is the same type as the second argument.
 (filter odd? [0 1 2 3])    → [1 3]
-(filter ["e" "l"] "Hello") → ["e" "l" "l"]
+(filter ["e" "l"] "Hello") → "ell"
 (filter = [1 1 2 2 3 3] 3) → [3 3]
 (remove odd? [0 1 2 3])    → [0 2]
 (remove = [1 1 2 2 3 3] 3) → [1 1 2 2]
+(remove = "hello!" "e")    → "hllo!"
 
 ;Returns the first item or character in a vector or string matching a predicate,
 ;  optionally passing extra arguments

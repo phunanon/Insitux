@@ -185,12 +185,12 @@ export const ops: {
   filter: {
     minArity: 2,
     params: [[], ["vec", "dict", "str"]],
-    returns: ["vec"],
+    returns: ["vec", "str", "dict"],
   },
   remove: {
     minArity: 2,
     params: [[], ["vec", "dict", "str"]],
-    returns: ["vec"],
+    returns: ["vec", "str", "dict"],
   },
   find: { minArity: 2, params: [[], ["vec", "dict", "str"]] },
   count: {

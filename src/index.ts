@@ -388,7 +388,8 @@ function exeOp(
       }
 
       if (op !== "reduce") {
-        const array = asArray(args.shift()!);
+        const arrArg = args.shift()!;
+        const array = asArray(arrArg);
         const isRemove = op === "remove",
           isFind = op === "find",
           isCount = op === "count";
@@ -419,7 +420,13 @@ function exeOp(
             _nul();
             return;
         }
-        _vec(filtered);
+        if (arrArg.t === "str") {
+          _str(filtered.map(v => v.v).join(""));
+        } else if (arrArg.t === "dict") {
+          stack.push(toDict(flat(filtered.map(v => <Val[]>v.v))));
+        } else {
+          _vec(filtered);
+        }
         return;
       }
       const arrayVal = args.pop()!;

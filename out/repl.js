@@ -547,12 +547,12 @@ const ops = {
   filter: {
     minArity: 2,
     params: [[], ["vec", "dict", "str"]],
-    returns: ["vec"]
+    returns: ["vec", "str", "dict"]
   },
   remove: {
     minArity: 2,
     params: [[], ["vec", "dict", "str"]],
-    returns: ["vec"]
+    returns: ["vec", "str", "dict"]
   },
   find: { minArity: 2, params: [[], ["vec", "dict", "str"]] },
   count: {
@@ -2344,7 +2344,8 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
         return;
       }
       if (op !== "reduce") {
-        const array2 = asArray(args.shift());
+        const arrArg = args.shift();
+        const array2 = asArray(arrArg);
         const isRemove = op === "remove", isFind = op === "find", isCount = op === "count";
         const filtered = [];
         let count = 0;
@@ -2373,7 +2374,13 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
             _nul();
             return;
         }
-        _vec(filtered);
+        if (arrArg.t === "str") {
+          _str(filtered.map((v) => v.v).join(""));
+        } else if (arrArg.t === "dict") {
+          stack.push(toDict(src_flat(filtered.map((v) => v.v))));
+        } else {
+          _vec(filtered);
+        }
         return;
       }
       const arrayVal = args.pop();
