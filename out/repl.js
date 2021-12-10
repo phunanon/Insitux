@@ -611,8 +611,8 @@ const ops = {
     params: ["str", ["vec", "dict", "str"]],
     returns: ["str"]
   },
-  "starts-with?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
-  "ends-with?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  "starts?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  "ends?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
   "lower-case": { exactArity: 1, params: ["str"], returns: ["str"] },
   "upper-case": { exactArity: 1, params: ["str"], returns: ["str"] },
   trim: { exactArity: 1, params: ["str"], returns: ["str"] },
@@ -2022,7 +2022,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211208;
+const insituxVersion = 20211210;
 
 
 
@@ -2609,9 +2609,9 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
     case "join":
       _str(asArray(args[1]).map(val2str).join(str(args[0])));
       return;
-    case "starts-with?":
-    case "ends-with?":
-      _boo((op === "starts-with?" ? src_starts : src_ends)(str(args[0]), str(args[1])));
+    case "starts?":
+    case "ends?":
+      _boo((op === "starts?" ? src_starts : src_ends)(str(args[1]), str(args[0])));
       return;
     case "upper-case":
     case "lower-case":
@@ -2679,14 +2679,14 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
   }
   return [{ e: "Unexpected", m: "operation doesn't exist", errCtx }];
 }
+const monoArityError = (t, errCtx) => [
+  {
+    e: "Arity",
+    m: `${typeNames[t]} as op requires one sole argument`,
+    errCtx
+  }
+];
 function getExe(ctx, op, errCtx, checkArity = true) {
-  const monoArityError = [
-    {
-      e: "Arity",
-      m: `${typeNames[op.t]} as op requires one sole argument`,
-      errCtx
-    }
-  ];
   if (op.t === "str" || op.t === "func") {
     const name = op.v;
     if (ops[name]) {
@@ -2713,7 +2713,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
     if (src_starts(name, "$")) {
       return (params) => {
         if (!src_len(params)) {
-          return monoArityError;
+          return monoArityError(op.t, errCtx);
         }
         const err = ctx.set(src_substr(name, 1), params[0]);
         stack.push(params[0]);
@@ -2733,7 +2733,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
   } else if (op.t === "key") {
     return (params) => {
       if (!src_len(params)) {
-        return monoArityError;
+        return monoArityError(op.t, errCtx);
       }
       if (params[0].t === "dict") {
         stack.push(dictGet(dic(params[0]), op));
@@ -2749,17 +2749,17 @@ function getExe(ctx, op, errCtx, checkArity = true) {
     const n = src_floor(op.v);
     return (params) => {
       if (!src_len(params)) {
-        return monoArityError;
+        return monoArityError(op.t, errCtx);
       }
       const a = params[0];
       if (a.t !== "str" && a.t !== "vec" && a.t !== "dict") {
         return numOpErr(errCtx, [a.t]);
       }
-      const arr = asArray(a);
-      if (src_abs(n) >= src_len(arr)) {
+      const arr = asArray(a), alen = src_len(arr);
+      if (n >= 0 && n >= alen || n < 0 && -n > alen) {
         _nul();
       } else if (n < 0) {
-        stack.push(arr[src_len(arr) + n]);
+        stack.push(arr[alen + n]);
       } else {
         stack.push(arr[n]);
       }
@@ -2769,7 +2769,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
     const { v } = op;
     return (params) => {
       if (!src_len(params)) {
-        return monoArityError;
+        return monoArityError(op.t, errCtx);
       }
       const found = v.find((val) => isEqual(val, params[0]));
       if (found) {

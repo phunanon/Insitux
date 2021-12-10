@@ -1,4 +1,4 @@
-export const insituxVersion = 20211208;
+export const insituxVersion = 20211210;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -676,9 +676,9 @@ function exeOp(
     case "join":
       _str(asArray(args[1]).map(val2str).join(str(args[0])));
       return;
-    case "starts-with?":
-    case "ends-with?":
-      _boo((op === "starts-with?" ? starts : ends)(str(args[0]), str(args[1])));
+    case "starts?":
+    case "ends?":
+      _boo((op === "starts?" ? starts : ends)(str(args[1]), str(args[0])));
       return;
     case "upper-case":
     case "lower-case":
@@ -762,19 +762,19 @@ function exeOp(
   return [{ e: "Unexpected", m: "operation doesn't exist", errCtx }];
 }
 
+const monoArityError = (t: Val["t"], errCtx: ErrCtx) => [
+  {
+    e: "Arity",
+    m: `${typeNames[t]} as op requires one sole argument`,
+    errCtx,
+  },
+];
 function getExe(
   ctx: Ctx,
   op: Val,
   errCtx: ErrCtx,
   checkArity = true,
 ): (params: Val[]) => InvokeError[] | undefined {
-  const monoArityError = [
-    {
-      e: "Arity",
-      m: `${typeNames[op.t]} as op requires one sole argument`,
-      errCtx,
-    },
-  ];
   if (op.t === "str" || op.t === "func") {
     const name = op.v;
     if (ops[name]) {
@@ -801,7 +801,7 @@ function getExe(
     if (starts(name, "$")) {
       return (params: Val[]) => {
         if (!len(params)) {
-          return monoArityError;
+          return monoArityError(op.t, errCtx);
         }
         const err = ctx.set(substr(name, 1), params[0]);
         stack.push(params[0]);
@@ -821,7 +821,7 @@ function getExe(
   } else if (op.t === "key") {
     return (params: Val[]) => {
       if (!len(params)) {
-        return monoArityError;
+        return monoArityError(op.t, errCtx);
       }
       if (params[0].t === "dict") {
         stack.push(dictGet(dic(params[0]), op));
@@ -837,17 +837,18 @@ function getExe(
     const n = floor(op.v);
     return (params: Val[]) => {
       if (!len(params)) {
-        return monoArityError;
+        return monoArityError(op.t, errCtx);
       }
       const a = params[0];
       if (a.t !== "str" && a.t !== "vec" && a.t !== "dict") {
         return numOpErr(errCtx, [a.t]);
       }
-      const arr = asArray(a);
-      if (abs(n) >= len(arr)) {
+      const arr = asArray(a),
+        alen = len(arr);
+      if ((n >= 0 && n >= alen) || (n < 0 && -n > alen)) {
         _nul();
       } else if (n < 0) {
-        stack.push(arr[len(arr) + n]);
+        stack.push(arr[alen + n]);
       } else {
         stack.push(arr[n]);
       }
@@ -857,7 +858,7 @@ function getExe(
     const { v } = op;
     return (params: Val[]) => {
       if (!len(params)) {
-        return monoArityError;
+        return monoArityError(op.t, errCtx);
       }
       const found = v.find(val => isEqual(val, params[0]));
       if (found) {

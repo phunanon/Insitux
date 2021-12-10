@@ -428,8 +428,8 @@ etc
 (join ", " [1 2 3]) → "1, 2, 3"
 
 ;Tests if a string starts with and ends with another string
-(starts-with? "Hello" "He") → true
-(ends-with? "Hello" "Lo")   → false
+(starts? "He" "Hello") → true
+(ends? "Lo" "Hello")   → false
 
 ;Returns a string made entirely upper- or lower-case
 (upper-case "hEllo") → "HELLO"
