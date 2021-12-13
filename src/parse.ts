@@ -65,14 +65,11 @@ export function tokenise(
       isEscaped = true;
       continue;
     }
+    const errCtx: ErrCtx = { sourceId: sourceId, line, col };
     if (c === '"') {
       if ((inString = !inString)) {
         inStringAt = [line, col];
-        tokens.push({
-          typ: "str",
-          text: "",
-          errCtx: { sourceId: sourceId, line, col },
-        });
+        tokens.push({ typ: "str", text: "", errCtx });
       }
       inNumber = inSymbol = false;
       continue;
@@ -89,15 +86,10 @@ export function tokenise(
     if (!inString && c === ";") {
       inComment = true;
       if (emitComments) {
-        tokens.push({
-          typ: "rem",
-          text: "",
-          errCtx: { sourceId: sourceId, line, col },
-        });
+        tokens.push({ typ: "rem", text: "", errCtx });
       }
       continue;
     }
-    const errCtx: ErrCtx = { sourceId: sourceId, line, col };
     const isDigit = (ch: string) => sub(digits, ch);
     const isParen = sub("()[]{}", c);
     //Allow one . per number, or hex, or binary, else convert into symbol

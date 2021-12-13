@@ -1,4 +1,4 @@
-export const insituxVersion = 20211210;
+export const insituxVersion = 20211213;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -202,8 +202,8 @@ function exeOp(
       return;
     case "round":
       if (len(args) === 2) {
-        const x = 10 ** <number>args[1].v;
-        _num(round(<number>args[0].v * x) / x);
+        const x = 10 ** <number>args[0].v;
+        _num(round(<number>args[1].v * x) / x);
       } else {
         _num(round(<number>args[0].v));
       }

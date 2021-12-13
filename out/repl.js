@@ -770,14 +770,11 @@ function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
       isEscaped = true;
       continue;
     }
+    const errCtx = { sourceId, line, col };
     if (c === '"') {
       if (inString = !inString) {
         inStringAt = [line, col];
-        tokens.push({
-          typ: "str",
-          text: "",
-          errCtx: { sourceId, line, col }
-        });
+        tokens.push({ typ: "str", text: "", errCtx });
       }
       inNumber = inSymbol = false;
       continue;
@@ -794,15 +791,10 @@ function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
     if (!inString && c === ";") {
       inComment = true;
       if (emitComments) {
-        tokens.push({
-          typ: "rem",
-          text: "",
-          errCtx: { sourceId, line, col }
-        });
+        tokens.push({ typ: "rem", text: "", errCtx });
       }
       continue;
     }
-    const errCtx = { sourceId, line, col };
     const isDigit = (ch) => parse_sub(digits, ch);
     const isParen = parse_sub("()[]{}", c);
     if (inNumber && !isDigit(c)) {
@@ -2022,7 +2014,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211210;
+const insituxVersion = 20211213;
 
 
 
@@ -2195,8 +2187,8 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       return;
     case "round":
       if (src_len(args) === 2) {
-        const x = 10 ** args[1].v;
-        _num(src_round(args[0].v * x) / x);
+        const x = 10 ** args[0].v;
+        _num(src_round(args[1].v * x) / x);
       } else {
         _num(src_round(args[0].v));
       }

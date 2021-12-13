@@ -31,7 +31,7 @@ function insituxHighlight(code) {
       depth += Number(typ == "(");
     } else {
       lines[0] +=
-        typ == "sym" && text == "#"
+        typ == "sym" && text == "#" || text == "@"
           ? `<p${depth}>${text}</p${depth}>`
           : prevText == "("
           ? `<op>${text}</op>`
