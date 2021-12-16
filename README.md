@@ -850,8 +850,8 @@ A "shape" of parameter names or var/let names can be provided in which each vect
 
 ; Time a function call
 (function measure
-  (let report [(time) (.. . args) (time)])
-  (str (1 report) " took " (- (2 report) (0 report)) "ms"))
+  (let [start result end] [(time) (.. . args) (time)])
+  (str result " took " (- end start) "ms"))
 
 (measure fib 35) → "9227465 took 38003ms"
 
