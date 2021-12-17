@@ -182,7 +182,20 @@ function funcise(segments: Token[][]): NamedTokens[] {
 }
 
 type TokenNode = Token | TokenNode[];
+const isToken = (node: TokenNode | undefined): node is Token =>
+  !!node && "typ" in node;
+const sym0Is = ([token]: (TokenNode | undefined)[], text: string) =>
+  isToken(token) && token.typ === "sym" && token.text === text;
+const matchFunc = (node: TokenNode) =>
+  !isToken(node) && sym0Is(node, "function");
+const inverse =
+  <T>(f: (x: T) => boolean) =>
+  (x: T) =>
+    !f(x);
+const tree2str = (nodes: TokenNode[]): string =>
+  nodes.map(n => (isToken(n) ? n.text : `(${tree2str(n)})`)).join(" ");
 
+/** Parses tokens into a tree where each node is a token or token list. */
 function treeise(tokens: Token[]): TokenNode[] {
   const _treeise = (tokens: Token[]): TokenNode => {
     const token = tokens.shift()!;
@@ -201,6 +214,20 @@ function treeise(tokens: Token[]): TokenNode[] {
     nodes.push(_treeise(tokens));
   }
   return nodes;
+}
+
+/** Separates function nodes and non-function nodes,
+ * with non-function nodes collected into (function entry ...)*/
+function collectFuncs(tree: TokenNode[], sourceId: string) {
+  const errCtx = { sourceId: sourceId, line: 0, col: 0 };
+  return [
+    ...tree.filter(matchFunc),
+    [
+      <Token>{ typ: "sym", text: "function", errCtx },
+      <Token>{ typ: "sym", text: "entry", errCtx },
+      ...tree.filter(inverse(matchFunc)),
+    ],
+  ];
 }
 
 function parseAll(tokens: Token[], params: ParamsShape) {
@@ -897,7 +924,8 @@ export function parse(
     return { errors: tokenErrors, funcs: {} };
   }
   const tree = treeise(tokens.slice());
-  console.dir(tree, {depth: 10});
+  const functions = collectFuncs(tree, sourceId);
+  console.log(tree2str(functions));
   const segments = segment(tokens);
   const labelled = funcise(segments);
   const funcsAndErrors = labelled.map(named =>
