@@ -181,6 +181,28 @@ function funcise(segments: Token[][]): NamedTokens[] {
     : described;
 }
 
+type TokenNode = Token | TokenNode[];
+
+function treeise(tokens: Token[]): TokenNode[] {
+  const _treeise = (tokens: Token[]): TokenNode => {
+    const token = tokens.shift()!;
+    if (token.typ !== "(") {
+      return token;
+    }
+    const nodes: TokenNode[] = [];
+    while (tokens[0].typ !== ")") {
+      nodes.push(_treeise(tokens)!);
+    }
+    tokens.shift();
+    return nodes;
+  };
+  const nodes: TokenNode[] = [];
+  while (len(tokens)) {
+    nodes.push(_treeise(tokens));
+  }
+  return nodes;
+}
+
 function parseAll(tokens: Token[], params: ParamsShape) {
   const args: ParserIns[][] = [];
   while (true) {
@@ -874,6 +896,8 @@ export function parse(
   if (len(tokenErrors)) {
     return { errors: tokenErrors, funcs: {} };
   }
+  const tree = treeise(tokens.slice());
+  console.dir(tree, {depth: 10});
   const segments = segment(tokens);
   const labelled = funcise(segments);
   const funcsAndErrors = labelled.map(named =>
