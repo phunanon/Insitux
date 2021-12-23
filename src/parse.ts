@@ -11,11 +11,6 @@ type Token = {
   text: string;
   errCtx: ErrCtx;
 };
-type NamedTokens = {
-  name: string;
-  tokens: Token[];
-  errCtx: ErrCtx;
-};
 type ParserIns = Ins | { typ: "err"; value: string; errCtx: ErrCtx };
 const nullVal: Val = { t: "null", v: undefined };
 const falseVal = <Val>{ t: "bool", v: false };
@@ -145,53 +140,22 @@ export function tokenise(
   return { tokens, stringError: inString ? inStringAt : undefined };
 }
 
-function segment(tokens: Token[]): Token[][] {
-  const segments: Token[][] = [[]];
-  let depth = 0;
-  tokens.forEach(token => {
-    segments[len(segments) - 1].push(token);
-    depth += depthChange(token);
-    if (depth === 0) {
-      segments.push([]);
-    }
-  });
-  return segments;
-}
-
-function funcise(segments: Token[][]): NamedTokens[] {
-  const isFunc = (segment: Token[]) =>
-    len(segment) > 1 &&
-    segment[1].typ === "sym" &&
-    segment[1].text === "function";
-  const funcs = segments.filter(t => isFunc(t));
-  const entries = flat(segments.filter(t => !isFunc(t)));
-  const described = funcs.map(tokens => ({
-    name: tokens[2].text,
-    tokens: slice(tokens, 3),
-    errCtx: tokens[2].errCtx,
-  }));
-  return len(entries)
-    ? concat(described, [
-        {
-          name: "entry",
-          tokens: entries,
-          errCtx: entries[0].errCtx,
-        },
-      ])
-    : described;
-}
-
 type TokenNode = Token | TokenNode[];
-const isToken = (node: TokenNode | undefined): node is Token =>
-  !!node && "typ" in node;
-const sym0Is = ([token]: (TokenNode | undefined)[], text: string) =>
-  isToken(token) && token.typ === "sym" && token.text === text;
-const matchFunc = (node: TokenNode) =>
-  !isToken(node) && sym0Is(node, "function");
+type NamedTokens = {
+  name: string;
+  nodes: TokenNode[];
+  errCtx: ErrCtx;
+};
 const inverse =
   <T>(f: (x: T) => boolean) =>
   (x: T) =>
     !f(x);
+const isToken = (node: TokenNode | undefined): node is Token =>
+  !!node && "typ" in node;
+const isNode = (node: TokenNode | undefined): node is TokenNode[] =>
+  !isToken(node);
+const sym0is = ([token]: (TokenNode | undefined)[], text: string) =>
+  isToken(token) && token.typ === "sym" && token.text === text;
 const tree2str = (nodes: TokenNode[]): string =>
   nodes.map(n => (isToken(n) ? n.text : `(${tree2str(n)})`)).join(" ");
 
@@ -217,17 +181,24 @@ function treeise(tokens: Token[]): TokenNode[] {
 }
 
 /** Separates function nodes and non-function nodes,
- * with non-function nodes collected into (function entry ...)*/
-function collectFuncs(tree: TokenNode[], sourceId: string) {
-  const errCtx = { sourceId: sourceId, line: 0, col: 0 };
-  return [
-    ...tree.filter(matchFunc),
-    [
-      <Token>{ typ: "sym", text: "function", errCtx },
-      <Token>{ typ: "sym", text: "entry", errCtx },
-      ...tree.filter(inverse(matchFunc)),
-    ],
-  ];
+ * with non-function nodes collected into (function entry ...)
+ * if there are any.*/
+function collectFuncs(tree: TokenNode[], sourceId: string): TokenNode[][] {
+  const funcs: TokenNode[][] = [];
+  const entries: TokenNode[] = [];
+  tree.forEach(node => {
+    if (isNode(node) && (sym0is(node, "function") || sym0is(node, "fn"))) {
+      funcs.push(node);
+    } else {
+      entries.push(node);
+    }
+  });
+  if (len(entries)) {
+    const errCtx = { sourceId: sourceId, line: 0, col: 0 };
+    const t = (text: string) => <Token>{ typ: "sym", text, errCtx };
+    funcs.push([t("function"), t("entry"), ...entries]);
+  }
+  return funcs;
 }
 
 function parseAll(tokens: Token[], params: ParamsShape) {
@@ -605,124 +576,74 @@ function parseArg(
  * "(function "
  * */
 function parseParams(
-  tokens: Token[],
+  tokens: TokenNode[],
   forVar = false,
+  position: number[] = [],
 ): { params: ParamsShape; errors: ParserIns[] } {
-  if (!len(tokens) || tokens[0].typ === ")") {
-    return { params: [], errors: [] };
-  }
-  let depth = 0;
-  const destructs: Token[][] = [];
-  let destruct: Token[] = [];
-  let hitNonParam = 0;
-  while (len(tokens)) {
-    if (!depth) {
-      destructs.push([]);
-      destruct = destructs[len(destructs) - 1];
-    }
-    depth += depthChange(tokens[0]);
-    if (depth < 0) {
-      break;
-    }
-    destruct.push(tokens.shift()!);
-    if (destruct[0].typ === "sym" && sub("#@%", destruct[0].text)) {
-      tokens.unshift(destruct[0]);
-      destructs.pop();
-      hitNonParam = 1;
-      break;
-    }
-    if (
-      len(destruct) > 1 &&
-      (destruct[1].typ !== "sym" || destruct[1].text !== "vec")
-    ) {
-      hitNonParam = 2;
-      break;
-    }
-    if (forVar && !depth) {
-      if (len(destruct) === 1) {
-        tokens.unshift(destruct[0]);
-        return { params: [], errors: [] };
-      }
-      break;
-    }
-  }
-  if (hitNonParam === 2 && depth > 0) {
-    tokens.unshift(destruct[1]);
-    tokens.unshift(destruct[0]);
-    destructs.pop();
-  } else {
-    if (depth < 0) {
-      //We reached ) early
-      destructs.pop();
-      destructs
-        .pop()!
-        .reverse()
-        .forEach(t => tokens.unshift(t));
-    } else if (!hitNonParam && !forVar) {
-      //Everything was a valid parameter so the last one is the body
-      const last = destructs.pop()!;
-      if (len(last) === 1 && last[0].typ === ")") {
-        push(tokens, destructs.pop()!);
-      }
-      push(tokens, last);
-    }
-  }
-  const params: ParamsShape = [];
-  const errors: ParserIns[] = [];
-  const position: number[] = [0];
-  destructs.forEach(destruct => {
-    destruct.forEach(({ typ, text, errCtx }) => {
-      if (typ === "sym") {
-        if (text === "vec") {
-          return;
-        }
-        params.push({ name: text, position: slice(position) });
-        ++position[len(position) - 1];
-        return;
-      }
-      if (typ === "(") {
-        position.push(0);
-      } else if (typ === ")") {
-        position.pop();
-        ++position[len(position) - 1];
+  const paras: ParamsShape = [],
+    errs: ParserIns[] = [];
+  let n = 0;
+  while (
+    len(tokens) > (len(position) ? 0 : 1) &&
+    (!isNode(tokens[0]) || sym0is(tokens[0], "vec")) &&
+    !(forVar && len(paras))
+  ) {
+    const param = tokens.shift()!;
+    if (isNode(param)) {
+      param.shift();
+      const { params, errors } = parseParams(param, forVar, [...position, n]);
+      push(paras, params);
+      push(errs, errors);
+    } else {
+      const { typ, text, errCtx } = param;
+      if (len(position) && typ !== "sym") {
+        errs.push({ typ: "err", value: "must be parameter name", errCtx });
       } else {
-        errors.push({
-          typ: "err",
-          value: `disallowed in destructuring`,
-          errCtx,
-        });
+        paras.push({ name: text, position: [...position, n] });
       }
-    });
-    //++position[0];
-  });
-  return { params, errors };
+    }
+    ++n;
+  }
+  return { params: paras, errors: errs };
 }
 
-function syntaxise(
-  { name, tokens }: NamedTokens,
-  errCtx: ErrCtx,
-): ["func", Func] | ["err", InvokeError] {
-  const err = (m: string, eCtx = errCtx) =>
-    <ReturnType<typeof syntaxise>>["err", { e: "Parse", m, errCtx: eCtx }];
-  //In the case of e.g. (function (+)) or (function)
-  if (name === "(" || name === ")") {
-    return err("nameless function");
-  }
-  //In the case of e.g. (function name)
-  if (tokens[0].typ === ")") {
-    return err("empty function body");
-  }
-  const { params, errors: ins } = parseParams(tokens);
+//TODO: remove temporary function
+const flatTree = (tree: TokenNode) => {
+  const tokens: Token[] = [];
+  const descend = (node: TokenNode): void => {
+    if (isToken(node)) {
+      tokens.push(node);
+    } else {
+      tokens.push({
+        typ: "(",
+        text: "(",
+        errCtx: { line: 0, col: 0, sourceId: "" },
+      });
+      node.forEach(descend);
+      tokens.push({
+        typ: ")",
+        text: ")",
+        errCtx: { line: 0, col: 0, sourceId: "" },
+      });
+    }
+  };
+  descend(tree);
+  return tokens;
+};
+
+function syntaxise({ name, nodes }: NamedTokens): Func | InvokeError {
+  const { params, errors: ins } = parseParams(nodes);
+  const tokens = nodes.map(flatTree).flat();
   while (len(tokens)) {
     push(ins, parseArg(tokens, params));
   }
   for (let i = 0, lim = len(ins); i < lim; i++) {
     const x = ins[i];
     if (x.typ === "err") {
-      return err(x.value, x.errCtx);
+      return <InvokeError>{ e: "Parse", m: x.value, errCtx: x.errCtx };
     }
   }
-  return ["func", { name, ins: <Ins[]>ins }];
+  return { name, ins: <Ins[]>ins };
 }
 
 function findParenImbalance(
@@ -923,25 +844,35 @@ export function parse(
   if (len(tokenErrors)) {
     return { errors: tokenErrors, funcs: {} };
   }
-  const tree = treeise(tokens.slice());
-  const functions = collectFuncs(tree, sourceId);
-  console.log(tree2str(functions));
-  const segments = segment(tokens);
-  const labelled = funcise(segments);
-  const funcsAndErrors = labelled.map(named =>
-    syntaxise(named, {
-      sourceId: sourceId,
-      line: named.errCtx.line,
-      col: named.errCtx.col,
-    }),
-  );
   const okFuncs: Func[] = [],
     errors: InvokeError[] = [];
-  funcsAndErrors.forEach(fae => {
-    if (fae[0] === "err") {
-      errors.push(fae[1]);
+  const tree = treeise(tokens.slice());
+  const collected = collectFuncs(tree, sourceId);
+  const labelled: NamedTokens[] = [];
+  collected.forEach(node => {
+    const err = (m: string) =>
+      <InvokeError>{ e: "Parse", m, errCtx: (<Token>node[0]).errCtx };
+    if (isToken(node[1])) {
+      if (len(node) > 2) {
+        labelled.push({
+          name: node[1].text,
+          nodes: node.slice(2),
+          errCtx: node[1].errCtx,
+        });
+      } else {
+        //In the case of e.g. (function name)
+        errors.push(err("empty function body"));
+      }
     } else {
-      okFuncs.push(fae[1]);
+      //In the case of e.g. (function (+)) or (function)
+      errors.push(err("nameless function"));
+    }
+  });
+  labelled.map(syntaxise).forEach(fae => {
+    if ("e" in fae) {
+      errors.push(fae);
+    } else {
+      okFuncs.push(fae);
     }
   });
   push(errors, flat(okFuncs.map(f => insErrorDetect(f.ins) ?? [])));
