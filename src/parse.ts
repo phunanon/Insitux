@@ -486,7 +486,7 @@ function parseForm(nodes: Node[], params: ParamsShape): ParserIns[] {
   if (isArg(firstNode) && "sym" in firstNode) {
     const { sym, errCtx } = firstNode;
     const err = (m: string) => [<ParserIns>{ typ: "err", value: m, errCtx }];
-    if (sym === "if") {
+    if (has(["if", "if!"], sym)) {
       if (!len(nodes)) {
         return err("provide a condition");
       } else if (len(nodes) === 1) {
@@ -495,15 +495,19 @@ function parseForm(nodes: Node[], params: ParamsShape): ParserIns[] {
         return err("provide fewer than two branches");
       }
       const [cond, branch1, branch2] = nodes.map(nodeParser);
+      const ifN = sym === "if!" && [
+        <Ins>{ typ: "val", value: { t: "func", v: "!" }, errCtx },
+        <Ins>{ typ: "exe", value: 1, errCtx },
+      ];
       return [
         ...cond,
+        ...(ifN || []),
         { typ: "if", value: len(branch1) + 1, errCtx },
         ...branch1,
         { typ: "jmp", value: len(branch2), errCtx },
         ...branch2,
       ];
     } else if (sym === "when") {
-      
     }
   }
   const head = nodeParser(firstNode);
