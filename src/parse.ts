@@ -11,11 +11,16 @@ type Token = {
   text: string;
   errCtx: ErrCtx;
 };
+type Arg = { errCtx: ErrCtx } & (
+  | { str: string }
+  | { sym: string }
+  | { num: number }
+  | { rem: string }
+);
+type Node = Arg | Node[];
 type ParserIns = Ins | { typ: "err"; value: string; errCtx: ErrCtx };
 const nullVal: Val = { t: "null", v: undefined };
 const falseVal = <Val>{ t: "bool", v: false };
-
-const depthChange = ({ typ }: Token) => toNum(typ === "(") - toNum(typ === ")");
 
 export function tokenise(
   code: string,
@@ -140,40 +145,47 @@ export function tokenise(
   return { tokens, stringError: inString ? inStringAt : undefined };
 }
 
-type TokenNode = Token | TokenNode[];
-type NamedTokens = {
+type NamedNodes = {
   name: string;
-  nodes: TokenNode[];
-  errCtx: ErrCtx;
+  nodes: Node[];
 };
-const inverse =
-  <T>(f: (x: T) => boolean) =>
-  (x: T) =>
-    !f(x);
-const isToken = (node: TokenNode | undefined): node is Token =>
-  !!node && "typ" in node;
-const isNode = (node: TokenNode | undefined): node is TokenNode[] =>
-  !isToken(node);
-const sym0is = ([token]: (TokenNode | undefined)[], text: string) =>
-  isToken(token) && token.typ === "sym" && token.text === text;
-const tree2str = (nodes: TokenNode[]): string =>
-  nodes.map(n => (isToken(n) ? n.text : `(${tree2str(n)})`)).join(" ");
+const isArg = (node: Node | undefined): node is Arg =>
+  !!node && "errCtx" in node;
+const symAt = (node: Node, pos = 0) => {
+  if (!isArg(node)) {
+    const arg = node[pos];
+    return (isArg(arg) && "sym" in arg && arg.sym) || "";
+  }
+  return "";
+};
+const t2a = ({ typ, text, errCtx }: Token): Arg =>
+  typ === "sym"
+    ? { sym: text, errCtx }
+    : typ === "str"
+    ? { str: text, errCtx }
+    : typ === "num"
+    ? { num: toNum(text), errCtx }
+    : { rem: text, errCtx };
 
 /** Parses tokens into a tree where each node is a token or token list. */
-function treeise(tokens: Token[]): TokenNode[] {
-  const _treeise = (tokens: Token[]): TokenNode => {
-    const token = tokens.shift()!;
-    if (token.typ !== "(") {
-      return token;
+function treeise(tokens: Token[]): Node[] {
+  const nodes: Node[] = [];
+  const _treeise = (tokens: Token[]): Node => {
+    let prefix: Arg | undefined;
+    if (tokens[0].typ === "sym" && sub("@#", tokens[0].text)) {
+      prefix = t2a(tokens.shift()!);
     }
-    const nodes: TokenNode[] = [];
+    const token = tokens.shift()!;
+    if (token.typ !== "(" && token.typ !== ")") {
+      return t2a(token);
+    }
+    const nodes: Node[] = prefix ? [prefix] : [];
     while (tokens[0].typ !== ")") {
-      nodes.push(_treeise(tokens)!);
+      nodes.push(_treeise(tokens));
     }
     tokens.shift();
     return nodes;
   };
-  const nodes: TokenNode[] = [];
   while (len(tokens)) {
     nodes.push(_treeise(tokens));
   }
@@ -183,36 +195,32 @@ function treeise(tokens: Token[]): TokenNode[] {
 /** Separates function nodes and non-function nodes,
  * with non-function nodes collected into (function entry ...)
  * if there are any.*/
-function collectFuncs(tree: TokenNode[], sourceId: string): TokenNode[][] {
-  const funcs: TokenNode[][] = [];
-  const entries: TokenNode[] = [];
-  tree.forEach(node => {
-    if (isNode(node) && (sym0is(node, "function") || sym0is(node, "fn"))) {
-      funcs.push(node);
+function collectFuncs(
+  nodes: Node[],
+  sourceId: string,
+): ({ name: string; nodes: Node[] } | { err: string; errCtx: ErrCtx })[] {
+  const funcs: ReturnType<typeof collectFuncs> = [];
+  const entries: Node[] = [];
+  nodes.forEach(node => {
+    if (!isArg(node) && isArg(node[0]) && symAt(node) === "function") {
+      const name = symAt(node, 1);
+      if (!name) {
+        funcs.push({ err: "nameless function", errCtx: node[0].errCtx });
+      } else if (len(node) < 3) {
+        funcs.push({ err: "empty function body", errCtx: node[0].errCtx });
+      }
+      funcs.push({ name, nodes: node.slice(2) });
     } else {
       entries.push(node);
     }
   });
   if (len(entries)) {
-    const errCtx = { sourceId: sourceId, line: 0, col: 0 };
-    const t = (text: string) => <Token>{ typ: "sym", text, errCtx };
-    funcs.push([t("function"), t("entry"), ...entries]);
+    funcs.push({ name: "entry", nodes: entries });
   }
   return funcs;
 }
 
-function parseAll(tokens: Token[], params: ParamsShape) {
-  const args: ParserIns[][] = [];
-  while (true) {
-    const arg = parseArg(tokens, params);
-    if (!len(arg)) {
-      break;
-    }
-    args.push(arg);
-  }
-  return args;
-}
-
+/*
 function parseForm(
   tokens: Token[],
   params: ParamsShape,
@@ -465,15 +473,83 @@ function parseForm(
   }
   return [...body, ...headIns];
 }
+*/
+
+const parseNode = (node: Node, params: ParamsShape) =>
+  isArg(node) ? parseArg(node, params) : parseForm(node, params);
+
+function parseForm(nodes: Node[], params: ParamsShape): ParserIns[] {
+  if (!len(nodes)) {
+    return [];
+  }
+  const head = parseNode(nodes.shift()!, params);
+  const nodeParser = (node: Node) => parseNode(node, params);
+  const args = nodes.map(nodeParser);
+  const ins: ParserIns[] = [];
+  args.forEach(arg => push(ins, arg));
+  push(ins, head);
+  return [...ins, { typ: "exe", value: len(args), errCtx: head[0].errCtx }];
+}
 
 function parseArg(
-  tokens: Token[],
+  node: Node,
   params: ParamsShape,
   inPartial = false,
 ): ParserIns[] {
-  if (!len(tokens)) {
+  if (isArg(node)) {
+    const { errCtx } = node;
+    if ("str" in node) {
+      return [{ typ: "val", value: <Val>{ t: "str", v: node.str }, errCtx }];
+    }
+    if ("num" in node) {
+      return [{ typ: "val", value: <Val>{ t: "num", v: node.num }, errCtx }];
+    }
+    if ("sym" in node) {
+      const { sym } = node;
+      if (sym === "true" || sym === "false") {
+        return [
+          { typ: "val", value: <Val>{ t: "bool", v: sym === "true" }, errCtx },
+        ];
+      } else if (sym === "null") {
+        return [{ typ: "val", value: nullVal, errCtx }];
+      } else if (sym === "_") {
+        return [{ typ: "val", value: { t: "wild", v: undefined }, errCtx }];
+      } else if (starts(sym, ":")) {
+        return [{ typ: "val", value: <Val>{ t: "key", v: sym }, errCtx }];
+      } else if (starts(sym, "%") && isNum(substr(sym, 1))) {
+        const value = toNum(substr(sym, 1));
+        if (value < 0) {
+          return [{ typ: "val", value: nullVal, errCtx }];
+        }
+        return [{ typ: "upa", value, errCtx }];
+      } else if (
+        has(
+          params.map(({ name }) => name),
+          sym,
+        )
+      ) {
+        const param = params.find(({ name }) => name === sym)!;
+        if (len(param.position) === 1) {
+          return [{ typ: "npa", value: param.position[0], errCtx }];
+        }
+        return [{ typ: "dpa", value: param.position, errCtx }];
+      } else if (sym === "args") {
+        return [{ typ: "upa", value: -1, errCtx }];
+      } else if (sym === "PI" || sym === "E") {
+        const v = sym === "PI" ? 3.141592653589793 : 2.718281828459045;
+        return [{ typ: "val", value: { t: "num", v }, errCtx }];
+      } else if (ops[sym]) {
+        return [{ typ: "val", value: <Val>{ t: "func", v: sym }, errCtx }];
+      }
+      return [{ typ: "ref", value: sym, errCtx }];
+    }
     return [];
   }
+  if (!len(node)) {
+    return [];
+  }
+  return parseForm(node, params);
+  /*
   const { typ, text, errCtx } = tokens.shift() as Token;
   //Upon closure
   const isClosure =
@@ -514,59 +590,10 @@ function parseArg(
     ];
     return [{ typ: text === "@" ? "par" : "clo", value, errCtx }];
   }
-  switch (typ) {
-    case "str":
-      return [{ typ: "val", value: <Val>{ t: "str", v: text }, errCtx }];
-    case "num":
-      return [{ typ: "val", value: <Val>{ t: "num", v: toNum(text) }, errCtx }];
-    case "sym":
-      if (text === "true" || text === "false") {
-        return [
-          { typ: "val", value: <Val>{ t: "bool", v: text === "true" }, errCtx },
-        ];
-      } else if (text === "null") {
-        return [{ typ: "val", value: nullVal, errCtx }];
-      } else if (text === "_") {
-        return [{ typ: "val", value: { t: "wild", v: undefined }, errCtx }];
-      } else if (starts(text, ":")) {
-        return [{ typ: "val", value: <Val>{ t: "key", v: text }, errCtx }];
-      } else if (starts(text, "%") && isNum(substr(text, 1))) {
-        const value = toNum(substr(text, 1));
-        if (value < 0) {
-          return [{ typ: "val", value: nullVal, errCtx }];
-        }
-        return [{ typ: "upa", value, errCtx }];
-      } else if (
-        has(
-          params.map(({ name }) => name),
-          text,
-        )
-      ) {
-        const param = params.find(({ name }) => name === text)!;
-        if (len(param.position) === 1) {
-          return [{ typ: "npa", value: param.position[0], errCtx }];
-        }
-        return [{ typ: "dpa", value: param.position, errCtx }];
-      } else if (text === "args") {
-        return [{ typ: "upa", value: -1, errCtx }];
-      } else if (text === "PI" || text === "E") {
-        const v = text === "PI" ? 3.141592653589793 : 2.718281828459045;
-        return [{ typ: "val", value: { t: "num", v }, errCtx }];
-      } else if (ops[text]) {
-        return [{ typ: "val", value: <Val>{ t: "func", v: text }, errCtx }];
-      }
-      return [{ typ: "ref", value: text, errCtx }];
-    case "(":
-      return parseForm(tokens, params, inPartial);
-    case ")":
-    case "rem":
-      return [];
-    default:
-      return assertUnreachable(typ);
-  }
+  */
 }
 
-/** Accepts tokens and returns ParamsShape.
+/** Consumes some tokens and returns ParamsShape.
  * Example inputs:
  * "(fn "   a [b [c]] d [d c b a]
  * "(var " [a] [1 2] b [1 2]
@@ -576,7 +603,7 @@ function parseArg(
  * "(function "
  * */
 function parseParams(
-  tokens: TokenNode[],
+  nodes: Node[],
   forVar = false,
   position: number[] = [],
 ): { params: ParamsShape; errors: ParserIns[] } {
@@ -584,22 +611,22 @@ function parseParams(
     errs: ParserIns[] = [];
   let n = 0;
   while (
-    len(tokens) > (len(position) ? 0 : 1) &&
-    (!isNode(tokens[0]) || sym0is(tokens[0], "vec")) &&
+    len(nodes) > (len(position) ? 0 : 1) &&
+    (isArg(nodes[0]) || symAt(nodes[0]) === "vec") &&
     !(forVar && len(paras))
   ) {
-    const param = tokens.shift()!;
-    if (isNode(param)) {
+    const param = nodes.shift()!;
+    if (!isArg(param)) {
       param.shift();
       const { params, errors } = parseParams(param, forVar, [...position, n]);
       push(paras, params);
       push(errs, errors);
     } else {
-      const { typ, text, errCtx } = param;
-      if (len(position) && typ !== "sym") {
-        errs.push({ typ: "err", value: "must be parameter name", errCtx });
+      const { errCtx } = param;
+      if ("sym" in param) {
+        paras.push({ name: param.sym, position: [...position, n] });
       } else {
-        paras.push({ name: text, position: [...position, n] });
+        errs.push({ typ: "err", value: "must be parameter name", errCtx });
       }
     }
     ++n;
@@ -607,40 +634,15 @@ function parseParams(
   return { params: paras, errors: errs };
 }
 
-//TODO: remove temporary function
-const flatTree = (tree: TokenNode) => {
-  const tokens: Token[] = [];
-  const descend = (node: TokenNode): void => {
-    if (isToken(node)) {
-      tokens.push(node);
-    } else {
-      tokens.push({
-        typ: "(",
-        text: "(",
-        errCtx: { line: 0, col: 0, sourceId: "" },
-      });
-      node.forEach(descend);
-      tokens.push({
-        typ: ")",
-        text: ")",
-        errCtx: { line: 0, col: 0, sourceId: "" },
-      });
-    }
-  };
-  descend(tree);
-  return tokens;
-};
-
-function syntaxise({ name, nodes }: NamedTokens): Func | InvokeError {
+function compileFunc({ name, nodes: nodes }: NamedNodes): Func | InvokeError {
   const { params, errors: ins } = parseParams(nodes);
-  const tokens = nodes.map(flatTree).flat();
-  while (len(tokens)) {
-    push(ins, parseArg(tokens, params));
-  }
+  nodes.forEach(node => {
+    push(ins, parseArg(node, params));
+  });
   for (let i = 0, lim = len(ins); i < lim; i++) {
-    const x = ins[i];
-    if (x.typ === "err") {
-      return <InvokeError>{ e: "Parse", m: x.value, errCtx: x.errCtx };
+    const { typ, value, errCtx } = ins[i];
+    if (typ === "err") {
+      return <InvokeError>{ e: "Parse", m: value, errCtx };
     }
   }
   return { name, ins: <Ins[]>ins };
@@ -713,6 +715,7 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   return errors;
 }
 
+//TODO: replace with Node implementation
 function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
   type TypeInfo = {
     types?: Val["t"][];
@@ -848,27 +851,15 @@ export function parse(
     errors: InvokeError[] = [];
   const tree = treeise(tokens.slice());
   const collected = collectFuncs(tree, sourceId);
-  const labelled: NamedTokens[] = [];
-  collected.forEach(node => {
-    const err = (m: string) =>
-      <InvokeError>{ e: "Parse", m, errCtx: (<Token>node[0]).errCtx };
-    if (isToken(node[1])) {
-      if (len(node) > 2) {
-        labelled.push({
-          name: node[1].text,
-          nodes: node.slice(2),
-          errCtx: node[1].errCtx,
-        });
-      } else {
-        //In the case of e.g. (function name)
-        errors.push(err("empty function body"));
-      }
+  const namedNodes: NamedNodes[] = [];
+  collected.forEach(nodeOrErr => {
+    if ("err" in nodeOrErr) {
+      errors.push({ e: "Parse", m: nodeOrErr.err, errCtx: nodeOrErr.errCtx });
     } else {
-      //In the case of e.g. (function (+)) or (function)
-      errors.push(err("nameless function"));
+      namedNodes.push({ name: nodeOrErr.name, nodes: nodeOrErr.nodes });
     }
   });
-  labelled.map(syntaxise).forEach(fae => {
+  namedNodes.map(compileFunc).forEach(fae => {
     if ("e" in fae) {
       errors.push(fae);
     } else {
