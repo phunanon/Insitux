@@ -486,19 +486,25 @@ function parseForm(nodes: Node[], params: ParamsShape): ParserIns[] {
   if (isArg(firstNode) && "sym" in firstNode) {
     const { sym, errCtx } = firstNode;
     const err = (m: string) => [<ParserIns>{ typ: "err", value: m, errCtx }];
-    if (has(["if", "if!"], sym)) {
+    if (has(["if", "if!", "when", "match"], sym)) {
       if (!len(nodes)) {
         return err("provide a condition");
-      } else if (len(nodes) === 1) {
+      }
+    }
+    if (has(["if", "if!"], sym)) {
+      if (len(nodes) === 1) {
         return err("provide at least one branch");
       } else if (len(nodes) > 3) {
         return err("provide fewer than two branches");
       }
-      const [cond, branch1, branch2] = nodes.map(nodeParser);
+      let [cond, branch1, branch2] = nodes.map(nodeParser);
       const ifN = sym === "if!" && [
         <Ins>{ typ: "val", value: { t: "func", v: "!" }, errCtx },
         <Ins>{ typ: "exe", value: 1, errCtx },
       ];
+      if (!branch2) {
+        branch2 = [{ typ: "val", value: nullVal, errCtx }];
+      }
       return [
         ...cond,
         ...(ifN || []),
@@ -508,6 +514,18 @@ function parseForm(nodes: Node[], params: ParamsShape): ParserIns[] {
         ...branch2,
       ];
     } else if (sym === "when") {
+      if (len(nodes) === 1) {
+        return err("provide a body");
+      }
+      const [cond, ...body] = nodes.map(nodeParser);
+      const bodyIns = flat(body);
+      return [
+        ...cond,
+        { typ: "if", value: len(bodyIns) + 1, errCtx },
+        ...bodyIns,
+        { typ: "jmp", value: 1, errCtx },
+        { typ: "val", value: nullVal, errCtx },
+      ];
     }
   }
   const head = nodeParser(firstNode);

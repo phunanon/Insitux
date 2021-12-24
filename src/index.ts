@@ -1289,7 +1289,9 @@ export function invokeFunction(
  * (optionally) syntax, constants, and user-defined functions.
  */
 export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
-  let syms = alsoSyntax ? ["function", "let", "var", "if", "if!", "while"] : [];
+  let syms = alsoSyntax
+    ? ["function", "let", "var", "if", "if!", "when", "while"]
+    : [];
   push(syms, ["args", "PI", "E"]);
   syms = concat(syms, objKeys(ops));
   syms = concat(syms, objKeys(ctx.env.funcs));
