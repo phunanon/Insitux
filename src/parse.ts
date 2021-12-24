@@ -197,7 +197,6 @@ function treeise(tokens: Token[]): Node[] {
  * if there are any.*/
 function collectFuncs(
   nodes: Node[],
-  sourceId: string,
 ): ({ name: string; nodes: Node[] } | { err: string; errCtx: ErrCtx })[] {
   const funcs: ReturnType<typeof collectFuncs> = [];
   const entries: Node[] = [];
@@ -482,8 +481,32 @@ function parseForm(nodes: Node[], params: ParamsShape): ParserIns[] {
   if (!len(nodes)) {
     return [];
   }
-  const head = parseNode(nodes.shift()!, params);
   const nodeParser = (node: Node) => parseNode(node, params);
+  const firstNode = nodes.shift()!;
+  if (isArg(firstNode) && "sym" in firstNode) {
+    const { sym, errCtx } = firstNode;
+    const err = (m: string) => [<ParserIns>{ typ: "err", value: m, errCtx }];
+    if (sym === "if") {
+      if (!len(nodes)) {
+        return err("provide a condition");
+      } else if (len(nodes) === 1) {
+        return err("provide at least one branch");
+      } else if (len(nodes) > 3) {
+        return err("provide fewer than two branches");
+      }
+      const [cond, branch1, branch2] = nodes.map(nodeParser);
+      return [
+        ...cond,
+        { typ: "if", value: len(branch1) + 1, errCtx },
+        ...branch1,
+        { typ: "jmp", value: len(branch2), errCtx },
+        ...branch2,
+      ];
+    } else if (sym === "when") {
+      
+    }
+  }
+  const head = nodeParser(firstNode);
   const args = nodes.map(nodeParser);
   const ins: ParserIns[] = [];
   args.forEach(arg => push(ins, arg));
@@ -626,7 +649,7 @@ function parseParams(
       if ("sym" in param) {
         paras.push({ name: param.sym, position: [...position, n] });
       } else {
-        errs.push({ typ: "err", value: "must be parameter name", errCtx });
+        errs.push({ typ: "err", value: "provide parameter name", errCtx });
       }
     }
     ++n;
@@ -850,7 +873,7 @@ export function parse(
   const okFuncs: Func[] = [],
     errors: InvokeError[] = [];
   const tree = treeise(tokens.slice());
-  const collected = collectFuncs(tree, sourceId);
+  const collected = collectFuncs(tree);
   const namedNodes: NamedNodes[] = [];
   collected.forEach(nodeOrErr => {
     if ("err" in nodeOrErr) {
