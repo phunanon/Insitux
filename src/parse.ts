@@ -309,46 +309,6 @@ function parseForm(
     ins.push({ typ: "exe", value: len(args) + 1, errCtx });
     ins.push({ typ: op === "var!" ? "var" : "let", value: def.value, errCtx });
     return ins;
-  } else if (op === "if" || op === "if!" || op === "when") {
-    const cond = parseArg(tokens, params);
-    if (!len(cond)) {
-      return err("must provide condition");
-    }
-    const ins: ParserIns[] = cond;
-    if (op === "if!") {
-      ins.push({ typ: "val", value: { t: "func", v: "!" }, errCtx });
-      ins.push({ typ: "exe", value: 1, errCtx });
-    }
-    if (op === "if" || op === "if!") {
-      const ifT = parseArg(tokens, params);
-      if (!len(ifT)) {
-        return err("must provide a branch");
-      }
-      ins.push({ typ: "if", value: len(ifT) + 1, errCtx });
-      push(ins, ifT);
-      const ifF = parseArg(tokens, params);
-      if (len(ifF)) {
-        ins.push({ typ: "jmp", value: len(ifF), errCtx });
-        push(ins, ifF);
-        const extraneousBranch = parseArg(tokens, params);
-        if (len(extraneousBranch)) {
-          return err(
-            "too many branches; delete this branch",
-            extraneousBranch[0].errCtx,
-          );
-        }
-      } else {
-        ins.push({ typ: "jmp", value: 1, errCtx });
-        ins.push({ typ: "val", value: nullVal, errCtx });
-      }
-    } else {
-      const body = flat(parseAll(tokens, params));
-      ins.push({ typ: "if", value: len(body) + 1, errCtx });
-      push(ins, body);
-      ins.push({ typ: "jmp", value: 1, errCtx });
-      ins.push({ typ: "val", value: nullVal, errCtx });
-    }
-    return ins;
   } else if (op === "and" || op === "or" || op === "while") {
     const args = parseAll(tokens, params);
     let insCount = args.reduce((acc, a) => acc + len(a), 0);
@@ -383,38 +343,6 @@ function parseForm(
         { typ: "val", value: falseVal, errCtx },
       ]);
     } else {
-      ins.push({ typ: "val", value: falseVal, errCtx });
-    }
-    return ins;
-  } else if (op === "match") {
-    const cond = parseArg(tokens, params);
-    if (!len(cond)) {
-      return err("must provide condition");
-    }
-    const args = parseAll(tokens, params);
-    const otherwise: ParserIns[] = len(args) % 2 ? args.pop()! : [];
-    if (!len(args)) {
-      return err("must provide at least one case");
-    }
-    let insCount =
-      args.reduce(
-        (acc, a) => acc + len(a) + 1,
-        len(otherwise) ? len(otherwise) - 2 : 0,
-      ) + 2;
-    const ins: ParserIns[] = cond;
-    while (len(args) > 1) {
-      const a = args.shift()!;
-      const when = args.shift()!;
-      push(ins, a);
-      ins.push({ typ: "mat", value: len(when) + 1, errCtx });
-      push(ins, when);
-      insCount -= len(a) + len(when) + 2;
-      ins.push({ typ: "jmp", value: insCount, errCtx });
-    }
-    if (len(otherwise)) {
-      push(ins, otherwise);
-    } else {
-      ins.push({ typ: "pop", value: 1, errCtx });
       ins.push({ typ: "val", value: falseVal, errCtx });
     }
     return ins;
@@ -526,6 +454,33 @@ function parseForm(nodes: Node[], params: ParamsShape): ParserIns[] {
         { typ: "jmp", value: 1, errCtx },
         { typ: "val", value: nullVal, errCtx },
       ];
+    } else if (sym === "match") {
+      const [cond, ...args] = nodes.map(nodeParser);
+      const otherwise: ParserIns[] = len(args) % 2 ? args.pop()! : [];
+      if (!len(args)) {
+        return err("provide at least one case");
+      }
+      const elseLen = len(otherwise);
+      let insCount =
+        args.reduce((acc, a) => acc + len(a), 0) +
+        (elseLen ? elseLen : 2) +
+        len(args);
+      const ins: ParserIns[] = cond;
+      while (len(args) > 1) {
+        const [a, when] = [args.shift()!, args.shift()!];
+        push(ins, a);
+        ins.push({ typ: "mat", value: len(when) + 1, errCtx });
+        push(ins, when);
+        insCount -= len(a) + len(when) + 2;
+        ins.push({ typ: "jmp", value: insCount, errCtx });
+      }
+      if (len(otherwise)) {
+        push(ins, otherwise);
+      } else {
+        ins.push({ typ: "pop", value: 1, errCtx });
+        ins.push({ typ: "val", value: falseVal, errCtx });
+      }
+      return ins;
     }
   }
   const head = nodeParser(firstNode);

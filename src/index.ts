@@ -1290,7 +1290,7 @@ export function invokeFunction(
  */
 export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
   let syms = alsoSyntax
-    ? ["function", "let", "var", "if", "if!", "when", "while"]
+    ? ["function", "let", "var", "if", "if!", "when", "while", "match", "catch"]
     : [];
   push(syms, ["args", "PI", "E"]);
   syms = concat(syms, objKeys(ops));
