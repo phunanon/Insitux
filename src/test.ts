@@ -384,7 +384,7 @@ const tests: {
   { name: "Function without name", code: `(function (+))`, err: ["Parse"] },
   { name: "Function without body", code: `(function func)`, err: ["Parse"] },
   { name: "Variable not symbol", code: `(var 1 2)`, err: ["Parse"] },
-  //Parser type-errors
+  //Parser type and arity errors
   { name: "Parser type error 1", code: `(function f (+ 1 :a))`, err: ["Type"] },
   {
     name: "Parser type error 2",
@@ -396,6 +396,7 @@ const tests: {
     code: `(function f (if true (into 2 {}) (+ 2 2)))`,
     err: ["Type"],
   },
+  { name: "Parser arity error 1", code: `(function f (+ 1))`, err: ["Parse"] },
 ];
 
 export function doTests(

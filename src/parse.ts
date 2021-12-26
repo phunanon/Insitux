@@ -234,16 +234,6 @@ function parseForm(
   const err = (value: string, eCtx = errCtx) => [
     <ParserIns>{ typ: "err", value, errCtx: eCtx },
   ];
-  if (op === "catch") {
-    if (tokens[0].typ !== "(") {
-      return err("argument 1 must be expression");
-    }
-    const body = parseArg(tokens, params);
-    const when = flat(parseAll(tokens, params));
-    if (!len(body) || !len(when)) {
-      return err("must provide at least 2 arguments");
-    }
-    return [...body, { typ: "cat", value: len(when), errCtx }, ...when];
   } else if (op === "var" || op === "let") {
     const ins: Ins[] = [];
     while (true) {
@@ -364,62 +354,30 @@ function parseForm(
     }
     push(headIns, ins);
   }
-  const parsedArgs = parseAll(tokens, params);
-  const [body, nArgs] = [flat(parsedArgs), len(parsedArgs)];
-  if (op === "return") {
-    return [...body, { typ: "ret", value: !!len(body), errCtx }];
-  }
-
-  //Operation arity check, optionally disabled for partial closures
-  if (ops[op] && !inPartial) {
-    const errors = arityCheck(op, nArgs, errCtx);
-    push(headIns, errors?.map(e => err(e.m)[0]) ?? []);
-    if (!errors) {
-      //Upgrade some math and logic functions to their fast counterparts
-      if (nArgs === 2 && ops[`fast${op}`]) {
-        op = `fast${op}`;
-      }
-    }
-  }
-
-  if (len(headIns)) {
-    headIns.push({ typ: "exe", value: nArgs, errCtx });
-  } else {
-    const value: Val =
-      typ === "num"
-        ? { t: "num", v: toNum(op) }
-        : starts(op, ":")
-        ? { t: "key", v: op }
-        : ops[op]
-        ? { t: "func", v: op }
-        : op === "true" || op === "false"
-        ? { t: "bool", v: op === "true" }
-        : { t: "str", v: op };
-    headIns.push({ typ: "val", value, errCtx });
-    headIns.push({ typ: "exe", value: nArgs, errCtx });
-  }
-  return [...body, ...headIns];
 }
 */
 
 const parseNode = (node: Node, params: ParamsShape) =>
   isArg(node) ? parseArg(node, params) : parseForm(node, params);
 
-function parseForm(nodes: Node[], params: ParamsShape): ParserIns[] {
+function parseForm(
+  nodes: Node[],
+  params: ParamsShape,
+  doArityCheck = true,
+): ParserIns[] {
   if (!len(nodes)) {
     return [];
   }
   const nodeParser = (node: Node) => parseNode(node, params);
   const firstNode = nodes.shift()!;
+  let head = nodeParser(firstNode);
+  const { errCtx } = head[0];
   if (isArg(firstNode) && "sym" in firstNode) {
     const { sym, errCtx } = firstNode;
     const err = (m: string) => [<ParserIns>{ typ: "err", value: m, errCtx }];
-    if (has(["if", "if!", "when", "match"], sym)) {
-      if (!len(nodes)) {
-        return err("provide a condition");
-      }
-    }
-    if (has(["if", "if!"], sym)) {
+    if (has(["if", "if!", "when", "match"], sym) && !len(nodes)) {
+      return err("provide a condition");
+    } else if (has(["if", "if!"], sym)) {
       if (len(nodes) === 1) {
         return err("provide at least one branch");
       } else if (len(nodes) > 3) {
@@ -481,21 +439,43 @@ function parseForm(nodes: Node[], params: ParamsShape): ParserIns[] {
         ins.push({ typ: "val", value: falseVal, errCtx });
       }
       return ins;
+    } else if (sym === "catch") {
+      if (len(nodes) < 2) {
+        return err("provide at least 2 arguments");
+      } else if (isArg(nodes[0])) {
+        return err("argument 1 must be expression");
+      }
+      const body = nodeParser(nodes[0]);
+      const when = flat(nodes.slice(1).map(nodeParser));
+      return [...body, { typ: "cat", value: len(when), errCtx }, ...when];
+    }
+
+    //Operation arity check, optionally disabled for partial closures
+    if (ops[sym] && doArityCheck) {
+      const errors = arityCheck(sym, len(nodes), errCtx);
+      const err = (value: string, eCtx = errCtx) => [
+        <ParserIns>{ typ: "err", value, errCtx: eCtx },
+      ];
+      push(head, errors?.map(e => err(e.m)[0]) ?? []);
+      if (!errors) {
+        //Upgrade some math and logic functions to their faster counterparts
+        if (len(nodes) === 2 && ops[`fast${sym}`]) {
+          head = nodeParser({ sym: `fast${sym}`, errCtx });
+        }
+      }
     }
   }
-  const head = nodeParser(firstNode);
+
   const args = nodes.map(nodeParser);
-  const ins: ParserIns[] = [];
-  args.forEach(arg => push(ins, arg));
+  const ins: ParserIns[] = flat(args);
+  if (symAt(firstNode) === "return") {
+    return [...ins, { typ: "ret", value: !!len(args), errCtx }];
+  }
   push(ins, head);
-  return [...ins, { typ: "exe", value: len(args), errCtx: head[0].errCtx }];
+  return [...ins, { typ: "exe", value: len(args), errCtx }];
 }
 
-function parseArg(
-  node: Node,
-  params: ParamsShape,
-  inPartial = false,
-): ParserIns[] {
+function parseArg(node: Node, params: ParamsShape): ParserIns[] {
   if (isArg(node)) {
     const { errCtx } = node;
     if ("str" in node) {
@@ -635,10 +615,8 @@ function parseParams(
 }
 
 function compileFunc({ name, nodes: nodes }: NamedNodes): Func | InvokeError {
-  const { params, errors: ins } = parseParams(nodes);
-  nodes.forEach(node => {
-    push(ins, parseArg(node, params));
-  });
+  const { params, errors } = parseParams(nodes);
+  const ins = [...errors, ...flat(nodes.map(node => parseArg(node, params)))];
   for (let i = 0, lim = len(ins); i < lim; i++) {
     const { typ, value, errCtx } = ins[i];
     if (typ === "err") {
@@ -715,7 +693,7 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   return errors;
 }
 
-//TODO: replace with Node implementation
+//TODO: investigate Node implementation replacement
 function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
   type TypeInfo = {
     types?: Val["t"][];
