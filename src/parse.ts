@@ -11,13 +11,7 @@ type Token = {
   text: string;
   errCtx: ErrCtx;
 };
-type Arg = { errCtx: ErrCtx } & (
-  | { str: string }
-  | { sym: string }
-  | { num: number }
-  | { rem: string }
-);
-type Node = Arg | Node[];
+type Node = Token | Node[];
 type ParserIns = Ins | { typ: "err"; value: string; errCtx: ErrCtx };
 const nullVal: Val = { t: "null", v: undefined };
 const falseVal = <Val>{ t: "bool", v: false };
@@ -149,35 +143,27 @@ type NamedNodes = {
   name: string;
   nodes: Node[];
 };
-const isArg = (node: Node | undefined): node is Arg =>
+const isToken = (node: Node | undefined): node is Token =>
   !!node && "errCtx" in node;
 const symAt = (node: Node, pos = 0) => {
-  if (!isArg(node)) {
+  if (!isToken(node)) {
     const arg = node[pos];
-    return (isArg(arg) && "sym" in arg && arg.sym) || "";
+    return (isToken(arg) && has(["sym", "str"], arg.typ) && arg.text) || "";
   }
   return "";
 };
-const t2a = ({ typ, text, errCtx }: Token): Arg =>
-  typ === "sym"
-    ? { sym: text, errCtx }
-    : typ === "str"
-    ? { str: text, errCtx }
-    : typ === "num"
-    ? { num: toNum(text), errCtx }
-    : { rem: text, errCtx };
 
 /** Parses tokens into a tree where each node is a token or token list. */
 function treeise(tokens: Token[]): Node[] {
   const nodes: Node[] = [];
   const _treeise = (tokens: Token[]): Node => {
-    let prefix: Arg | undefined;
+    let prefix: Token | undefined;
     if (tokens[0].typ === "sym" && sub("@#", tokens[0].text)) {
-      prefix = t2a(tokens.shift()!);
+      prefix = tokens.shift()!;
     }
     const token = tokens.shift()!;
     if (token.typ !== "(" && token.typ !== ")") {
-      return t2a(token);
+      return token;
     }
     const nodes: Node[] = prefix ? [prefix] : [];
     while (tokens[0].typ !== ")") {
@@ -201,7 +187,7 @@ function collectFuncs(
   const funcs: ReturnType<typeof collectFuncs> = [];
   const entries: Node[] = [];
   nodes.forEach(node => {
-    if (!isArg(node) && isArg(node[0]) && symAt(node) === "function") {
+    if (!isToken(node) && isToken(node[0]) && symAt(node) === "function") {
       const name = symAt(node, 1);
       if (!name) {
         funcs.push({ err: "nameless function", errCtx: node[0].errCtx });
@@ -358,7 +344,7 @@ function parseForm(
 */
 
 const parseNode = (node: Node, params: ParamsShape) =>
-  isArg(node) ? parseArg(node, params) : parseForm(node, params);
+  isToken(node) ? parseArg(node, params) : parseForm(node, params);
 
 function parseForm(
   nodes: Node[],
@@ -372,19 +358,19 @@ function parseForm(
   const firstNode = nodes.shift()!;
   let head = nodeParser(firstNode);
   const { errCtx } = head[0];
-  if (isArg(firstNode) && "sym" in firstNode) {
-    const { sym, errCtx } = firstNode;
+  if (isToken(firstNode) && firstNode.typ === "sym") {
+    const { text: op, errCtx } = firstNode;
     const err = (m: string) => [<ParserIns>{ typ: "err", value: m, errCtx }];
-    if (has(["if", "if!", "when", "match"], sym) && !len(nodes)) {
+    if (has(["if", "if!", "when", "match"], op) && !len(nodes)) {
       return err("provide a condition");
-    } else if (has(["if", "if!"], sym)) {
+    } else if (has(["if", "if!"], op)) {
       if (len(nodes) === 1) {
         return err("provide at least one branch");
       } else if (len(nodes) > 3) {
         return err("provide fewer than two branches");
       }
       let [cond, branch1, branch2] = nodes.map(nodeParser);
-      const ifN = sym === "if!" && [
+      const ifN = op === "if!" && [
         <Ins>{ typ: "val", value: { t: "func", v: "!" }, errCtx },
         <Ins>{ typ: "exe", value: 1, errCtx },
       ];
@@ -399,7 +385,7 @@ function parseForm(
         { typ: "jmp", value: len(branch2), errCtx },
         ...branch2,
       ];
-    } else if (sym === "when") {
+    } else if (op === "when") {
       if (len(nodes) === 1) {
         return err("provide a body");
       }
@@ -412,7 +398,7 @@ function parseForm(
         { typ: "jmp", value: 1, errCtx },
         { typ: "val", value: nullVal, errCtx },
       ];
-    } else if (sym === "match") {
+    } else if (op === "match") {
       const [cond, ...args] = nodes.map(nodeParser);
       const otherwise: ParserIns[] = len(args) % 2 ? args.pop()! : [];
       if (!len(args)) {
@@ -439,10 +425,10 @@ function parseForm(
         ins.push({ typ: "val", value: falseVal, errCtx });
       }
       return ins;
-    } else if (sym === "catch") {
+    } else if (op === "catch") {
       if (len(nodes) < 2) {
         return err("provide at least 2 arguments");
-      } else if (isArg(nodes[0])) {
+      } else if (isToken(nodes[0])) {
         return err("argument 1 must be expression");
       }
       const body = nodeParser(nodes[0]);
@@ -451,16 +437,16 @@ function parseForm(
     }
 
     //Operation arity check, optionally disabled for partial closures
-    if (ops[sym] && doArityCheck) {
-      const errors = arityCheck(sym, len(nodes), errCtx);
+    if (ops[op] && doArityCheck) {
+      const errors = arityCheck(op, len(nodes), errCtx);
       const err = (value: string, eCtx = errCtx) => [
         <ParserIns>{ typ: "err", value, errCtx: eCtx },
       ];
       push(head, errors?.map(e => err(e.m)[0]) ?? []);
       if (!errors) {
         //Upgrade some math and logic functions to their faster counterparts
-        if (len(nodes) === 2 && ops[`fast${sym}`]) {
-          head = nodeParser({ sym: `fast${sym}`, errCtx });
+        if (len(nodes) === 2 && ops[`fast${op}`]) {
+          head = nodeParser({ typ: "sym", text: `fast${op}`, errCtx });
         }
       }
     }
@@ -476,52 +462,48 @@ function parseForm(
 }
 
 function parseArg(node: Node, params: ParamsShape): ParserIns[] {
-  if (isArg(node)) {
+  if (isToken(node)) {
     const { errCtx } = node;
-    if ("str" in node) {
-      return [{ typ: "val", value: <Val>{ t: "str", v: node.str }, errCtx }];
+    if (node.typ === "str") {
+      return [{ typ: "val", value: { t: "str", v: node.text }, errCtx }];
     }
-    if ("num" in node) {
-      return [{ typ: "val", value: <Val>{ t: "num", v: node.num }, errCtx }];
+    if (node.typ === "num") {
+      return [{ typ: "val", value: { t: "num", v: toNum(node.text) }, errCtx }];
     }
-    if ("sym" in node) {
-      const { sym } = node;
-      if (sym === "true" || sym === "false") {
+    if (node.typ === "sym") {
+      const { text } = node;
+      const paramNames = params.map(({ name }) => name);
+      if (text === "true" || text === "false") {
         return [
-          { typ: "val", value: <Val>{ t: "bool", v: sym === "true" }, errCtx },
+          { typ: "val", value: <Val>{ t: "bool", v: text === "true" }, errCtx },
         ];
-      } else if (sym === "null") {
+      } else if (text === "null") {
         return [{ typ: "val", value: nullVal, errCtx }];
-      } else if (sym === "_") {
+      } else if (text === "_") {
         return [{ typ: "val", value: { t: "wild", v: undefined }, errCtx }];
-      } else if (starts(sym, ":")) {
-        return [{ typ: "val", value: <Val>{ t: "key", v: sym }, errCtx }];
-      } else if (starts(sym, "%") && isNum(substr(sym, 1))) {
-        const value = toNum(substr(sym, 1));
+      } else if (starts(text, ":")) {
+        return [{ typ: "val", value: <Val>{ t: "key", v: text }, errCtx }];
+      } else if (starts(text, "%") && isNum(substr(text, 1))) {
+        const value = toNum(substr(text, 1));
         if (value < 0) {
           return [{ typ: "val", value: nullVal, errCtx }];
         }
         return [{ typ: "upa", value, errCtx }];
-      } else if (
-        has(
-          params.map(({ name }) => name),
-          sym,
-        )
-      ) {
-        const param = params.find(({ name }) => name === sym)!;
+      } else if (has(paramNames, text)) {
+        const param = params.find(({ name }) => name === text)!;
         if (len(param.position) === 1) {
           return [{ typ: "npa", value: param.position[0], errCtx }];
         }
         return [{ typ: "dpa", value: param.position, errCtx }];
-      } else if (sym === "args") {
+      } else if (text === "args") {
         return [{ typ: "upa", value: -1, errCtx }];
-      } else if (sym === "PI" || sym === "E") {
-        const v = sym === "PI" ? 3.141592653589793 : 2.718281828459045;
+      } else if (text === "PI" || text === "E") {
+        const v = text === "PI" ? 3.141592653589793 : 2.718281828459045;
         return [{ typ: "val", value: { t: "num", v }, errCtx }];
-      } else if (ops[sym]) {
-        return [{ typ: "val", value: <Val>{ t: "func", v: sym }, errCtx }];
+      } else if (ops[text]) {
+        return [{ typ: "val", value: <Val>{ t: "func", v: text }, errCtx }];
       }
-      return [{ typ: "ref", value: sym, errCtx }];
+      return [{ typ: "ref", value: text, errCtx }];
     }
     return [];
   }
@@ -592,19 +574,19 @@ function parseParams(
   let n = 0;
   while (
     len(nodes) > (len(position) ? 0 : 1) &&
-    (isArg(nodes[0]) || symAt(nodes[0]) === "vec") &&
+    (isToken(nodes[0]) || symAt(nodes[0]) === "vec") &&
     !(forVar && len(paras))
   ) {
     const param = nodes.shift()!;
-    if (!isArg(param)) {
+    if (!isToken(param)) {
       param.shift();
       const { params, errors } = parseParams(param, forVar, [...position, n]);
       push(paras, params);
       push(errs, errors);
     } else {
       const { errCtx } = param;
-      if ("sym" in param) {
-        paras.push({ name: param.sym, position: [...position, n] });
+      if (param.typ === "sym") {
+        paras.push({ name: param.text, position: [...position, n] });
       } else {
         errs.push({ typ: "err", value: "provide parameter name", errCtx });
       }
