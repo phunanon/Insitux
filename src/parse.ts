@@ -1,7 +1,7 @@
 import { arityCheck, keyOpErr, numOpErr, typeCheck } from "./checks";
 import * as pf from "./poly-fills";
-const { concat, has, flat, push, slice, splice } = pf;
-const { slen, starts, sub, substr, strIdx } = pf;
+const { has, flat, push, slice, splice } = pf;
+const { slen, starts, sub, substr, strIdx, subIdx } = pf;
 const { isNum, len, toNum } = pf;
 import { ParamsShape, ErrCtx, Func, Funcs, Ins, ops, Val } from "./types";
 import { assertUnreachable, InvokeError } from "./types";
@@ -23,40 +23,19 @@ export function tokenise(
   emitComments = false,
 ) {
   const tokens: Token[] = [];
-  const digits = "0123456789";
-  let inString = false,
-    isEscaped = false,
-    inStringAt = [0, 0],
-    inSymbol = false,
-    inNumber = false,
-    inHex = false,
-    inComment = false,
-    line = 1,
-    col = 0;
+  const isDigit = (ch: string) => sub("0123456789", ch);
+  let [inString, line, col, inStringAt] = [false, 1, 0, [1, 0]];
+  let [inSymbol, inNumber, inHex] = [false, false, false];
   for (let i = 0, l = slen(code); i < l; ++i) {
     const c = strIdx(code, i),
       nextCh = i + 1 !== l ? strIdx(code, i + 1) : "";
     ++col;
-    if (inComment) {
-      if (c === "\n") {
-        inComment = false;
-        ++line;
-        col = 0;
-      } else if (emitComments) {
-        tokens[len(tokens) - 1].text += c;
-      }
-      continue;
-    }
-    if (isEscaped) {
-      isEscaped = false;
-      if (inString) {
-        tokens[len(tokens) - 1].text +=
-          { n: "\n", t: "\t", r: "\r", '"': '"' }[c] || `\\${c}`;
-      }
-      continue;
-    }
-    if (c === "\\") {
-      isEscaped = true;
+    if (c === "\\" && inString) {
+      tokens[len(tokens) - 1].text +=
+        { n: "\n", t: "\t", r: "\r", '"': '"' }[nextCh] ||
+        (nextCh === "\\" ? "\\" : `\\${nextCh}`);
+      ++col;
+      ++i;
       continue;
     }
     const errCtx: ErrCtx = { sourceId: sourceId, line, col };
@@ -78,13 +57,16 @@ export function tokenise(
       continue;
     }
     if (!inString && c === ";") {
-      inComment = true;
+      const nl = subIdx(substr(code, ++i), "\n");
+      const text = substr(code, i, nl > 0 ? nl : l - i);
+      i += slen(text);
+      ++line;
+      col = 0;
       if (emitComments) {
-        tokens.push({ typ: "rem", text: "", errCtx });
+        tokens.push({ typ: "rem", text, errCtx });
       }
       continue;
     }
-    const isDigit = (ch: string) => sub(digits, ch);
     const isParen = sub("()[]{}", c);
     //Allow one . per number, or hex, or binary, else convert into symbol
     if (inNumber && !isDigit(c)) {
@@ -106,22 +88,10 @@ export function tokenise(
     //If we just finished concatenating a token
     if (!inString && !inSymbol && !inNumber) {
       if (isParen) {
-        const parens: { [ch: string]: Token["typ"] } = {
-          "[": "(",
-          "{": "(",
-          "(": "(",
-          ")": ")",
-          "}": ")",
-          "]": ")",
-        };
-        const text = parens[c]!;
+        const text = subIdx("[{(", c) === -1 ? ")" : "(";
         tokens.push({ typ: text, text: makeCollsOps ? text : c, errCtx });
-        if (makeCollsOps) {
-          if (c === "[") {
-            tokens.push({ typ: "sym", text: "vec", errCtx });
-          } else if (c === "{") {
-            tokens.push({ typ: "sym", text: "dict", errCtx });
-          }
+        if (makeCollsOps && (c === "[" || c === "{")) {
+          tokens.push({ typ: "sym", text: c === "[" ? "vec" : "dict", errCtx });
         }
         continue;
       }
@@ -129,8 +99,7 @@ export function tokenise(
         isDigit(c) ||
         (c === "." && isDigit(nextCh)) ||
         (c === "-" && (isDigit(nextCh) || nextCh === "."));
-      inHex = false;
-      inSymbol = !inNumber;
+      inHex = inSymbol = !inNumber;
       const typ: Token["typ"] = inSymbol ? "sym" : "num";
       tokens.push({ typ, text: "", errCtx });
     }
