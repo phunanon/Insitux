@@ -1,4 +1,4 @@
-export const insituxVersion = 20211213;
+export const insituxVersion = 20211227;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -884,11 +884,7 @@ function getExe(
         _dic(dictSet(dict, params[0], params[1]));
       } else {
         return [
-          {
-            e: "Arity",
-            m: "dictionary as operation takes one or two arguments only",
-            errCtx,
-          },
+          { e: "Arity", m: "provide 1 or 2 arguments for dictionary", errCtx },
         ];
       }
       return;
@@ -898,11 +894,7 @@ function getExe(
     return (params: Val[]) => {
       if (!len(params) || len(params) > 2) {
         return [
-          {
-            e: "Arity",
-            m: "boolean as operation takes one or two arguments only",
-            errCtx,
-          },
+          { e: "Arity", m: "provide 1 or 2 arguments for boolean", errCtx },
         ];
       }
       stack.push(

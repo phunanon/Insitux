@@ -734,40 +734,34 @@ function keyOpErr(errCtx, types) {
 ;// CONCATENATED MODULE: ./src/parse.ts
 
 
-const { concat: parse_concat, has: parse_has, flat: parse_flat, push: parse_push, slice: parse_slice, splice: parse_splice } = poly_fills_namespaceObject;
-const { slen: parse_slen, starts: parse_starts, sub: parse_sub, substr: parse_substr, strIdx: parse_strIdx } = poly_fills_namespaceObject;
+const { has: parse_has, flat: parse_flat, push: parse_push, slice: parse_slice, splice: parse_splice } = poly_fills_namespaceObject;
+const { slen: parse_slen, starts: parse_starts, sub: parse_sub, substr: parse_substr, strIdx: parse_strIdx, subIdx: parse_subIdx } = poly_fills_namespaceObject;
 const { isNum: parse_isNum, len: parse_len, toNum: parse_toNum } = poly_fills_namespaceObject;
 
 
 const nullVal = { t: "null", v: void 0 };
 const falseVal = { t: "bool", v: false };
-const depthChange = ({ typ }) => parse_toNum(typ === "(") - parse_toNum(typ === ")");
+const isToken = (node) => !!node && "errCtx" in node;
+const symAt = (node, pos = 0) => {
+  if (isToken(node)) {
+    return "";
+  }
+  const arg = node[pos];
+  return isToken(arg) && parse_has(["sym", "str"], arg.typ) && arg.text || "";
+};
+const node2str = (nodes) => nodes.map((n) => isToken(n) ? n.text : `(${node2str(n)})`).join(" ");
 function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
   const tokens = [];
-  const digits = "0123456789";
-  let inString = false, isEscaped = false, inStringAt = [0, 0], inSymbol = false, inNumber = false, inHex = false, inComment = false, line = 1, col = 0;
+  const isDigit = (ch) => parse_sub("0123456789", ch);
+  let [inString, line, col, inStringAt] = [false, 1, 0, [1, 0]];
+  let [inSymbol, inNumber, inHex] = [false, false, false];
   for (let i = 0, l = parse_slen(code); i < l; ++i) {
     const c = parse_strIdx(code, i), nextCh = i + 1 !== l ? parse_strIdx(code, i + 1) : "";
     ++col;
-    if (inComment) {
-      if (c === "\n") {
-        inComment = false;
-        ++line;
-        col = 0;
-      } else if (emitComments) {
-        tokens[parse_len(tokens) - 1].text += c;
-      }
-      continue;
-    }
-    if (isEscaped) {
-      isEscaped = false;
-      if (inString) {
-        tokens[parse_len(tokens) - 1].text += { n: "\n", t: "	", r: "\r", '"': '"' }[c] || `\\${c}`;
-      }
-      continue;
-    }
-    if (c === "\\") {
-      isEscaped = true;
+    if (c === "\\" && inString) {
+      tokens[parse_len(tokens) - 1].text += { n: "\n", t: "	", r: "\r", '"': '"' }[nextCh] || (nextCh === "\\" ? "\\" : `\\${nextCh}`);
+      ++col;
+      ++i;
       continue;
     }
     const errCtx = { sourceId, line, col };
@@ -789,13 +783,16 @@ function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
       continue;
     }
     if (!inString && c === ";") {
-      inComment = true;
+      const nl = parse_subIdx(parse_substr(code, ++i), "\n");
+      const text = parse_substr(code, i, nl > 0 ? nl : l - i);
+      i += parse_slen(text);
+      ++line;
+      col = 0;
       if (emitComments) {
-        tokens.push({ typ: "rem", text: "", errCtx });
+        tokens.push({ typ: "rem", text, errCtx });
       }
       continue;
     }
-    const isDigit = (ch) => parse_sub(digits, ch);
     const isParen = parse_sub("()[]{}", c);
     if (inNumber && !isDigit(c)) {
       const hexStart = c === "x" && tokens[parse_len(tokens) - 1].text === "0";
@@ -811,28 +808,15 @@ function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
     }
     if (!inString && !inSymbol && !inNumber) {
       if (isParen) {
-        const parens = {
-          "[": "(",
-          "{": "(",
-          "(": "(",
-          ")": ")",
-          "}": ")",
-          "]": ")"
-        };
-        const text = parens[c];
+        const text = parse_subIdx("[{(", c) === -1 ? ")" : "(";
         tokens.push({ typ: text, text: makeCollsOps ? text : c, errCtx });
-        if (makeCollsOps) {
-          if (c === "[") {
-            tokens.push({ typ: "sym", text: "vec", errCtx });
-          } else if (c === "{") {
-            tokens.push({ typ: "sym", text: "dict", errCtx });
-          }
+        if (makeCollsOps && (c === "[" || c === "{")) {
+          tokens.push({ typ: "sym", text: c === "[" ? "vec" : "dict", errCtx });
         }
         continue;
       }
       inNumber = isDigit(c) || c === "." && isDigit(nextCh) || c === "-" && (isDigit(nextCh) || nextCh === ".");
-      inHex = false;
-      inSymbol = !inNumber;
+      inHex = inSymbol = !inNumber;
       const typ = inSymbol ? "sym" : "num";
       tokens.push({ typ, text: "", errCtx });
     }
@@ -840,312 +824,289 @@ function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
   }
   return { tokens, stringError: inString ? inStringAt : void 0 };
 }
-function segment(tokens) {
-  const segments = [[]];
-  let depth = 0;
-  tokens.forEach((token) => {
-    segments[parse_len(segments) - 1].push(token);
-    depth += depthChange(token);
-    if (depth === 0) {
-      segments.push([]);
+function treeise(tokens) {
+  const nodes = [];
+  const _treeise = (tokens2) => {
+    let prefix;
+    if (tokens2[0].typ === "sym" && parse_sub("@#", tokens2[0].text)) {
+      prefix = tokens2.shift();
+    }
+    const token = tokens2.shift();
+    if (token.typ !== "(" && token.typ !== ")") {
+      return token;
+    }
+    const nodes2 = prefix ? [prefix] : [];
+    while (tokens2[0].typ !== ")") {
+      nodes2.push(_treeise(tokens2));
+    }
+    tokens2.shift();
+    return nodes2;
+  };
+  while (parse_len(tokens)) {
+    nodes.push(_treeise(tokens));
+  }
+  return nodes;
+}
+function collectFuncs(nodes) {
+  const funcs = [];
+  const entries = [];
+  nodes.forEach((node) => {
+    if (!isToken(node) && isToken(node[0]) && symAt(node) === "function") {
+      const name = symAt(node, 1);
+      if (!name) {
+        funcs.push({ err: "nameless function", errCtx: node[0].errCtx });
+      } else if (parse_len(node) < 3) {
+        funcs.push({ err: "empty function body", errCtx: node[0].errCtx });
+      }
+      funcs.push({ name, nodes: node.slice(2) });
+    } else {
+      entries.push(node);
     }
   });
-  return segments;
-}
-function funcise(segments) {
-  const isFunc = (segment2) => parse_len(segment2) > 1 && segment2[1].typ === "sym" && segment2[1].text === "function";
-  const funcs = segments.filter((t) => isFunc(t));
-  const entries = parse_flat(segments.filter((t) => !isFunc(t)));
-  const described = funcs.map((tokens) => ({
-    name: tokens[2].text,
-    tokens: parse_slice(tokens, 3),
-    errCtx: tokens[2].errCtx
-  }));
-  return parse_len(entries) ? parse_concat(described, [
-    {
-      name: "entry",
-      tokens: entries,
-      errCtx: entries[0].errCtx
-    }
-  ]) : described;
-}
-function parseAll(tokens, params) {
-  const args = [];
-  while (true) {
-    const arg = parseArg(tokens, params);
-    if (!parse_len(arg)) {
-      break;
-    }
-    args.push(arg);
+  if (parse_len(entries)) {
+    funcs.push({ name: "entry", nodes: entries });
   }
-  return args;
+  return funcs;
 }
-function parseForm(tokens, params, inPartial = true) {
-  const head = tokens.shift();
-  if (!head) {
+const parseNode = (node, params) => isToken(node) ? parseArg(node, params) : parseForm(node, params);
+function parseForm(nodes, params, doArityCheck = true) {
+  if (!parse_len(nodes)) {
     return [];
   }
-  const { typ, text, errCtx } = head;
-  let op = text;
-  const err = (value, eCtx = errCtx) => [
-    { typ: "err", value, errCtx: eCtx }
-  ];
-  if (op === "catch") {
-    if (tokens[0].typ !== "(") {
-      return err("argument 1 must be expression");
-    }
-    const body2 = parseArg(tokens, params);
-    const when = parse_flat(parseAll(tokens, params));
-    if (!parse_len(body2) || !parse_len(when)) {
-      return err("must provide at least 2 arguments");
-    }
-    return [...body2, { typ: "cat", value: parse_len(when), errCtx }, ...when];
-  } else if (op === "var" || op === "let") {
-    const ins = [];
-    while (true) {
-      const parsedDestructuring = parseParams(tokens, true);
-      if (parse_len(parsedDestructuring.errors)) {
-        return parsedDestructuring.errors;
-      }
-      let def = void 0;
-      if (parse_len(parsedDestructuring.params)) {
-        def = {
-          typ: op === "var" ? "dva" : "dle",
-          value: parsedDestructuring.params,
-          errCtx
-        };
-      }
-      if (!def) {
-        [def] = parseArg(tokens, params);
-      }
-      if (parse_len(ins) && !def) {
-        return ins;
-      }
-      const val = parseArg(tokens, params);
-      if (!parse_len(ins) && (!def || !parse_len(val))) {
-        return err(`must provide at least one declaration name and value`);
-      } else if (!parse_len(val)) {
-        return err(`must provide a value after each declaration name`);
-      }
-      if (def.typ !== "ref" && def.typ !== "dva" && def.typ !== "dle") {
-        return [
-          {
-            typ: "err",
-            value: `${op} declaration name must be a symbol`,
-            errCtx: def.errCtx
-          }
-        ];
-      }
-      parse_push(ins, val);
-      if (def.typ === "ref") {
-        ins.push({ typ: op, value: def.value, errCtx });
-      } else if (def.typ === "dva" || def.typ === "dle") {
-        ins.push({ typ: def.typ, value: def.value, errCtx });
+  const nodeParser = (node) => parseNode(node, params);
+  let firstNode = nodes.shift();
+  let head = nodeParser(firstNode);
+  const { errCtx } = head[0];
+  if (isToken(firstNode) && firstNode.typ === "sym") {
+    if (firstNode.text in ops) {
+      const { exactArity, minArity } = ops[firstNode.text];
+      const a = exactArity ?? minArity;
+      if (a && a !== 1 && parse_len(nodes) + 1 === a) {
+        nodes.unshift(firstNode);
+        firstNode = { typ: "sym", text: "@", errCtx: firstNode.errCtx };
       }
     }
-  } else if (op === "var!" || op === "let!") {
-    const ins = [];
-    const defIns = parseArg(tokens, params);
-    if (!parse_len(defIns)) {
-      return err(`must provide declaration name`);
-    }
-    const def = defIns[0];
-    if (def.typ !== "ref") {
-      return err("declaration name must be symbol");
-    }
-    const func = parseArg(tokens, params);
-    if (!parse_len(func)) {
-      return err("must provide an operation");
-    }
-    const args = parseAll(tokens, params);
-    ins.push({ typ: "ref", value: def.value, errCtx });
-    parse_push(ins, parse_flat(args));
-    parse_push(ins, func);
-    ins.push({ typ: "exe", value: parse_len(args) + 1, errCtx });
-    ins.push({ typ: op === "var!" ? "var" : "let", value: def.value, errCtx });
-    return ins;
-  } else if (op === "if" || op === "if!" || op === "when") {
-    const cond = parseArg(tokens, params);
-    if (!parse_len(cond)) {
-      return err("must provide condition");
-    }
-    const ins = cond;
-    if (op === "if!") {
-      ins.push({ typ: "val", value: { t: "func", v: "!" }, errCtx });
-      ins.push({ typ: "exe", value: 1, errCtx });
-    }
-    if (op === "if" || op === "if!") {
-      const ifT = parseArg(tokens, params);
-      if (!parse_len(ifT)) {
-        return err("must provide a branch");
-      }
-      ins.push({ typ: "if", value: parse_len(ifT) + 1, errCtx });
-      parse_push(ins, ifT);
-      const ifF = parseArg(tokens, params);
-      if (parse_len(ifF)) {
-        ins.push({ typ: "jmp", value: parse_len(ifF), errCtx });
-        parse_push(ins, ifF);
-        const extraneousBranch = parseArg(tokens, params);
-        if (parse_len(extraneousBranch)) {
-          return err("too many branches; delete this branch", extraneousBranch[0].errCtx);
-        }
-      } else {
-        ins.push({ typ: "jmp", value: 1, errCtx });
-        ins.push({ typ: "val", value: nullVal, errCtx });
-      }
-    } else {
-      const body2 = parse_flat(parseAll(tokens, params));
-      ins.push({ typ: "if", value: parse_len(body2) + 1, errCtx });
-      parse_push(ins, body2);
-      ins.push({ typ: "jmp", value: 1, errCtx });
-      ins.push({ typ: "val", value: nullVal, errCtx });
-    }
-    return ins;
-  } else if (op === "and" || op === "or" || op === "while") {
-    const args = parseAll(tokens, params);
-    let insCount = args.reduce((acc, a) => acc + parse_len(a), 0);
-    if (parse_len(args) < 2) {
-      return err("requires at least two arguments");
-    }
-    const ins = [];
-    if (op === "while") {
-      ins.push({ typ: "val", value: nullVal, errCtx });
-      insCount += 2;
-      const head2 = args.shift();
-      parse_push(ins, head2);
-      ins.push({ typ: "if", value: insCount - parse_len(head2), errCtx });
-      ins.push({ typ: "pop", value: parse_len(args), errCtx });
-      args.forEach((as) => parse_push(ins, as));
-      ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
-      return ins;
-    }
-    insCount += parse_len(args);
-    insCount += parse_toNum(op === "and");
-    const typ2 = op === "and" ? "if" : "or";
-    for (let a = 0; a < parse_len(args); ++a) {
-      parse_push(ins, args[a]);
-      insCount -= parse_len(args[a]);
-      ins.push({ typ: typ2, value: insCount, errCtx });
-      --insCount;
-    }
-    if (op === "and") {
-      parse_push(ins, [
-        { typ: "val", value: { t: "bool", v: true }, errCtx },
-        { typ: "jmp", value: 1, errCtx },
-        { typ: "val", value: falseVal, errCtx }
-      ]);
-    } else {
-      ins.push({ typ: "val", value: falseVal, errCtx });
-    }
-    return ins;
-  } else if (op === "match") {
-    const cond = parseArg(tokens, params);
-    if (!parse_len(cond)) {
-      return err("must provide condition");
-    }
-    const args = parseAll(tokens, params);
-    const otherwise = parse_len(args) % 2 ? args.pop() : [];
-    if (!parse_len(args)) {
-      return err("must provide at least one case");
-    }
-    let insCount = args.reduce((acc, a) => acc + parse_len(a) + 1, parse_len(otherwise) ? parse_len(otherwise) - 2 : 0) + 2;
-    const ins = cond;
-    while (parse_len(args) > 1) {
-      const a = args.shift();
-      const when = args.shift();
-      parse_push(ins, a);
-      ins.push({ typ: "mat", value: parse_len(when) + 1, errCtx });
-      parse_push(ins, when);
-      insCount -= parse_len(a) + parse_len(when) + 2;
-      ins.push({ typ: "jmp", value: insCount, errCtx });
-    }
-    if (parse_len(otherwise)) {
-      parse_push(ins, otherwise);
-    } else {
-      ins.push({ typ: "pop", value: 1, errCtx });
-      ins.push({ typ: "val", value: falseVal, errCtx });
-    }
-    return ins;
-  }
-  const headIns = [];
-  if (typ === "(" || parse_has(params.map(({ name }) => name), text) || parse_sub("%#@", parse_strIdx(text, 0))) {
-    tokens.unshift(head);
-    const ins = parseArg(tokens, params);
-    if (inPartial) {
-      headIns.push({ typ: "exp", value: parse_len(ins), errCtx });
-    }
-    parse_push(headIns, ins);
-  }
-  const parsedArgs = parseAll(tokens, params);
-  const [body, nArgs] = [parse_flat(parsedArgs), parse_len(parsedArgs)];
-  if (op === "return") {
-    return [...body, { typ: "ret", value: !!parse_len(body), errCtx }];
-  }
-  if (ops[op] && !inPartial) {
-    const errors = arityCheck(op, nArgs, errCtx);
-    parse_push(headIns, errors?.map((e) => err(e.m)[0]) ?? []);
-    if (!errors) {
-      if (nArgs === 2 && ops[`fast${op}`]) {
-        op = `fast${op}`;
-      }
-    }
-  }
-  if (parse_len(headIns)) {
-    headIns.push({ typ: "exe", value: nArgs, errCtx });
-  } else {
-    const value = typ === "num" ? { t: "num", v: parse_toNum(op) } : parse_starts(op, ":") ? { t: "key", v: op } : ops[op] ? { t: "func", v: op } : op === "true" || op === "false" ? { t: "bool", v: op === "true" } : { t: "str", v: op };
-    headIns.push({ typ: "val", value, errCtx });
-    headIns.push({ typ: "exe", value: nArgs, errCtx });
-  }
-  return [...body, ...headIns];
-}
-function parseArg(tokens, params, inPartial = false) {
-  if (!parse_len(tokens)) {
-    return [];
-  }
-  const { typ, text, errCtx } = tokens.shift();
-  const isClosure = typ === "sym" && parse_sub("#@", text) && parse_len(tokens) && tokens[0].typ === "(";
-  const isParamClosure = typ === "(" && parse_len(tokens) && tokens[0].text === "fn";
-  if (isClosure || isParamClosure) {
-    const texts = tokens.map((t) => t.text);
-    const fnIns = isParamClosure ? tokens.shift() : void 0;
-    const ins = [];
-    if (isParamClosure) {
-      const parsedParams = parseParams(tokens);
-      params = parsedParams.params;
-      parse_push(ins, parsedParams.errors);
-      if (tokens[0].typ === ")") {
-        return [
-          { typ: "err", value: `fn requires a body`, errCtx: fnIns.errCtx }
-        ];
-      }
-      tokens.unshift({ typ: "sym", text: "do", errCtx });
-      tokens.unshift({ typ: "(", text: "(", errCtx });
-    }
-    parse_push(ins, parseArg(tokens, params, text === "@"));
-    const errors = ins.filter((t) => t.typ === "err");
-    if (parse_len(errors)) {
-      return errors;
-    }
-    if (isParamClosure) {
-      ins.forEach((i) => {
-        if (i.typ === "npa") {
-          i.typ = "upa";
-        }
-      });
-    }
-    const value = [
-      (isParamClosure ? "(" : text) + parse_slice(texts, 0, parse_len(texts) - parse_len(tokens)).join(" "),
-      ins
+    const { text: op, errCtx: errCtx2 } = firstNode;
+    const err = (m, eCtx = errCtx2) => [
+      { typ: "err", value: m, errCtx: eCtx }
     ];
-    return [{ typ: text === "@" ? "par" : "clo", value, errCtx }];
+    if (parse_has(["if", "if!", "when", "match"], op) && !parse_len(nodes)) {
+      return err("provide a condition");
+    } else if (parse_has(["if", "if!"], op)) {
+      if (parse_len(nodes) === 1) {
+        return err("provide at least one branch");
+      } else if (parse_len(nodes) > 3) {
+        return err("provide fewer than two branches");
+      }
+      let [cond, branch1, branch2] = nodes.map(nodeParser);
+      const ifN = op === "if!" && [
+        { typ: "val", value: { t: "func", v: "!" }, errCtx: errCtx2 },
+        { typ: "exe", value: 1, errCtx: errCtx2 }
+      ];
+      if (!branch2) {
+        branch2 = [{ typ: "val", value: nullVal, errCtx: errCtx2 }];
+      }
+      return [
+        ...cond,
+        ...ifN || [],
+        { typ: "if", value: parse_len(branch1) + 1, errCtx: errCtx2 },
+        ...branch1,
+        { typ: "jmp", value: parse_len(branch2), errCtx: errCtx2 },
+        ...branch2
+      ];
+    } else if (op === "when") {
+      if (parse_len(nodes) === 1) {
+        return err("provide a body");
+      }
+      const [cond, ...body] = nodes.map(nodeParser);
+      const bodyIns = parse_flat(body);
+      return [
+        ...cond,
+        { typ: "if", value: parse_len(bodyIns) + 1, errCtx: errCtx2 },
+        ...bodyIns,
+        { typ: "jmp", value: 1, errCtx: errCtx2 },
+        { typ: "val", value: nullVal, errCtx: errCtx2 }
+      ];
+    } else if (op === "match") {
+      const [cond, ...args2] = nodes.map(nodeParser);
+      const otherwise = parse_len(args2) % 2 ? args2.pop() : [];
+      if (!parse_len(args2)) {
+        return err("provide at least one case");
+      }
+      const elseLen = parse_len(otherwise);
+      let insCount = args2.reduce((acc, a) => acc + parse_len(a), 0) + (elseLen ? elseLen : 2) + parse_len(args2);
+      const ins2 = cond;
+      while (parse_len(args2) > 1) {
+        const [a, when] = [args2.shift(), args2.shift()];
+        parse_push(ins2, a);
+        ins2.push({ typ: "mat", value: parse_len(when) + 1, errCtx: errCtx2 });
+        parse_push(ins2, when);
+        insCount -= parse_len(a) + parse_len(when) + 2;
+        ins2.push({ typ: "jmp", value: insCount, errCtx: errCtx2 });
+      }
+      if (parse_len(otherwise)) {
+        parse_push(ins2, otherwise);
+      } else {
+        ins2.push({ typ: "pop", value: 1, errCtx: errCtx2 });
+        ins2.push({ typ: "val", value: falseVal, errCtx: errCtx2 });
+      }
+      return ins2;
+    } else if (op === "catch") {
+      if (parse_len(nodes) < 2) {
+        return err("provide at least 2 arguments");
+      } else if (isToken(nodes[0])) {
+        return err("argument 1 must be expression");
+      }
+      const body = nodeParser(nodes[0]);
+      const when = parse_flat(nodes.slice(1).map(nodeParser));
+      return [...body, { typ: "cat", value: parse_len(when), errCtx: errCtx2 }, ...when];
+    } else if (op === "and" || op === "or" || op === "while") {
+      const args2 = nodes.map(nodeParser);
+      let insCount = args2.reduce((acc, a) => acc + parse_len(a), 0);
+      if (parse_len(args2) < 2) {
+        return err("provide at least 2 arguments");
+      }
+      const ins2 = [];
+      if (op === "while") {
+        ins2.push({ typ: "val", value: nullVal, errCtx: errCtx2 });
+        insCount += 2;
+        const [head2, ...body] = args2;
+        parse_push(ins2, head2);
+        ins2.push({ typ: "if", value: insCount - parse_len(head2), errCtx: errCtx2 });
+        ins2.push({ typ: "pop", value: parse_len(body), errCtx: errCtx2 });
+        parse_push(ins2, parse_flat(body));
+        ins2.push({ typ: "loo", value: -(insCount + 1), errCtx: errCtx2 });
+        return ins2;
+      }
+      insCount += parse_len(args2);
+      insCount += parse_toNum(op === "and");
+      const typ2 = op === "and" ? "if" : "or";
+      for (let a = 0; a < parse_len(args2); ++a) {
+        parse_push(ins2, args2[a]);
+        insCount -= parse_len(args2[a]);
+        ins2.push({ typ: typ2, value: insCount, errCtx: errCtx2 });
+        --insCount;
+      }
+      if (op === "and") {
+        parse_push(ins2, [
+          { typ: "val", value: { t: "bool", v: true }, errCtx: errCtx2 },
+          { typ: "jmp", value: 1, errCtx: errCtx2 }
+        ]);
+      }
+      ins2.push({ typ: "val", value: falseVal, errCtx: errCtx2 });
+      return ins2;
+    } else if (op === "var" || op === "let") {
+      const defs = nodes.filter((n, i) => !(i % 2));
+      const vals = nodes.filter((n, i) => i % 2);
+      if (!parse_len(defs)) {
+        return err("provide at least 1 declaration name and value");
+      } else if (parse_len(defs) > parse_len(vals)) {
+        return err("provide a value after each declaration name");
+      }
+      const ins2 = [];
+      for (let d = 0, lim = parse_len(defs); d < lim; ++d) {
+        parse_push(ins2, nodeParser(vals[d]));
+        const def = defs[d];
+        if (isToken(def)) {
+          const defIns = parseNode(defs[d], params);
+          if (parse_len(defIns) > 1 || defIns[0].typ !== "ref") {
+            return err("declaration name must be symbol", defIns[0].errCtx);
+          }
+          ins2.push({ typ: op, value: defIns[0].value, errCtx: errCtx2 });
+        } else {
+          const { shape, errors } = parseParams([def], true);
+          if (parse_len(errors)) {
+            return errors;
+          }
+          const typ2 = op === "var" ? "dva" : "dle";
+          ins2.push({ typ: typ2, value: shape, errCtx: errCtx2 });
+        }
+      }
+      return ins2;
+    } else if (op === "var!" || op === "let!") {
+      if (parse_len(nodes) < 2) {
+        return err("provide 1 declaration name and 1 function");
+      }
+      const [[def], func, ...args2] = nodes.map(nodeParser);
+      if (def.typ !== "ref") {
+        return err("declaration name must be symbol", def.errCtx);
+      }
+      const ins2 = [{ typ: "ref", value: def.value, errCtx: errCtx2 }];
+      parse_push(ins2, [...parse_flat(args2), ...func]);
+      ins2.push({ typ: "exe", value: parse_len(args2) + 1, errCtx: errCtx2 });
+      const typ2 = op === "var!" ? "var" : "let";
+      ins2.push({ typ: typ2, value: def.value, errCtx: errCtx2 });
+      return ins2;
+    } else if (op === "#" || op === "@" || op === "fn") {
+      const ins2 = [];
+      let asStr = node2str(nodes);
+      asStr = op === "fn" ? `(fn ${asStr})` : `${op}(${asStr})`;
+      if (op === "fn") {
+        const parsedParams = parseParams(nodes, false);
+        params = parsedParams.shape;
+        parse_push(ins2, parsedParams.errors);
+        if (!parse_len(nodes)) {
+          return err("provide a body");
+        }
+        nodes.unshift({ typ: "sym", text: "do", errCtx: errCtx2 });
+      }
+      if (op === "@") {
+        nodes = [
+          { typ: "sym", text: "...", errCtx: errCtx2 },
+          ...nodes,
+          { typ: "sym", text: "args", errCtx: errCtx2 }
+        ];
+      }
+      parse_push(ins2, parseForm(nodes, params, op !== "@"));
+      const errors = ins2.filter((t) => t.typ === "err");
+      if (parse_len(errors)) {
+        return errors;
+      }
+      if (op === "fn") {
+        ins2.forEach((i) => {
+          if (i.typ === "npa") {
+            i.typ = "upa";
+          }
+        });
+      }
+      const value = [asStr, ins2];
+      return [{ typ: op === "@" ? "par" : "clo", value, errCtx: errCtx2 }];
+    }
+    if (ops[op] && doArityCheck) {
+      const errors = arityCheck(op, parse_len(nodes), errCtx2);
+      const err2 = (value, eCtx = errCtx2) => [
+        { typ: "err", value, errCtx: eCtx }
+      ];
+      parse_push(head, errors?.map((e) => err2(e.m)[0]) ?? []);
+      if (!errors) {
+        if (parse_len(nodes) === 2 && ops[`fast${op}`]) {
+          head = nodeParser({ typ: "sym", text: `fast${op}`, errCtx: errCtx2 });
+        }
+      }
+    }
   }
-  switch (typ) {
-    case "str":
-      return [{ typ: "val", value: { t: "str", v: text }, errCtx }];
-    case "num":
-      return [{ typ: "val", value: { t: "num", v: parse_toNum(text) }, errCtx }];
-    case "sym":
+  const args = nodes.map(nodeParser);
+  const ins = parse_flat(args);
+  if (symAt([firstNode]) === "return") {
+    return [...ins, { typ: "ret", value: !!parse_len(args), errCtx }];
+  } else if (head[0].typ === "ref") {
+    const { value: v, errCtx: errCtx2 } = head[0];
+    head[0] = { typ: "val", value: { t: "str", v }, errCtx: errCtx2 };
+  }
+  parse_push(ins, head);
+  const typ = parse_len(head) > 1 ? "exa" : "exe";
+  return [...ins, { typ, value: parse_len(args), errCtx }];
+}
+function parseArg(node, params) {
+  if (isToken(node)) {
+    const { errCtx } = node;
+    if (node.typ === "str") {
+      return [{ typ: "val", value: { t: "str", v: node.text }, errCtx }];
+    } else if (node.typ === "num") {
+      return [{ typ: "val", value: { t: "num", v: parse_toNum(node.text) }, errCtx }];
+    } else if (node.typ === "sym") {
+      const { text } = node;
+      const paramNames = params.map(({ name }) => name);
       if (text === "true" || text === "false") {
         return [
           { typ: "val", value: { t: "bool", v: text === "true" }, errCtx }
@@ -1162,7 +1123,7 @@ function parseArg(tokens, params, inPartial = false) {
           return [{ typ: "val", value: nullVal, errCtx }];
         }
         return [{ typ: "upa", value, errCtx }];
-      } else if (parse_has(params.map(({ name }) => name), text)) {
+      } else if (parse_has(paramNames, text)) {
         const param = params.find(({ name }) => name === text);
         if (parse_len(param.position) === 1) {
           return [{ typ: "npa", value: param.position[0], errCtx }];
@@ -1177,115 +1138,45 @@ function parseArg(tokens, params, inPartial = false) {
         return [{ typ: "val", value: { t: "func", v: text }, errCtx }];
       }
       return [{ typ: "ref", value: text, errCtx }];
-    case "(":
-      return parseForm(tokens, params, inPartial);
-    case ")":
-    case "rem":
-      return [];
-    default:
-      return assertUnreachable(typ);
+    }
+    return [];
+  } else if (!parse_len(node)) {
+    return [];
   }
+  return parseForm(node, params);
 }
-function parseParams(tokens, forVar = false) {
-  if (!parse_len(tokens) || tokens[0].typ === ")") {
-    return { params: [], errors: [] };
-  }
-  let depth = 0;
-  const destructs = [];
-  let destruct = [];
-  let hitNonParam = 0;
-  while (parse_len(tokens)) {
-    if (!depth) {
-      destructs.push([]);
-      destruct = destructs[parse_len(destructs) - 1];
-    }
-    depth += depthChange(tokens[0]);
-    if (depth < 0) {
-      break;
-    }
-    destruct.push(tokens.shift());
-    if (destruct[0].typ === "sym" && parse_sub("#@%", destruct[0].text)) {
-      tokens.unshift(destruct[0]);
-      destructs.pop();
-      hitNonParam = 1;
-      break;
-    }
-    if (parse_len(destruct) > 1 && (destruct[1].typ !== "sym" || destruct[1].text !== "vec")) {
-      hitNonParam = 2;
-      break;
-    }
-    if (forVar && !depth) {
-      if (parse_len(destruct) === 1) {
-        tokens.unshift(destruct[0]);
-        return { params: [], errors: [] };
-      }
-      break;
-    }
-  }
-  if (hitNonParam === 2 && depth > 0) {
-    tokens.unshift(destruct[1]);
-    tokens.unshift(destruct[0]);
-    destructs.pop();
-  } else {
-    if (depth < 0) {
-      destructs.pop();
-      destructs.pop().reverse().forEach((t) => tokens.unshift(t));
-    } else if (!hitNonParam && !forVar) {
-      const last = destructs.pop();
-      if (parse_len(last) === 1 && last[0].typ === ")") {
-        parse_push(tokens, destructs.pop());
-      }
-      parse_push(tokens, last);
-    }
-  }
-  const params = [];
-  const errors = [];
-  const position = [0];
-  destructs.forEach((destruct2) => {
-    destruct2.forEach(({ typ, text, errCtx }) => {
+function parseParams(nodes, consumeLast, position = []) {
+  const shape = [], errs = [];
+  let n = 0;
+  while (parse_len(nodes) > (consumeLast ? 0 : 1) && (isToken(nodes[0]) || symAt(nodes[0]) === "vec")) {
+    const param = nodes.shift();
+    if (!isToken(param)) {
+      param.shift();
+      const parsed = parseParams(param, true, [...position, n]);
+      parse_push(shape, parsed.shape);
+      parse_push(errs, parsed.errors);
+    } else {
+      const { typ, errCtx } = param;
       if (typ === "sym") {
-        if (text === "vec") {
-          return;
-        }
-        params.push({ name: text, position: parse_slice(position) });
-        ++position[parse_len(position) - 1];
-        return;
-      }
-      if (typ === "(") {
-        position.push(0);
-      } else if (typ === ")") {
-        position.pop();
-        ++position[parse_len(position) - 1];
+        shape.push({ name: param.text, position: [...position, n] });
       } else {
-        errors.push({
-          typ: "err",
-          value: `disallowed in destructuring`,
-          errCtx
-        });
+        errs.push({ typ: "err", value: "provide parameter name", errCtx });
       }
-    });
-  });
-  return { params, errors };
+    }
+    ++n;
+  }
+  return { shape, errors: errs };
 }
-function syntaxise({ name, tokens }, errCtx) {
-  const err = (m, eCtx = errCtx) => ["err", { e: "Parse", m, errCtx: eCtx }];
-  if (name === "(" || name === ")") {
-    return err("nameless function");
-  }
-  if (tokens[0].typ === ")") {
-    return err("empty function body");
-  }
-  const { params, errors: ins } = parseParams(tokens);
-  while (parse_len(tokens)) {
-    parse_push(ins, parseArg(tokens, params));
-  }
+function compileFunc({ name, nodes }) {
+  const { shape: params, errors } = parseParams(nodes, false);
+  const ins = [...errors, ...parse_flat(nodes.map((node) => parseArg(node, params)))];
   for (let i = 0, lim = parse_len(ins); i < lim; i++) {
-    const x = ins[i];
-    if (x.typ === "err") {
-      return err(x.value, x.errCtx);
+    const { typ, value, errCtx } = ins[i];
+    if (typ === "err") {
+      return { e: "Parse", m: value, errCtx };
     }
   }
-  return ["func", { name, ins }];
+  return { name, ins };
 }
 function findParenImbalance(tokens, numL, numR) {
   const untimely = numR >= numL;
@@ -1341,6 +1232,7 @@ function insErrorDetect(fins) {
       case "val":
         stack.push({ types: [ins.value.t], val: ins.value });
         break;
+      case "exa":
       case "exe": {
         const head = stack.pop();
         const args = parse_splice(stack, parse_len(stack) - ins.value, ins.value);
@@ -1381,7 +1273,6 @@ function insErrorDetect(fins) {
         stack.push({});
         i += ins.value;
         break;
-      case "exp":
       case "cat":
       case "var":
       case "let":
@@ -1441,19 +1332,22 @@ function parse(code, sourceId) {
   if (parse_len(tokenErrors)) {
     return { errors: tokenErrors, funcs: {} };
   }
-  const segments = segment(tokens);
-  const labelled = funcise(segments);
-  const funcsAndErrors = labelled.map((named) => syntaxise(named, {
-    sourceId,
-    line: named.errCtx.line,
-    col: named.errCtx.col
-  }));
   const okFuncs = [], errors = [];
-  funcsAndErrors.forEach((fae) => {
-    if (fae[0] === "err") {
-      errors.push(fae[1]);
+  const tree = treeise(tokens.slice());
+  const collected = collectFuncs(tree);
+  const namedNodes = [];
+  collected.forEach((nodeOrErr) => {
+    if ("err" in nodeOrErr) {
+      errors.push({ e: "Parse", m: nodeOrErr.err, errCtx: nodeOrErr.errCtx });
     } else {
-      okFuncs.push(fae[1]);
+      namedNodes.push({ name: nodeOrErr.name, nodes: nodeOrErr.nodes });
+    }
+  });
+  namedNodes.map(compileFunc).forEach((fae) => {
+    if ("e" in fae) {
+      errors.push(fae);
+    } else {
+      okFuncs.push(fae);
     }
   });
   parse_push(errors, parse_flat(okFuncs.map((f) => insErrorDetect(f.ins) ?? [])));
@@ -1466,7 +1360,7 @@ function parse(code, sourceId) {
 
 function get(state, key) {
   if (!state.dict.has(key)) {
-    return { kind: "err", err: `"${key} not found.` };
+    return { kind: "err", err: `"${key}" not found.` };
   }
   return { kind: "val", value: state.dict.get(key) };
 }
@@ -1514,12 +1408,12 @@ null`
   { name: "Cond number head", code: `((if false 1 2) [:a :b :c])`, out: `:c` },
   {
     name: "and & short-circuit",
-    code: `[(and true (if true null 1) true) (and 1 2 3)]`,
+    code: `[(and true (if true null 1) (print "hi")) (and 1 2 3)]`,
     out: `[false true]`
   },
   {
     name: "or & short-circuit",
-    code: `[(or true (print "hello") 1) (or false (print-str "-> ") 1)]`,
+    code: `[(or true (print "hi") 1) (or false (print-str "-> ") 1)]`,
     out: `-> [true 1]`
   },
   { name: "String retrieve", code: `(2 "Hello")`, out: `l` },
@@ -1738,11 +1632,6 @@ null`
     out: `224`
   },
   {
-    name: "Parameterised closure 3",
-    code: `(((fn (fn 1))))`,
-    out: `1`
-  },
-  {
     name: "Destructure var",
     code: `(var [x [y]] [1 [2]]) [y x]`,
     out: `[2 1]`
@@ -1792,6 +1681,11 @@ null`
     err: ["Budget"]
   },
   { name: "Range budget", code: `(range 10000)`, err: ["Budget"] },
+  {
+    name: "Head exe arity check",
+    code: `(((fn +)) 1)`,
+    err: ["Arity"]
+  },
   {
     name: "Fibonacci 13",
     code: `(function fib n
@@ -1847,7 +1741,8 @@ null` },
     name: "Parser type error 3",
     code: `(function f (if true (into 2 {}) (+ 2 2)))`,
     err: ["Type"]
-  }
+  },
+  { name: "Parser arity error 1", code: `(abs)`, err: ["Parse"] }
 ];
 function doTests(invoke, terse = true) {
   const results = [];
@@ -2014,7 +1909,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211213;
+const insituxVersion = 20211227;
 
 
 
@@ -2787,11 +2682,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
         _dic(dictSet(dict, params[0], params[1]));
       } else {
         return [
-          {
-            e: "Arity",
-            m: "dictionary as operation takes one or two arguments only",
-            errCtx
-          }
+          { e: "Arity", m: "provide 1 or 2 arguments for dictionary", errCtx }
         ];
       }
       return;
@@ -2801,11 +2692,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
     return (params) => {
       if (!src_len(params) || src_len(params) > 2) {
         return [
-          {
-            e: "Arity",
-            m: "boolean as operation takes one or two arguments only",
-            errCtx
-          }
+          { e: "Arity", m: "provide 1 or 2 arguments for boolean", errCtx }
         ];
       }
       stack.push(cond ? params[0] : src_len(params) > 1 ? params[1] : { t: "null", v: void 0 });
@@ -2872,10 +2759,9 @@ function exeFunc(ctx, func, args, inClosure = false) {
         break;
       case "dle":
       case "dva": {
-        const paramsShape = ins.value;
         const val = stack.pop();
         let last;
-        paramsShape.forEach(({ name, position }) => {
+        ins.value.forEach(({ name, position }) => {
           if (ins.typ === "dva") {
             last = ctx.env.vars[name] = destruct([val], position);
           } else {
@@ -2921,8 +2807,9 @@ function exeFunc(ctx, func, args, inClosure = false) {
         }
         break;
       }
+      case "exa":
       case "exe": {
-        const closure = getExe(ctx, stack.pop(), errCtx, false);
+        const closure = getExe(ctx, stack.pop(), errCtx, ins.typ === "exa");
         const nArgs = ins.value;
         const params = src_splice(stack, src_len(stack) - nArgs, nArgs);
         const errors = closure(params);
@@ -3014,29 +2901,9 @@ function exeFunc(ctx, func, args, inClosure = false) {
         const numIns = src_len(derefFunc.ins);
         const captures = src_splice(stack, src_len(stack) - numIns, numIns);
         cins = cins.map((ins2, i2) => isCapture(ins2, i2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
-        if (ins.typ === "par") {
-          const { value: exeNumArgs, errCtx: errCtx2 } = cins.pop();
-          if (src_len(cins) > 0 && cins[src_len(cins) - 1].typ === "exe") {
-            const headStartIdx = cins.findIndex((i2) => i2.typ === "exp");
-            const head = src_splice(cins, headStartIdx, src_len(cins) - headStartIdx);
-            src_push(head, cins);
-            cins = head;
-          } else {
-            cins.unshift(cins.pop());
-          }
-          cins.push({ typ: "upa", value: -1, errCtx: errCtx2 });
-          cins.push({
-            typ: "val",
-            value: { t: "str", v: "..." },
-            errCtx: errCtx2
-          });
-          cins.push({ typ: "exe", value: exeNumArgs + 2, errCtx: errCtx2 });
-        }
         stack.push({ t: "clo", v: { name, ins: cins } });
         break;
       }
-      case "exp":
-        break;
       default:
         assertUnreachable(ins);
     }
@@ -3103,7 +2970,7 @@ function invokeFunction(ctx, funcName, params) {
   return errors ? { kind: "errors", errors } : value ? { kind: "val", value } : { kind: "empty" };
 }
 function symbols(ctx, alsoSyntax = true) {
-  let syms = alsoSyntax ? ["function", "let", "var", "if", "if!", "while"] : [];
+  let syms = alsoSyntax ? ["function", "let", "var", "if", "if!", "when", "while", "match", "catch"] : [];
   src_push(syms, ["args", "PI", "E"]);
   syms = src_concat(syms, src_objKeys(ops));
   syms = src_concat(syms, src_objKeys(ctx.env.funcs));

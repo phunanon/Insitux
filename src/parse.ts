@@ -187,14 +187,23 @@ function parseForm(
     return [];
   }
   const nodeParser = (node: Node) => parseNode(node, params);
-  const firstNode = nodes.shift()!;
+  let firstNode = nodes.shift()!;
   let head = nodeParser(firstNode);
   const { errCtx } = head[0];
   if (isToken(firstNode) && firstNode.typ === "sym") {
+    if (firstNode.text in ops) {
+      const { exactArity, minArity } = ops[firstNode.text];
+      const a = exactArity ?? minArity;
+      if (a && a !== 1 && len(nodes) + 1 === a) {
+        nodes.unshift(firstNode);
+        firstNode = { typ: "sym", text: "@", errCtx: firstNode.errCtx };
+      }
+    }
     const { text: op, errCtx } = firstNode;
     const err = (m: string, eCtx = errCtx) => [
       <ParserIns>{ typ: "err", value: m, errCtx: eCtx },
     ];
+
     if (has(["if", "if!", "when", "match"], op) && !len(nodes)) {
       return err("provide a condition");
     } else if (has(["if", "if!"], op)) {
@@ -403,10 +412,9 @@ function parseForm(
   const ins: ParserIns[] = flat(args);
   if (symAt([firstNode]) === "return") {
     return [...ins, { typ: "ret", value: !!len(args), errCtx }];
-  }
-  if (head[0].typ === "ref") {
-    const {value: v, errCtx} = head[0];
-    head[0] = {typ: "val", value: { t: "str", v }, errCtx };
+  } else if (head[0].typ === "ref") {
+    const { value: v, errCtx } = head[0];
+    head[0] = { typ: "val", value: { t: "str", v }, errCtx };
   }
   push(ins, head);
   const typ = len(head) > 1 ? "exa" : "exe";
@@ -418,11 +426,9 @@ function parseArg(node: Node, params: ParamsShape): ParserIns[] {
     const { errCtx } = node;
     if (node.typ === "str") {
       return [{ typ: "val", value: { t: "str", v: node.text }, errCtx }];
-    }
-    if (node.typ === "num") {
+    } else if (node.typ === "num") {
       return [{ typ: "val", value: { t: "num", v: toNum(node.text) }, errCtx }];
-    }
-    if (node.typ === "sym") {
+    } else if (node.typ === "sym") {
       const { text } = node;
       const paramNames = params.map(({ name }) => name);
       if (text === "true" || text === "false") {
@@ -458,8 +464,7 @@ function parseArg(node: Node, params: ParamsShape): ParserIns[] {
       return [{ typ: "ref", value: text, errCtx }];
     }
     return [];
-  }
-  if (!len(node)) {
+  } else if (!len(node)) {
     return [];
   }
   return parseForm(node, params);

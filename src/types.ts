@@ -97,7 +97,7 @@ export type ExternalFunction = {
   name: string;
   definition: Operation;
   handler: ExternalHandler;
-}
+};
 
 export const ops: {
   [name: string]: Operation & { external?: boolean };

@@ -282,11 +282,6 @@ const tests: {
     out: `224`,
   },
   {
-    name: "Parameterised closure 3",
-    code: `(((fn (fn 1))))`,
-    out: `1`,
-  },
-  {
     name: "Destructure var",
     code: `(var [x [y]] [1 [2]]) [y x]`,
     out: `[2 1]`,
@@ -401,7 +396,7 @@ const tests: {
     code: `(function f (if true (into 2 {}) (+ 2 2)))`,
     err: ["Type"],
   },
-  { name: "Parser arity error 1", code: `(function f (+ 1))`, err: ["Parse"] },
+  { name: "Parser arity error 1", code: `(abs)`, err: ["Parse"] },
 ];
 
 export function doTests(
