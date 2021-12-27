@@ -254,43 +254,6 @@ function parseForm(
     ins.push({ typ: "exe", value: len(args) + 1, errCtx });
     ins.push({ typ: op === "var!" ? "var" : "let", value: def.value, errCtx });
     return ins;
-  } else if (op === "and" || op === "or" || op === "while") {
-    const args = parseAll(tokens, params);
-    let insCount = args.reduce((acc, a) => acc + len(a), 0);
-    if (len(args) < 2) {
-      return err("requires at least two arguments");
-    }
-    const ins: Ins[] = [];
-    if (op === "while") {
-      ins.push({ typ: "val", value: nullVal, errCtx }); //If first is false
-      insCount += 2; //+1 for the if ins, +1 for the pop ins
-      const head = args.shift()!;
-      push(ins, head);
-      ins.push({ typ: "if", value: insCount - len(head), errCtx });
-      ins.push({ typ: "pop", value: len(args), errCtx });
-      args.forEach(as => push(ins, as));
-      ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
-      return ins;
-    }
-    insCount += len(args); //+1 for each if/or ins
-    insCount += toNum(op === "and");
-    const typ = op === "and" ? "if" : "or";
-    for (let a = 0; a < len(args); ++a) {
-      push(ins, args[a]);
-      insCount -= len(args[a]);
-      ins.push({ typ, value: insCount, errCtx });
-      --insCount;
-    }
-    if (op === "and") {
-      push(ins, [
-        { typ: "val", value: <Val>{ t: "bool", v: true }, errCtx },
-        { typ: "jmp", value: 1, errCtx },
-        { typ: "val", value: falseVal, errCtx },
-      ]);
-    } else {
-      ins.push({ typ: "val", value: falseVal, errCtx });
-    }
-    return ins;
   }
   const headIns: Ins[] = [];
   //Head is a expression or parameter
@@ -403,6 +366,41 @@ function parseForm(
       const body = nodeParser(nodes[0]);
       const when = flat(nodes.slice(1).map(nodeParser));
       return [...body, { typ: "cat", value: len(when), errCtx }, ...when];
+    } else if (op === "and" || op === "or" || op === "while") {
+      const args = nodes.map(nodeParser);
+      let insCount = args.reduce((acc, a) => acc + len(a), 0);
+      if (len(args) < 2) {
+        return err("provide at least 2 arguments");
+      }
+      const ins: Ins[] = [];
+      if (op === "while") {
+        ins.push({ typ: "val", value: nullVal, errCtx }); //If first is false
+        insCount += 2; //+1 for the if ins, +1 for the pop ins
+        const [head, ...body] = args;
+        push(ins, head);
+        ins.push({ typ: "if", value: insCount - len(head), errCtx });
+        ins.push({ typ: "pop", value: len(body), errCtx });
+        push(ins, flat(body));
+        ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
+        return ins;
+      }
+      insCount += len(args); //+1 for each if/or ins
+      insCount += toNum(op === "and");
+      const typ = op === "and" ? "if" : "or";
+      for (let a = 0; a < len(args); ++a) {
+        push(ins, args[a]);
+        insCount -= len(args[a]);
+        ins.push({ typ, value: insCount, errCtx });
+        --insCount;
+      }
+      if (op === "and") {
+        push(ins, [
+          { typ: "val", value: <Val>{ t: "bool", v: true }, errCtx },
+          { typ: "jmp", value: 1, errCtx },
+        ]);
+      }
+      ins.push({ typ: "val", value: falseVal, errCtx });
+      return ins;
     }
 
     //Operation arity check, optionally disabled for partial closures

@@ -60,12 +60,12 @@ const tests: {
   { name: "Cond number head", code: `((if false 1 2) [:a :b :c])`, out: `:c` },
   {
     name: "and & short-circuit",
-    code: `[(and true (if true null 1) true) (and 1 2 3)]`,
+    code: `[(and true (if true null 1) (print "hi")) (and 1 2 3)]`,
     out: `[false true]`,
   },
   {
     name: "or & short-circuit",
-    code: `[(or true (print "hello") 1) (or false (print-str "-> ") 1)]`,
+    code: `[(or true (print "hi") 1) (or false (print-str "-> ") 1)]`,
     out: `-> [true 1]`,
   },
   { name: "String retrieve", code: `(2 "Hello")`, out: `l` },
