@@ -404,6 +404,10 @@ function parseForm(
   if (symAt([firstNode]) === "return") {
     return [...ins, { typ: "ret", value: !!len(args), errCtx }];
   }
+  if (head[0].typ === "ref") {
+    const {value: v, errCtx} = head[0];
+    head[0] = {typ: "val", value: { t: "str", v }, errCtx };
+  }
   push(ins, head);
   const typ = len(head) > 1 ? "exa" : "exe";
   return [...ins, { typ, value: len(args), errCtx }];
