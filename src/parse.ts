@@ -1,7 +1,7 @@
 import { arityCheck, keyOpErr, numOpErr, typeCheck } from "./checks";
 import * as pf from "./poly-fills";
-const { concat, has, flat, push, slice, splice } = pf;
-const { slen, starts, sub, substr, strIdx } = pf;
+const { has, flat, push, slice, splice } = pf;
+const { slen, starts, sub, substr, strIdx, subIdx } = pf;
 const { isNum, len, toNum } = pf;
 import { ParamsShape, ErrCtx, Func, Funcs, Ins, ops, Val } from "./types";
 import { assertUnreachable, InvokeError } from "./types";
@@ -11,16 +11,25 @@ type Token = {
   text: string;
   errCtx: ErrCtx;
 };
-type NamedTokens = {
-  name: string;
-  tokens: Token[];
-  errCtx: ErrCtx;
-};
+type Node = Token | Node[];
 type ParserIns = Ins | { typ: "err"; value: string; errCtx: ErrCtx };
 const nullVal: Val = { t: "null", v: undefined };
 const falseVal = <Val>{ t: "bool", v: false };
-
-const depthChange = ({ typ }: Token) => toNum(typ === "(") - toNum(typ === ")");
+type NamedNodes = {
+  name: string;
+  nodes: Node[];
+};
+const isToken = (node: Node | undefined): node is Token =>
+  !!node && "errCtx" in node;
+const symAt = (node: Node, pos = 0) => {
+  if (isToken(node)) {
+    return "";
+  }
+  const arg = node[pos];
+  return (isToken(arg) && has(["sym", "str"], arg.typ) && arg.text) || "";
+};
+const node2str = (nodes: Node[]): string =>
+  nodes.map(n => (isToken(n) ? n.text : `(${node2str(n)})`)).join(" ");
 
 export function tokenise(
   code: string,
@@ -29,40 +38,19 @@ export function tokenise(
   emitComments = false,
 ) {
   const tokens: Token[] = [];
-  const digits = "0123456789";
-  let inString = false,
-    isEscaped = false,
-    inStringAt = [0, 0],
-    inSymbol = false,
-    inNumber = false,
-    inHex = false,
-    inComment = false,
-    line = 1,
-    col = 0;
+  const isDigit = (ch: string) => sub("0123456789", ch);
+  let [inString, line, col, inStringAt] = [false, 1, 0, [1, 0]];
+  let [inSymbol, inNumber, inHex] = [false, false, false];
   for (let i = 0, l = slen(code); i < l; ++i) {
     const c = strIdx(code, i),
       nextCh = i + 1 !== l ? strIdx(code, i + 1) : "";
     ++col;
-    if (inComment) {
-      if (c === "\n") {
-        inComment = false;
-        ++line;
-        col = 0;
-      } else if (emitComments) {
-        tokens[len(tokens) - 1].text += c;
-      }
-      continue;
-    }
-    if (isEscaped) {
-      isEscaped = false;
-      if (inString) {
-        tokens[len(tokens) - 1].text +=
-          { n: "\n", t: "\t", r: "\r", '"': '"' }[c] || `\\${c}`;
-      }
-      continue;
-    }
-    if (c === "\\") {
-      isEscaped = true;
+    if (c === "\\" && inString) {
+      tokens[len(tokens) - 1].text +=
+        { n: "\n", t: "\t", r: "\r", '"': '"' }[nextCh] ||
+        (nextCh === "\\" ? "\\" : `\\${nextCh}`);
+      ++col;
+      ++i;
       continue;
     }
     const errCtx: ErrCtx = { sourceId: sourceId, line, col };
@@ -84,13 +72,16 @@ export function tokenise(
       continue;
     }
     if (!inString && c === ";") {
-      inComment = true;
+      const nl = subIdx(substr(code, ++i), "\n");
+      const text = substr(code, i, nl > 0 ? nl : l - i);
+      i += slen(text);
+      ++line;
+      col = 0;
       if (emitComments) {
-        tokens.push({ typ: "rem", text: "", errCtx });
+        tokens.push({ typ: "rem", text, errCtx });
       }
       continue;
     }
-    const isDigit = (ch: string) => sub(digits, ch);
     const isParen = sub("()[]{}", c);
     //Allow one . per number, or hex, or binary, else convert into symbol
     if (inNumber && !isDigit(c)) {
@@ -112,22 +103,10 @@ export function tokenise(
     //If we just finished concatenating a token
     if (!inString && !inSymbol && !inNumber) {
       if (isParen) {
-        const parens: { [ch: string]: Token["typ"] } = {
-          "[": "(",
-          "{": "(",
-          "(": "(",
-          ")": ")",
-          "}": ")",
-          "]": ")",
-        };
-        const text = parens[c]!;
+        const text = subIdx("[{(", c) === -1 ? ")" : "(";
         tokens.push({ typ: text, text: makeCollsOps ? text : c, errCtx });
-        if (makeCollsOps) {
-          if (c === "[") {
-            tokens.push({ typ: "sym", text: "vec", errCtx });
-          } else if (c === "{") {
-            tokens.push({ typ: "sym", text: "dict", errCtx });
-          }
+        if (makeCollsOps && (c === "[" || c === "{")) {
+          tokens.push({ typ: "sym", text: c === "[" ? "vec" : "dict", errCtx });
         }
         continue;
       }
@@ -135,8 +114,7 @@ export function tokenise(
         isDigit(c) ||
         (c === "." && isDigit(nextCh)) ||
         (c === "-" && (isDigit(nextCh) || nextCh === "."));
-      inHex = false;
-      inSymbol = !inNumber;
+      inHex = inSymbol = !inNumber;
       const typ: Token["typ"] = inSymbol ? "sym" : "num";
       tokens.push({ typ, text: "", errCtx });
     }
@@ -145,361 +123,314 @@ export function tokenise(
   return { tokens, stringError: inString ? inStringAt : undefined };
 }
 
-function segment(tokens: Token[]): Token[][] {
-  const segments: Token[][] = [[]];
-  let depth = 0;
-  tokens.forEach(token => {
-    segments[len(segments) - 1].push(token);
-    depth += depthChange(token);
-    if (depth === 0) {
-      segments.push([]);
+/** Parses tokens into a tree where each node is a token or token list. */
+function treeise(tokens: Token[]): Node[] {
+  const nodes: Node[] = [];
+  const _treeise = (tokens: Token[]): Node => {
+    let prefix: Token | undefined;
+    if (tokens[0].typ === "sym" && sub("@#", tokens[0].text)) {
+      prefix = tokens.shift()!;
+    }
+    const token = tokens.shift()!;
+    if (token.typ !== "(" && token.typ !== ")") {
+      return token;
+    }
+    const nodes: Node[] = prefix ? [prefix] : [];
+    while (tokens[0].typ !== ")") {
+      nodes.push(_treeise(tokens));
+    }
+    tokens.shift();
+    return nodes;
+  };
+  while (len(tokens)) {
+    nodes.push(_treeise(tokens));
+  }
+  return nodes;
+}
+
+/** Separates function nodes and non-function nodes,
+ * with non-function nodes collected into (function entry ...)
+ * if there are any.*/
+function collectFuncs(
+  nodes: Node[],
+): ({ name: string; nodes: Node[] } | { err: string; errCtx: ErrCtx })[] {
+  const funcs: ReturnType<typeof collectFuncs> = [];
+  const entries: Node[] = [];
+  nodes.forEach(node => {
+    if (!isToken(node) && isToken(node[0]) && symAt(node) === "function") {
+      const name = symAt(node, 1);
+      if (!name) {
+        funcs.push({ err: "nameless function", errCtx: node[0].errCtx });
+      } else if (len(node) < 3) {
+        funcs.push({ err: "empty function body", errCtx: node[0].errCtx });
+      }
+      funcs.push({ name, nodes: node.slice(2) });
+    } else {
+      entries.push(node);
     }
   });
-  return segments;
-}
-
-function funcise(segments: Token[][]): NamedTokens[] {
-  const isFunc = (segment: Token[]) =>
-    len(segment) > 1 &&
-    segment[1].typ === "sym" &&
-    segment[1].text === "function";
-  const funcs = segments.filter(t => isFunc(t));
-  const entries = flat(segments.filter(t => !isFunc(t)));
-  const described = funcs.map(tokens => ({
-    name: tokens[2].text,
-    tokens: slice(tokens, 3),
-    errCtx: tokens[2].errCtx,
-  }));
-  return len(entries)
-    ? concat(described, [
-        {
-          name: "entry",
-          tokens: entries,
-          errCtx: entries[0].errCtx,
-        },
-      ])
-    : described;
-}
-
-function parseAll(tokens: Token[], params: ParamsShape) {
-  const args: ParserIns[][] = [];
-  while (true) {
-    const arg = parseArg(tokens, params);
-    if (!len(arg)) {
-      break;
-    }
-    args.push(arg);
+  if (len(entries)) {
+    funcs.push({ name: "entry", nodes: entries });
   }
-  return args;
+  return funcs;
 }
+
+const parseNode = (node: Node, params: ParamsShape) =>
+  isToken(node) ? parseArg(node, params) : parseForm(node, params);
 
 function parseForm(
-  tokens: Token[],
+  nodes: Node[],
   params: ParamsShape,
-  inPartial = true,
+  doArityCheck = true,
 ): ParserIns[] {
-  const head = tokens.shift();
-  if (!head) {
+  if (!len(nodes)) {
     return [];
   }
-  const { typ, text, errCtx } = head;
-  let op = text;
-  const err = (value: string, eCtx = errCtx) => [
-    <ParserIns>{ typ: "err", value, errCtx: eCtx },
-  ];
-  if (op === "catch") {
-    if (tokens[0].typ !== "(") {
-      return err("argument 1 must be expression");
+  const nodeParser = (node: Node) => parseNode(node, params);
+  let firstNode = nodes.shift()!;
+  let head = nodeParser(firstNode);
+  const { errCtx } = head[0];
+  if (isToken(firstNode) && firstNode.typ === "sym") {
+    if (firstNode.text in ops) {
+      const { exactArity, minArity } = ops[firstNode.text];
+      const a = exactArity ?? minArity;
+      if (a && a !== 1 && len(nodes) + 1 === a) {
+        nodes.unshift(firstNode);
+        firstNode = { typ: "sym", text: "@", errCtx: firstNode.errCtx };
+      }
     }
-    const body = parseArg(tokens, params);
-    const when = flat(parseAll(tokens, params));
-    if (!len(body) || !len(when)) {
-      return err("must provide at least 2 arguments");
-    }
-    return [...body, { typ: "cat", value: len(when), errCtx }, ...when];
-  } else if (op === "var" || op === "let") {
-    const ins: Ins[] = [];
-    while (true) {
-      const parsedDestructuring = parseParams(tokens, true);
-      if (len(parsedDestructuring.errors)) {
-        return parsedDestructuring.errors;
+    const { text: op, errCtx } = firstNode;
+    const err = (m: string, eCtx = errCtx) => [
+      <ParserIns>{ typ: "err", value: m, errCtx: eCtx },
+    ];
+
+    if (has(["if", "if!", "when", "match"], op) && !len(nodes)) {
+      return err("provide a condition");
+    } else if (has(["if", "if!"], op)) {
+      if (len(nodes) === 1) {
+        return err("provide at least one branch");
+      } else if (len(nodes) > 3) {
+        return err("provide fewer than two branches");
       }
-      let def: ParserIns | undefined = undefined;
-      if (len(parsedDestructuring.params)) {
-        def = {
-          typ: op === "var" ? "dva" : "dle",
-          value: parsedDestructuring.params,
-          errCtx,
-        };
+      let [cond, branch1, branch2] = nodes.map(nodeParser);
+      const ifN = op === "if!" && [
+        <Ins>{ typ: "val", value: { t: "func", v: "!" }, errCtx },
+        <Ins>{ typ: "exe", value: 1, errCtx },
+      ];
+      if (!branch2) {
+        branch2 = [{ typ: "val", value: nullVal, errCtx }];
       }
-      if (!def) {
-        [def] = parseArg(tokens, params);
+      return [
+        ...cond,
+        ...(ifN || []),
+        { typ: "if", value: len(branch1) + 1, errCtx },
+        ...branch1,
+        { typ: "jmp", value: len(branch2), errCtx },
+        ...branch2,
+      ];
+    } else if (op === "when") {
+      if (len(nodes) === 1) {
+        return err("provide a body");
       }
-      if (len(ins) && !def) {
+      const [cond, ...body] = nodes.map(nodeParser);
+      const bodyIns = flat(body);
+      return [
+        ...cond,
+        { typ: "if", value: len(bodyIns) + 1, errCtx },
+        ...bodyIns,
+        { typ: "jmp", value: 1, errCtx },
+        { typ: "val", value: nullVal, errCtx },
+      ];
+    } else if (op === "match") {
+      const [cond, ...args] = nodes.map(nodeParser);
+      const otherwise: ParserIns[] = len(args) % 2 ? args.pop()! : [];
+      if (!len(args)) {
+        return err("provide at least one case");
+      }
+      const elseLen = len(otherwise);
+      let insCount =
+        args.reduce((acc, a) => acc + len(a), 0) +
+        (elseLen ? elseLen : 2) +
+        len(args);
+      const ins: ParserIns[] = cond;
+      while (len(args) > 1) {
+        const [a, when] = [args.shift()!, args.shift()!];
+        push(ins, a);
+        ins.push({ typ: "mat", value: len(when) + 1, errCtx });
+        push(ins, when);
+        insCount -= len(a) + len(when) + 2;
+        ins.push({ typ: "jmp", value: insCount, errCtx });
+      }
+      if (len(otherwise)) {
+        push(ins, otherwise);
+      } else {
+        ins.push({ typ: "pop", value: 1, errCtx });
+        ins.push({ typ: "val", value: falseVal, errCtx });
+      }
+      return ins;
+    } else if (op === "catch") {
+      if (len(nodes) < 2) {
+        return err("provide at least 2 arguments");
+      } else if (isToken(nodes[0])) {
+        return err("argument 1 must be expression");
+      }
+      const body = nodeParser(nodes[0]);
+      const when = flat(nodes.slice(1).map(nodeParser));
+      return [...body, { typ: "cat", value: len(when), errCtx }, ...when];
+    } else if (op === "and" || op === "or" || op === "while") {
+      const args = nodes.map(nodeParser);
+      let insCount = args.reduce((acc, a) => acc + len(a), 0);
+      if (len(args) < 2) {
+        return err("provide at least 2 arguments");
+      }
+      const ins: ParserIns[] = [];
+      if (op === "while") {
+        ins.push({ typ: "val", value: nullVal, errCtx }); //If first is false
+        insCount += 2; //+1 for the if ins, +1 for the pop ins
+        const [head, ...body] = args;
+        push(ins, head);
+        ins.push({ typ: "if", value: insCount - len(head), errCtx });
+        ins.push({ typ: "pop", value: len(body), errCtx });
+        push(ins, flat(body));
+        ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
         return ins;
       }
-      const val = parseArg(tokens, params);
-      if (!len(ins) && (!def || !len(val))) {
-        return err(`must provide at least one declaration name and value`);
-      } else if (!len(val)) {
-        return err(`must provide a value after each declaration name`);
+      insCount += len(args); //+1 for each if/or ins
+      insCount += toNum(op === "and");
+      const typ = op === "and" ? "if" : "or";
+      for (let a = 0; a < len(args); ++a) {
+        push(ins, args[a]);
+        insCount -= len(args[a]);
+        ins.push({ typ, value: insCount, errCtx });
+        --insCount;
       }
-      if (def.typ !== "ref" && def.typ !== "dva" && def.typ !== "dle") {
-        return [
-          <ParserIns>{
-            typ: "err",
-            value: `${op} declaration name must be a symbol`,
-            errCtx: def.errCtx,
-          },
+      if (op === "and") {
+        push(ins, [
+          { typ: "val", value: <Val>{ t: "bool", v: true }, errCtx },
+          { typ: "jmp", value: 1, errCtx },
+        ]);
+      }
+      ins.push({ typ: "val", value: falseVal, errCtx });
+      return ins;
+    } else if (op === "var" || op === "let") {
+      const defs = nodes.filter((n, i) => !(i % 2));
+      const vals = nodes.filter((n, i) => i % 2);
+      if (!len(defs)) {
+        return err("provide at least 1 declaration name and value");
+      } else if (len(defs) > len(vals)) {
+        return err("provide a value after each declaration name");
+      }
+      const ins: ParserIns[] = [];
+      for (let d = 0, lim = len(defs); d < lim; ++d) {
+        push(ins, nodeParser(vals[d]));
+        const def = defs[d];
+        if (isToken(def)) {
+          const defIns = parseNode(defs[d], params);
+          if (len(defIns) > 1 || defIns[0].typ !== "ref") {
+            return err("declaration name must be symbol", defIns[0].errCtx);
+          }
+          ins.push({ typ: op, value: defIns[0].value, errCtx });
+        } else {
+          const { shape, errors } = parseParams([def], true);
+          if (len(errors)) {
+            return errors;
+          }
+          const typ = op === "var" ? "dva" : "dle";
+          ins.push({ typ, value: shape, errCtx });
+        }
+      }
+      return ins;
+    } else if (op === "var!" || op === "let!") {
+      //Rewrite e.g. (var! a + 1) -> (var a (+ a 1))
+      if (len(nodes) < 2) {
+        return err("provide 1 declaration name and 1 function");
+      }
+      const [[def], func, ...args] = nodes.map(nodeParser);
+      if (def.typ !== "ref") {
+        return err("declaration name must be symbol", def.errCtx);
+      }
+      const ins: Ins[] = [{ typ: "ref", value: def.value, errCtx }];
+      push(ins, [...flat(args), ...func]);
+      ins.push({ typ: "exe", value: len(args) + 1, errCtx });
+      const typ = op === "var!" ? "var" : "let";
+      ins.push({ typ, value: def.value, errCtx });
+      return ins;
+    } else if (op === "#" || op === "@" || op === "fn") {
+      const ins: ParserIns[] = [];
+      let asStr = node2str(nodes);
+      asStr = op === "fn" ? `(fn ${asStr})` : `${op}(${asStr})`;
+      if (op === "fn") {
+        const parsedParams = parseParams(nodes, false);
+        params = parsedParams.shape;
+        push(ins, parsedParams.errors);
+        if (!len(nodes)) {
+          return err("provide a body");
+        }
+        nodes.unshift({ typ: "sym", text: "do", errCtx });
+      }
+      //Rewrite partial closure to #(... [body] args)
+      if (op === "@") {
+        nodes = [
+          { typ: "sym", text: "...", errCtx },
+          ...nodes,
+          { typ: "sym", text: "args", errCtx },
         ];
       }
-      push(ins, val);
-      if (def.typ === "ref") {
-        ins.push({ typ: op, value: def.value, errCtx });
-      } else if (def.typ === "dva" || def.typ === "dle") {
-        ins.push({ typ: def.typ, value: def.value, errCtx });
+      push(ins, parseForm(nodes, params, op !== "@"));
+      const errors = ins.filter(t => t.typ === "err");
+      if (len(errors)) {
+        return errors;
       }
-    }
-  } else if (op === "var!" || op === "let!") {
-    const ins: Ins[] = [];
-    //Rewrite e.g. (var! a + 1) -> (var a (+ a 1))
-    const defIns = parseArg(tokens, params);
-    if (!len(defIns)) {
-      return err(`must provide declaration name`);
-    }
-    const def = defIns[0];
-    if (def.typ !== "ref") {
-      return err("declaration name must be symbol");
-    }
-    const func = parseArg(tokens, params);
-    if (!len(func)) {
-      return err("must provide an operation");
-    }
-    const args = parseAll(tokens, params);
-    ins.push({ typ: "ref", value: def.value, errCtx });
-    push(ins, flat(args));
-    push(ins, func);
-    ins.push({ typ: "exe", value: len(args) + 1, errCtx });
-    ins.push({ typ: op === "var!" ? "var" : "let", value: def.value, errCtx });
-    return ins;
-  } else if (op === "if" || op === "if!" || op === "when") {
-    const cond = parseArg(tokens, params);
-    if (!len(cond)) {
-      return err("must provide condition");
-    }
-    const ins: ParserIns[] = cond;
-    if (op === "if!") {
-      ins.push({ typ: "val", value: { t: "func", v: "!" }, errCtx });
-      ins.push({ typ: "exe", value: 1, errCtx });
-    }
-    if (op === "if" || op === "if!") {
-      const ifT = parseArg(tokens, params);
-      if (!len(ifT)) {
-        return err("must provide a branch");
+      if (op === "fn") {
+        ins.forEach(i => {
+          if (i.typ === "npa") {
+            i.typ = "upa";
+          }
+        });
       }
-      ins.push({ typ: "if", value: len(ifT) + 1, errCtx });
-      push(ins, ifT);
-      const ifF = parseArg(tokens, params);
-      if (len(ifF)) {
-        ins.push({ typ: "jmp", value: len(ifF), errCtx });
-        push(ins, ifF);
-        const extraneousBranch = parseArg(tokens, params);
-        if (len(extraneousBranch)) {
-          return err(
-            "too many branches; delete this branch",
-            extraneousBranch[0].errCtx,
-          );
+      const value: [string, Ins[]] = [asStr, <Ins[]>ins];
+      return [{ typ: op === "@" ? "par" : "clo", value, errCtx }];
+    }
+
+    //Operation arity check, optionally disabled for partial closures
+    if (ops[op] && doArityCheck) {
+      const errors = arityCheck(op, len(nodes), errCtx);
+      const err = (value: string, eCtx = errCtx) => [
+        <ParserIns>{ typ: "err", value, errCtx: eCtx },
+      ];
+      push(head, errors?.map(e => err(e.m)[0]) ?? []);
+      if (!errors) {
+        //Upgrade some math and logic functions to their faster counterparts
+        if (len(nodes) === 2 && ops[`fast${op}`]) {
+          head = nodeParser({ typ: "sym", text: `fast${op}`, errCtx });
         }
-      } else {
-        ins.push({ typ: "jmp", value: 1, errCtx });
-        ins.push({ typ: "val", value: nullVal, errCtx });
-      }
-    } else {
-      const body = flat(parseAll(tokens, params));
-      ins.push({ typ: "if", value: len(body) + 1, errCtx });
-      push(ins, body);
-      ins.push({ typ: "jmp", value: 1, errCtx });
-      ins.push({ typ: "val", value: nullVal, errCtx });
-    }
-    return ins;
-  } else if (op === "and" || op === "or" || op === "while") {
-    const args = parseAll(tokens, params);
-    let insCount = args.reduce((acc, a) => acc + len(a), 0);
-    if (len(args) < 2) {
-      return err("requires at least two arguments");
-    }
-    const ins: Ins[] = [];
-    if (op === "while") {
-      ins.push({ typ: "val", value: nullVal, errCtx }); //If first is false
-      insCount += 2; //+1 for the if ins, +1 for the pop ins
-      const head = args.shift()!;
-      push(ins, head);
-      ins.push({ typ: "if", value: insCount - len(head), errCtx });
-      ins.push({ typ: "pop", value: len(args), errCtx });
-      args.forEach(as => push(ins, as));
-      ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
-      return ins;
-    }
-    insCount += len(args); //+1 for each if/or ins
-    insCount += toNum(op === "and");
-    const typ = op === "and" ? "if" : "or";
-    for (let a = 0; a < len(args); ++a) {
-      push(ins, args[a]);
-      insCount -= len(args[a]);
-      ins.push({ typ, value: insCount, errCtx });
-      --insCount;
-    }
-    if (op === "and") {
-      push(ins, [
-        { typ: "val", value: <Val>{ t: "bool", v: true }, errCtx },
-        { typ: "jmp", value: 1, errCtx },
-        { typ: "val", value: falseVal, errCtx },
-      ]);
-    } else {
-      ins.push({ typ: "val", value: falseVal, errCtx });
-    }
-    return ins;
-  } else if (op === "match") {
-    const cond = parseArg(tokens, params);
-    if (!len(cond)) {
-      return err("must provide condition");
-    }
-    const args = parseAll(tokens, params);
-    const otherwise: ParserIns[] = len(args) % 2 ? args.pop()! : [];
-    if (!len(args)) {
-      return err("must provide at least one case");
-    }
-    let insCount =
-      args.reduce(
-        (acc, a) => acc + len(a) + 1,
-        len(otherwise) ? len(otherwise) - 2 : 0,
-      ) + 2;
-    const ins: ParserIns[] = cond;
-    while (len(args) > 1) {
-      const a = args.shift()!;
-      const when = args.shift()!;
-      push(ins, a);
-      ins.push({ typ: "mat", value: len(when) + 1, errCtx });
-      push(ins, when);
-      insCount -= len(a) + len(when) + 2;
-      ins.push({ typ: "jmp", value: insCount, errCtx });
-    }
-    if (len(otherwise)) {
-      push(ins, otherwise);
-    } else {
-      ins.push({ typ: "pop", value: 1, errCtx });
-      ins.push({ typ: "val", value: falseVal, errCtx });
-    }
-    return ins;
-  }
-  const headIns: Ins[] = [];
-  //Head is a expression or parameter
-  if (
-    typ === "(" ||
-    has(
-      params.map(({ name }) => name),
-      text,
-    ) ||
-    sub("%#@", strIdx(text, 0))
-  ) {
-    tokens.unshift(head);
-    const ins = parseArg(tokens, params);
-    if (inPartial) {
-      headIns.push({ typ: "exp", value: len(ins), errCtx });
-    }
-    push(headIns, ins);
-  }
-  const parsedArgs = parseAll(tokens, params);
-  const [body, nArgs] = [flat(parsedArgs), len(parsedArgs)];
-  if (op === "return") {
-    return [...body, { typ: "ret", value: !!len(body), errCtx }];
-  }
-
-  //Operation arity check, optionally disabled for partial closures
-  if (ops[op] && !inPartial) {
-    const errors = arityCheck(op, nArgs, errCtx);
-    push(headIns, errors?.map(e => err(e.m)[0]) ?? []);
-    if (!errors) {
-      //Upgrade some math and logic functions to their fast counterparts
-      if (nArgs === 2 && ops[`fast${op}`]) {
-        op = `fast${op}`;
       }
     }
   }
 
-  if (len(headIns)) {
-    headIns.push({ typ: "exe", value: nArgs, errCtx });
-  } else {
-    const value: Val =
-      typ === "num"
-        ? { t: "num", v: toNum(op) }
-        : starts(op, ":")
-        ? { t: "key", v: op }
-        : ops[op]
-        ? { t: "func", v: op }
-        : op === "true" || op === "false"
-        ? { t: "bool", v: op === "true" }
-        : { t: "str", v: op };
-    headIns.push({ typ: "val", value, errCtx });
-    headIns.push({ typ: "exe", value: nArgs, errCtx });
+  const args = nodes.map(nodeParser);
+  const ins: ParserIns[] = flat(args);
+  if (symAt([firstNode]) === "return") {
+    return [...ins, { typ: "ret", value: !!len(args), errCtx }];
+  } else if (head[0].typ === "ref") {
+    const { value: v, errCtx } = head[0];
+    head[0] = { typ: "val", value: { t: "str", v }, errCtx };
   }
-  return [...body, ...headIns];
+  push(ins, head);
+  const typ = len(head) > 1 ? "exa" : "exe";
+  return [...ins, { typ, value: len(args), errCtx }];
 }
 
-function parseArg(
-  tokens: Token[],
-  params: ParamsShape,
-  inPartial = false,
-): ParserIns[] {
-  if (!len(tokens)) {
-    return [];
-  }
-  const { typ, text, errCtx } = tokens.shift() as Token;
-  //Upon closure
-  const isClosure =
-    typ === "sym" && sub("#@", text) && len(tokens) && tokens[0].typ === "(";
-  const isParamClosure = typ === "(" && len(tokens) && tokens[0].text === "fn";
-  if (isClosure || isParamClosure) {
-    const texts = tokens.map(t => t.text);
-    const fnIns = isParamClosure ? tokens.shift() : undefined;
-    const ins: ParserIns[] = [];
-    if (isParamClosure) {
-      const parsedParams = parseParams(tokens);
-      params = parsedParams.params;
-      push(ins, parsedParams.errors);
-      if (tokens[0].typ === ")") {
-        return [
-          { typ: "err", value: `fn requires a body`, errCtx: fnIns!.errCtx },
-        ];
-      }
-      tokens.unshift({ typ: "sym", text: "do", errCtx });
-      tokens.unshift({ typ: "(", text: "(", errCtx });
-    }
-    push(ins, parseArg(tokens, params, text === "@"));
-    const errors = ins.filter(t => t.typ === "err");
-    if (len(errors)) {
-      return errors;
-    }
-    if (isParamClosure) {
-      ins.forEach(i => {
-        if (i.typ === "npa") {
-          i.typ = "upa";
-        }
-      });
-    }
-    const value: [string, Ins[]] = [
-      (isParamClosure ? "(" : text) +
-        slice(texts, 0, len(texts) - len(tokens)).join(" "),
-      <Ins[]>ins,
-    ];
-    return [{ typ: text === "@" ? "par" : "clo", value, errCtx }];
-  }
-  switch (typ) {
-    case "str":
-      return [{ typ: "val", value: <Val>{ t: "str", v: text }, errCtx }];
-    case "num":
-      return [{ typ: "val", value: <Val>{ t: "num", v: toNum(text) }, errCtx }];
-    case "sym":
+function parseArg(node: Node, params: ParamsShape): ParserIns[] {
+  if (isToken(node)) {
+    const { errCtx } = node;
+    if (node.typ === "str") {
+      return [{ typ: "val", value: { t: "str", v: node.text }, errCtx }];
+    } else if (node.typ === "num") {
+      return [{ typ: "val", value: { t: "num", v: toNum(node.text) }, errCtx }];
+    } else if (node.typ === "sym") {
+      const { text } = node;
+      const paramNames = params.map(({ name }) => name);
       if (text === "true" || text === "false") {
         return [
           { typ: "val", value: <Val>{ t: "bool", v: text === "true" }, errCtx },
@@ -516,12 +447,7 @@ function parseArg(
           return [{ typ: "val", value: nullVal, errCtx }];
         }
         return [{ typ: "upa", value, errCtx }];
-      } else if (
-        has(
-          params.map(({ name }) => name),
-          text,
-        )
-      ) {
+      } else if (has(paramNames, text)) {
         const param = params.find(({ name }) => name === text)!;
         if (len(param.position) === 1) {
           return [{ typ: "npa", value: param.position[0], errCtx }];
@@ -536,17 +462,15 @@ function parseArg(
         return [{ typ: "val", value: <Val>{ t: "func", v: text }, errCtx }];
       }
       return [{ typ: "ref", value: text, errCtx }];
-    case "(":
-      return parseForm(tokens, params, inPartial);
-    case ")":
-    case "rem":
-      return [];
-    default:
-      return assertUnreachable(typ);
+    }
+    return [];
+  } else if (!len(node)) {
+    return [];
   }
+  return parseForm(node, params);
 }
 
-/** Accepts tokens and returns ParamsShape.
+/** Consumes some tokens and returns ParamsShape.
  * Example inputs:
  * "(fn "   a [b [c]] d [d c b a]
  * "(var " [a] [1 2] b [1 2]
@@ -556,124 +480,46 @@ function parseArg(
  * "(function "
  * */
 function parseParams(
-  tokens: Token[],
-  forVar = false,
-): { params: ParamsShape; errors: ParserIns[] } {
-  if (!len(tokens) || tokens[0].typ === ")") {
-    return { params: [], errors: [] };
-  }
-  let depth = 0;
-  const destructs: Token[][] = [];
-  let destruct: Token[] = [];
-  let hitNonParam = 0;
-  while (len(tokens)) {
-    if (!depth) {
-      destructs.push([]);
-      destruct = destructs[len(destructs) - 1];
-    }
-    depth += depthChange(tokens[0]);
-    if (depth < 0) {
-      break;
-    }
-    destruct.push(tokens.shift()!);
-    if (destruct[0].typ === "sym" && sub("#@%", destruct[0].text)) {
-      tokens.unshift(destruct[0]);
-      destructs.pop();
-      hitNonParam = 1;
-      break;
-    }
-    if (
-      len(destruct) > 1 &&
-      (destruct[1].typ !== "sym" || destruct[1].text !== "vec")
-    ) {
-      hitNonParam = 2;
-      break;
-    }
-    if (forVar && !depth) {
-      if (len(destruct) === 1) {
-        tokens.unshift(destruct[0]);
-        return { params: [], errors: [] };
-      }
-      break;
-    }
-  }
-  if (hitNonParam === 2 && depth > 0) {
-    tokens.unshift(destruct[1]);
-    tokens.unshift(destruct[0]);
-    destructs.pop();
-  } else {
-    if (depth < 0) {
-      //We reached ) early
-      destructs.pop();
-      destructs
-        .pop()!
-        .reverse()
-        .forEach(t => tokens.unshift(t));
-    } else if (!hitNonParam && !forVar) {
-      //Everything was a valid parameter so the last one is the body
-      const last = destructs.pop()!;
-      if (len(last) === 1 && last[0].typ === ")") {
-        push(tokens, destructs.pop()!);
-      }
-      push(tokens, last);
-    }
-  }
-  const params: ParamsShape = [];
-  const errors: ParserIns[] = [];
-  const position: number[] = [0];
-  destructs.forEach(destruct => {
-    destruct.forEach(({ typ, text, errCtx }) => {
+  nodes: Node[],
+  consumeLast: boolean,
+  position: number[] = [],
+): { shape: ParamsShape; errors: ParserIns[] } {
+  const shape: ParamsShape = [],
+    errs: ParserIns[] = [];
+  let n = 0;
+  while (
+    len(nodes) > (consumeLast ? 0 : 1) &&
+    (isToken(nodes[0]) || symAt(nodes[0]) === "vec")
+  ) {
+    const param = nodes.shift()!;
+    if (!isToken(param)) {
+      param.shift();
+      const parsed = parseParams(param, true, [...position, n]);
+      push(shape, parsed.shape);
+      push(errs, parsed.errors);
+    } else {
+      const { typ, errCtx } = param;
       if (typ === "sym") {
-        if (text === "vec") {
-          return;
-        }
-        params.push({ name: text, position: slice(position) });
-        ++position[len(position) - 1];
-        return;
-      }
-      if (typ === "(") {
-        position.push(0);
-      } else if (typ === ")") {
-        position.pop();
-        ++position[len(position) - 1];
+        shape.push({ name: param.text, position: [...position, n] });
       } else {
-        errors.push({
-          typ: "err",
-          value: `disallowed in destructuring`,
-          errCtx,
-        });
+        errs.push({ typ: "err", value: "provide parameter name", errCtx });
       }
-    });
-    //++position[0];
-  });
-  return { params, errors };
+    }
+    ++n;
+  }
+  return { shape, errors: errs };
 }
 
-function syntaxise(
-  { name, tokens }: NamedTokens,
-  errCtx: ErrCtx,
-): ["func", Func] | ["err", InvokeError] {
-  const err = (m: string, eCtx = errCtx) =>
-    <ReturnType<typeof syntaxise>>["err", { e: "Parse", m, errCtx: eCtx }];
-  //In the case of e.g. (function (+)) or (function)
-  if (name === "(" || name === ")") {
-    return err("nameless function");
-  }
-  //In the case of e.g. (function name)
-  if (tokens[0].typ === ")") {
-    return err("empty function body");
-  }
-  const { params, errors: ins } = parseParams(tokens);
-  while (len(tokens)) {
-    push(ins, parseArg(tokens, params));
-  }
+function compileFunc({ name, nodes: nodes }: NamedNodes): Func | InvokeError {
+  const { shape: params, errors } = parseParams(nodes, false);
+  const ins = [...errors, ...flat(nodes.map(node => parseArg(node, params)))];
   for (let i = 0, lim = len(ins); i < lim; i++) {
-    const x = ins[i];
-    if (x.typ === "err") {
-      return err(x.value, x.errCtx);
+    const { typ, value, errCtx } = ins[i];
+    if (typ === "err") {
+      return <InvokeError>{ e: "Parse", m: value, errCtx };
     }
   }
-  return ["func", { name, ins: <Ins[]>ins }];
+  return { name, ins: <Ins[]>ins };
 }
 
 function findParenImbalance(
@@ -743,6 +589,7 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   return errors;
 }
 
+//TODO: investigate Node implementation replacement
 function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
   type TypeInfo = {
     types?: Val["t"][];
@@ -755,6 +602,7 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
       case "val":
         stack.push({ types: [ins.value.t], val: ins.value });
         break;
+      case "exa":
       case "exe": {
         const head = stack.pop()!;
         const args = splice(stack, len(stack) - ins.value, ins.value);
@@ -810,7 +658,6 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
         stack.push({});
         i += ins.value;
         break;
-      case "exp":
       case "cat":
       case "var":
       case "let":
@@ -874,22 +721,23 @@ export function parse(
   if (len(tokenErrors)) {
     return { errors: tokenErrors, funcs: {} };
   }
-  const segments = segment(tokens);
-  const labelled = funcise(segments);
-  const funcsAndErrors = labelled.map(named =>
-    syntaxise(named, {
-      sourceId: sourceId,
-      line: named.errCtx.line,
-      col: named.errCtx.col,
-    }),
-  );
   const okFuncs: Func[] = [],
     errors: InvokeError[] = [];
-  funcsAndErrors.forEach(fae => {
-    if (fae[0] === "err") {
-      errors.push(fae[1]);
+  const tree = treeise(tokens.slice());
+  const collected = collectFuncs(tree);
+  const namedNodes: NamedNodes[] = [];
+  collected.forEach(nodeOrErr => {
+    if ("err" in nodeOrErr) {
+      errors.push({ e: "Parse", m: nodeOrErr.err, errCtx: nodeOrErr.errCtx });
     } else {
-      okFuncs.push(fae[1]);
+      namedNodes.push({ name: nodeOrErr.name, nodes: nodeOrErr.nodes });
+    }
+  });
+  namedNodes.map(compileFunc).forEach(fae => {
+    if ("e" in fae) {
+      errors.push(fae);
+    } else {
+      okFuncs.push(fae);
     }
   });
   push(errors, flat(okFuncs.map(f => insErrorDetect(f.ins) ?? [])));

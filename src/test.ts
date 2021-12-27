@@ -5,7 +5,7 @@ type State = { dict: Map<string, Val>; output: string };
 
 function get(state: State, key: string): ValOrErr {
   if (!state.dict.has(key)) {
-    return { kind: "err", err: `"${key} not found.` };
+    return { kind: "err", err: `"${key}" not found.` };
   }
   return { kind: "val", value: state.dict.get(key)! };
 }
@@ -60,12 +60,12 @@ const tests: {
   { name: "Cond number head", code: `((if false 1 2) [:a :b :c])`, out: `:c` },
   {
     name: "and & short-circuit",
-    code: `[(and true (if true null 1) true) (and 1 2 3)]`,
+    code: `[(and true (if true null 1) (print "hi")) (and 1 2 3)]`,
     out: `[false true]`,
   },
   {
     name: "or & short-circuit",
-    code: `[(or true (print "hello") 1) (or false (print-str "-> ") 1)]`,
+    code: `[(or true (print "hi") 1) (or false (print-str "-> ") 1)]`,
     out: `-> [true 1]`,
   },
   { name: "String retrieve", code: `(2 "Hello")`, out: `l` },
@@ -282,11 +282,6 @@ const tests: {
     out: `224`,
   },
   {
-    name: "Parameterised closure 3",
-    code: `(((fn (fn 1))))`,
-    out: `1`,
-  },
-  {
     name: "Destructure var",
     code: `(var [x [y]] [1 [2]]) [y x]`,
     out: `[2 1]`,
@@ -337,6 +332,11 @@ const tests: {
     err: ["Budget"],
   },
   { name: "Range budget", code: `(range 10000)`, err: ["Budget"] },
+  {
+    name: "Head exe arity check",
+    code: `(((fn +)) 1)`,
+    err: ["Arity"],
+  },
   //Complex functions
   {
     name: "Fibonacci 13",
@@ -384,7 +384,7 @@ const tests: {
   { name: "Function without name", code: `(function (+))`, err: ["Parse"] },
   { name: "Function without body", code: `(function func)`, err: ["Parse"] },
   { name: "Variable not symbol", code: `(var 1 2)`, err: ["Parse"] },
-  //Parser type-errors
+  //Parser type and arity errors
   { name: "Parser type error 1", code: `(function f (+ 1 :a))`, err: ["Type"] },
   {
     name: "Parser type error 2",
@@ -396,6 +396,7 @@ const tests: {
     code: `(function f (if true (into 2 {}) (+ 2 2)))`,
     err: ["Type"],
   },
+  { name: "Parser arity error 1", code: `(abs)`, err: ["Parse"] },
 ];
 
 export function doTests(

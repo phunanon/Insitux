@@ -3,7 +3,7 @@ export const slice = <T>(arr: T[], start?: number, end?: number): T[] =>
   arr.slice(start, end);
 export const splice = <T>(arr: T[], start: number, numDel?: number): T[] =>
   arr.splice(start, numDel);
-export const len = (arr: unknown[]): number => arr.length;
+export const len = <T>(arr: T[]): number => arr.length;
 export const slen = (str: string): number => str.length;
 export const isNum = (x: unknown): x is number => !Number.isNaN(Number(x));
 export const isArray = <T>(x: unknown): x is T[] => Array.isArray(x);

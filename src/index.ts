@@ -1,4 +1,4 @@
-export const insituxVersion = 20211213;
+export const insituxVersion = 20211227;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -884,11 +884,7 @@ function getExe(
         _dic(dictSet(dict, params[0], params[1]));
       } else {
         return [
-          {
-            e: "Arity",
-            m: "dictionary as operation takes one or two arguments only",
-            errCtx,
-          },
+          { e: "Arity", m: "provide 1 or 2 arguments for dictionary", errCtx },
         ];
       }
       return;
@@ -898,11 +894,7 @@ function getExe(
     return (params: Val[]) => {
       if (!len(params) || len(params) > 2) {
         return [
-          {
-            e: "Arity",
-            m: "boolean as operation takes one or two arguments only",
-            errCtx,
-          },
+          { e: "Arity", m: "provide 1 or 2 arguments for boolean", errCtx },
         ];
       }
       stack.push(
@@ -986,10 +978,9 @@ function exeFunc(
         break;
       case "dle":
       case "dva": {
-        const paramsShape = ins.value;
         const val = stack.pop()!;
         let last: Val | undefined;
-        paramsShape.forEach(({ name, position }) => {
+        ins.value.forEach(({ name, position }) => {
           if (ins.typ === "dva") {
             last = ctx.env.vars[name] = destruct([val], position);
           } else {
@@ -1035,8 +1026,9 @@ function exeFunc(
         }
         break;
       }
+      case "exa":
       case "exe": {
-        const closure = getExe(ctx, stack.pop()!, errCtx, false);
+        const closure = getExe(ctx, stack.pop()!, errCtx, ins.typ === "exa");
         const nArgs = ins.value;
         const params = splice(stack, len(stack) - nArgs, nArgs);
         const errors = closure(params);
@@ -1147,31 +1139,9 @@ function exeFunc(
             ? <Ins>{ typ: "val", value: captures.shift()!, errCtx }
             : ins,
         );
-        //Rewrite partial closure to #(... func [args] args)
-        if (ins.typ === "par") {
-          const { value: exeNumArgs, errCtx } = cins.pop()!;
-          //If has expression as head
-          if (len(cins) > 0 && cins[len(cins) - 1].typ === "exe") {
-            const headStartIdx = cins.findIndex(i => i.typ === "exp");
-            const head = splice(cins, headStartIdx, len(cins) - headStartIdx);
-            push(head, cins);
-            cins = head;
-          } else {
-            cins.unshift(cins.pop()!);
-          }
-          cins.push({ typ: "upa", value: -1, errCtx });
-          cins.push({
-            typ: "val",
-            value: <Val>{ t: "str", v: "..." },
-            errCtx,
-          });
-          cins.push({ typ: "exe", value: <number>exeNumArgs + 2, errCtx });
-        }
         stack.push(<Val>{ t: "clo", v: <Func>{ name, ins: cins } });
         break;
       }
-      case "exp":
-        break;
       default:
         assertUnreachable(ins);
     }
@@ -1289,7 +1259,9 @@ export function invokeFunction(
  * (optionally) syntax, constants, and user-defined functions.
  */
 export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
-  let syms = alsoSyntax ? ["function", "let", "var", "if", "if!", "while"] : [];
+  let syms = alsoSyntax
+    ? ["function", "let", "var", "if", "if!", "when", "while", "match", "catch"]
+    : [];
   push(syms, ["args", "PI", "E"]);
   syms = concat(syms, objKeys(ops));
   syms = concat(syms, objKeys(ctx.env.funcs));

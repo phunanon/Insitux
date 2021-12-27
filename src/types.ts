@@ -74,7 +74,7 @@ export type Ins = { errCtx: ErrCtx } & (
   | { typ: "var" | "let" | "ref"; value: string }
   | { typ: "dva" | "dle"; value: ParamsShape } //Destructuring var/let
   | { typ: "exe"; value: number } //Execute last stack value, number of args
-  | { typ: "exp"; value: number } //Marks the start of an expression as head for potential partial closures
+  | { typ: "exa"; value: number } //Execute last stack value, number of args, with arity check
   | { typ: "or" | "if" | "jmp" | "loo" | "cat" | "mat"; value: number } //Number of instructions
   | { typ: "ret"; value: boolean } //Return, with value?
   | { typ: "pop"; value: number } //Truncate stack, by number of values
@@ -97,7 +97,7 @@ export type ExternalFunction = {
   name: string;
   definition: Operation;
   handler: ExternalHandler;
-}
+};
 
 export const ops: {
   [name: string]: Operation & { external?: boolean };

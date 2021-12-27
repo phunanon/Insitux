@@ -211,7 +211,7 @@ etc
 (round 3.5)    → 4
 (round 2 PI)   → 3.14
 
-;Various equality operators, which all accept a variable number of arguments
+;Various equality operators, which all accept two or more arguments
 ;Note: < > <= >= only compare numbers
 ;Note: != will only check that each value is different from the next
 ;Note: fast= fast!= fast< fast> fast<= fast>= are also available for two
@@ -505,6 +505,14 @@ etc
 ```
 
 ### Miscellaneous
+
+- Providing one too few arguments to an operation will make the expression return a partial closure. For example:
+
+```clj
+(+ 1)               → @(+ 1)
+(join ", ")         → @(join ", ")
+(map (+ 5) [1 2 3]) → [6 7 8]
+```
 
 - Write `;` outside of a string of text to create a comment:
 
@@ -853,7 +861,8 @@ A "shape" of parameter names or var/let names can be provided in which each vect
   (let [start result end] [(time) (.. . args) (time)])
   (str result " took " (- end start) "ms"))
 
-(measure fib 35) → "9227465 took 38003ms"
+(measure fib 35)
+→ "9227465 took 38003ms"
 
 
 ; Display the Mandelbrot fractal as ASCII
@@ -913,14 +922,15 @@ A "shape" of parameter names or var/let names can be provided in which each vect
       :weights (map @((m) (rand -1 1)) (:weights %))})
   (map @(map mutate-neuron) brain))
 
-(function neuron-think  inputs {:keys [weights bias]}
-  (let weighted (map * weights inputs)
+(function neuron-think  neuron inputs
+  (let weighted (map * (:weights neuron) inputs)
        average  (/ (.. + weighted) (len inputs)))
-  (sigmoid (+ average bias)))
+  (sigmoid (+ average (:bias neuron))))
 
 (function think  brain inputs
-  (-> (fn input layer (map @(neuron-think input) layer))
-     #(reduce % inputs brain)))
+  (let thoughts (map #(neuron-think % inputs)   (0 brain))
+       thoughts (map #(neuron-think % thoughts) (1 brain))
+       thoughts (map #(neuron-think % thoughts) (2 brain))))
 
 (var brain (mutate (make-brain 5 5 5)))
 (-> (repeat #(rand-int) 5)
