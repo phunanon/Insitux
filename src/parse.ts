@@ -400,7 +400,7 @@ function parseForm(
 
   const args = nodes.map(nodeParser);
   const ins: ParserIns[] = flat(args);
-  if (symAt(firstNode) === "return") {
+  if (symAt([firstNode]) === "return") {
     return [...ins, { typ: "ret", value: !!len(args), errCtx }];
   }
   push(ins, head);
