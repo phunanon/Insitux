@@ -313,20 +313,21 @@ function parseForm(
       }
       const ins: ParserIns[] = [];
       for (let d = 0, lim = len(defs); d < lim; ++d) {
-        const { shape, errors } = parseParams([defs[d]], true);
-        if (len(errors)) {
-          return errors;
-        }
         push(ins, nodeParser(vals[d]));
-        if (len(shape)) {
-          const typ = op === "var" ? "dva" : "dle";
-          ins.push({ typ, value: shape, errCtx });
-        } else {
+        const def = defs[d];
+        if (isToken(def)) {
           const defIns = parseNode(defs[d], params);
           if (len(defIns) > 1 || defIns[0].typ !== "ref") {
             return err("declaration name must be symbol", defIns[0].errCtx);
           }
           ins.push({ typ: op, value: defIns[0].value, errCtx });
+        } else {
+          const { shape, errors } = parseParams([def], true);
+          if (len(errors)) {
+            return errors;
+          }
+          const typ = op === "var" ? "dva" : "dle";
+          ins.push({ typ, value: shape, errCtx });
         }
       }
       return ins;
@@ -350,7 +351,7 @@ function parseForm(
       let asStr = node2str(nodes);
       asStr = op === "fn" ? `(fn ${asStr})` : `${op}(${asStr})`;
       if (op === "fn") {
-        const parsedParams = parseParams(nodes);
+        const parsedParams = parseParams(nodes, false);
         params = parsedParams.shape;
         push(ins, parsedParams.errors);
         if (!len(nodes)) {
@@ -471,21 +472,20 @@ function parseArg(node: Node, params: ParamsShape): ParserIns[] {
  * */
 function parseParams(
   nodes: Node[],
-  forVar = false,
+  consumeLast: boolean,
   position: number[] = [],
 ): { shape: ParamsShape; errors: ParserIns[] } {
   const shape: ParamsShape = [],
     errs: ParserIns[] = [];
   let n = 0;
   while (
-    len(nodes) > (len(position) ? 0 : 1) &&
-    (isToken(nodes[0]) || symAt(nodes[0]) === "vec") &&
-    !(forVar && len(shape))
+    len(nodes) > (consumeLast ? 0 : 1) &&
+    (isToken(nodes[0]) || symAt(nodes[0]) === "vec")
   ) {
     const param = nodes.shift()!;
     if (!isToken(param)) {
       param.shift();
-      const parsed = parseParams(param, forVar, [...position, n]);
+      const parsed = parseParams(param, true, [...position, n]);
       push(shape, parsed.shape);
       push(errs, parsed.errors);
     } else {
@@ -502,7 +502,7 @@ function parseParams(
 }
 
 function compileFunc({ name, nodes: nodes }: NamedNodes): Func | InvokeError {
-  const { shape: params, errors } = parseParams(nodes);
+  const { shape: params, errors } = parseParams(nodes, false);
   const ins = [...errors, ...flat(nodes.map(node => parseArg(node, params)))];
   for (let i = 0, lim = len(ins); i < lim; i++) {
     const { typ, value, errCtx } = ins[i];

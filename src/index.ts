@@ -986,10 +986,9 @@ function exeFunc(
         break;
       case "dle":
       case "dva": {
-        const paramsShape = ins.value;
         const val = stack.pop()!;
         let last: Val | undefined;
-        paramsShape.forEach(({ name, position }) => {
+        ins.value.forEach(({ name, position }) => {
           if (ins.typ === "dva") {
             last = ctx.env.vars[name] = destruct([val], position);
           } else {
