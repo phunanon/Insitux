@@ -189,72 +189,6 @@ function parseForm(
   const err = (value: string, eCtx = errCtx) => [
     <ParserIns>{ typ: "err", value, errCtx: eCtx },
   ];
-  } else if (op === "var" || op === "let") {
-    const ins: Ins[] = [];
-    while (true) {
-      const parsedDestructuring = parseParams(tokens, true);
-      if (len(parsedDestructuring.errors)) {
-        return parsedDestructuring.errors;
-      }
-      let def: ParserIns | undefined = undefined;
-      if (len(parsedDestructuring.params)) {
-        def = {
-          typ: op === "var" ? "dva" : "dle",
-          value: parsedDestructuring.params,
-          errCtx,
-        };
-      }
-      if (!def) {
-        [def] = parseArg(tokens, params);
-      }
-      if (len(ins) && !def) {
-        return ins;
-      }
-      const val = parseArg(tokens, params);
-      if (!len(ins) && (!def || !len(val))) {
-        return err(`must provide at least one declaration name and value`);
-      } else if (!len(val)) {
-        return err(`must provide a value after each declaration name`);
-      }
-      if (def.typ !== "ref" && def.typ !== "dva" && def.typ !== "dle") {
-        return [
-          <ParserIns>{
-            typ: "err",
-            value: `${op} declaration name must be a symbol`,
-            errCtx: def.errCtx,
-          },
-        ];
-      }
-      push(ins, val);
-      if (def.typ === "ref") {
-        ins.push({ typ: op, value: def.value, errCtx });
-      } else if (def.typ === "dva" || def.typ === "dle") {
-        ins.push({ typ: def.typ, value: def.value, errCtx });
-      }
-    }
-  } else if (op === "var!" || op === "let!") {
-    const ins: Ins[] = [];
-    //Rewrite e.g. (var! a + 1) -> (var a (+ a 1))
-    const defIns = parseArg(tokens, params);
-    if (!len(defIns)) {
-      return err(`must provide declaration name`);
-    }
-    const def = defIns[0];
-    if (def.typ !== "ref") {
-      return err("declaration name must be symbol");
-    }
-    const func = parseArg(tokens, params);
-    if (!len(func)) {
-      return err("must provide an operation");
-    }
-    const args = parseAll(tokens, params);
-    ins.push({ typ: "ref", value: def.value, errCtx });
-    push(ins, flat(args));
-    push(ins, func);
-    ins.push({ typ: "exe", value: len(args) + 1, errCtx });
-    ins.push({ typ: op === "var!" ? "var" : "let", value: def.value, errCtx });
-    return ins;
-  }
   const headIns: Ins[] = [];
   //Head is a expression or parameter
   if (
@@ -292,7 +226,9 @@ function parseForm(
   const { errCtx } = head[0];
   if (isToken(firstNode) && firstNode.typ === "sym") {
     const { text: op, errCtx } = firstNode;
-    const err = (m: string) => [<ParserIns>{ typ: "err", value: m, errCtx }];
+    const err = (m: string, eCtx = errCtx) => [
+      <ParserIns>{ typ: "err", value: m, errCtx: eCtx },
+    ];
     if (has(["if", "if!", "when", "match"], op) && !len(nodes)) {
       return err("provide a condition");
     } else if (has(["if", "if!"], op)) {
@@ -400,6 +336,48 @@ function parseForm(
         ]);
       }
       ins.push({ typ: "val", value: falseVal, errCtx });
+      return ins;
+    } else if (op === "var" || op === "let") {
+      const defs = nodes.filter((n, i) => !(i % 2));
+      const vals = nodes.filter((n, i) => i % 2);
+      if (!len(defs)) {
+        return err("provide at least 1 declaration name and value");
+      } else if (len(defs) > len(vals)) {
+        return err("provide a value after each declaration name");
+      }
+      const ins: ParserIns[] = [];
+      for (let d = 0, lim = len(defs); d < lim; ++d) {
+        const { shape, errors } = parseParams([defs[d]], true);
+        if (len(errors)) {
+          return errors;
+        }
+        push(ins, nodeParser(vals[d]));
+        if (len(shape)) {
+          const typ = op === "var" ? "dva" : "dle";
+          ins.push({ typ, value: shape, errCtx });
+        } else {
+          const defIns = parseNode(defs[d], params);
+          if (len(defIns) > 1 || defIns[0].typ !== "ref") {
+            return err("declaration name must be symbol", defIns[0].errCtx);
+          }
+          ins.push({ typ: op, value: defIns[0].value, errCtx });
+        }
+      }
+      return ins;
+    } else if (op === "var!" || op === "let!") {
+      //Rewrite e.g. (var! a + 1) -> (var a (+ a 1))
+      if (len(nodes) < 2) {
+        return err("provide 1 declaration name and 1 function");
+      }
+      const [[def], func, ...args] = nodes.map(nodeParser);
+      if (def.typ !== "ref") {
+        return err("declaration name must be symbol", def.errCtx);
+      }
+      const ins: Ins[] = [{ typ: "ref", value: def.value, errCtx }];
+      push(ins, [...flat(args), ...func]);
+      ins.push({ typ: "exe", value: len(args) + 1, errCtx });
+      const typ = op === "var!" ? "var" : "let";
+      ins.push({ typ, value: def.value, errCtx });
       return ins;
     }
 
@@ -535,36 +513,36 @@ function parseParams(
   nodes: Node[],
   forVar = false,
   position: number[] = [],
-): { params: ParamsShape; errors: ParserIns[] } {
-  const paras: ParamsShape = [],
+): { shape: ParamsShape; errors: ParserIns[] } {
+  const shape: ParamsShape = [],
     errs: ParserIns[] = [];
   let n = 0;
   while (
     len(nodes) > (len(position) ? 0 : 1) &&
     (isToken(nodes[0]) || symAt(nodes[0]) === "vec") &&
-    !(forVar && len(paras))
+    !(forVar && len(shape))
   ) {
     const param = nodes.shift()!;
     if (!isToken(param)) {
       param.shift();
-      const { params, errors } = parseParams(param, forVar, [...position, n]);
-      push(paras, params);
-      push(errs, errors);
+      const parsed = parseParams(param, forVar, [...position, n]);
+      push(shape, parsed.shape);
+      push(errs, parsed.errors);
     } else {
-      const { errCtx } = param;
-      if (param.typ === "sym") {
-        paras.push({ name: param.text, position: [...position, n] });
+      const { typ, errCtx } = param;
+      if (typ === "sym") {
+        shape.push({ name: param.text, position: [...position, n] });
       } else {
         errs.push({ typ: "err", value: "provide parameter name", errCtx });
       }
     }
     ++n;
   }
-  return { params: paras, errors: errs };
+  return { shape, errors: errs };
 }
 
 function compileFunc({ name, nodes: nodes }: NamedNodes): Func | InvokeError {
-  const { params, errors } = parseParams(nodes);
+  const { shape: params, errors } = parseParams(nodes);
   const ins = [...errors, ...flat(nodes.map(node => parseArg(node, params)))];
   for (let i = 0, lim = len(ins); i < lim; i++) {
     const { typ, value, errCtx } = ins[i];

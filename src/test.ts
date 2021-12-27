@@ -5,7 +5,7 @@ type State = { dict: Map<string, Val>; output: string };
 
 function get(state: State, key: string): ValOrErr {
   if (!state.dict.has(key)) {
-    return { kind: "err", err: `"${key} not found.` };
+    return { kind: "err", err: `"${key}" not found.` };
   }
   return { kind: "val", value: state.dict.get(key)! };
 }
