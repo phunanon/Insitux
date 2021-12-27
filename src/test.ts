@@ -337,6 +337,11 @@ const tests: {
     err: ["Budget"],
   },
   { name: "Range budget", code: `(range 10000)`, err: ["Budget"] },
+  {
+    name: "Head exe arity check",
+    code: `(((fn +)) 1)`,
+    err: ["Arity"],
+  },
   //Complex functions
   {
     name: "Fibonacci 13",

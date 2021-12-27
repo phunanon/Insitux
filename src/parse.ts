@@ -15,6 +15,21 @@ type Node = Token | Node[];
 type ParserIns = Ins | { typ: "err"; value: string; errCtx: ErrCtx };
 const nullVal: Val = { t: "null", v: undefined };
 const falseVal = <Val>{ t: "bool", v: false };
+type NamedNodes = {
+  name: string;
+  nodes: Node[];
+};
+const isToken = (node: Node | undefined): node is Token =>
+  !!node && "errCtx" in node;
+const symAt = (node: Node, pos = 0) => {
+  if (isToken(node)) {
+    return "";
+  }
+  const arg = node[pos];
+  return (isToken(arg) && has(["sym", "str"], arg.typ) && arg.text) || "";
+};
+const node2str = (nodes: Node[]): string =>
+  nodes.map(n => (isToken(n) ? n.text : `(${node2str(n)})`)).join(" ");
 
 export function tokenise(
   code: string,
@@ -108,20 +123,6 @@ export function tokenise(
   return { tokens, stringError: inString ? inStringAt : undefined };
 }
 
-type NamedNodes = {
-  name: string;
-  nodes: Node[];
-};
-const isToken = (node: Node | undefined): node is Token =>
-  !!node && "errCtx" in node;
-const symAt = (node: Node, pos = 0) => {
-  if (!isToken(node)) {
-    const arg = node[pos];
-    return (isToken(arg) && has(["sym", "str"], arg.typ) && arg.text) || "";
-  }
-  return "";
-};
-
 /** Parses tokens into a tree where each node is a token or token list. */
 function treeise(tokens: Token[]): Node[] {
   const nodes: Node[] = [];
@@ -173,41 +174,6 @@ function collectFuncs(
   }
   return funcs;
 }
-
-/*
-function parseForm(
-  tokens: Token[],
-  params: ParamsShape,
-  inPartial = true,
-): ParserIns[] {
-  const head = tokens.shift();
-  if (!head) {
-    return [];
-  }
-  const { typ, text, errCtx } = head;
-  let op = text;
-  const err = (value: string, eCtx = errCtx) => [
-    <ParserIns>{ typ: "err", value, errCtx: eCtx },
-  ];
-  const headIns: Ins[] = [];
-  //Head is a expression or parameter
-  if (
-    typ === "(" ||
-    has(
-      params.map(({ name }) => name),
-      text,
-    ) ||
-    sub("%#@", strIdx(text, 0))
-  ) {
-    tokens.unshift(head);
-    const ins = parseArg(tokens, params);
-    if (inPartial) {
-      headIns.push({ typ: "exp", value: len(ins), errCtx });
-    }
-    push(headIns, ins);
-  }
-}
-*/
 
 const parseNode = (node: Node, params: ParamsShape) =>
   isToken(node) ? parseArg(node, params) : parseForm(node, params);
@@ -308,7 +274,7 @@ function parseForm(
       if (len(args) < 2) {
         return err("provide at least 2 arguments");
       }
-      const ins: Ins[] = [];
+      const ins: ParserIns[] = [];
       if (op === "while") {
         ins.push({ typ: "val", value: nullVal, errCtx }); //If first is false
         insCount += 2; //+1 for the if ins, +1 for the pop ins
@@ -379,6 +345,41 @@ function parseForm(
       const typ = op === "var!" ? "var" : "let";
       ins.push({ typ, value: def.value, errCtx });
       return ins;
+    } else if (op === "#" || op === "@" || op === "fn") {
+      const ins: ParserIns[] = [];
+      let asStr = node2str(nodes);
+      asStr = op === "fn" ? `(fn ${asStr})` : `${op}(${asStr})`;
+      if (op === "fn") {
+        const parsedParams = parseParams(nodes);
+        params = parsedParams.shape;
+        push(ins, parsedParams.errors);
+        if (!len(nodes)) {
+          return err("provide a body");
+        }
+        nodes.unshift({ typ: "sym", text: "do", errCtx });
+      }
+      //Rewrite partial closure to #(... [body] args)
+      if (op === "@") {
+        nodes = [
+          { typ: "sym", text: "...", errCtx },
+          ...nodes,
+          { typ: "sym", text: "args", errCtx },
+        ];
+      }
+      push(ins, parseForm(nodes, params, op !== "@"));
+      const errors = ins.filter(t => t.typ === "err");
+      if (len(errors)) {
+        return errors;
+      }
+      if (op === "fn") {
+        ins.forEach(i => {
+          if (i.typ === "npa") {
+            i.typ = "upa";
+          }
+        });
+      }
+      const value: [string, Ins[]] = [asStr, <Ins[]>ins];
+      return [{ typ: op === "@" ? "par" : "clo", value, errCtx }];
     }
 
     //Operation arity check, optionally disabled for partial closures
@@ -403,7 +404,8 @@ function parseForm(
     return [...ins, { typ: "ret", value: !!len(args), errCtx }];
   }
   push(ins, head);
-  return [...ins, { typ: "exe", value: len(args), errCtx }];
+  const typ = len(head) > 1 ? "exa" : "exe";
+  return [...ins, { typ, value: len(args), errCtx }];
 }
 
 function parseArg(node: Node, params: ParamsShape): ParserIns[] {
@@ -456,48 +458,6 @@ function parseArg(node: Node, params: ParamsShape): ParserIns[] {
     return [];
   }
   return parseForm(node, params);
-  /*
-  const { typ, text, errCtx } = tokens.shift() as Token;
-  //Upon closure
-  const isClosure =
-    typ === "sym" && sub("#@", text) && len(tokens) && tokens[0].typ === "(";
-  const isParamClosure = typ === "(" && len(tokens) && tokens[0].text === "fn";
-  if (isClosure || isParamClosure) {
-    const texts = tokens.map(t => t.text);
-    const fnIns = isParamClosure ? tokens.shift() : undefined;
-    const ins: ParserIns[] = [];
-    if (isParamClosure) {
-      const parsedParams = parseParams(tokens);
-      params = parsedParams.params;
-      push(ins, parsedParams.errors);
-      if (tokens[0].typ === ")") {
-        return [
-          { typ: "err", value: `fn requires a body`, errCtx: fnIns!.errCtx },
-        ];
-      }
-      tokens.unshift({ typ: "sym", text: "do", errCtx });
-      tokens.unshift({ typ: "(", text: "(", errCtx });
-    }
-    push(ins, parseArg(tokens, params, text === "@"));
-    const errors = ins.filter(t => t.typ === "err");
-    if (len(errors)) {
-      return errors;
-    }
-    if (isParamClosure) {
-      ins.forEach(i => {
-        if (i.typ === "npa") {
-          i.typ = "upa";
-        }
-      });
-    }
-    const value: [string, Ins[]] = [
-      (isParamClosure ? "(" : text) +
-        slice(texts, 0, len(texts) - len(tokens)).join(" "),
-      <Ins[]>ins,
-    ];
-    return [{ typ: text === "@" ? "par" : "clo", value, errCtx }];
-  }
-  */
 }
 
 /** Consumes some tokens and returns ParamsShape.
@@ -633,6 +593,7 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
       case "val":
         stack.push({ types: [ins.value.t], val: ins.value });
         break;
+      case "exa":
       case "exe": {
         const head = stack.pop()!;
         const args = splice(stack, len(stack) - ins.value, ins.value);
@@ -688,7 +649,6 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
         stack.push({});
         i += ins.value;
         break;
-      case "exp":
       case "cat":
       case "var":
       case "let":

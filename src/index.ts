@@ -1035,8 +1035,9 @@ function exeFunc(
         }
         break;
       }
+      case "exa":
       case "exe": {
-        const closure = getExe(ctx, stack.pop()!, errCtx, false);
+        const closure = getExe(ctx, stack.pop()!, errCtx, ins.typ === "exa");
         const nArgs = ins.value;
         const params = splice(stack, len(stack) - nArgs, nArgs);
         const errors = closure(params);
@@ -1147,31 +1148,9 @@ function exeFunc(
             ? <Ins>{ typ: "val", value: captures.shift()!, errCtx }
             : ins,
         );
-        //Rewrite partial closure to #(... func [args] args)
-        if (ins.typ === "par") {
-          const { value: exeNumArgs, errCtx } = cins.pop()!;
-          //If has expression as head
-          if (len(cins) > 0 && cins[len(cins) - 1].typ === "exe") {
-            const headStartIdx = cins.findIndex(i => i.typ === "exp");
-            const head = splice(cins, headStartIdx, len(cins) - headStartIdx);
-            push(head, cins);
-            cins = head;
-          } else {
-            cins.unshift(cins.pop()!);
-          }
-          cins.push({ typ: "upa", value: -1, errCtx });
-          cins.push({
-            typ: "val",
-            value: <Val>{ t: "str", v: "..." },
-            errCtx,
-          });
-          cins.push({ typ: "exe", value: <number>exeNumArgs + 2, errCtx });
-        }
         stack.push(<Val>{ t: "clo", v: <Func>{ name, ins: cins } });
         break;
       }
-      case "exp":
-        break;
       default:
         assertUnreachable(ins);
     }
