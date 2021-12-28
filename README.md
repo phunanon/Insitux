@@ -887,14 +887,13 @@ A "shape" of parameter names or var/let names can be provided in which each vect
 (function vec->html v
   (if! (vec? v) (return v))
   (let [tag attr] v
-       has-attr (dict? attr)
-       attr (if! has-attr ""
-              (map #(str " " (0 %) "=\"" (1 %) "\"") attr))
-       tag (-> tag str sect))
-  (.. str
-    "<" tag attr ">"
-    (map vec->html (sect v (has-attr 2 1)))
-    "</" tag ">"))
+       has-attr   (dict? attr)
+       make-attr  (fn [k v] (str " " k "=\"" v "\""))
+       attr       (if has-attr (map make-attr attr) "")
+       tag        (-> tag str sect)
+       body       (sect v (has-attr 2 1))
+       body       (map vec->html body))
+  (.. str "<" tag attr ">" body "</" tag ">"))
 
 (vec->html
   [:div

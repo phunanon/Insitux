@@ -2,7 +2,12 @@ let $input, $history;
 const id = Date.now();
 
 function executeInput(input) {
-  $history.innerHTML += `<code><a href="?precode=${utf8_to_b64(input)}" target="_self">&#x1f517;</a>${insituxHighlight(input)}</code>\n`;
+  const precode = LZString.compressToEncodedURIComponent(input);
+  $history.innerHTML +=
+    "<code>" +
+    `<a href="?precode=${precode}" target="_self">&#x1f517;</a>` +
+    insituxHighlight(input) +
+    "</code>\n";
   const errors = insituxInvoke(input)
     .map(({ type, text }) =>
       type == "message" ? `<m>${text}</m>` : `<e>${text}</e>`,
@@ -75,7 +80,7 @@ function DomLoad() {
   if (!precodeQuery) {
     return;
   }
-  const precode = b64_to_utf8(precodeQuery);
+  const precode = LZString.decompressFromEncodedURIComponent(precodeQuery);
   executeInput(precode);
 }
 
@@ -115,12 +120,4 @@ function insituxInvoke(code) {
     },
     code,
   );
-}
-
-function utf8_to_b64(str) {
-  return window.btoa(encodeURIComponent(str));
-}
-
-function b64_to_utf8(str) {
-  return decodeURIComponent(window.atob(str));
 }
