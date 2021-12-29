@@ -295,7 +295,7 @@ etc
 (false 5)   → null
 
 ;Either a random whole number (integer) or decimal number
-[(rand-int) (rand-int)]  might be [0 0], [0 1], [1 0], [1 1]
+[(rand-int) (rand-int)]  might be [0 0] [0 1] [1 0] [1 1]
 (rand-int 10)            any integer from 0 to 9
 (rand-int 10 20)         any integer from 10 to 20
 (rand)                   any decimal between 0 and 1
@@ -506,11 +506,14 @@ etc
 
 ### Miscellaneous
 
-- Providing one too few arguments to an operation will make the expression return a partial closure. For example:
+- Providing one too few arguments to an operation will return a partial closure.
+Some examples:
 
 ```clj
 (+ 1)               → @(+ 1)
 (join ", ")         → @(join ", ")
+(var hello)         → #(var hello %)
+(let a 1 b)         → #(let a 1 b %)
 (map (+ 5) [1 2 3]) → [6 7 8]
 ```
 
@@ -760,17 +763,18 @@ A "shape" of parameter names or var/let names can be provided in which each vect
 → [0 1 2 3 4 5]
 
 
-; Triple every vector item
+; Triple every vector item, four different ways
 (for * [0 1 2 3 4] [3])
-;or
+(map #(* 3 %) [0 1 2 3 4])
 (map @(* 3) [0 1 2 3 4])
+(map (* 3) [0 1 2 3 4])
 → [0 3 6 9 12]
 
 
 ; Primes calculator
 (reduce
   (fn primes num
-    (if (find zero? (map @(rem num) primes))
+    (if (find zero? (map (rem num) primes))
       primes
       (push primes num)))
   [2]
@@ -782,7 +786,7 @@ A "shape" of parameter names or var/let names can be provided in which each vect
    #(map % [97 65 48 33] [123 91 58 48])
    @(.. .. vec)
    #(sort % #(rand-int))
-   @(.. str))
+    (.. str))
 
 → "d$W1iP*tO9'V9(y8"
 
@@ -804,12 +808,12 @@ A "shape" of parameter names or var/let names can be provided in which each vect
 ; Matrix addition
 (let A [[3  8] [4  6]])
 (let B [[4  0] [1 -9]])
-(map @(map +) A B)
+(map (map +) A B)
 
 
 ; Matrix negation
 (let M [[2 -4] [7 10]])
-(map @(map -) M)
+(map (map -) M)
 
 
 ; Clojure's juxt
@@ -934,6 +938,6 @@ A "shape" of parameter names or var/let names can be provided in which each vect
 (var brain (mutate (make-brain 5 5 5)))
 (-> (repeat #(rand-int) 5)
    @(think brain)
-   @(map @(round 2)))
+    (map @(round 2)))
 → [0.23 0.41 0.63 0.64 0.57]
 ```

@@ -191,6 +191,7 @@ function parseForm(
   let head = nodeParser(firstNode);
   const { errCtx } = head[0];
   if (isToken(firstNode) && firstNode.typ === "sym") {
+    //1-off arity deficiency rewritten as closure
     if (firstNode.text in ops) {
       const { exactArity, minArity } = ops[firstNode.text];
       const a = exactArity ?? minArity;
@@ -198,6 +199,11 @@ function parseForm(
         nodes.unshift(firstNode);
         firstNode = { typ: "sym", text: "@", errCtx: firstNode.errCtx };
       }
+    }
+    if (has(["var", "let"], firstNode.text) && len(nodes) && len(nodes) % 2) {
+      nodes.unshift(firstNode);
+      nodes.push({ typ: "sym", text: "%", errCtx: firstNode.errCtx });
+      firstNode = { typ: "sym", text: "#", errCtx: firstNode.errCtx };
     }
     const { text: op, errCtx } = firstNode;
     const err = (m: string, eCtx = errCtx) => [
