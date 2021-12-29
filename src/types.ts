@@ -6,7 +6,8 @@ export type Val =
   | { t: "bool"; v: boolean }
   | { t: "num"; v: number }
   | { t: "clo"; v: Func }
-  | { t: "dict"; v: Dict };
+  | { t: "dict"; v: Dict }
+  | { t: "ext"; v: unknown };
 
 export type ErrCtx = { sourceId: string; line: number; col: number };
 export type InvokeError = { e: string; m: string; errCtx: ErrCtx };
@@ -63,6 +64,14 @@ export type Ctx = {
   /** The total number of explicit recursions permitted.
    * Explicit recursions are unlikely to cause a stack-overflow. */
   recurBudget: number;
+};
+
+export const defaultCtx = {
+  env: { funcs: {}, vars: {} },
+  loopBudget: 1e7,
+  rangeBudget: 1e6,
+  callBudget: 1e8,
+  recurBudget: 1e4,
 };
 
 export type ParamsShape = { name: string; position: number[] }[];
@@ -164,6 +173,7 @@ export const ops: {
   "key?": { exactArity: 1, returns: ["bool"] },
   "func?": { exactArity: 1, returns: ["bool"] },
   "wild?": { exactArity: 1, returns: ["bool"] },
+  "ext?": { exactArity: 1, returns: ["bool"] },
   rem: { minArity: 2, numeric: true },
   sin: { exactArity: 1, numeric: true },
   cos: { exactArity: 1, numeric: true },
@@ -284,6 +294,7 @@ export const typeNames = {
   func: "function",
   clo: "closure",
   wild: "wildcard",
+  ext: "external",
 };
 
 export const assertUnreachable = (_x: never): never => <never>0;

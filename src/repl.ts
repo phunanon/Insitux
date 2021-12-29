@@ -1,7 +1,8 @@
 import readline = require("readline");
 import fs = require("fs");
 import { symbols } from ".";
-import { Ctx, ExternalFunction, Operation, Val, ValOrErr } from "./types";
+import { Ctx, defaultCtx, Val, ValOrErr } from "./types";
+import { ExternalFunction, Operation } from "./types";
 import { InvokeOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
 import prompt = require("prompt-sync");
@@ -66,10 +67,7 @@ const functions: ExternalFunction[] = [
     },
     handler: (params: Val[]) => ({
       kind: "val",
-      value: {
-        t: "str",
-        v: prompt()(<string>params[0].v),
-      },
+      value: { t: "str", v: prompt()(<string>params[0].v) },
     }),
   },
 ];
@@ -81,10 +79,7 @@ const env = new Map<string, Val>();
 function get(key: string): ValOrErr {
   return env.has(key)
     ? { kind: "val", value: env.get(key)! }
-    : {
-        kind: "err",
-        err: `key ${key} not found`,
-      };
+    : { kind: "err", err: `key ${key} not found` };
 }
 
 function set(key: string, val: Val) {
@@ -93,7 +88,7 @@ function set(key: string, val: Val) {
 }
 
 const ctx: Ctx = {
-  env: { funcs: {}, vars: {} },
+  ...defaultCtx,
   get,
   set,
   functions,
@@ -101,10 +96,6 @@ const ctx: Ctx = {
     process.stdout.write(`\x1b[32m${str}\x1b[0m${withNewLine ? "\n" : ""}`);
   },
   exe,
-  loopBudget: 1e7,
-  rangeBudget: 1e6,
-  callBudget: 1e8,
-  recurBudget: 1e4,
 };
 
 function exe(name: string, args: Val[]): ValOrErr {

@@ -280,18 +280,14 @@ function exeOp(
     case "key?":
     case "func?":
     case "wild?":
+    case "ext?": {
+      const { t } = args[0];
       _boo(
-        (op === "null?" && args[0].t === "null") ||
-          (op === "num?" && args[0].t === "num") ||
-          (op === "bool?" && args[0].t === "bool") ||
-          (op === "str?" && args[0].t === "str") ||
-          (op === "dict?" && args[0].t === "dict") ||
-          (op === "vec?" && args[0].t === "vec") ||
-          (op === "key?" && args[0].t === "key") ||
-          (op === "func?" && (args[0].t === "func" || args[0].t === "clo")) ||
-          (op === "wild?" && args[0].t === "wild"),
+        (op === "func?" && has(["func", "clo", "par"], t)) ||
+          substr(op, 0, slen(op) - 1) === t,
       );
       return;
+    }
     case "has?":
       _boo(sub(str(args[0]), str(args[1])));
       return;

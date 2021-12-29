@@ -22,13 +22,13 @@ const standard = {
 };
 
 module.exports = [
-  //Web
+  //Web library
   {
     ...standard,
     entry: `./src/invoker.ts`,
     target: ["web"],
     output: {
-      filename: "insitux.js",
+      filename: "insitux.lib.min.js",
       path: path.resolve(__dirname, "out"),
       library: "insitux",
       libraryTarget: "window",
@@ -36,7 +36,18 @@ module.exports = [
     },
     optimization: { minimize: true },
   },
-  //Node
+  //Web
+  {
+    ...standard,
+    entry: `./src/web.ts`,
+    target: ["web"],
+    output: {
+      filename: "insitux.min.js",
+      path: path.resolve(__dirname, "out"),
+    },
+    optimization: { minimize: true },
+  },
+  //NodeJS
   {
     ...standard,
     entry: `./src/repl.ts`,

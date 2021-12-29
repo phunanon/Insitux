@@ -39,7 +39,6 @@ function browserExe(name, args) {
   switch (name) {
     case "prompt":
       return { kind: "val", value: { t: "str", v: prompt(args[0].v) } };
-      break;
     case "clear":
       setTimeout(() => ($history.innerHTML = ""), 1000);
       break;
@@ -81,7 +80,9 @@ function DomLoad() {
     return;
   }
   const precode = LZString.decompressFromEncodedURIComponent(precodeQuery);
-  executeInput(precode);
+  if (precode) {
+    executeInput(precode);
+  }
 }
 
 function DomInputResize(that) {

@@ -463,6 +463,13 @@ const log2 = Math.log2;
 const log10 = Math.log10;
 
 ;// CONCATENATED MODULE: ./src/types.ts
+const defaultCtx = {
+  env: { funcs: {}, vars: {} },
+  loopBudget: 1e7,
+  rangeBudget: 1e6,
+  callBudget: 1e8,
+  recurBudget: 1e4
+};
 const ops = {
   print: { returns: ["null"] },
   "print-str": { returns: ["null"] },
@@ -526,6 +533,7 @@ const ops = {
   "key?": { exactArity: 1, returns: ["bool"] },
   "func?": { exactArity: 1, returns: ["bool"] },
   "wild?": { exactArity: 1, returns: ["bool"] },
+  "ext?": { exactArity: 1, returns: ["bool"] },
   rem: { minArity: 2, numeric: true },
   sin: { exactArity: 1, numeric: true },
   cos: { exactArity: 1, numeric: true },
@@ -644,7 +652,8 @@ const typeNames = {
   dict: "dictionary",
   func: "function",
   clo: "closure",
-  wild: "wildcard"
+  wild: "wildcard",
+  ext: "external"
 };
 const assertUnreachable = (_x) => 0;
 
@@ -885,6 +894,11 @@ function parseForm(nodes, params, doArityCheck = true) {
         nodes.unshift(firstNode);
         firstNode = { typ: "sym", text: "@", errCtx: firstNode.errCtx };
       }
+    }
+    if (parse_has(["var", "let"], firstNode.text) && parse_len(nodes) && parse_len(nodes) % 2) {
+      nodes.unshift(firstNode);
+      nodes.push({ typ: "sym", text: "%", errCtx: firstNode.errCtx });
+      firstNode = { typ: "sym", text: "#", errCtx: firstNode.errCtx };
     }
     const { text: op, errCtx: errCtx2 } = firstNode;
     const err = (m, eCtx = errCtx2) => [
@@ -1826,6 +1840,8 @@ const isEqual = (a, b) => {
       return str(a) === str(b);
     case "clo":
       return a.v.name === b.v.name;
+    case "ext":
+      return a.v === b.v;
   }
   return assertUnreachable(a);
 };
@@ -1909,7 +1925,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211227;
+const insituxVersion = 20211229;
 
 
 
@@ -2144,8 +2160,11 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
     case "key?":
     case "func?":
     case "wild?":
-      _boo(op === "null?" && args[0].t === "null" || op === "num?" && args[0].t === "num" || op === "bool?" && args[0].t === "bool" || op === "str?" && args[0].t === "str" || op === "dict?" && args[0].t === "dict" || op === "vec?" && args[0].t === "vec" || op === "key?" && args[0].t === "key" || op === "func?" && (args[0].t === "func" || args[0].t === "clo") || op === "wild?" && args[0].t === "wild");
+    case "ext?": {
+      const { t } = args[0];
+      _boo(op === "func?" && src_has(["func", "clo", "par"], t) || src_substr(op, 0, src_slen(op) - 1) === t);
       return;
+    }
     case "has?":
       _boo(src_sub(str(args[0]), str(args[1])));
       return;
@@ -3030,6 +3049,7 @@ const fs = __webpack_require__(147);
 
 
 
+
 const repl_prompt = __webpack_require__(161);
 const repl_nullVal = { kind: "val", value: { t: "null", v: void 0 } };
 function read(path, asLines) {
@@ -3082,37 +3102,27 @@ const functions = [
     },
     handler: (params) => ({
       kind: "val",
-      value: {
-        t: "str",
-        v: repl_prompt()(params[0].v)
-      }
+      value: { t: "str", v: repl_prompt()(params[0].v) }
     })
   }
 ];
 const env = new Map();
 function repl_get(key) {
-  return env.has(key) ? { kind: "val", value: env.get(key) } : {
-    kind: "err",
-    err: `key ${key} not found`
-  };
+  return env.has(key) ? { kind: "val", value: env.get(key) } : { kind: "err", err: `key ${key} not found` };
 }
 function repl_set(key, val) {
   env.set(key, val);
   return void 0;
 }
 const ctx = {
-  env: { funcs: {}, vars: {} },
+  ...defaultCtx,
   get: repl_get,
   set: repl_set,
   functions,
   print(str, withNewLine) {
     process.stdout.write(`[32m${str}[0m${withNewLine ? "\n" : ""}`);
   },
-  exe: repl_exe,
-  loopBudget: 1e7,
-  rangeBudget: 1e6,
-  callBudget: 1e8,
-  recurBudget: 1e4
+  exe: repl_exe
 };
 function repl_exe(name, args) {
   if (args.length) {

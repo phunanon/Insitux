@@ -36,6 +36,8 @@ export const isEqual = (a: Val, b: Val) => {
       return str(a) === str(b);
     case "clo":
       return (<Func>a.v).name === (<Func>b.v).name;
+    case "ext":
+      return a.v === b.v;
   }
   return assertUnreachable(a);
 };
