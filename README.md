@@ -923,7 +923,7 @@ A "shape" of parameter names or var/let names can be provided in which each vect
   (let mutate-neuron
     #{:bias    ((m) (rand -2 2) (:bias %))
       :weights (map @((m) (rand -1 1)) (:weights %))})
-  (map @(map mutate-neuron) brain))
+  (map (map mutate-neuron) brain))
 
 (function neuron-think  neuron inputs
   (let weighted (map * (:weights neuron) inputs)

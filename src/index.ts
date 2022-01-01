@@ -46,11 +46,8 @@ function exeOp(
   }
   //Argument type check
   {
-    const violations = typeCheck(
-      op,
-      args.map(a => [a.t]),
-      errCtx,
-    );
+    const types = args.map(a => [a.t]);
+    const violations = typeCheck(op, types, errCtx);
     if (violations) {
       return violations;
     }
@@ -58,10 +55,7 @@ function exeOp(
 
   switch (op) {
     case "str":
-      stack.push({
-        t: "str",
-        v: stringify(args),
-      });
+      stack.push({ t: "str", v: stringify(args) });
       return;
     case "print":
     case "print-str":
@@ -71,10 +65,9 @@ function exeOp(
     case "vec":
       _vec(args);
       return;
-    case "dict": {
+    case "dict":
       stack.push(toDict(args));
       return;
-    }
     case "len":
       _num(
         args[0].t === "str"
@@ -111,23 +104,23 @@ function exeOp(
       _num(
         len(args) === 1
           ? -num(args[0])
-          : args.map(num).reduce((sum, n) => sum - n),
+          : args.reduce((sum, n) => sum - <number>n.v, 0),
       );
       return;
     case "**":
       _num(num(args[0]) ** (len(args) === 1 ? 2 : num(args[1])));
       return;
     case "+":
-      _num(args.map(num).reduce((sum, n) => sum + n));
+      _num(args.reduce((sum, n) => sum + <number>n.v, 0));
       return;
     case "*":
-      _num(args.map(num).reduce((sum, n) => sum * n));
+      _num(args.reduce((sum, n) => sum * <number>n.v, 0));
       return;
     case "/":
-      _num(args.map(num).reduce((sum, n) => sum / n));
+      _num(args.reduce((sum, n) => sum / <number>n.v, 0));
       return;
     case "//":
-      _num(args.map(num).reduce((sum, n) => floor(sum / n)));
+      _num(args.reduce((sum, n) => floor(sum / <number>n.v), 0));
       return;
     case "fast=":
     case "fast!=":
@@ -283,7 +276,7 @@ function exeOp(
     case "ext?": {
       const { t } = args[0];
       _boo(
-        (op === "func?" && has(["func", "clo", "par"], t)) ||
+        (op === "func?" && (t === "func" || t === "clo")) ||
           substr(op, 0, slen(op) - 1) === t,
       );
       return;
@@ -1182,6 +1175,26 @@ function removeExternalOperations(functions: ExternalFunction[]) {
   });
 }
 
+function innerInvoke(
+  ctx: Ctx,
+  closure: () => InvokeError[] | undefined,
+): InvokeResult {
+  const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
+  ingestExternalOperations(ctx.functions);
+  const errors = closure();
+  removeExternalOperations(ctx.functions);
+  [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
+  [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
+  delete ctx.env.funcs["entry"];
+  const value = stack.pop();
+  [stack, lets] = [[], []];
+  return errors
+    ? { kind: "errors", errors }
+    : value
+    ? { kind: "val", value }
+    : { kind: "empty" };
+}
+
 /**
  * Parses and executes the given code.
  * @param ctx An environment context you retain.
@@ -1197,23 +1210,11 @@ export function invoke(
   sourceId: string,
   printResult = false,
 ): InvokeResult {
-  const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
-  ingestExternalOperations(ctx.functions);
-  const errors = parseAndExe(ctx, code, sourceId);
-  removeExternalOperations(ctx.functions);
-  [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
-  [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
-  delete ctx.env.funcs["entry"];
-  const value = stack.pop();
-  [stack, lets] = [[], []];
-  if (printResult && !errors && value) {
-    ctx.print(val2str(value), true);
+  const result = innerInvoke(ctx, () => parseAndExe(ctx, code, sourceId));
+  if (printResult && result.kind === "val") {
+    ctx.print(val2str(result.value), true);
   }
-  return errors
-    ? { kind: "errors", errors }
-    : value
-    ? { kind: "val", value }
-    : { kind: "empty" };
+  return result;
 }
 
 /**
@@ -1230,22 +1231,10 @@ export function invokeFunction(
   funcName: string,
   params: Val[],
 ): InvokeResult | undefined {
-  const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
-  ingestExternalOperations(ctx.functions);
-  const errors = exeFunc(ctx, ctx.env.funcs[funcName], params);
-  removeExternalOperations(ctx.functions);
-  [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
-  [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
-  const value = stack.pop()!;
-  [stack, lets] = [[], []];
-  return errors
-    ? { kind: "errors", errors }
-    : value
-    ? { kind: "val", value }
-    : { kind: "empty" };
+  return innerInvoke(ctx, () => exeFunc(ctx, ctx.env.funcs[funcName], params));
 }
 
 /**
