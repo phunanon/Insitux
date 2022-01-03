@@ -9,7 +9,7 @@ export type Val =
   | { t: "dict"; v: Dict }
   | { t: "ext"; v: unknown };
 
-export type ErrCtx = { sourceId: string; line: number; col: number };
+export type ErrCtx = { invokeId: string; line: number; col: number };
 export type InvokeError = { e: string; m: string; errCtx: ErrCtx };
 export type ValOrErr =
   | { kind: "val"; value: Val }

@@ -1,20 +1,21 @@
 import readline = require("readline");
-import fs = require("fs");
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from "fs";
 import { symbols } from ".";
 import { Ctx, defaultCtx, Val, ValOrErr } from "./types";
 import { ExternalFunction, Operation } from "./types";
 import { InvokeOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
 import prompt = require("prompt-sync");
+import { exit } from "process";
 
 const nullVal: ValOrErr = { kind: "val", value: { t: "null", v: undefined } };
 
 //#region External operations
 function read(path: string, asLines: boolean) {
-  if (!fs.existsSync(path)) {
+  if (!existsSync(path)) {
     return nullVal;
   }
-  const content = fs.readFileSync(path).toString();
+  const content = readFileSync(path).toString();
   const str = (v: string) => <Val>{ t: "str", v };
   return <ValOrErr>{
     kind: "val",
@@ -25,7 +26,7 @@ function read(path: string, asLines: boolean) {
 }
 
 function writeOrAppend(path: string, content: string, isAppend = false) {
-  (isAppend ? fs.appendFileSync : fs.writeFileSync)(path, content);
+  (isAppend ? appendFileSync : writeFileSync)(path, content);
   return nullVal;
 }
 
@@ -73,7 +74,7 @@ const functions: ExternalFunction[] = [
 ];
 //#endregion
 
-//#region Context and implementations
+//#region Context
 const env = new Map<string, Val>();
 
 function get(key: string): ValOrErr {
@@ -116,52 +117,56 @@ function exe(name: string, args: Val[]): ValOrErr {
 
 //#region REPL IO
 if (process.argv.length > 2) {
-  const [x, y, path] = process.argv;
-  if (fs.existsSync(path)) {
-    const code = fs.readFileSync(path).toString();
-    printErrorOutput(invoker(ctx, code));
+  let [x, y, ...args] = process.argv;
+  const paths = args.filter(a => !a.startsWith("-"));
+  const switches = args.filter(a => a.startsWith("-"));
+  paths.filter(existsSync).forEach(path => {
+    const code = readFileSync(path).toString();
+    printErrorOutput(invoker(ctx, code, path));
+  });
+  if (!switches.includes("-r")) {
+    exit();
   }
-} else {
-  printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
-
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    prompt: "❯ ",
-    completer,
-    history: fs.existsSync(".repl-history")
-      ? fs.readFileSync(".repl-history").toString().split("\n").reverse()
-      : [],
-  });
-
-  rl.on("line", line => {
-    lines.push(line);
-    const input = lines.join("\n");
-    if (isFinished(input)) {
-      if (lines.length === 1) {
-        fs.appendFileSync(".repl-history", `\n${input}`);
-      }
-      lines = [];
-      if (input === "quit") {
-        rl.close();
-        return;
-      }
-      if (input.trim()) {
-        printErrorOutput(invoker(ctx, input));
-      }
-      rl.setPrompt("❯ ");
-    } else {
-      rl.setPrompt(". ");
-    }
-    rl.prompt();
-  });
-
-  rl.on("close", () => {
-    console.log();
-  });
-
-  rl.prompt();
 }
+printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+  prompt: "❯ ",
+  completer,
+  history: existsSync(".repl-history")
+    ? readFileSync(".repl-history").toString().split("\n").reverse()
+    : [],
+});
+
+rl.on("line", line => {
+  lines.push(line);
+  const input = lines.join("\n");
+  if (isFinished(input)) {
+    if (lines.length === 1) {
+      appendFileSync(".repl-history", `\n${input}`);
+    }
+    lines = [];
+    if (input === "quit") {
+      rl.close();
+      return;
+    }
+    if (input.trim()) {
+      printErrorOutput(invoker(ctx, input));
+    }
+    rl.setPrompt("❯ ");
+  } else {
+    rl.setPrompt(". ");
+  }
+  rl.prompt();
+});
+
+rl.on("close", () => {
+  console.log();
+});
+
+rl.prompt();
 
 function completer(line: string) {
   const input = line.split(parensRx).pop();

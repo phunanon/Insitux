@@ -414,6 +414,8 @@ __webpack_require__.d(poly_fills_namespaceObject, {
   "upperCase": () => (upperCase)
 });
 
+// EXTERNAL MODULE: external "fs"
+var external_fs_ = __webpack_require__(147);
 ;// CONCATENATED MODULE: ./src/poly-fills.ts
 const toNum = (x) => Number(x);
 const slice = (arr, start, end) => arr.slice(start, end);
@@ -427,7 +429,7 @@ const strIdx = (str, idx) => str[idx];
 const sub = (x, s) => x.includes(s);
 const subIdx = (x, s) => x.indexOf(s);
 const has = (x, y) => x.includes(y);
-const starts = (str, x) => str.startsWith(x);
+const starts = (str, prefix) => str.startsWith(prefix);
 const ends = (str, x) => str.endsWith(x);
 const flat = (arr) => arr.flat();
 const concat = (a, b) => a.concat(b);
@@ -759,7 +761,7 @@ const symAt = (node, pos = 0) => {
   return isToken(arg) && parse_has(["sym", "str"], arg.typ) && arg.text || "";
 };
 const node2str = (nodes) => nodes.map((n) => isToken(n) ? n.text : `(${node2str(n)})`).join(" ");
-function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
+function tokenise(code, invokeId, makeCollsOps = true, emitComments = false) {
   const tokens = [];
   const isDigit = (ch) => parse_sub("0123456789", ch);
   let [inString, line, col, inStringAt] = [false, 1, 0, [1, 0]];
@@ -773,7 +775,7 @@ function tokenise(code, sourceId, makeCollsOps = true, emitComments = false) {
       ++i;
       continue;
     }
-    const errCtx = { sourceId, line, col };
+    const errCtx = { invokeId, line, col };
     if (c === '"') {
       if (inString = !inString) {
         inStringAt = [line, col];
@@ -1209,12 +1211,12 @@ function findParenImbalance(tokens, numL, numR) {
   return [0, 0];
 }
 function tokenErrorDetect(stringError, tokens) {
-  const sourceId = parse_len(tokens) ? tokens[0].errCtx.sourceId : "";
+  const invokeId = parse_len(tokens) ? tokens[0].errCtx.invokeId : "";
   const errors = [];
   const err = (m, errCtx) => errors.push({ e: "Parse", m, errCtx });
   if (stringError) {
     const [line, col] = stringError;
-    err("unmatched double quotation marks", { sourceId, line, col });
+    err("unmatched double quotation marks", { invokeId, line, col });
     return errors;
   }
   const countTyp = (t) => parse_len(tokens.filter(({ typ }) => typ === t));
@@ -1222,7 +1224,7 @@ function tokenErrorDetect(stringError, tokens) {
   {
     const [line, col] = findParenImbalance(tokens, numL, numR);
     if (line + col) {
-      err("unmatched parenthesis", { sourceId, line, col });
+      err("unmatched parenthesis", { invokeId, line, col });
     }
   }
   let emptyHead;
@@ -1340,8 +1342,8 @@ function insErrorDetect(fins) {
     }
   }
 }
-function parse(code, sourceId) {
-  const { tokens, stringError } = tokenise(code, sourceId);
+function parse(code, invokeId) {
+  const { tokens, stringError } = tokenise(code, invokeId);
   const tokenErrors = tokenErrorDetect(stringError, tokens);
   if (parse_len(tokenErrors)) {
     return { errors: tokenErrors, funcs: {} };
@@ -2564,8 +2566,8 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
     case "eval": {
       delete ctx.env.funcs["entry"];
       const sLen = src_len(stack);
-      const sourceId = `${errCtx.sourceId} eval`;
-      const errors = parseAndExe(ctx, str(args[0]), sourceId);
+      const invokeId = `${errCtx.invokeId} eval`;
+      const errors = parseAndExe(ctx, str(args[0]), invokeId);
       if (errors) {
         return [
           { e: "Eval", m: "error within evaluated code", errCtx },
@@ -2930,8 +2932,8 @@ function exeFunc(ctx, func, args, inClosure = false) {
   }
   return;
 }
-function parseAndExe(ctx, code, sourceId) {
-  const parsed = parse(code, sourceId);
+function parseAndExe(ctx, code, invokeId) {
+  const parsed = parse(code, invokeId);
   if (src_len(parsed.errors)) {
     return parsed.errors;
   }
@@ -2968,8 +2970,8 @@ function innerInvoke(ctx, closure) {
   [stack, lets] = [[], []];
   return errors ? { kind: "errors", errors } : value ? { kind: "val", value } : { kind: "empty" };
 }
-function invoke(ctx, code, sourceId, printResult = false) {
-  const result = innerInvoke(ctx, () => parseAndExe(ctx, code, sourceId));
+function invoke(ctx, code, invokeId, printResult = false) {
+  const result = innerInvoke(ctx, () => parseAndExe(ctx, code, invokeId));
   if (printResult && result.kind === "val") {
     ctx.print(val2str(result.value), true);
   }
@@ -2995,61 +2997,65 @@ function symbols(ctx, alsoSyntax = true) {
 ;// CONCATENATED MODULE: ./src/invoker.ts
 
 
+
 const invocations = new Map();
 const parensRx = /[\[\]\(\) ,]/;
-function invoker(ctx, code) {
-  const uuid = getTimeMs().toString();
-  invocations.set(uuid, code);
-  const valOrErrs = invoke(ctx, code, uuid, true);
+function invoker(ctx, code, id) {
+  id = id ? `-${id}` : `${getTimeMs()}`;
+  invocations.set(id, code);
+  const valOrErrs = invoke(ctx, code, id, true);
   if (valOrErrs.kind !== "errors") {
     return [];
   }
   let out = [];
-  valOrErrs.errors.forEach(({ e, m, errCtx: { line, col, sourceId } }) => {
-    const invocation = invocations.get(sourceId);
+  const msg = (text) => out.push({ type: "message", text });
+  const err = (text) => out.push({ type: "error", text });
+  valOrErrs.errors.forEach(({ e, m, errCtx: { line, col, invokeId } }) => {
+    const invocation = invocations.get(invokeId);
     if (!invocation) {
-      out.push({
-        type: "message",
-        text: `${e} Error: line ${line} col ${col}: ${m}
-`
-      });
+      msg(`${e} Error: ${invokeId} line ${line} col ${col}: ${m}
+`);
       return;
     }
     const lineText = invocation.split("\n")[line - 1];
     const sym = substr(lineText, col - 1).split(parensRx)[0];
     const half1 = trimStart(substr(lineText, 0, col - 1));
-    out.push({ type: "message", text: padEnd(`${line}`, 4) + half1 });
+    const id2 = starts(invokeId, "-") ? `${substr(invokeId, 1)} ` : "";
+    msg(`${id2}${padEnd(`${line}`, 4)} ${half1}`);
     if (!sym) {
       const half2 = substr(lineText, col);
-      out.push({ type: "error", text: lineText[col - 1] });
-      out.push({ type: "message", text: `${half2}
-` });
+      err(lineText[col - 1]);
+      msg(`${half2}
+`);
     } else {
       const half2 = substr(lineText, col - 1 + slen(sym));
-      out.push({ type: "error", text: sym });
-      out.push({ type: "message", text: `${half2}
-` });
+      err(sym);
+      msg(`${half2}
+`);
     }
-    out.push({ type: "message", text: `${e} Error: ${m}.
-` });
+    msg(`${e} Error: ${m}.
+`);
   });
   return out;
 }
 
+;// CONCATENATED MODULE: external "process"
+const external_process_namespaceObject = require("process");
 ;// CONCATENATED MODULE: ./src/repl.ts
 const readline = __webpack_require__(521);
-const fs = __webpack_require__(147);
+
 
 
 
 
 const repl_prompt = __webpack_require__(161);
+
 const repl_nullVal = { kind: "val", value: { t: "null", v: void 0 } };
 function read(path, asLines) {
-  if (!fs.existsSync(path)) {
+  if (!(0,external_fs_.existsSync)(path)) {
     return repl_nullVal;
   }
-  const content = fs.readFileSync(path).toString();
+  const content = (0,external_fs_.readFileSync)(path).toString();
   const str = (v) => ({ t: "str", v });
   return {
     kind: "val",
@@ -3057,7 +3063,7 @@ function read(path, asLines) {
   };
 }
 function writeOrAppend(path, content, isAppend = false) {
-  (isAppend ? fs.appendFileSync : fs.writeFileSync)(path, content);
+  (isAppend ? external_fs_.appendFileSync : external_fs_.writeFileSync)(path, content);
   return repl_nullVal;
 }
 const writingOpDef = {
@@ -3132,47 +3138,51 @@ function repl_exe(name, args) {
   return { kind: "err", err: `operation ${name} does not exist` };
 }
 if (process.argv.length > 2) {
-  const [x, y, path] = process.argv;
-  if (fs.existsSync(path)) {
-    const code = fs.readFileSync(path).toString();
-    printErrorOutput(invoker(ctx, code));
+  let [x, y, ...args] = process.argv;
+  const paths = args.filter((a) => !a.startsWith("-"));
+  const switches = args.filter((a) => a.startsWith("-"));
+  paths.filter(external_fs_.existsSync).forEach((path) => {
+    const code = (0,external_fs_.readFileSync)(path).toString();
+    printErrorOutput(invoker(ctx, code, path));
+  });
+  if (!switches.includes("-r")) {
+    (0,external_process_namespaceObject.exit)();
   }
-} else {
-  printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    prompt: "\u276F ",
-    completer,
-    history: fs.existsSync(".repl-history") ? fs.readFileSync(".repl-history").toString().split("\n").reverse() : []
-  });
-  rl.on("line", (line) => {
-    lines.push(line);
-    const input = lines.join("\n");
-    if (isFinished(input)) {
-      if (lines.length === 1) {
-        fs.appendFileSync(".repl-history", `
-${input}`);
-      }
-      lines = [];
-      if (input === "quit") {
-        rl.close();
-        return;
-      }
-      if (input.trim()) {
-        printErrorOutput(invoker(ctx, input));
-      }
-      rl.setPrompt("\u276F ");
-    } else {
-      rl.setPrompt(". ");
-    }
-    rl.prompt();
-  });
-  rl.on("close", () => {
-    console.log();
-  });
-  rl.prompt();
 }
+printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+  prompt: "\u276F ",
+  completer,
+  history: (0,external_fs_.existsSync)(".repl-history") ? (0,external_fs_.readFileSync)(".repl-history").toString().split("\n").reverse() : []
+});
+rl.on("line", (line) => {
+  lines.push(line);
+  const input = lines.join("\n");
+  if (isFinished(input)) {
+    if (lines.length === 1) {
+      (0,external_fs_.appendFileSync)(".repl-history", `
+${input}`);
+    }
+    lines = [];
+    if (input === "quit") {
+      rl.close();
+      return;
+    }
+    if (input.trim()) {
+      printErrorOutput(invoker(ctx, input));
+    }
+    rl.setPrompt("\u276F ");
+  } else {
+    rl.setPrompt(". ");
+  }
+  rl.prompt();
+});
+rl.on("close", () => {
+  console.log();
+});
+rl.prompt();
 function completer(line) {
   const input = line.split(parensRx).pop();
   const completions = symbols(ctx);

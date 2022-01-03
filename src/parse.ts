@@ -33,7 +33,7 @@ const node2str = (nodes: Node[]): string =>
 
 export function tokenise(
   code: string,
-  sourceId: string,
+  invokeId: string,
   makeCollsOps = true,
   emitComments = false,
 ) {
@@ -53,7 +53,7 @@ export function tokenise(
       ++i;
       continue;
     }
-    const errCtx: ErrCtx = { sourceId: sourceId, line, col };
+    const errCtx: ErrCtx = { invokeId, line, col };
     if (c === '"') {
       if ((inString = !inString)) {
         inStringAt = [line, col];
@@ -556,7 +556,7 @@ function findParenImbalance(
 }
 
 function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
-  const sourceId = len(tokens) ? tokens[0].errCtx.sourceId : "";
+  const invokeId = len(tokens) ? tokens[0].errCtx.invokeId : "";
   const errors: InvokeError[] = [];
   const err = (m: string, errCtx: ErrCtx) =>
     errors.push({ e: "Parse", m, errCtx });
@@ -564,7 +564,7 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   //Check for double-quote imbalance
   if (stringError) {
     const [line, col] = stringError;
-    err("unmatched double quotation marks", { sourceId: sourceId, line, col });
+    err("unmatched double quotation marks", { invokeId, line, col });
     return errors;
   }
 
@@ -575,7 +575,7 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   {
     const [line, col] = findParenImbalance(tokens, numL, numR);
     if (line + col) {
-      err("unmatched parenthesis", { sourceId: sourceId, line, col });
+      err("unmatched parenthesis", { invokeId: invokeId, line, col });
     }
   }
 
@@ -720,9 +720,9 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
 
 export function parse(
   code: string,
-  sourceId: string,
+  invokeId: string,
 ): { funcs: Funcs; errors: InvokeError[] } {
-  const { tokens, stringError } = tokenise(code, sourceId);
+  const { tokens, stringError } = tokenise(code, invokeId);
   const tokenErrors = tokenErrorDetect(stringError, tokens);
   if (len(tokenErrors)) {
     return { errors: tokenErrors, funcs: {} };

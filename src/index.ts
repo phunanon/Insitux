@@ -731,8 +731,8 @@ function exeOp(
     case "eval": {
       delete ctx.env.funcs["entry"];
       const sLen = len(stack);
-      const sourceId = `${errCtx.sourceId} eval`;
-      const errors = parseAndExe(ctx, str(args[0]), sourceId);
+      const invokeId = `${errCtx.invokeId} eval`;
+      const errors = parseAndExe(ctx, str(args[0]), invokeId);
       if (errors) {
         return [
           { e: "Eval", m: "error within evaluated code", errCtx },
@@ -1145,9 +1145,9 @@ function exeFunc(
 function parseAndExe(
   ctx: Ctx,
   code: string,
-  sourceId: string,
+  invokeId: string,
 ): InvokeError[] | undefined {
-  const parsed = parse(code, sourceId);
+  const parsed = parse(code, invokeId);
   if (len(parsed.errors)) {
     return parsed.errors;
   }
@@ -1199,7 +1199,7 @@ function innerInvoke(
  * Parses and executes the given code.
  * @param ctx An environment context you retain.
  * @param code The code to parse and execute.
- * @param sourceId A unique ID used in immediate or future invocation errors.
+ * @param invokeId A unique ID referenced in invocation errors.
  * @param printResult Automatically print the final value of this invocation?
  * @returns Invocation errors caused during execution of the code,
  * or the final value of the invocation.
@@ -1207,10 +1207,10 @@ function innerInvoke(
 export function invoke(
   ctx: Ctx,
   code: string,
-  sourceId: string,
+  invokeId: string,
   printResult = false,
 ): InvokeResult {
-  const result = innerInvoke(ctx, () => parseAndExe(ctx, code, sourceId));
+  const result = innerInvoke(ctx, () => parseAndExe(ctx, code, invokeId));
   if (printResult && result.kind === "val") {
     ctx.print(val2str(result.value), true);
   }
