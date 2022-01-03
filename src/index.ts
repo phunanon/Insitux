@@ -1,4 +1,4 @@
-export const insituxVersion = 20211229;
+export const insituxVersion = 20220103;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -1092,43 +1092,31 @@ function exeFunc(
         break;
       case "clo":
       case "par": {
-        const name = ins.value[0];
-        let cins = ins.value[1];
-        const isCapture = ({ typ, value }: Ins, i: number) =>
-          (typ === "ref" &&
-            !cins.find(i => i.typ === "let" && i.value === value)) ||
-          typ === "npa" ||
-          (typ === "val" && i + 1 !== len(cins) && cins[i + 1].typ === "exe");
-        const derefFunc: Func = {
-          name: "",
-          ins: cins
-            .map((ins, i) => {
-              if (i + 1 === len(cins)) {
-                return ins;
-              }
-              const possibleLet =
-                ins.typ === "val" &&
-                ins.value.t === "str" &&
-                cins[i + 1].typ === "exe" &&
-                lets[len(lets) - 1][ins.value.v];
-              return possibleLet
-                ? <Ins>{ typ: "val", value: possibleLet }
-                : ins;
-            })
-            .filter(isCapture),
-        };
-        const errors = exeFunc(ctx, derefFunc, args, true);
-        if (errors) {
-          return errors;
+        let { name, closureIns: cins, captured, captureIns } = ins.value;
+        const newCins: Ins[] = [];
+        if (!len(captureIns)) {
+          push(newCins, cins);
+        } else {
+          cins = cins.map((ins, i) => {
+            const decl =
+              ins.typ === "val" &&
+              ins.value.t === "str" &&
+              (lets[len(lets) - 1][ins.value.v] ?? ctx.env.vars[ins.value.v]);
+            captured[i] = decl ? false : captured[i];
+            return decl ? <Ins>{ typ: "val", value: decl } : ins;
+          });
+          const errors = exeFunc(ctx, { ins: captureIns }, args, true);
+          if (errors) {
+            return errors;
+          }
+          const numIns = len(captureIns);
+          const captures = splice(stack, len(stack) - numIns, numIns);
+          const cap = (value: Val) => <Ins>{ typ: "val", value, errCtx };
+          for (let i = 0, c = 0; i < len(captured); ++i) {
+            newCins.push(captured[i] ? cap(captures[c++]) : cins[i]);
+          }
         }
-        const numIns = len(derefFunc.ins);
-        const captures = splice(stack, len(stack) - numIns, numIns);
-        cins = cins.map((ins, i) =>
-          isCapture(ins, i)
-            ? <Ins>{ typ: "val", value: captures.shift()!, errCtx }
-            : ins,
-        );
-        stack.push(<Val>{ t: "clo", v: <Func>{ name, ins: cins } });
+        stack.push(<Val>{ t: "clo", v: <Func>{ name, ins: newCins } });
         break;
       }
       default:

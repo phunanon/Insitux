@@ -1054,13 +1054,13 @@ function parseForm(nodes, params, doArityCheck = true) {
       ins2.push({ typ: typ2, value: def.value, errCtx: errCtx2 });
       return ins2;
     } else if (op === "#" || op === "@" || op === "fn") {
-      const ins2 = [];
+      const pins = [];
       let asStr = node2str(nodes);
       asStr = op === "fn" ? `(fn ${asStr})` : `${op}(${asStr})`;
       if (op === "fn") {
         const parsedParams = parseParams(nodes, false);
         params = parsedParams.shape;
-        parse_push(ins2, parsedParams.errors);
+        parse_push(pins, parsedParams.errors);
         if (!parse_len(nodes)) {
           return err("provide a body");
         }
@@ -1073,19 +1073,30 @@ function parseForm(nodes, params, doArityCheck = true) {
           { typ: "sym", text: "args", errCtx: errCtx2 }
         ];
       }
-      parse_push(ins2, parseForm(nodes, params, op !== "@"));
-      const errors = ins2.filter((t) => t.typ === "err");
+      parse_push(pins, parseForm(nodes, params, op !== "@"));
+      const cins = pins.filter((i) => i.typ !== "err");
+      const errors = pins.filter((i) => i.typ === "err");
       if (parse_len(errors)) {
         return errors;
       }
       if (op === "fn") {
-        ins2.forEach((i) => {
+        cins.forEach((i) => {
           if (i.typ === "npa") {
             i.typ = "upa";
           }
         });
       }
-      const value = [asStr, ins2];
+      const captureIns = [];
+      const captured = [];
+      for (let i = 0; i < parse_len(cins); ++i) {
+        const ci = cins[i];
+        const isExe = ci.typ === "val" && i + 1 < parse_len(cins) && cins[i + 1].typ === "exe" && (ci.value.t === "func" && !ops[ci.value.v] || ci.value.t === "str");
+        captured[i] = ci.typ === "ref" && !cins.find((i2) => i2.typ === "let" && i2.value === ci.value) || ci.typ === "npa" || isExe;
+        if (captured[i]) {
+          captureIns.push(ci);
+        }
+      }
+      const value = { name: asStr, closureIns: cins, captureIns, captured };
       return [{ typ: op === "@" ? "par" : "clo", value, errCtx: errCtx2 }];
     }
     if (ops[op] && doArityCheck) {
@@ -1299,7 +1310,7 @@ function insErrorDetect(fins) {
         break;
       case "clo":
       case "par": {
-        const errors = insErrorDetect(ins.value[1]);
+        const errors = insErrorDetect(ins.value.closureIns);
         if (errors) {
           return errors;
         }
@@ -1368,7 +1379,7 @@ function parse(code, invokeId) {
   });
   parse_push(errors, parse_flat(okFuncs.map((f) => insErrorDetect(f.ins) ?? [])));
   const funcs = {};
-  okFuncs.forEach((func) => funcs[func.name] = func);
+  okFuncs.forEach((func) => funcs[func.name ?? ""] = func);
   return { errors, funcs };
 }
 
@@ -1391,7 +1402,7 @@ function exe(state, name, args) {
       state.output += args[0].v + "\n";
       break;
     default:
-      return { kind: "err", err: `operation ${name} does not exist` };
+      return { kind: "err", err: `operation "${name}" does not exist` };
   }
   return { kind: "val", value: nullVal };
 }
@@ -1646,6 +1657,14 @@ null`
     name: "Parameterised closure 2",
     code: `((fn a b (print-str a b) (+ a b)) 2 2)`,
     out: `224`
+  },
+  {
+    name: "Closure with mixed lets",
+    code: `(let a + c 5 d 10)
+           (let closure (fn b (let d 1) (a b c d)))
+           (let a - c 4 d 11)
+           (closure 1)`,
+    out: `7`
   },
   {
     name: "Destructure var",
@@ -1927,7 +1946,7 @@ function errorsToDict(errors) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20211229;
+const insituxVersion = 20220103;
 
 
 
@@ -2899,27 +2918,28 @@ function exeFunc(ctx, func, args, inClosure = false) {
         break;
       case "clo":
       case "par": {
-        const name = ins.value[0];
-        let cins = ins.value[1];
-        const isCapture = ({ typ, value }, i2) => typ === "ref" && !cins.find((i3) => i3.typ === "let" && i3.value === value) || typ === "npa" || typ === "val" && i2 + 1 !== src_len(cins) && cins[i2 + 1].typ === "exe";
-        const derefFunc = {
-          name: "",
-          ins: cins.map((ins2, i2) => {
-            if (i2 + 1 === src_len(cins)) {
-              return ins2;
-            }
-            const possibleLet = ins2.typ === "val" && ins2.value.t === "str" && cins[i2 + 1].typ === "exe" && lets[src_len(lets) - 1][ins2.value.v];
-            return possibleLet ? { typ: "val", value: possibleLet } : ins2;
-          }).filter(isCapture)
-        };
-        const errors = exeFunc(ctx, derefFunc, args, true);
-        if (errors) {
-          return errors;
+        let { name, closureIns: cins, captured, captureIns } = ins.value;
+        const newCins = [];
+        if (!src_len(captureIns)) {
+          src_push(newCins, cins);
+        } else {
+          cins = cins.map((ins2, i2) => {
+            const decl = ins2.typ === "val" && ins2.value.t === "str" && (lets[src_len(lets) - 1][ins2.value.v] ?? ctx.env.vars[ins2.value.v]);
+            captured[i2] = decl ? false : captured[i2];
+            return decl ? { typ: "val", value: decl } : ins2;
+          });
+          const errors = exeFunc(ctx, { ins: captureIns }, args, true);
+          if (errors) {
+            return errors;
+          }
+          const numIns = src_len(captureIns);
+          const captures = src_splice(stack, src_len(stack) - numIns, numIns);
+          const cap = (value) => ({ typ: "val", value, errCtx });
+          for (let i2 = 0, c = 0; i2 < src_len(captured); ++i2) {
+            newCins.push(captured[i2] ? cap(captures[c++]) : cins[i2]);
+          }
         }
-        const numIns = src_len(derefFunc.ins);
-        const captures = src_splice(stack, src_len(stack) - numIns, numIns);
-        cins = cins.map((ins2, i2) => isCapture(ins2, i2) ? { typ: "val", value: captures.shift(), errCtx } : ins2);
-        stack.push({ t: "clo", v: { name, ins: cins } });
+        stack.push({ t: "clo", v: { name, ins: newCins } });
         break;
       }
       default:
@@ -3135,7 +3155,7 @@ function repl_exe(name, args) {
       }
     }
   }
-  return { kind: "err", err: `operation ${name} does not exist` };
+  return { kind: "err", err: `operation "${name}" does not exist` };
 }
 if (process.argv.length > 2) {
   let [x, y, ...args] = process.argv;
@@ -3175,7 +3195,7 @@ ${input}`);
     }
     rl.setPrompt("\u276F ");
   } else {
-    rl.setPrompt(". ");
+    rl.setPrompt("\u2022 ");
   }
   rl.prompt();
 });

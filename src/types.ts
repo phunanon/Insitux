@@ -30,7 +30,7 @@ export type Dict = {
 };
 
 export type Func = {
-  name: string;
+  name?: string;
   ins: Ins[];
 };
 export type Funcs = { [key: string]: Func };
@@ -75,6 +75,12 @@ export const defaultCtx = {
 };
 
 export type ParamsShape = { name: string; position: number[] }[];
+export type Closure = {
+  name: string;
+  closureIns: Ins[];
+  captured: boolean[];
+  captureIns: Ins[];
+};
 
 export type Ins = { errCtx: ErrCtx } & (
   | { typ: "val"; value: Val }
@@ -87,7 +93,7 @@ export type Ins = { errCtx: ErrCtx } & (
   | { typ: "or" | "if" | "jmp" | "loo" | "cat" | "mat"; value: number } //Number of instructions
   | { typ: "ret"; value: boolean } //Return, with value?
   | { typ: "pop"; value: number } //Truncate stack, by number of values
-  | { typ: "clo" | "par"; value: [string, Ins[]] } //Closure and partial, text representation and instructions
+  | { typ: "clo" | "par"; value: Closure } //Closure and partial, text representation and instructions
 );
 
 /** Definition of an operation in Insitux,

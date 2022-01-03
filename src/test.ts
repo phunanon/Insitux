@@ -22,7 +22,7 @@ function exe(state: State, name: string, args: Val[]): ValOrErr {
       state.output += args[0].v + "\n";
       break;
     default:
-      return { kind: "err", err: `operation ${name} does not exist` };
+      return { kind: "err", err: `operation "${name}" does not exist` };
   }
   return { kind: "val", value: nullVal };
 }
@@ -280,6 +280,14 @@ const tests: {
     name: "Parameterised closure 2",
     code: `((fn a b (print-str a b) (+ a b)) 2 2)`,
     out: `224`,
+  },
+  {
+    name: "Closure with mixed lets",
+    code: `(let a + c 5 d 10)
+           (let closure (fn b (let d 1) (a b c d)))
+           (let a - c 4 d 11)
+           (closure 1)`,
+    out: `7`,
   },
   {
     name: "Destructure var",

@@ -362,13 +362,13 @@ function parseForm(
       ins.push({ typ, value: def.value, errCtx });
       return ins;
     } else if (op === "#" || op === "@" || op === "fn") {
-      const ins: ParserIns[] = [];
+      const pins: ParserIns[] = [];
       let asStr = node2str(nodes);
       asStr = op === "fn" ? `(fn ${asStr})` : `${op}(${asStr})`;
       if (op === "fn") {
         const parsedParams = parseParams(nodes, false);
         params = parsedParams.shape;
-        push(ins, parsedParams.errors);
+        push(pins, parsedParams.errors);
         if (!len(nodes)) {
           return err("provide a body");
         }
@@ -382,19 +382,39 @@ function parseForm(
           { typ: "sym", text: "args", errCtx },
         ];
       }
-      push(ins, parseForm(nodes, params, op !== "@"));
-      const errors = ins.filter(t => t.typ === "err");
+      push(pins, parseForm(nodes, params, op !== "@"));
+      const cins = <Ins[]>pins.filter(i => i.typ !== "err");
+      const errors = pins.filter(i => i.typ === "err");
       if (len(errors)) {
         return errors;
       }
       if (op === "fn") {
-        ins.forEach(i => {
+        cins.forEach(i => {
           if (i.typ === "npa") {
             i.typ = "upa";
           }
         });
       }
-      const value: [string, Ins[]] = [asStr, <Ins[]>ins];
+      //Calculate captures
+      const captureIns: Ins[] = [];
+      const captured: boolean[] = [];
+      for (let i = 0; i < len(cins); ++i) {
+        const ci = cins[i];
+        const isExe =
+          ci.typ === "val" &&
+          i + 1 < len(cins) &&
+          cins[i + 1].typ === "exe" &&
+          ((ci.value.t === "func" && !ops[ci.value.v]) || ci.value.t === "str");
+        captured[i] =
+          (ci.typ === "ref" &&
+            !cins.find(i => i.typ === "let" && i.value === ci.value)) ||
+          ci.typ === "npa" ||
+          isExe;
+        if (captured[i]) {
+          captureIns.push(ci);
+        }
+      }
+      const value = { name: asStr, closureIns: cins, captureIns, captured };
       return [{ typ: op === "@" ? "par" : "clo", value, errCtx }];
     }
 
@@ -674,7 +694,7 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
         break;
       case "clo":
       case "par": {
-        const errors = insErrorDetect(ins.value[1]);
+        const errors = insErrorDetect(ins.value.closureIns);
         if (errors) {
           return errors;
         }
@@ -748,6 +768,6 @@ export function parse(
   });
   push(errors, flat(okFuncs.map(f => insErrorDetect(f.ins) ?? [])));
   const funcs: Funcs = {};
-  okFuncs.forEach(func => (funcs[func.name] = func));
+  okFuncs.forEach(func => (funcs[func.name ?? ""] = func));
   return { errors, funcs };
 }

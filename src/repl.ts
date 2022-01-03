@@ -111,7 +111,7 @@ function exe(name: string, args: Val[]): ValOrErr {
       }
     }
   }
-  return { kind: "err", err: `operation ${name} does not exist` };
+  return { kind: "err", err: `operation "${name}" does not exist` };
 }
 //#endregion
 
@@ -157,7 +157,7 @@ rl.on("line", line => {
     }
     rl.setPrompt("❯ ");
   } else {
-    rl.setPrompt(". ");
+    rl.setPrompt("• ");
   }
   rl.prompt();
 });
