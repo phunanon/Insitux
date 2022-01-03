@@ -104,23 +104,23 @@ function exeOp(
       _num(
         len(args) === 1
           ? -num(args[0])
-          : args.reduce((sum, n) => sum - <number>n.v, 0),
+          : args.map(num).reduce((sum, n) => sum - n),
       );
       return;
     case "**":
       _num(num(args[0]) ** (len(args) === 1 ? 2 : num(args[1])));
       return;
     case "+":
-      _num(args.reduce((sum, n) => sum + <number>n.v, 0));
+      _num(args.map(num).reduce((sum, n) => sum + n));
       return;
     case "*":
-      _num(args.reduce((sum, n) => sum * <number>n.v, 0));
+      _num(args.map(num).reduce((sum, n) => sum * n));
       return;
     case "/":
-      _num(args.reduce((sum, n) => sum / <number>n.v, 0));
+      _num(args.map(num).reduce((sum, n) => sum / n));
       return;
     case "//":
-      _num(args.reduce((sum, n) => floor(sum / <number>n.v), 0));
+      _num(args.map(num).reduce((sum, n) => floor(sum / n)));
       return;
     case "fast=":
     case "fast!=":

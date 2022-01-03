@@ -2031,22 +2031,22 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       stack.push(args[0]);
       return;
     case "-":
-      _num(src_len(args) === 1 ? -num(args[0]) : args.reduce((sum, n) => sum - n.v, 0));
+      _num(src_len(args) === 1 ? -num(args[0]) : args.map(num).reduce((sum, n) => sum - n));
       return;
     case "**":
       _num(num(args[0]) ** (src_len(args) === 1 ? 2 : num(args[1])));
       return;
     case "+":
-      _num(args.reduce((sum, n) => sum + n.v, 0));
+      _num(args.map(num).reduce((sum, n) => sum + n));
       return;
     case "*":
-      _num(args.reduce((sum, n) => sum * n.v, 0));
+      _num(args.map(num).reduce((sum, n) => sum * n));
       return;
     case "/":
-      _num(args.reduce((sum, n) => sum / n.v, 0));
+      _num(args.map(num).reduce((sum, n) => sum / n));
       return;
     case "//":
-      _num(args.reduce((sum, n) => src_floor(sum / n.v), 0));
+      _num(args.map(num).reduce((sum, n) => src_floor(sum / n)));
       return;
     case "fast=":
     case "fast!=":
