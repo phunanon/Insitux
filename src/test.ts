@@ -1,4 +1,4 @@
-import { concat, getTimeMs, len, padEnd, trim } from "./poly-fills";
+import { concat, round, getTimeMs, len, padEnd, trim } from "./poly-fills";
 import { Ctx, Env, Val, ValOrErr, InvokeResult } from "./types";
 
 type State = { dict: Map<string, Val>; output: string };
@@ -434,7 +434,7 @@ export function doTests(
       {
         get: (key: string) => get(state, key),
         set: (key: string, val: Val) => set(state, key, val),
-        print(str, withNewLine) {
+        print: (str, withNewLine) => {
           state.output += str + (withNewLine ? "\n" : "");
         },
         exe: (name: string, args: Val[]) => exe(state, name, args),
@@ -456,7 +456,7 @@ export function doTests(
     const [tNum, tName, tElapsed, tOutput, tErrors] = [
       padEnd(`${t + 1}`, 3),
       padEnd(name, 24),
-      padEnd(`${elapsedMs}ms`, 6),
+      padEnd(`${round(elapsedMs)}ms`, 6),
       okOut || out + "\t!=\t" + trim(state.output),
       okErr ||
         errors.map(
@@ -474,6 +474,6 @@ export function doTests(
   const numPassed = len(results.filter(({ okOut, okErr }) => okOut && okErr));
   return concat(
     results.filter(r => !terse || !r.okOut || !r.okErr).map(r => r.display),
-    [`---- ${numPassed}/${len(results)} tests passed in ${totalMs}ms.`],
+    [`---- ${numPassed}/${len(results)} tests passed in ${round(totalMs)}ms.`],
   );
 }

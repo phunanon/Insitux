@@ -209,13 +209,11 @@ function exeOp(
     case "ceil":
     case "logn":
     case "log2":
-    case "log10":
-      _num(
-        { sin, cos, tan, sqrt, floor, ceil, logn, log2, log10 }[op](
-          num(args[0]),
-        ),
-      );
+    case "log10": {
+      const f = { sin, cos, tan, sqrt, floor, ceil, logn, log2, log10 }[op];
+      _num(f(num(args[0])));
       return;
+    }
     case "and":
       _boo(args.every(asBoo));
       return;
@@ -410,7 +408,7 @@ function exeOp(
             return;
         }
         if (arrArg.t === "str") {
-          _str(filtered.map(v => v.v).join(""));
+          _str(filtered.map(v => val2str(v)).join(""));
         } else if (arrArg.t === "dict") {
           stack.push(toDict(flat(filtered.map(v => <Val[]>v.v))));
         } else {
@@ -479,7 +477,7 @@ function exeOp(
     }
     case "->": {
       stack.push(args.shift()!);
-      for (let i = 0, end = len(args); i < end; ++i) {
+      for (let i = 0, lim = len(args); i < lim; ++i) {
         const errors = getExe(ctx, args[i], errCtx)([stack.pop()!]);
         if (errors) {
           return errors;
@@ -1092,7 +1090,8 @@ function exeFunc(
         break;
       case "clo":
       case "par": {
-        let { name, closureIns: cins, captured, captureIns } = ins.value;
+        const { name, captured, captureIns } = ins.value;
+        let { closureIns: cins } = ins.value;
         const newCins: Ins[] = [];
         if (!len(captureIns)) {
           push(newCins, cins);

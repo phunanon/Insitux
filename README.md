@@ -741,16 +741,16 @@ A "shape" of parameter names or var/let names can be provided in which each vect
 (fib 13) → 233
 
 
-; Fizzbuzz with match syntax
+; FizzBuzz with match syntax
 (function fizzbuzz n
-  (match (for rem [n] [3 5])
-    [0 0] "fizzbuzz"
-    [0 _] "fizz"
-    [_ 0] "buzz"
+  (match (map (rem n) [3 5])
+    [0 0] "FizzBuzz"
+    [0 _] "Fizz"
+    [_ 0] "Buzz"
     n))
 
 (map fizzbuzz (range 10 16))
-→ ["buzz" 11 "fizz" 13 14 "fizzbuzz"]
+→ ["Buzz" 11 "Fizz" 13 14 "FizzBuzz"]
 
 
 ; Filter for vectors and strings above a certain length

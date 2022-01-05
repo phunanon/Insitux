@@ -869,7 +869,7 @@ function collectFuncs(nodes) {
       } else if (parse_len(node) < 3) {
         funcs.push({ err: "empty function body", errCtx: node[0].errCtx });
       }
-      funcs.push({ name, nodes: node.slice(2) });
+      funcs.push({ name, nodes: parse_slice(node, 2) });
     } else {
       entries.push(node);
     }
@@ -914,7 +914,9 @@ function parseForm(nodes, params, doArityCheck = true) {
       } else if (parse_len(nodes) > 3) {
         return err("provide fewer than two branches");
       }
-      let [cond, branch1, branch2] = nodes.map(nodeParser);
+      const parsed = nodes.map(nodeParser);
+      const [cond, branch1] = parsed;
+      let branch2 = parsed[2];
       const ifN = op === "if!" && [
         { typ: "val", value: { t: "func", v: "!" }, errCtx: errCtx2 },
         { typ: "exe", value: 1, errCtx: errCtx2 }
@@ -934,7 +936,8 @@ function parseForm(nodes, params, doArityCheck = true) {
       if (parse_len(nodes) === 1) {
         return err("provide a body");
       }
-      const [cond, ...body] = nodes.map(nodeParser);
+      const parsed = nodes.map(nodeParser);
+      const [cond, body] = [parsed[0], parse_slice(parsed, 1)];
       const bodyIns = parse_flat(body);
       return [
         ...cond,
@@ -944,7 +947,8 @@ function parseForm(nodes, params, doArityCheck = true) {
         { typ: "val", value: nullVal, errCtx: errCtx2 }
       ];
     } else if (op === "match") {
-      const [cond, ...args2] = nodes.map(nodeParser);
+      const parsed = nodes.map(nodeParser);
+      const [cond, args2] = [parsed[0], parse_slice(parsed, 1)];
       const otherwise = parse_len(args2) % 2 ? args2.pop() : [];
       if (!parse_len(args2)) {
         return err("provide at least one case");
@@ -974,7 +978,7 @@ function parseForm(nodes, params, doArityCheck = true) {
         return err("argument 1 must be expression");
       }
       const body = nodeParser(nodes[0]);
-      const when = parse_flat(nodes.slice(1).map(nodeParser));
+      const when = parse_flat(parse_slice(nodes, 1).map(nodeParser));
       return [...body, { typ: "cat", value: parse_len(when), errCtx: errCtx2 }, ...when];
     } else if (op === "and" || op === "or" || op === "while") {
       const args2 = nodes.map(nodeParser);
@@ -986,7 +990,7 @@ function parseForm(nodes, params, doArityCheck = true) {
       if (op === "while") {
         ins2.push({ typ: "val", value: nullVal, errCtx: errCtx2 });
         insCount += 2;
-        const [head2, ...body] = args2;
+        const [head2, body] = [args2[0], parse_slice(args2, 1)];
         parse_push(ins2, head2);
         ins2.push({ typ: "if", value: insCount - parse_len(head2), errCtx: errCtx2 });
         ins2.push({ typ: "pop", value: parse_len(body), errCtx: errCtx2 });
@@ -1013,7 +1017,7 @@ function parseForm(nodes, params, doArityCheck = true) {
       return ins2;
     } else if (op === "var" || op === "let") {
       const defs = nodes.filter((n, i) => !(i % 2));
-      const vals = nodes.filter((n, i) => i % 2);
+      const vals = nodes.filter((n, i) => !!(i % 2));
       if (!parse_len(defs)) {
         return err("provide at least 1 declaration name and value");
       } else if (parse_len(defs) > parse_len(vals)) {
@@ -1043,7 +1047,8 @@ function parseForm(nodes, params, doArityCheck = true) {
       if (parse_len(nodes) < 2) {
         return err("provide 1 declaration name and 1 function");
       }
-      const [[def], func, ...args2] = nodes.map(nodeParser);
+      const parsed = nodes.map(nodeParser);
+      const [def, func, args2] = [parsed[0][0], parsed[1], parse_slice(parsed, 2)];
       if (def.typ !== "ref") {
         return err("declaration name must be symbol", def.errCtx);
       }
@@ -1360,7 +1365,7 @@ function parse(code, invokeId) {
     return { errors: tokenErrors, funcs: {} };
   }
   const okFuncs = [], errors = [];
-  const tree = treeise(tokens.slice());
+  const tree = treeise(parse_slice(tokens));
   const collected = collectFuncs(tree);
   const namedNodes = [];
   collected.forEach((nodeOrErr) => {
@@ -1792,7 +1797,7 @@ function doTests(invoke, terse = true) {
     const valOrErrs = invoke({
       get: (key) => get(state, key),
       set: (key, val) => set(state, key, val),
-      print(str, withNewLine) {
+      print: (str, withNewLine) => {
         state.output += str + (withNewLine ? "\n" : "");
       },
       exe: (name2, args) => exe(state, name2, args),
@@ -1870,7 +1875,7 @@ const stringify = (vals) => vals.reduce((cat, v) => cat + val2str(v), "");
 const val2str = (val) => {
   const quoted = (v) => v.t === "str" ? `"${v.v}"` : val2str(v);
   if (val.t === "clo") {
-    return val.v.name;
+    return val.v.name ?? "";
   } else if (val.t === "vec") {
     return `[${val.v.map(quoted).join(" ")}]`;
   } else if (val.t === "dict") {
@@ -2130,9 +2135,11 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
     case "ceil":
     case "logn":
     case "log2":
-    case "log10":
-      _num({ sin: src_sin, cos: src_cos, tan: src_tan, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, logn: src_logn, log2: src_log2, log10: src_log10 }[op](num(args[0])));
+    case "log10": {
+      const f = { sin: src_sin, cos: src_cos, tan: src_tan, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, logn: src_logn, log2: src_log2, log10: src_log10 }[op];
+      _num(f(num(args[0])));
       return;
+    }
     case "and":
       _boo(args.every(asBoo));
       return;
@@ -2299,7 +2306,7 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
             return;
         }
         if (arrArg.t === "str") {
-          _str(filtered.map((v) => v.v).join(""));
+          _str(filtered.map((v) => val2str(v)).join(""));
         } else if (arrArg.t === "dict") {
           stack.push(toDict(src_flat(filtered.map((v) => v.v))));
         } else {
@@ -2362,7 +2369,7 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
     }
     case "->": {
       stack.push(args.shift());
-      for (let i = 0, end = src_len(args); i < end; ++i) {
+      for (let i = 0, lim = src_len(args); i < lim; ++i) {
         const errors = getExe(ctx, args[i], errCtx)([stack.pop()]);
         if (errors) {
           return errors;
@@ -2918,7 +2925,8 @@ function exeFunc(ctx, func, args, inClosure = false) {
         break;
       case "clo":
       case "par": {
-        let { name, closureIns: cins, captured, captureIns } = ins.value;
+        const { name, captured, captureIns } = ins.value;
+        let { closureIns: cins } = ins.value;
         const newCins = [];
         if (!src_len(captureIns)) {
           src_push(newCins, cins);

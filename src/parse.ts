@@ -164,7 +164,7 @@ function collectFuncs(
       } else if (len(node) < 3) {
         funcs.push({ err: "empty function body", errCtx: node[0].errCtx });
       }
-      funcs.push({ name, nodes: node.slice(2) });
+      funcs.push({ name, nodes: slice(node, 2) });
     } else {
       entries.push(node);
     }
@@ -218,7 +218,9 @@ function parseForm(
       } else if (len(nodes) > 3) {
         return err("provide fewer than two branches");
       }
-      let [cond, branch1, branch2] = nodes.map(nodeParser);
+      const parsed = nodes.map(nodeParser);
+      const [cond, branch1] = parsed;
+      let branch2 = parsed[2];
       const ifN = op === "if!" && [
         <Ins>{ typ: "val", value: { t: "func", v: "!" }, errCtx },
         <Ins>{ typ: "exe", value: 1, errCtx },
@@ -238,7 +240,8 @@ function parseForm(
       if (len(nodes) === 1) {
         return err("provide a body");
       }
-      const [cond, ...body] = nodes.map(nodeParser);
+      const parsed = nodes.map(nodeParser);
+      const [cond, body] = [parsed[0], slice(parsed, 1)];
       const bodyIns = flat(body);
       return [
         ...cond,
@@ -248,7 +251,8 @@ function parseForm(
         { typ: "val", value: nullVal, errCtx },
       ];
     } else if (op === "match") {
-      const [cond, ...args] = nodes.map(nodeParser);
+      const parsed = nodes.map(nodeParser);
+      const [cond, args] = [parsed[0], slice(parsed, 1)];
       const otherwise: ParserIns[] = len(args) % 2 ? args.pop()! : [];
       if (!len(args)) {
         return err("provide at least one case");
@@ -281,7 +285,7 @@ function parseForm(
         return err("argument 1 must be expression");
       }
       const body = nodeParser(nodes[0]);
-      const when = flat(nodes.slice(1).map(nodeParser));
+      const when = flat(slice(nodes, 1).map(nodeParser));
       return [...body, { typ: "cat", value: len(when), errCtx }, ...when];
     } else if (op === "and" || op === "or" || op === "while") {
       const args = nodes.map(nodeParser);
@@ -293,7 +297,7 @@ function parseForm(
       if (op === "while") {
         ins.push({ typ: "val", value: nullVal, errCtx }); //If first is false
         insCount += 2; //+1 for the if ins, +1 for the pop ins
-        const [head, ...body] = args;
+        const [head, body] = [args[0], slice(args, 1)];
         push(ins, head);
         ins.push({ typ: "if", value: insCount - len(head), errCtx });
         ins.push({ typ: "pop", value: len(body), errCtx });
@@ -320,7 +324,7 @@ function parseForm(
       return ins;
     } else if (op === "var" || op === "let") {
       const defs = nodes.filter((n, i) => !(i % 2));
-      const vals = nodes.filter((n, i) => i % 2);
+      const vals = nodes.filter((n, i) => !!(i % 2));
       if (!len(defs)) {
         return err("provide at least 1 declaration name and value");
       } else if (len(defs) > len(vals)) {
@@ -351,7 +355,8 @@ function parseForm(
       if (len(nodes) < 2) {
         return err("provide 1 declaration name and 1 function");
       }
-      const [[def], func, ...args] = nodes.map(nodeParser);
+      const parsed = nodes.map(nodeParser);
+      const [def, func, args] = [parsed[0][0], parsed[1], slice(parsed, 2)];
       if (def.typ !== "ref") {
         return err("declaration name must be symbol", def.errCtx);
       }
@@ -749,7 +754,7 @@ export function parse(
   }
   const okFuncs: Func[] = [],
     errors: InvokeError[] = [];
-  const tree = treeise(tokens.slice());
+  const tree = treeise(slice(tokens));
   const collected = collectFuncs(tree);
   const namedNodes: NamedNodes[] = [];
   collected.forEach(nodeOrErr => {
