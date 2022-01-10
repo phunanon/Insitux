@@ -57,10 +57,10 @@ li:not(:first-child) {
   background-color: transparent !important;
 }
 .socials * {
-  height: 2rem;
+  height: 3rem;
   display: inline-block;
   vertical-align: top;
-  line-height: 2rem;
+  line-height: 3rem;
 }
 .socials span {
   margin-right: 1rem;
