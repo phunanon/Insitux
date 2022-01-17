@@ -122,6 +122,11 @@ const tests: {
     out: `[2 4 6]`,
   },
   {
+    name: "For XY list",
+    code: `(for vec [0 1] [0 1])`,
+    out: `[[0 0] [1 0] [0 1] [1 1]]`,
+  },
+  {
     name: "Filter by integer",
     code: `(filter 2 [[1] [:a :b :c] "hello" "hi"])`,
     out: `[[:a :b :c] "hello"]`,

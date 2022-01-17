@@ -1,4 +1,4 @@
-export const insituxVersion = 20220103;
+export const insituxVersion = 20220117;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -19,7 +19,8 @@ import { dic, dictDrop, dictGet, dictSet, toDict } from "./val";
 
 const externalOps: { [name: string]: ExternalHandler } = {};
 let stack: Val[] = [];
-let lets: { [key: string]: Val }[] = [];
+let letsStack: { [key: string]: Val }[] = [];
+let lets: typeof letsStack[0] = {};
 let recurArgs: undefined | Val[];
 const _boo = (v: boolean) => stack.push({ t: "bool", v });
 const _num = (v: number) => stack.push({ t: "num", v });
@@ -626,7 +627,7 @@ function exeOp(
       if (mapped.some(([_, { t }]) => t !== okT || !has(["num", "str"], t))) {
         return tErr("can only sort by all number or all string");
       }
-      if (mapped[0][1].t === "num") {
+      if (okT === "num") {
         sortBy(mapped, ([x, a], [y, b]) => (num(a) > num(b) ? 1 : -1));
       } else {
         sortBy(mapped, ([x, a], [y, b]) => (str(a) > str(b) ? 1 : -1));
@@ -748,7 +749,7 @@ function exeOp(
     case "reset":
       ctx.env.vars = {};
       ctx.env.funcs = {};
-      lets = [];
+      letsStack = [];
       _nul();
       return;
   }
@@ -789,8 +790,8 @@ function getExe(
     if (name in ctx.env.vars) {
       return getExe(ctx, ctx.env.vars[name], errCtx);
     }
-    if (name in lets[len(lets) - 1]) {
-      return getExe(ctx, lets[len(lets) - 1][name], errCtx);
+    if (name in lets) {
+      return getExe(ctx, lets[name], errCtx);
     }
     if (starts(name, "$")) {
       return (params: Val[]) => {
@@ -935,7 +936,8 @@ function exeFunc(
 ): InvokeError[] | undefined {
   --ctx.callBudget;
   if (!inClosure) {
-    lets.push({});
+    letsStack.push({});
+    lets = letsStack[len(letsStack) - 1];
   }
   const stackLen = len(stack);
   for (let i = 0, lim = len(func.ins); i < lim; ++i) {
@@ -961,7 +963,7 @@ function exeFunc(
         ctx.env.vars[ins.value] = stack[len(stack) - 1];
         break;
       case "let":
-        lets[len(lets) - 1][ins.value] = stack[len(stack) - 1];
+        lets[ins.value] = stack[len(stack) - 1];
         break;
       case "dle":
       case "dva": {
@@ -971,7 +973,7 @@ function exeFunc(
           if (ins.typ === "dva") {
             last = ctx.env.vars[name] = destruct([val], position);
           } else {
-            last = lets[len(lets) - 1][name] = destruct([val], position);
+            last = lets[name] = destruct([val], position);
           }
         });
         stack.push(last!);
@@ -1004,8 +1006,8 @@ function exeFunc(
           stack.push(valAndErr.value);
         } else if (name in ctx.env.vars) {
           stack.push(ctx.env.vars[name]);
-        } else if (name in lets[len(lets) - 1]) {
-          stack.push(lets[len(lets) - 1][name]);
+        } else if (name in lets) {
+          stack.push(lets[name]);
         } else if (name in ctx.env.funcs) {
           _fun(name);
         } else {
@@ -1026,7 +1028,7 @@ function exeFunc(
           );
           if (nextCat !== -1) {
             i += nextCat;
-            lets[len(lets) - 1]["errors"] = {
+            lets["errors"] = {
               t: "vec",
               v: errorsToDict(errors),
             };
@@ -1035,7 +1037,7 @@ function exeFunc(
           return errors;
         }
         if (recurArgs) {
-          lets[len(lets) - 1] = {};
+          letsStack[len(letsStack) - 1] = {};
           i = -1;
           const nArgs = ins.value;
           args = recurArgs;
@@ -1100,7 +1102,7 @@ function exeFunc(
             const decl =
               ins.typ === "val" &&
               ins.value.t === "str" &&
-              (lets[len(lets) - 1][ins.value.v] ?? ctx.env.vars[ins.value.v]);
+              (lets[ins.value.v] ?? ctx.env.vars[ins.value.v]);
             captured[i] = decl ? false : captured[i];
             return decl ? <Ins>{ typ: "val", value: decl } : ins;
           });
@@ -1123,7 +1125,8 @@ function exeFunc(
     }
   }
   if (!inClosure) {
-    lets.pop();
+    letsStack.pop();
+    lets = letsStack[len(letsStack) - 1];
     splice(stack, stackLen, len(stack) - (stackLen + 1));
   }
   return;
@@ -1174,7 +1177,7 @@ function innerInvoke(
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
   const value = stack.pop();
-  [stack, lets] = [[], []];
+  [stack, letsStack] = [[], []];
   return errors
     ? { kind: "errors", errors }
     : value
