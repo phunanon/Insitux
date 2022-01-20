@@ -28,8 +28,10 @@ const symAt = (node: Node, pos = 0) => {
   const arg = node[pos];
   return (isToken(arg) && has(["sym", "str"], arg.typ) && arg.text) || "";
 };
+const token2str = ({ typ, text }: Token): string =>
+  typ === "str" ? `"${text}"` : text;
 const node2str = (nodes: Node[]): string =>
-  nodes.map(n => (isToken(n) ? n.text : `(${node2str(n)})`)).join(" ");
+  nodes.map(n => (isToken(n) ? token2str(n) : `(${node2str(n)})`)).join(" ");
 
 export function tokenise(
   code: string,
@@ -281,11 +283,9 @@ function parseForm(
     } else if (op === "catch") {
       if (len(nodes) < 2) {
         return err("provide at least 2 arguments");
-      } else if (isToken(nodes[0])) {
-        return err("argument 1 must be expression");
       }
-      const body = nodeParser(nodes[0]);
-      const when = flat(slice(nodes, 1).map(nodeParser));
+      const when = nodeParser(nodes.pop()!);
+      const body = flat(nodes.map(nodeParser));
       return [...body, { typ: "cat", value: len(when), errCtx }, ...when];
     } else if (op === "and" || op === "or" || op === "while") {
       const args = nodes.map(nodeParser);

@@ -550,7 +550,16 @@ const ops = {
   },
   "to-key": { exactArity: 1, params: [["str", "num"]], returns: ["key"] },
   "has?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
-  idx: { minArity: 2, maxArity: 3, params: [["str", "vec"]], returns: ["num"] },
+  idx: {
+    exactArity: 2,
+    params: [[], ["str", "vec"]],
+    returns: ["num"]
+  },
+  "set-at": {
+    exactArity: 3,
+    params: ["vec", [], ["vec", "dict"]],
+    returns: ["vec", "dict"]
+  },
   map: { minArity: 2, returns: ["vec"] },
   for: { minArity: 2, returns: ["vec"] },
   reduce: { minArity: 2, maxArity: 3 },
@@ -760,7 +769,8 @@ const symAt = (node, pos = 0) => {
   const arg = node[pos];
   return isToken(arg) && parse_has(["sym", "str"], arg.typ) && arg.text || "";
 };
-const node2str = (nodes) => nodes.map((n) => isToken(n) ? n.text : `(${node2str(n)})`).join(" ");
+const token2str = ({ typ, text }) => typ === "str" ? `"${text}"` : text;
+const node2str = (nodes) => nodes.map((n) => isToken(n) ? token2str(n) : `(${node2str(n)})`).join(" ");
 function tokenise(code, invokeId, makeCollsOps = true, emitComments = false) {
   const tokens = [];
   const isDigit = (ch) => parse_sub("0123456789", ch);
@@ -974,11 +984,9 @@ function parseForm(nodes, params, doArityCheck = true) {
     } else if (op === "catch") {
       if (parse_len(nodes) < 2) {
         return err("provide at least 2 arguments");
-      } else if (isToken(nodes[0])) {
-        return err("argument 1 must be expression");
       }
-      const body = nodeParser(nodes[0]);
-      const when = parse_flat(parse_slice(nodes, 1).map(nodeParser));
+      const when = nodeParser(nodes.pop());
+      const body = parse_flat(nodes.map(nodeParser));
       return [...body, { typ: "cat", value: parse_len(when), errCtx: errCtx2 }, ...when];
     } else if (op === "and" || op === "or" || op === "while") {
       const args2 = nodes.map(nodeParser);
@@ -1502,6 +1510,11 @@ null`
     out: `[2 4 6]`
   },
   {
+    name: "For XY list",
+    code: `(for vec [0 1] [0 1])`,
+    out: `[[0 0] [1 0] [0 1] [1 1]]`
+  },
+  {
     name: "Filter by integer",
     code: `(filter 2 [[1] [:a :b :c] "hello" "hi"])`,
     out: `[[:a :b :c] "hello"]`
@@ -1533,7 +1546,7 @@ null`
   {
     name: "Catch error",
     code: `(catch
-             (:e (catch (do (let a :a) (+ 1 a)) (0 errors)))
+             (:e (catch (let a :a) (+ 1 a) (0 errors)))
              (print "hi"))`,
     out: `Type`
   },
@@ -1815,7 +1828,7 @@ function doTests(invoke, terse = true) {
     const [tNum, tName, tElapsed, tOutput, tErrors] = [
       padEnd(`${t + 1}`, 3),
       padEnd(name, 24),
-      padEnd(`${elapsedMs}ms`, 6),
+      padEnd(`${round(elapsedMs)}ms`, 6),
       okOut || out + "	!=	" + trim(state.output),
       okErr || errors.map(({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`)
     ];
@@ -1828,7 +1841,7 @@ function doTests(invoke, terse = true) {
   }
   const totalMs = results.reduce((sum, { elapsedMs }) => sum + elapsedMs, 0);
   const numPassed = len(results.filter(({ okOut, okErr }) => okOut && okErr));
-  return concat(results.filter((r) => !terse || !r.okOut || !r.okErr).map((r) => r.display), [`---- ${numPassed}/${len(results)} tests passed in ${totalMs}ms.`]);
+  return concat(results.filter((r) => !terse || !r.okOut || !r.okErr).map((r) => r.display), [`---- ${numPassed}/${len(results)} tests passed in ${round(totalMs)}ms.`]);
 }
 
 ;// CONCATENATED MODULE: ./src/val.ts
@@ -1949,9 +1962,31 @@ function errorsToDict(errors) {
     return { t: "dict", v: dict };
   });
 }
+function pathSet(path, replacement, coll) {
+  if (!len(path) || coll.t !== "vec" && coll.t !== "dict" || coll.t === "vec" && (path[0].t !== "num" || path[0].v < 0 || path[0].v > len(coll.v))) {
+    return coll;
+  }
+  if (coll.t === "vec") {
+    const vecCopy = slice(coll.v);
+    const idx = num(path[0]);
+    if (len(path) === 1) {
+      vecCopy[idx] = replacement;
+      return { t: "vec", v: vecCopy };
+    }
+    vecCopy[idx] = pathSet(slice(path, 1), replacement, vecCopy[idx]);
+    return { t: "vec", v: vecCopy };
+  }
+  if (len(path) === 1) {
+    return { t: "dict", v: dictSet(coll.v, path[0], replacement) };
+  }
+  return {
+    t: "dict",
+    v: dictSet(coll.v, path[0], pathSet(slice(path, 1), replacement, dictGet(coll.v, path[0])))
+  };
+}
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20220103;
+const insituxVersion = 20220120;
 
 
 
@@ -1970,7 +2005,8 @@ const { isNum: src_isNum, len: src_len, objKeys: src_objKeys, range: src_range, 
 
 const externalOps = {};
 let stack = [];
-let lets = [];
+let letsStack = [];
+let lets = {};
 let recurArgs;
 const _boo = (v) => stack.push({ t: "bool", v });
 const _num = (v) => stack.push({ t: "num", v });
@@ -2199,29 +2235,20 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
         if (args[1].t !== "str") {
           return tErr("strings can only contain strings");
         }
-        if (src_len(args) < 3) {
-          i = src_subIdx(args[0].v, args[1].v);
-        } else {
-          const arr = args[0].v.split("");
-          arr[num(args[2])] = args[1].v;
-          _str(arr.join(""));
-          return;
-        }
+        i = src_subIdx(args[1].v, args[0].v);
       } else if (args[0].t === "vec") {
-        if (src_len(args) < 3) {
-          i = args[0].v.findIndex((a2) => isEqual(a2, args[1]));
-        } else {
-          const v = src_slice(args[0].v);
-          v[num(args[2])] = args[1];
-          _vec(v);
-          return;
-        }
+        i = args[0].v.findIndex((a2) => isEqual(a2, args[1]));
       }
       if (i === -1) {
         _nul();
       } else {
         _num(i);
       }
+      return;
+    }
+    case "set-at": {
+      const [pathVal, replacement, coll] = args;
+      stack.push(pathSet(vec(pathVal), replacement, coll));
       return;
     }
     case "map":
@@ -2508,7 +2535,7 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       if (mapped.some(([_, { t }]) => t !== okT || !src_has(["num", "str"], t))) {
         return tErr("can only sort by all number or all string");
       }
-      if (mapped[0][1].t === "num") {
+      if (okT === "num") {
         src_sortBy(mapped, ([x, a2], [y, b2]) => num(a2) > num(b2) ? 1 : -1);
       } else {
         src_sortBy(mapped, ([x, a2], [y, b2]) => str(a2) > str(b2) ? 1 : -1);
@@ -2611,7 +2638,7 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
     case "reset":
       ctx.env.vars = {};
       ctx.env.funcs = {};
-      lets = [];
+      letsStack = [];
       _nul();
       return;
   }
@@ -2645,8 +2672,8 @@ function getExe(ctx, op, errCtx, checkArity = true) {
     if (name in ctx.env.vars) {
       return getExe(ctx, ctx.env.vars[name], errCtx);
     }
-    if (name in lets[src_len(lets) - 1]) {
-      return getExe(ctx, lets[src_len(lets) - 1][name], errCtx);
+    if (name in lets) {
+      return getExe(ctx, lets[name], errCtx);
     }
     if (src_starts(name, "$")) {
       return (params) => {
@@ -2775,7 +2802,8 @@ function destruct(args, shape) {
 function exeFunc(ctx, func, args, inClosure = false) {
   --ctx.callBudget;
   if (!inClosure) {
-    lets.push({});
+    letsStack.push({});
+    lets = letsStack[src_len(letsStack) - 1];
   }
   const stackLen = src_len(stack);
   for (let i = 0, lim = src_len(func.ins); i < lim; ++i) {
@@ -2799,7 +2827,7 @@ function exeFunc(ctx, func, args, inClosure = false) {
         ctx.env.vars[ins.value] = stack[src_len(stack) - 1];
         break;
       case "let":
-        lets[src_len(lets) - 1][ins.value] = stack[src_len(stack) - 1];
+        lets[ins.value] = stack[src_len(stack) - 1];
         break;
       case "dle":
       case "dva": {
@@ -2809,7 +2837,7 @@ function exeFunc(ctx, func, args, inClosure = false) {
           if (ins.typ === "dva") {
             last = ctx.env.vars[name] = destruct([val], position);
           } else {
-            last = lets[src_len(lets) - 1][name] = destruct([val], position);
+            last = lets[name] = destruct([val], position);
           }
         });
         stack.push(last);
@@ -2842,8 +2870,8 @@ function exeFunc(ctx, func, args, inClosure = false) {
           stack.push(valAndErr.value);
         } else if (name in ctx.env.vars) {
           stack.push(ctx.env.vars[name]);
-        } else if (name in lets[src_len(lets) - 1]) {
-          stack.push(lets[src_len(lets) - 1][name]);
+        } else if (name in lets) {
+          stack.push(lets[name]);
         } else if (name in ctx.env.funcs) {
           _fun(name);
         } else {
@@ -2861,7 +2889,7 @@ function exeFunc(ctx, func, args, inClosure = false) {
           const nextCat = src_slice(func.ins, i).findIndex((ins2) => ins2.typ === "cat");
           if (nextCat !== -1) {
             i += nextCat;
-            lets[src_len(lets) - 1]["errors"] = {
+            lets["errors"] = {
               t: "vec",
               v: src_errorsToDict(errors)
             };
@@ -2870,7 +2898,7 @@ function exeFunc(ctx, func, args, inClosure = false) {
           return errors;
         }
         if (recurArgs) {
-          lets[src_len(lets) - 1] = {};
+          letsStack[src_len(letsStack) - 1] = {};
           i = -1;
           const nArgs2 = ins.value;
           args = recurArgs;
@@ -2932,7 +2960,7 @@ function exeFunc(ctx, func, args, inClosure = false) {
           src_push(newCins, cins);
         } else {
           cins = cins.map((ins2, i2) => {
-            const decl = ins2.typ === "val" && ins2.value.t === "str" && (lets[src_len(lets) - 1][ins2.value.v] ?? ctx.env.vars[ins2.value.v]);
+            const decl = ins2.typ === "val" && ins2.value.t === "str" && (lets[ins2.value.v] ?? ctx.env.vars[ins2.value.v]);
             captured[i2] = decl ? false : captured[i2];
             return decl ? { typ: "val", value: decl } : ins2;
           });
@@ -2955,7 +2983,8 @@ function exeFunc(ctx, func, args, inClosure = false) {
     }
   }
   if (!inClosure) {
-    lets.pop();
+    letsStack.pop();
+    lets = letsStack[src_len(letsStack) - 1];
     src_splice(stack, stackLen, src_len(stack) - (stackLen + 1));
   }
   return;
@@ -2995,7 +3024,7 @@ function innerInvoke(ctx, closure) {
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
   const value = stack.pop();
-  [stack, lets] = [[], []];
+  [stack, letsStack] = [[], []];
   return errors ? { kind: "errors", errors } : value ? { kind: "val", value } : { kind: "empty" };
 }
 function invoke(ctx, code, invokeId, printResult = false) {

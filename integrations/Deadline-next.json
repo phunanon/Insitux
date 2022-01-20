@@ -103,9 +103,9 @@
 			{
 				"directory": "catch",
 				"description": [
-					"(catch (+) errors)",
+					"(catch (+ 1 %) errors)",
 					"syntax",
-					"Evaluates the first argument and returns the value if no runtime errors, else populates the let `errors` and returns the evaluation of the second argument"
+					"Evaluates all but its final argument and returns the penultimate argument's value if no runtime errors occurred, else populates the let `errors` and returns the evaluation of the final argument"
 				]
 			},
 			{
@@ -527,8 +527,16 @@
 				"description": [
 					"(idx [1 2 3] 2)",
 					"function",
-					"Returns index of an item or sub-string in a vector or string, or null;",
-					"or, replaces an item or character with another at a specified index."
+					"Returns index of an item or sub-string in a vector or string, or null"
+				]
+			},
+			{
+				"directory": "set-at",
+				"description": [
+					"(set-at [0 1] :a [[0 1] [0 1]])",
+					"function",
+					"Returns vector or dictionary with specified index or key/value set or replaced",
+					"with another value"
 				]
 			},
 			{

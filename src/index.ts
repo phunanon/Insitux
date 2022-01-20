@@ -1,4 +1,4 @@
-export const insituxVersion = 20220117;
+export const insituxVersion = 20220120;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
@@ -15,7 +15,7 @@ import { assertUnreachable, InvokeError, InvokeResult } from "./types";
 import { ExternalFunction, ExternalHandler } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
-import { dic, dictDrop, dictGet, dictSet, toDict } from "./val";
+import { dic, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
 
 const externalOps: { [name: string]: ExternalHandler } = {};
 let stack: Val[] = [];
@@ -289,29 +289,20 @@ function exeOp(
         if (args[1].t !== "str") {
           return tErr("strings can only contain strings");
         }
-        if (len(args) < 3) {
-          i = subIdx(args[0].v, args[1].v);
-        } else {
-          const arr = args[0].v.split("");
-          arr[num(args[2])] = args[1].v;
-          _str(arr.join(""));
-          return;
-        }
+        i = subIdx(args[1].v, args[0].v);
       } else if (args[0].t === "vec") {
-        if (len(args) < 3) {
-          i = args[0].v.findIndex(a => isEqual(a, args[1]));
-        } else {
-          const v = slice(args[0].v);
-          v[num(args[2])] = args[1];
-          _vec(v);
-          return;
-        }
+        i = args[0].v.findIndex(a => isEqual(a, args[1]));
       }
       if (i === -1) {
         _nul();
       } else {
         _num(i);
       }
+      return;
+    }
+    case "set-at": {
+      const [pathVal, replacement, coll] = args;
+      stack.push(pathSet(vec(pathVal), replacement, coll));
       return;
     }
     case "map":

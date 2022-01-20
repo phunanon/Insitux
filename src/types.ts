@@ -194,7 +194,16 @@ export const ops: {
   },
   "to-key": { exactArity: 1, params: [["str", "num"]], returns: ["key"] },
   "has?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
-  idx: { minArity: 2, maxArity: 3, params: [["str", "vec"]], returns: ["num"] },
+  idx: {
+    exactArity: 2,
+    params: [[], ["str", "vec"]],
+    returns: ["num"],
+  },
+  "set-at": {
+    exactArity: 3,
+    params: ["vec", [], ["vec", "dict"]],
+    returns: ["vec", "dict"],
+  },
   map: { minArity: 2, returns: ["vec"] },
   for: { minArity: 2, returns: ["vec"] },
   reduce: { minArity: 2, maxArity: 3 },

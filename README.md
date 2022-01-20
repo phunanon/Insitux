@@ -403,7 +403,8 @@ etc
 ;Note: will only sort all number or all string
 (sort [0 7 8 9 8 6])    → [0 6 7 8 8 9]
 (sort [0 1 8 9 65] str) → [0 1 65 8 9]
-(sort [{:a 23} {:a 24} {:a 19}] :a) → [{:a 19} {:a 23} {:a 24}]
+(sort [{:a 23} {:a 24} {:a 19}] :a)
+→ [{:a 19} {:a 23} {:a 24}]
 (sort {1 3 2 2 3 1} 1)  → [[3 1] [2 2] [1 3]]
 (sort "hello")          → ["e" "h" "l" "l" "o"]
 
@@ -456,12 +457,18 @@ etc
 (has? "Hello" "ll") → true
 
 ;Returns index of an item or sub-string in a vector or string, or null
-;Or, replaces an item or character with another at a specified index
-(idx [1 2 3 4] 3)    → 2
-(idx [1 2 3 4] 5)    → null
-(idx "Hello" "ll")   → 2
-(idx [1 2 3 4] :a 2) → [1 2 :a 4]
-(idx "hello" "H" 0)  → "Hello"
+(idx 3 [1 2 3 4])    → 2
+(idx 5 [1 2 3 4])    → null
+(idx "ll" "Hello")   → 2
+
+;Returns vector or dictionary with specified index or key/value set or replaced
+;  with another value
+(set-at [2] :a [1 2 3 4])       → [1 2 :a 4]
+(set-at [0 1] :a [[0 1] [0 1]]) → [[0 :a] [0 1]]
+(set-at [0 :a] :c [{:a :b}])    → [{:a :c}]
+(set-at [:b] :c {:a [:b]})      → {:a [:b], :b :c}
+(set-at [5 0] 1 [0 1 2])        → [0 1 2]
+(set-at [0 0] 1 [:a])           → [:a]
 
 ;Treats its arguments as an expression, first argument as the expression head
 (. + 2 2) → 4
@@ -476,12 +483,14 @@ etc
 (... + 0 1 2 3 [4 5 6])
 → 21
 
-;Evaluates the first argument and returns the value if no runtime errors, else
-;  populates the let `errors` and returns the evaluation of the second argument
-;Note: the first argument must be expression
-(catch (+) errors)
-→ [{:e "Arity", :m "+ needs at least 2 arguments, not 0", :line 1, :col 9}]
-(catch (+ 2 2) (print "hi")) → 4
+;Evaluates all but its final argument and returns the penultimate argument's
+; value if no runtime errors occurred, else populates the let `errors` and
+; returns the evaluation of the final argument
+(catch (+ 1 1 %) errors)
+→ [{:e "Type", :m "+ takes numeric arguments only, not null", :line 1, :col 9}]
+(catch (+ 2 2) (+ 3 3) (print "hi")) → 6
+(catch (+ 1 2 3) :success :error) → :success
+(catch (+ 1 2 %) :success :error) → :error
 
 ;Returns the time in milliseconds
 (time) → 1630143983032
@@ -505,17 +514,6 @@ etc
 ```
 
 ### Miscellaneous
-
-- Providing one too few arguments to an operation will return a partial closure.
-Some examples:
-
-```clj
-(+ 1)               → @(+ 1)
-(join ", ")         → @(join ", ")
-(var hello)         → #(var hello %)
-(let a 1 b)         → #(let a 1 b %)
-(map (+ 5) [1 2 3]) → [6 7 8]
-```
 
 - Write `;` outside of a string of text to create a comment:
 
@@ -549,6 +547,8 @@ Some examples:
 ```clj
 (= 1 _) → 1
 (= [:a :b] [:a _]) → [:a :b]
+; Can also be used to discard values
+(let [_ _ c] [0 1 2])  → c is 2
 ```
 
 - Parameters take precedence over lets and defines.
@@ -680,14 +680,25 @@ Also useful for passing outer-closure parameters into inner-closures.
 (closure 2.5) → hi5
 ```
 
+Providing one too few arguments to an operation will return a partial closure.
+Some examples:
+
+```clj
+(+ 1)               → @(+ 1)
+(join ", ")         → @(join ", ")
+(var hello)         → #(var hello %)
+(let a 1 b)         → #(let a 1 b %)
+(map (+ 5) [1 2 3]) → [6 7 8]
+```
+
 **Destructuring**
 
 Destructuring is a syntax available as part of named function signatures,
 parameterised closure signatures, and var/let declarations. It capitalises on
 a space of otherwise nonsensical syntax - a vector declared but not returned;
 and the name/value pairs in var/let being easily determined between.  
-A "shape" of parameter names or var/let names can be provided in which each vector item or string character is
-"destructured" into.
+A "shape" of parameter names or var/let names can be provided in which each
+vector item or string character is "destructured" into.
 
 ```clj
 (function f [x]
@@ -797,7 +808,7 @@ A "shape" of parameter names or var/let names can be provided in which each vect
   (.. and (map = x (reverse x))))
 ;or
 (function palindrome? x
-  (= x (reverse x))) ;Works even for lists as Insitux does deep equality checks
+  (= x (reverse x))) ;Works even for vectors due to deep equality checks
 
 (palindrome? "aabbxbbaa") → "aabbxbbaa"
 (palindrome? "abcd")      → false
@@ -806,14 +817,18 @@ A "shape" of parameter names or var/let names can be provided in which each vect
 
 
 ; Matrix addition
-(let A [[3  8] [4  6]])
-(let B [[4  0] [1 -9]])
+(let A [[3  8] [4  6]]
+     B [[4  0] [1 -9]])
+
 (map (map +) A B)
+→ [[7 8] [5 -3]]
 
 
 ; Matrix negation
 (let M [[2 -4] [7 10]])
+
 (map (map -) M)
+→ [[-2 4] [-7 -10]]
 
 
 ; Clojure's juxt

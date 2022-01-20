@@ -137,3 +137,38 @@ export function errorsToDict(errors: InvokeError[]) {
     return <Val>{ t: "dict", v: dict };
   });
 }
+
+/** Replaces or sets index or key/value with another value in a string or
+ * dictionary */
+export function pathSet(path: Val[], replacement: Val, coll: Val): Val {
+  //If we're at the end of the path or it's a non-number index for non-dict
+  if (
+    !len(path) ||
+    (coll.t !== "vec" && coll.t !== "dict") ||
+    (coll.t === "vec" &&
+      (path[0].t !== "num" || path[0].v < 0 || path[0].v > len(coll.v)))
+  ) {
+    return coll;
+  }
+  if (coll.t === "vec") {
+    const vecCopy = slice(coll.v);
+    const idx = num(path[0]);
+    if (len(path) === 1) {
+      vecCopy[idx] = replacement;
+      return { t: "vec", v: vecCopy };
+    }
+    vecCopy[idx] = pathSet(slice(path, 1), replacement, vecCopy[idx]);
+    return { t: "vec", v: vecCopy };
+  }
+  if (len(path) === 1) {
+    return { t: "dict", v: dictSet(coll.v, path[0], replacement) };
+  }
+  return {
+    t: "dict",
+    v: dictSet(
+      coll.v,
+      path[0],
+      pathSet(slice(path, 1), replacement, dictGet(coll.v, path[0])),
+    ),
+  };
+}
