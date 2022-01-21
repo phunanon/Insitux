@@ -412,7 +412,9 @@ function parseForm(
           ((ci.value.t === "func" && !ops[ci.value.v]) || ci.value.t === "str");
         captured[i] =
           (ci.typ === "ref" &&
-            !cins.find(i => i.typ === "let" && i.value === ci.value)) ||
+            !cins.find(
+              i => (i.typ === "let" || i.typ === "var") && i.value === ci.value,
+            )) ||
           ci.typ === "npa" ||
           isExe;
         if (captured[i]) {

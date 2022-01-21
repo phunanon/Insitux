@@ -1104,7 +1104,7 @@ function parseForm(nodes, params, doArityCheck = true) {
       for (let i = 0; i < parse_len(cins); ++i) {
         const ci = cins[i];
         const isExe = ci.typ === "val" && i + 1 < parse_len(cins) && cins[i + 1].typ === "exe" && (ci.value.t === "func" && !ops[ci.value.v] || ci.value.t === "str");
-        captured[i] = ci.typ === "ref" && !cins.find((i2) => i2.typ === "let" && i2.value === ci.value) || ci.typ === "npa" || isExe;
+        captured[i] = ci.typ === "ref" && !cins.find((i2) => (i2.typ === "let" || i2.typ === "var") && i2.value === ci.value) || ci.typ === "npa" || isExe;
         if (captured[i]) {
           captureIns.push(ci);
         }
@@ -1986,7 +1986,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20220120;
+const insituxVersion = 20220121;
 
 
 

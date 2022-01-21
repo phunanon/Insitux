@@ -691,6 +691,25 @@ Some examples:
 (map (+ 5) [1 2 3]) → [6 7 8]
 ```
 
+If Insitux notices you modify a let or var inside of the closure it will not be
+captured.
+
+```clj
+(var x 10)
+(var closure1 (fn x))
+(var closure2 (fn (var x x) x))
+[(closure1) (closure2)] → [10 10]
+(var x 11)
+[(closure1) (closure2)] → [10 11]
+
+;This also works fine
+(function cumulative-sum nums
+  (var acc 0)
+  (reduce #(push % (var! acc + %1)) [] nums))
+(cumulative-sum (range 5))
+→ [0 1 3 6 10]
+```
+
 **Destructuring**
 
 Destructuring is a syntax available as part of named function signatures,
