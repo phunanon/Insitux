@@ -1,10 +1,10 @@
-export const insituxVersion = 20220121;
+export const insituxVersion = 20220122;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { parse } from "./parse";
 import * as pf from "./poly-fills";
-const { abs, cos, sin, tan, sign, sqrt, floor, ceil, round, max, min } = pf;
-const { logn, log2, log10 } = pf;
+const { abs, sign, sqrt, floor, ceil, round, max, min, logn, log2, log10 } = pf;
+const { cos, sin, tan, acos, asin, atan, sinh, cosh, tanh } = pf;
 const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
 const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
 const { trim, trimStart, trimEnd, charCode, codeChar, strIdx } = pf;
@@ -212,6 +212,16 @@ function exeOp(
     case "log2":
     case "log10": {
       const f = { sin, cos, tan, sqrt, floor, ceil, logn, log2, log10 }[op];
+      _num(f(num(args[0])));
+      return;
+    }
+    case "asin":
+    case "acos":
+    case "atan":
+    case "sinh":
+    case "cosh":
+    case "tanh": {
+      const f = { asin, acos, atan, sinh, cosh, tanh }[op];
       _num(f(num(args[0])));
       return;
     }

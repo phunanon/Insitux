@@ -367,11 +367,15 @@ var poly_fills_namespaceObject = {};
 __webpack_require__.r(poly_fills_namespaceObject);
 __webpack_require__.d(poly_fills_namespaceObject, {
   "abs": () => (abs),
+  "acos": () => (acos),
+  "asin": () => (asin),
+  "atan": () => (atan),
   "ceil": () => (ceil),
   "charCode": () => (charCode),
   "codeChar": () => (codeChar),
   "concat": () => (concat),
   "cos": () => (cos),
+  "cosh": () => (cosh),
   "ends": () => (ends),
   "flat": () => (flat),
   "floor": () => (floor),
@@ -396,6 +400,7 @@ __webpack_require__.d(poly_fills_namespaceObject, {
   "round": () => (round),
   "sign": () => (sign),
   "sin": () => (sin),
+  "sinh": () => (sinh),
   "slen": () => (slen),
   "slice": () => (slice),
   "sortBy": () => (sortBy),
@@ -407,6 +412,7 @@ __webpack_require__.d(poly_fills_namespaceObject, {
   "subIdx": () => (subIdx),
   "substr": () => (substr),
   "tan": () => (tan),
+  "tanh": () => (tanh),
   "toNum": () => (toNum),
   "trim": () => (trim),
   "trimEnd": () => (trimEnd),
@@ -455,6 +461,12 @@ const max = Math.max;
 const sin = Math.sin;
 const cos = Math.cos;
 const tan = Math.tan;
+const sinh = Math.sinh;
+const cosh = Math.cosh;
+const tanh = Math.tanh;
+const asin = Math.asin;
+const acos = Math.acos;
+const atan = Math.atan;
 const sqrt = Math.sqrt;
 const round = Math.round;
 const floor = Math.floor;
@@ -540,6 +552,12 @@ const ops = {
   sin: { exactArity: 1, numeric: true },
   cos: { exactArity: 1, numeric: true },
   tan: { exactArity: 1, numeric: true },
+  asin: { exactArity: 1, numeric: true },
+  acos: { exactArity: 1, numeric: true },
+  atan: { exactArity: 1, numeric: true },
+  sinh: { exactArity: 1, numeric: true },
+  cosh: { exactArity: 1, numeric: true },
+  tanh: { exactArity: 1, numeric: true },
   vec: { returns: ["vec"] },
   dict: { returns: ["dict"] },
   len: { exactArity: 1, params: [["str", "vec", "dict"]], returns: ["num"] },
@@ -1986,13 +2004,13 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20220121;
+const insituxVersion = 20220122;
 
 
 
 
-const { abs: src_abs, cos: src_cos, sin: src_sin, tan: src_tan, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min } = poly_fills_namespaceObject;
-const { logn: src_logn, log2: src_log2, log10: src_log10 } = poly_fills_namespaceObject;
+const { abs: src_abs, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, round: src_round, max: src_max, min: src_min, logn: src_logn, log2: src_log2, log10: src_log10 } = poly_fills_namespaceObject;
+const { cos: src_cos, sin: src_sin, tan: src_tan, acos: src_acos, asin: src_asin, atan: src_atan, sinh: src_sinh, cosh: src_cosh, tanh: src_tanh } = poly_fills_namespaceObject;
 const { concat: src_concat, has: src_has, flat: src_flat, push: src_push, reverse: src_reverse, slice: src_slice, splice: src_splice, sortBy: src_sortBy } = poly_fills_namespaceObject;
 const { ends: src_ends, slen: src_slen, starts: src_starts, sub: src_sub, subIdx: src_subIdx, substr: src_substr, upperCase: src_upperCase, lowerCase: src_lowerCase } = poly_fills_namespaceObject;
 const { trim: src_trim, trimStart: src_trimStart, trimEnd: src_trimEnd, charCode: src_charCode, codeChar: src_codeChar, strIdx: src_strIdx } = poly_fills_namespaceObject;
@@ -2173,6 +2191,16 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
     case "log2":
     case "log10": {
       const f = { sin: src_sin, cos: src_cos, tan: src_tan, sqrt: src_sqrt, floor: src_floor, ceil: src_ceil, logn: src_logn, log2: src_log2, log10: src_log10 }[op];
+      _num(f(num(args[0])));
+      return;
+    }
+    case "asin":
+    case "acos":
+    case "atan":
+    case "sinh":
+    case "cosh":
+    case "tanh": {
+      const f = { asin: src_asin, acos: src_acos, atan: src_atan, sinh: src_sinh, cosh: src_cosh, tanh: src_tanh }[op];
       _num(f(num(args[0])));
       return;
     }

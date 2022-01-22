@@ -196,6 +196,7 @@ etc
 (log2 8)     → 3
 (log10 1000) → 3
 (~ 10)       → -11 ;Bitwise NOT
+(asin 1) (acos 1) (atan 1) (sinh 1) (cosh 1) (tanh 1)
 (odd? 5) (even? 6) (pos? 5) (neg? -5) (zero? 0)
 (null? null) (num? 123) (bool? true) (str? "hi")
 (dict? {}) (vec? []) (key? :abc) (func? +) (wild? _)
