@@ -93,6 +93,14 @@
 				]
 			},
 			{
+				"directory": "loop",
+				"description": [
+					"(loop 10 i (print i))",
+					"syntax",
+					"Loops its body N times, the first expression evaluated for N each loop, the second argument being a let name set to the current loop number. Returns last loop's value."
+				]
+			},
+			{
 				"directory": "return",
 				"description": [
 					"(function f (return 123) (print \"hello\"))",

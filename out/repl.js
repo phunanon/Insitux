@@ -789,6 +789,19 @@ const symAt = (node, pos = 0) => {
 };
 const token2str = ({ typ, text }) => typ === "str" ? `"${text}"` : text;
 const node2str = (nodes) => nodes.map((n) => isToken(n) ? token2str(n) : `(${node2str(n)})`).join(" ");
+const poppedBody = (expressions) => {
+  if (parse_len(expressions) === 1) {
+    return parse_flat(expressions);
+  }
+  const lastExp = expressions[parse_len(expressions) - 1];
+  const truncatedExps = parse_slice(expressions, 0, parse_len(expressions) - 1);
+  const popIns = {
+    typ: "pop",
+    value: parse_len(truncatedExps),
+    errCtx: lastExp[0].errCtx
+  };
+  return parse_flat([...truncatedExps, [popIns], lastExp]);
+};
 function tokenise(code, invokeId, makeCollsOps = true, emitComments = false) {
   const tokens = [];
   const isDigit = (ch) => parse_sub("0123456789", ch);
@@ -966,7 +979,7 @@ function parseForm(nodes, params, doArityCheck = true) {
       }
       const parsed = nodes.map(nodeParser);
       const [cond, body] = [parsed[0], parse_slice(parsed, 1)];
-      const bodyIns = parse_flat(body);
+      const bodyIns = poppedBody(body);
       return [
         ...cond,
         { typ: "if", value: parse_len(bodyIns) + 1, errCtx: errCtx2 },
@@ -1008,22 +1021,24 @@ function parseForm(nodes, params, doArityCheck = true) {
       return [...body, { typ: "cat", value: parse_len(when), errCtx: errCtx2 }, ...when];
     } else if (op === "and" || op === "or" || op === "while") {
       const args2 = nodes.map(nodeParser);
-      let insCount = args2.reduce((acc, a) => acc + parse_len(a), 0);
       if (parse_len(args2) < 2) {
         return err("provide at least 2 arguments");
       }
       const ins2 = [];
       if (op === "while") {
-        ins2.push({ typ: "val", value: nullVal, errCtx: errCtx2 });
-        insCount += 2;
         const [head2, body] = [args2[0], parse_slice(args2, 1)];
+        const flatBody = poppedBody(body);
+        const ifJmp = parse_len(flatBody) + 2;
+        const looJmp = -(parse_len(head2) + parse_len(flatBody) + 3);
+        ins2.push({ typ: "val", value: nullVal, errCtx: errCtx2 });
         parse_push(ins2, head2);
-        ins2.push({ typ: "if", value: insCount - parse_len(head2), errCtx: errCtx2 });
-        ins2.push({ typ: "pop", value: parse_len(body), errCtx: errCtx2 });
-        parse_push(ins2, parse_flat(body));
-        ins2.push({ typ: "loo", value: -(insCount + 1), errCtx: errCtx2 });
+        ins2.push({ typ: "if", value: ifJmp, errCtx: errCtx2 });
+        ins2.push({ typ: "pop", value: 1, errCtx: errCtx2 });
+        parse_push(ins2, flatBody);
+        ins2.push({ typ: "loo", value: looJmp, errCtx: errCtx2 });
         return ins2;
       }
+      let insCount = args2.reduce((acc, a) => acc + parse_len(a), 0);
       insCount += parse_len(args2);
       insCount += parse_toNum(op === "and");
       const typ2 = op === "and" ? "if" : "or";
@@ -1040,6 +1055,33 @@ function parseForm(nodes, params, doArityCheck = true) {
         ]);
       }
       ins2.push({ typ: "val", value: falseVal, errCtx: errCtx2 });
+      return ins2;
+    } else if (op === "loop") {
+      if (parse_len(nodes) < 3) {
+        return err("provide at least 3 arguments");
+      }
+      const parsed = nodes.map(nodeParser);
+      const symNode = nodes[1];
+      const body = poppedBody(parse_slice(parsed, 2));
+      if (!isToken(symNode)) {
+        return err("argument 2 must be symbol");
+      }
+      const ins2 = [
+        { typ: "val", value: { t: "num", v: 0 }, errCtx: errCtx2 },
+        { typ: "let", value: symNode.text, errCtx: errCtx2 },
+        { typ: "pop", value: 1, errCtx: errCtx2 },
+        ...body,
+        { typ: "ref", value: symNode.text, errCtx: errCtx2 },
+        { typ: "val", value: { t: "func", v: "inc" }, errCtx: errCtx2 },
+        { typ: "exe", value: 1, errCtx: errCtx2 },
+        { typ: "let", value: symNode.text, errCtx: errCtx2 },
+        ...parsed[0],
+        { typ: "val", value: { t: "func", v: "<" }, errCtx: errCtx2 },
+        { typ: "exe", value: 2, errCtx: errCtx2 },
+        { typ: "if", value: 2, errCtx: errCtx2 },
+        { typ: "pop", value: 1, errCtx: errCtx2 },
+        { typ: "loo", value: -(parse_len(body) + parse_len(parsed[0]) + 9), errCtx: errCtx2 }
+      ];
       return ins2;
     } else if (op === "var" || op === "let") {
       const defs = nodes.filter((n, i) => !(i % 2));
@@ -1560,6 +1602,11 @@ null`
              (print-str n)
              (var n (dec n)))`,
     out: `543210`
+  },
+  {
+    name: "Loop",
+    code: `(loop 3 i (print-str i))`,
+    out: `012null`
   },
   {
     name: "Catch error",
@@ -2969,7 +3016,11 @@ function exeFunc(ctx, func, args, inClosure = false) {
         --ctx.loopBudget;
         break;
       case "pop":
-        src_splice(stack, src_len(stack) - ins.value, ins.value);
+        if (ins.value === 1) {
+          stack.pop();
+        } else {
+          src_splice(stack, src_len(stack) - ins.value, ins.value);
+        }
         break;
       case "ret":
         if (ins.value) {
@@ -3069,7 +3120,11 @@ function invokeFunction(ctx, funcName, params) {
   return innerInvoke(ctx, () => exeFunc(ctx, ctx.env.funcs[funcName], params));
 }
 function symbols(ctx, alsoSyntax = true) {
-  let syms = alsoSyntax ? ["function", "let", "var", "if", "if!", "when", "while", "match", "catch"] : [];
+  let syms = [];
+  if (alsoSyntax) {
+    src_push(syms, ["function", "let", "var", "if", "if!"]);
+    src_push(syms, ["when", "while", "loop", "match", "catch"]);
+  }
   src_push(syms, ["args", "PI", "E"]);
   syms = src_concat(syms, src_objKeys(ops));
   syms = src_concat(syms, src_objKeys(ctx.env.funcs));

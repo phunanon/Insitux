@@ -6,7 +6,7 @@ const { isNum, len, toNum } = pf;
 import { ParamsShape, ErrCtx, Func, Funcs, Ins, ops, Val } from "./types";
 import { assertUnreachable, InvokeError } from "./types";
 
-type Token = {
+export type Token = {
   typ: "str" | "num" | "sym" | "rem" | "(" | ")";
   text: string;
   errCtx: ErrCtx;
@@ -32,6 +32,21 @@ const token2str = ({ typ, text }: Token): string =>
   typ === "str" ? `"${text}"` : text;
 const node2str = (nodes: Node[]): string =>
   nodes.map(n => (isToken(n) ? token2str(n) : `(${node2str(n)})`)).join(" ");
+
+/** Inserts pop instruction after penultimate body expression */
+const poppedBody = (expressions: ParserIns[][]): ParserIns[] => {
+  if (len(expressions) === 1) {
+    return flat(expressions);
+  }
+  const lastExp = expressions[len(expressions) - 1];
+  const truncatedExps = slice(expressions, 0, len(expressions) - 1);
+  const popIns = <ParserIns>{
+    typ: "pop",
+    value: len(truncatedExps),
+    errCtx: lastExp[0].errCtx,
+  };
+  return flat([...truncatedExps, [popIns], lastExp]);
+};
 
 export function tokenise(
   code: string,
@@ -244,7 +259,7 @@ function parseForm(
       }
       const parsed = nodes.map(nodeParser);
       const [cond, body] = [parsed[0], slice(parsed, 1)];
-      const bodyIns = flat(body);
+      const bodyIns = poppedBody(body);
       return [
         ...cond,
         { typ: "if", value: len(bodyIns) + 1, errCtx },
@@ -289,22 +304,24 @@ function parseForm(
       return [...body, { typ: "cat", value: len(when), errCtx }, ...when];
     } else if (op === "and" || op === "or" || op === "while") {
       const args = nodes.map(nodeParser);
-      let insCount = args.reduce((acc, a) => acc + len(a), 0);
       if (len(args) < 2) {
         return err("provide at least 2 arguments");
       }
       const ins: ParserIns[] = [];
       if (op === "while") {
-        ins.push({ typ: "val", value: nullVal, errCtx }); //If first is false
-        insCount += 2; //+1 for the if ins, +1 for the pop ins
         const [head, body] = [args[0], slice(args, 1)];
+        const flatBody = poppedBody(body);
+        const ifJmp = len(flatBody) + 2;
+        const looJmp = -(len(head) + len(flatBody) + 3);
+        ins.push({ typ: "val", value: nullVal, errCtx });
         push(ins, head);
-        ins.push({ typ: "if", value: insCount - len(head), errCtx });
-        ins.push({ typ: "pop", value: len(body), errCtx });
-        push(ins, flat(body));
-        ins.push({ typ: "loo", value: -(insCount + 1), errCtx });
+        ins.push({ typ: "if", value: ifJmp, errCtx });
+        ins.push({ typ: "pop", value: 1, errCtx });
+        push(ins, flatBody);
+        ins.push({ typ: "loo", value: looJmp, errCtx });
         return ins;
       }
+      let insCount = args.reduce((acc, a) => acc + len(a), 0);
       insCount += len(args); //+1 for each if/or ins
       insCount += toNum(op === "and");
       const typ = op === "and" ? "if" : "or";
@@ -321,6 +338,34 @@ function parseForm(
         ]);
       }
       ins.push({ typ: "val", value: falseVal, errCtx });
+      return ins;
+    } else if (op === "loop") {
+      if (len(nodes) < 3) {
+        return err("provide at least 3 arguments");
+      }
+      const parsed = nodes.map(nodeParser);
+      const symNode = nodes[1];
+      const body = poppedBody(slice(parsed, 2));
+      if (!isToken(symNode)) {
+        return err("argument 2 must be symbol");
+      }
+      //(let sym 0) ... body ... (if (< (let sym (inc sym)) n) <exit> <loo>)
+      const ins: ParserIns[] = [
+        { typ: "val", value: { t: "num", v: 0 }, errCtx },
+        { typ: "let", value: symNode.text, errCtx },
+        { typ: "pop", value: 1, errCtx },
+        ...body,
+        { typ: "ref", value: symNode.text, errCtx },
+        { typ: "val", value: { t: "func", v: "inc" }, errCtx },
+        { typ: "exe", value: 1, errCtx },
+        { typ: "let", value: symNode.text, errCtx },
+        ...parsed[0],
+        { typ: "val", value: { t: "func", v: "<" }, errCtx },
+        { typ: "exe", value: 2, errCtx },
+        { typ: "if", value: 2, errCtx },
+        { typ: "pop", value: 1, errCtx },
+        { typ: "loo", value: -(len(body) + len(parsed[0]) + 9), errCtx },
+      ];
       return ins;
     } else if (op === "var" || op === "let") {
       const defs = nodes.filter((n, i) => !(i % 2));

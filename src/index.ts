@@ -1081,7 +1081,11 @@ function exeFunc(
         --ctx.loopBudget;
         break;
       case "pop":
-        splice(stack, len(stack) - ins.value, ins.value);
+        if (ins.value === 1) {
+          stack.pop();
+        } else {
+          splice(stack, len(stack) - ins.value, ins.value);
+        }
         break;
       case "ret":
         if (ins.value) {
@@ -1235,9 +1239,11 @@ export function invokeFunction(
  * (optionally) syntax, constants, and user-defined functions.
  */
 export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
-  let syms = alsoSyntax
-    ? ["function", "let", "var", "if", "if!", "when", "while", "match", "catch"]
-    : [];
+  let syms: string[] = [];
+  if (alsoSyntax) {
+    push(syms, ["function", "let", "var", "if", "if!"]);
+    push(syms, ["when", "while", "loop", "match", "catch"]);
+  }
   push(syms, ["args", "PI", "E"]);
   syms = concat(syms, objKeys(ops));
   syms = concat(syms, objKeys(ctx.env.funcs));
