@@ -349,22 +349,24 @@ function parseForm(
       if (!isToken(symNode)) {
         return err("argument 2 must be symbol");
       }
-      //(let sym 0) ... body ... (if (< (let sym (inc sym)) n) <exit> <loo>)
+      //(let sym 0 sym-limit n) ... body ... (if (< (let sym (inc sym)) sym-limit) <exit> <loo>)
       const ins: ParserIns[] = [
         { typ: "val", value: { t: "num", v: 0 }, errCtx },
         { typ: "let", value: symNode.text, errCtx },
+        ...parsed[0],
+        { typ: "let", value: symNode.text + "-limit", errCtx },
         { typ: "pop", value: 1, errCtx },
         ...body,
         { typ: "ref", value: symNode.text, errCtx },
         { typ: "val", value: { t: "func", v: "inc" }, errCtx },
         { typ: "exe", value: 1, errCtx },
         { typ: "let", value: symNode.text, errCtx },
-        ...parsed[0],
+        { typ: "ref", value: symNode.text + "-limit", errCtx },
         { typ: "val", value: { t: "func", v: "<" }, errCtx },
         { typ: "exe", value: 2, errCtx },
         { typ: "if", value: 2, errCtx },
         { typ: "pop", value: 1, errCtx },
-        { typ: "loo", value: -(len(body) + len(parsed[0]) + 9), errCtx },
+        { typ: "loo", value: -(len(body) + 10), errCtx },
       ];
       return ins;
     } else if (op === "var" || op === "let") {

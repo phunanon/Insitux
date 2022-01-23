@@ -1069,18 +1069,20 @@ function parseForm(nodes, params, doArityCheck = true) {
       const ins2 = [
         { typ: "val", value: { t: "num", v: 0 }, errCtx: errCtx2 },
         { typ: "let", value: symNode.text, errCtx: errCtx2 },
+        ...parsed[0],
+        { typ: "let", value: symNode.text + "-limit", errCtx: errCtx2 },
         { typ: "pop", value: 1, errCtx: errCtx2 },
         ...body,
         { typ: "ref", value: symNode.text, errCtx: errCtx2 },
         { typ: "val", value: { t: "func", v: "inc" }, errCtx: errCtx2 },
         { typ: "exe", value: 1, errCtx: errCtx2 },
         { typ: "let", value: symNode.text, errCtx: errCtx2 },
-        ...parsed[0],
+        { typ: "ref", value: symNode.text + "-limit", errCtx: errCtx2 },
         { typ: "val", value: { t: "func", v: "<" }, errCtx: errCtx2 },
         { typ: "exe", value: 2, errCtx: errCtx2 },
         { typ: "if", value: 2, errCtx: errCtx2 },
         { typ: "pop", value: 1, errCtx: errCtx2 },
-        { typ: "loo", value: -(parse_len(body) + parse_len(parsed[0]) + 9), errCtx: errCtx2 }
+        { typ: "loo", value: -(parse_len(body) + 10), errCtx: errCtx2 }
       ];
       return ins2;
     } else if (op === "var" || op === "let") {
@@ -2051,7 +2053,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 20220122;
+const insituxVersion = 220123;
 
 
 

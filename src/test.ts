@@ -156,6 +156,11 @@ const tests: {
     out: `543210`,
   },
   {
+    name: "Loop",
+    code: `(loop 3 i (print-str i))`,
+    out: `012null`,
+  },
+  {
     name: "Catch error",
     code: `(catch
              (:e (catch (let a :a) (+ 1 a) (0 errors)))

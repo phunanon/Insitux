@@ -335,20 +335,15 @@ etc
 (while false 0)
 → null
 
-;Loops its body N times, the first expression evaluated for N each loop,
+;Loops its body N times, the first expression evaluated for N,
 ;  the second argument being a let name set to the current loop number.
 ;  Returns last loop's value.
-(loop 3 i (print-str "hi")) → hihihinull
-(loop 4 i (print-str i))    → 0123null
-(loop 3 i (print-str i) 3)  → 0123
-(loop 10 i i)               → 9
-;A demonstration showing that the number of loops is evaluated per loop
-;  which enables early loop termination
-(var x 10)
-(loop x i
-  (when (< 3 i) (var x 0))
-  (print-str i))
-→ 01234null
+;Note: the provided limit is available as e.g. i-limit
+(loop 3 i (print-str "hi"))      → hihihinull
+(loop 4 i (print-str i))         → 0123null
+(loop 3.5 i (print-str i))       → 0123null
+(loop 3 i (print-str i) i-limit) → 0123
+(loop (rand 10) i i) ;Loops up to ten times
 
 ;Returns the first argument; returns the last argument
 (val 3 2 1 (print-str "hello"))
