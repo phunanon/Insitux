@@ -391,8 +391,7 @@
 				"description": [
 					"(idx [1 2 3] 2)",
 					"function",
-					"Returns index of an item or sub-string in a vector or string, or null;",
-					"or, replaces an item or character with another at a specified index."
+					"Returns index of an item or sub-string in a vector or string, or null."
 				]
 			},
 			{
