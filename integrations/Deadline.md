@@ -115,9 +115,9 @@ to define variables, use `var`:
 (dl.players.you.fill_ammo "primary")
 ```
 
-### main.ts
+## The API
 
-basic shobfix environment definitions to interface with your console or provide basic functionality
+### basic shobfix environment definitions 
 
 ```clj
 #defs:main.ts
@@ -139,133 +139,7 @@ basic shobfix environment definitions to interface with your console or provide 
 ;; alias for Luau `wait()`
 ```
 
-### dl.ts
-
-deadline environment definitions to do things like set the time, change the map or gamemode
-
-```clj
-#defs:dl.ts
-
-(print $dl.players.BIackShibe.name)
-;; readonly string value
-;; name of "BIackShibe", if a player named BIackShibe is ingame
-
-(print $dl.players.BIackShibe.team)
-($dl.players.BIackShibe.team "team")
-;; string value
-;; team of "BIackShibe", can be set to either "security" or "insurgent"
-
-(print $dl.players.BIackShibe.position)
-($dl.players.BIackShibe.position [x y z])
-;; vector3 value
-;; the position of "BIackShibe", can be set with a vector as shown above
-
-(print (dl.players.BIackShibe.is_alive))
-;; function
-;; returns whether "BIackShibe" is alive
-
-(print $dl.globals.map.lighting)
-;; readonly string value
-;; current map lighting
-
-(print $dl.globals.map.loaded)
-;; readonly boolean value
-;; idk
-
-(print $dl.globals.map.title)
-;; readonly string value
-;; name of the current map
-
-(print $dl.globals.tags)
-;; unfinished; will likely allow for custom orb tags
-
-(print $dl.globals.team_aliases)
-;; unfinished; will allow to change team names and colors
-
-(print $dl.globals.base_player_weight)
-;; number value
-;; default player weight; before any weapon weight calculation is done
-
-(print $dl.globals.builder_revision)
-;; readonly number value
-;; current revision of the builder
-
-(print $dl.globals.channel_type)
-;; readonly string value
-;; game channel type
-
-(print $dl.globals.chat_tip_frequency)
-;; number value
-;; frequency of chat tips
-
-(print $dl.globals.chat_tips_enabled)
-;; bool value
-;; sets whether chat tips appear
-
-(print $dl.globals.day_cycle_speed)
-;; number value
-;; how quickly the day passes
-
-(print $dl.globals.disable_attachment_checks)
-;; bool value
-;; disables most builder attachment validity checks
-
-(print $dl.globals.editor_mount_any)
-;; bool value
-;; disables ALL builder validity checks
-
-(print $dl.globals.revision)
-;; readonly number value
-;; game revision
-
-(print $dl.globals.jump_frequency)
-;; number value
-;; how often the players can jump
-
-(print $dl.globals.pvp)
-;; bool value
-;; whether pvp is enabled
-
-(print $dl.globals.spawn_enabled)
-;; bool value
-;; whether spawning is enabled
-
-(print $dl.globals.team_kill)
-;; bool value
-;; whether teamkilling is enabled
-
-(print $dl.globals.time_offset)
-;; number value
-;; day cycle offset, affected by very small values
-
-(print $dl.globals.version)
-;; readonly string value
-;; game version
-
-(dl.util.message "your message")
-;; admin-restricted function
-;; prints message to server chat without text filtering
-
-(dl.util.fmessage "your message")
-;; function
-;; prints message to server chat
-
-(dl.util.set_map "map_name")
-;; function
-;; sets current map to a chosen map, e.g. "dl_shipment"
-
-(dl.sound.play rbxassetid)
-(dl.sound.play "rbxassetid://2297359893")
-;; 0.19.2+
-;; function
-;; plays a sound globally
-;; placeholder until a sound object is added
-;; in the game
-```
-
-### index.ts
-
-internal insitux functions
+### internal insitux functions
 
 ```clj
 #defs:index.ts
