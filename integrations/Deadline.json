@@ -858,10 +858,31 @@
 				]
 			},
 			{
+				"directory": "dl.gunshot_emitter.set_position",
+				"description": [
+					"(dl.gunshot_emitter.new \"handle\" \"M4A1\")",
+					"(dl.gunshot_emitter.set_position handle position)",
+					"(dl.gunshot_emitter.set_position \"handle\" [0 100 0])",
+					"function",
+					"sets gunshot_emitter current position"
+				]
+			},
+			{
+				"directory": "dl.gunshot_emitter.get_position",
+				"description": [
+					"(dl.gunshot_emitter.new \"handle\" \"M4A1\")",
+					"(dl.gunshot_emitter.get_position handle)",
+					"(print (dl.gunshot_emitter.get_position \"handle\"))",
+
+					"function",
+					"gets gunshot_emitter current position"
+				]
+			},
+			{
 				"directory": "dl.gunshot_emitter.start_kind",
 				"description": [
 					"(dl.gunshot_emitter.new \"handle\" \"M4A1\")",
-					"(dl.gunshot_emitter.stop_kind hanle kind)",
+					"(dl.gunshot_emitter.stop_kind handle kind)",
 					"(dl.gunshot_emitter.stop_kind \"handle\" \"semi\")",
 					"function",
 					"stops a kind of gunfire",
