@@ -1,4 +1,4 @@
-# Deadline API
+# Deadline
 
 Insitux was developed with roblox-ts in mind, allowing for easy porting to roblox, and consequently, deadline.
 Currently, the commandline it works with is still in "early" development, however its core functionality works.
@@ -6,9 +6,9 @@ Currently, the commandline it works with is still in "early" development, howeve
 shobfix is an environment and server wrapper for Insitux.
 Insitux is a scripting language, which may access values from the shobfix environment.
 
-## How-to
+## Language Guide
 
-### functions
+### Functions
 
 to run functions, wrap them in parentheses:
 
@@ -18,14 +18,21 @@ to run functions, wrap them in parentheses:
 ;; runs `function_name` with `argument` and `argument2`
 ```
 
-strings and numbers are interpreted as-usual:
+to define functions:
+
+```clj
+(function hi arg (print "hello, " arg))
+(hi "programmer")
+```
+
+strings and numbers are interpreted as such:
 
 ```clj
 (print "hello world!")
 ;; prints hello world!
 ```
 
-### values
+### Values
 
 to set values, add $ to treat them like a "set" function:
 
@@ -41,22 +48,15 @@ to get values, add $ to treat them like a "get" function when supplied as argume
 ;; prints the value of dl.globals.time_offset
 ```
 
-### other
+### Other
 
-to define variables, use `define`:
+to define variables, use `var`:
 
 ```clj
 (var hi 0.5)
 (print hi)
 ;; prints hi (0.5)
 ```
-
-## Permission levels
-
-- 1: public player
-- 2: vip server owner
-- 3: moderator
-- 4: admin
 
 ### Examples
 
@@ -68,7 +68,52 @@ to define variables, use `define`:
 (dl.util.set_map "dl_shipment")
 ```
 
-## The API
+## Integration guide
+
+### Playing sounds
+
+`dl.sound` is a class that allows playing sounds.
+
+```
+(dl.sound.new "handle")
+(dl.sound.set_id "handle" "your_id")
+(dl.sound.play "handle")
+(wait 10)
+(dl.sound.set_time_position "handle" 0)
+```
+
+`dl.gunshot_emitter` mimicks gunshot sounds the game plays.
+
+```
+(dl.gunshot_emitter.new "handle" "UMP45")
+(dl.gunshot_emitter.set_position "handle" [0 100 0])
+
+;; automatic gunfire
+(dl.gunshot_emitter.start_kind "handle" "auto")
+(wait 3)
+(dl.gunshot_emitter.stop_kind "handle" "auto")
+(dl.gunshot_emitter.start_kind "handle" "tail")
+```
+
+### Simulating weapons
+
+```
+;; fires a non-damaging UMP45 shot at 1500 projectile velocity
+(dl.util.fire [0 0 0] [0 100 0] "45acp_match_fmj" 1500)
+```
+
+```
+;; blows you up
+(dl.players.you.explode)
+;; explodes a grenade that deals damage at 0,100,0
+(dl.util.explosion [0 100 0])
+```
+
+### Manipulating players
+
+```
+(dl.players.you.fill_ammo "primary")
+```
 
 ### main.ts
 
@@ -216,26 +261,6 @@ deadline environment definitions to do things like set the time, change the map 
 ;; plays a sound globally
 ;; placeholder until a sound object is added
 ;; in the game
-```
-
-### Test
-
-Test functions
-
-```clj
-#defs:test.ts
-
-(test.lua_error_test)
-;; function
-;; Lua error()
-
-(test.shobfix_generic_error_test)
-;; function
-;; shobfix error
-
-(test.shobfix_perm_error_test)
-;; function
-;; permission error
 ```
 
 ### index.ts
