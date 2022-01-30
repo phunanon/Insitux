@@ -74,7 +74,7 @@ to define variables, use `var`:
 
 `dl.sound` is a class that allows playing sounds.
 
-```
+```clj
 (dl.sound.new "handle")
 (dl.sound.set_id "handle" "your_id")
 (dl.sound.play "handle")
@@ -84,7 +84,7 @@ to define variables, use `var`:
 
 `dl.gunshot_emitter` mimicks gunshot sounds the game plays.
 
-```
+```clj
 (dl.gunshot_emitter.new "handle" "UMP45")
 (dl.gunshot_emitter.set_position "handle" [0 100 0])
 
@@ -97,12 +97,12 @@ to define variables, use `var`:
 
 ### Simulating weapons
 
-```
+```clj
 ;; fires a non-damaging UMP45 shot at 1500 projectile velocity
 (dl.util.fire [0 0 0] [0 100 0] "45acp_match_fmj" 1500)
 ```
 
-```
+```clj
 ;; blows you up
 (dl.players.you.explode)
 ;; explodes a grenade that deals damage at 0,100,0
@@ -111,7 +111,7 @@ to define variables, use `var`:
 
 ### Manipulating players
 
-```
+```clj
 (dl.players.you.fill_ammo "primary")
 ```
 
