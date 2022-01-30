@@ -962,7 +962,18 @@
 				"description": [
 					"(dl.sound.new handle)",
 					"(dl.sound.new \"handle\")",
-					"(dl.sound.set_position \"handle\" $dl.players.you.position)",
+
+					"function",
+					"creates a new sound under handle"
+				]
+			},
+			{
+				"directory": "dl.sound.play",
+				"description": [
+					"(dl.sound.new handle)",
+					"(dl.sound.new \"handle\")",
+					"(dl.sound.set_id \"handle\" \"rbxassetid://0\")",
+					"(dl.sound.play \"handle\")",
 
 					"function",
 					"creates a new sound under handle"
