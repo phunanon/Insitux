@@ -49,12 +49,12 @@ function makeDerefFunc({ cins, derefIns, declarations }: Closure) {
   }
 }
 
-function canCapture(declarations: string[], cin: Ins, next: false | Ins) {
+function canCapture(declarations: string[], ins0: Ins, ins1: false | Ins) {
   const isExeVal =
-    next && cin.typ === "val" && cin.value.t === "str" && next.typ === "exe";
+    ins1 && ins0.typ === "val" && ins0.value.t === "str" && ins1.typ === "exe";
   return (
     isExeVal ||
-    cin.typ === "npa" ||
-    (cin.typ === "ref" && !has(declarations, cin.value))
+    ins0.typ === "npa" ||
+    (ins0.typ === "ref" && !has(declarations, ins0.value))
   );
 }

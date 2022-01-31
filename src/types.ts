@@ -199,7 +199,7 @@ export const ops: {
     returns: ["num", "null"],
   },
   "to-key": { exactArity: 1, params: [["str", "num"]], returns: ["key"] },
-  "has?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  "substr?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
   idx: {
     exactArity: 2,
     params: [[], ["str", "vec"]],
@@ -274,7 +274,7 @@ export const ops: {
     params: [["str", "vec", "dict"]],
     returns: ["bool"],
   },
-  split: { minArity: 1, maxArity: 2, params: ["str", "str"], returns: ["vec"] },
+  split: { exactArity: 2, params: ["str", "str"], returns: ["vec"] },
   join: {
     exactArity: 2,
     params: ["str", ["vec", "dict", "str"]],

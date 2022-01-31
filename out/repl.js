@@ -567,7 +567,7 @@ const ops = {
     returns: ["num", "null"]
   },
   "to-key": { exactArity: 1, params: [["str", "num"]], returns: ["key"] },
-  "has?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  "substr?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
   idx: {
     exactArity: 2,
     params: [[], ["str", "vec"]],
@@ -642,7 +642,7 @@ const ops = {
     params: [["str", "vec", "dict"]],
     returns: ["bool"]
   },
-  split: { minArity: 1, maxArity: 2, params: ["str", "str"], returns: ["vec"] },
+  split: { exactArity: 2, params: ["str", "str"], returns: ["vec"] },
   join: {
     exactArity: 2,
     params: ["str", ["vec", "dict", "str"]],
@@ -813,9 +813,9 @@ function makeDerefFunc({ cins, derefIns, declarations }) {
     }
   }
 }
-function canCapture(declarations, cin, next) {
-  const isExeVal = next && cin.typ === "val" && cin.value.t === "str" && next.typ === "exe";
-  return isExeVal || cin.typ === "npa" || cin.typ === "ref" && !has(declarations, cin.value);
+function canCapture(declarations, ins0, ins1) {
+  const isExeVal = ins1 && ins0.typ === "val" && ins0.value.t === "str" && ins1.typ === "exe";
+  return isExeVal || ins0.typ === "npa" || ins0.typ === "ref" && !has(declarations, ins0.value);
 }
 
 ;// CONCATENATED MODULE: ./src/parse.ts
@@ -2354,8 +2354,8 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       _boo(op === "func?" && (t === "func" || t === "clo") || src_substr(op, 0, src_slen(op) - 1) === t);
       return;
     }
-    case "has?":
-      _boo(src_sub(str(args[0]), str(args[1])));
+    case "substr?":
+      _boo(src_sub(str(args[1]), str(args[0])));
       return;
     case "idx": {
       let i = -1;
@@ -2527,6 +2527,7 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       for (let i = 0, lim = src_len(args); i < lim; ++i) {
         const errors = getExe(ctx, args[i], errCtx)([stack.pop()]);
         if (errors) {
+          errors.forEach((err) => err.m = `-> arg ${i + 2}: ${err.m}`);
           return errors;
         }
       }
@@ -2697,7 +2698,7 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
       return;
     case "split":
-      _vec(str(args[src_len(args) - 1]).split(src_len(args) - 1 ? str(args[0]) : " ").map((v) => ({ t: "str", v })));
+      _vec(str(args[1]).split(str(args[0])).map((v) => ({ t: "str", v })));
       return;
     case "join":
       _str(asArray(args[1]).map(val2str).join(str(args[0])));
@@ -3327,6 +3328,9 @@ if (process.argv.length > 2) {
   }
 }
 printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
+if ((0,external_fs_.existsSync)(".repl.clj")) {
+  printErrorOutput(invoker(ctx, (0,external_fs_.readFileSync)(".repl.clj").toString()));
+}
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,

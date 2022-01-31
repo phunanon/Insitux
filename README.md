@@ -432,8 +432,7 @@ etc
 (range 1 4 -1) → [3 2 1]
 (range 0 4 0)  → [0 1 2 3]
 
-;Splits a string by spaces or provided delimiting string
-(split "hi hi!")    → ["hi" "hi!"]
+;Splits a string by a provided delimiter string
 (split "e" "Hello") → ["H" "llo"]
 
 ;Joins a vector, dictionary, or string by a provided string
@@ -464,8 +463,9 @@ etc
 (keys d) → [0 :a "hi"]
 (vals d) → [1 "hello" 123]
 
-;Tests if a string contains a sub-string
-(has? "Hello" "ll") → true
+;Tests if a sub-string is in a string
+(substr? "ll" "Hello") → true
+(substr? "x" "abcd")   → false
 
 ;Returns index of an item or sub-string in a vector or string, or null
 (idx 3 [1 2 3 4])    → 2
@@ -903,6 +903,21 @@ vector item or string character is "destructured" into.
 
 (dedupe [1 2 3 3])
 → [1 2 3]
+
+
+; Show entry for function from this README.md (works in NodeJS REPL)
+(function man func
+  (-> (read "README.md")
+      (split "### Built-in operations") 1
+      (split "```clj") 1
+      (split "```") 0
+      (split "\r\n\r\n")
+      (find (substr? (str "\n(" func)))))
+
+(man vec)
+→ ;Creates a vector (list) of values in two different ways
+→ [1 "hello" :c]
+→ (vec 1 "hello" :c)
 
 
 ; Time a function call

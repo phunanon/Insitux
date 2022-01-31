@@ -8,5 +8,5 @@ const block = JSON.parse(readFileSync("Deadline.json"))
 const md = readFileSync("Deadline.md").toString();
 writeFileSync(
   "Deadline.md",
-  md.replace(/#defs:index\.ts(.|\s)+?`/, "#defs:index.ts\n\n" + block + "\n`")
+  md.replace(/#defs:index\.ts(.|\s)+?```/, "#defs:index.ts\n\n" + block + "\n```")
 );

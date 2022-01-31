@@ -129,6 +129,9 @@ if (process.argv.length > 2) {
   }
 }
 printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
+if (existsSync(".repl.clj")) {
+  printErrorOutput(invoker(ctx, readFileSync(".repl.clj").toString()));
+}
 
 const rl = readline.createInterface({
   input: process.stdin,

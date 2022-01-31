@@ -291,8 +291,8 @@ function exeOp(
       );
       return;
     }
-    case "has?":
-      _boo(sub(str(args[0]), str(args[1])));
+    case "substr?":
+      _boo(sub(str(args[1]), str(args[0])));
       return;
     case "idx": {
       let i = -1;
@@ -483,6 +483,7 @@ function exeOp(
       for (let i = 0, lim = len(args); i < lim; ++i) {
         const errors = getExe(ctx, args[i], errCtx)([stack.pop()!]);
         if (errors) {
+          errors.forEach(err => (err.m = `-> arg ${i + 2}: ${err.m}`));
           return errors;
         }
       }
@@ -665,8 +666,8 @@ function exeOp(
       return;
     case "split":
       _vec(
-        str(args[len(args) - 1])
-          .split(len(args) - 1 ? str(args[0]) : " ")
+        str(args[1])
+          .split(str(args[0]))
           .map(v => <Val>{ t: "str", v }),
       );
       return;
