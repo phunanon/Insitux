@@ -1,4 +1,5 @@
 import { arityCheck, keyOpErr, numOpErr, typeCheck } from "./checks";
+import { enclose } from "./closure";
 import * as pf from "./poly-fills";
 const { has, flat, push, slice, splice } = pf;
 const { slen, starts, sub, substr, strIdx, subIdx } = pf;
@@ -30,8 +31,16 @@ const symAt = (node: Node, pos = 0) => {
 };
 const token2str = ({ typ, text }: Token): string =>
   typ === "str" ? `"${text}"` : text;
-const node2str = (nodes: Node[]): string =>
-  nodes.map(n => (isToken(n) ? token2str(n) : `(${node2str(n)})`)).join(" ");
+function node2str(nodes: Node[]): string {
+  const sym0 = symAt(nodes, 0);
+  const isClosure = has(["#", "@"], sym0);
+  if (isClosure) {
+    nodes = slice(nodes, 1);
+  }
+  return `${isClosure ? sym0 : ""}(${nodes
+    .map(n => (isToken(n) ? token2str(n) : node2str(n)))
+    .join(" ")})`;
+}
 
 /** Inserts pop instruction after penultimate body expression */
 const poppedBody = (expressions: ParserIns[][]): ParserIns[] => {
@@ -233,7 +242,7 @@ function parseForm(
       if (len(nodes) === 1) {
         return err("provide at least one branch");
       } else if (len(nodes) > 3) {
-        return err("provide fewer than two branches");
+        return err(`provide one or two branches, not ${len(nodes)}`);
       }
       const parsed = nodes.map(nodeParser);
       const [cond, branch1] = parsed;
@@ -415,8 +424,7 @@ function parseForm(
       return ins;
     } else if (op === "#" || op === "@" || op === "fn") {
       const pins: ParserIns[] = [];
-      let asStr = node2str(nodes);
-      asStr = op === "fn" ? `(fn ${asStr})` : `${op}(${asStr})`;
+      const name = node2str([firstNode, ...nodes]);
       if (op === "fn") {
         const parsedParams = parseParams(nodes, false);
         params = parsedParams.shape;
@@ -447,29 +455,7 @@ function parseForm(
           }
         });
       }
-      //Calculate captures
-      const captureIns: Ins[] = [];
-      const captured: boolean[] = [];
-      for (let i = 0; i < len(cins); ++i) {
-        const ci = cins[i];
-        const isExe =
-          ci.typ === "val" &&
-          i + 1 < len(cins) &&
-          cins[i + 1].typ === "exe" &&
-          ((ci.value.t === "func" && !ops[ci.value.v]) || ci.value.t === "str");
-        captured[i] =
-          (ci.typ === "ref" &&
-            !cins.find(
-              i => (i.typ === "let" || i.typ === "var") && i.value === ci.value,
-            )) ||
-          ci.typ === "npa" ||
-          isExe;
-        if (captured[i]) {
-          captureIns.push(ci);
-        }
-      }
-      const value = { name: asStr, closureIns: cins, captureIns, captured };
-      return [{ typ: op === "@" ? "par" : "clo", value, errCtx }];
+      return [{ typ: "clo", value: enclose(name, cins), errCtx }];
     }
 
     //Operation arity check, optionally disabled for partial closures
@@ -746,9 +732,8 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
       case "loo":
       case "jmp":
         break;
-      case "clo":
-      case "par": {
-        const errors = insErrorDetect(ins.value.closureIns);
+      case "clo": {
+        const errors = insErrorDetect(ins.value.cins);
         if (errors) {
           return errors;
         }

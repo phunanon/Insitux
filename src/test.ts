@@ -246,6 +246,11 @@ const tests: {
     out: `[20 40]`,
   },
   {
+    name: "Closure with ext func",
+    code: `(#(test.function %) 1)`,
+    out: `1\nnull`,
+  },
+  {
     name: "Func returns closure",
     code: `(function f x #(x 2 2))
            (let closure (f +))

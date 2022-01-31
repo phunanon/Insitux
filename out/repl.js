@@ -769,7 +769,57 @@ function keyOpErr(errCtx, types) {
   ];
 }
 
+;// CONCATENATED MODULE: ./src/closure.ts
+
+function enclose(name, cins) {
+  const declarations = [];
+  cins.forEach((i) => {
+    if (i.typ === "let" || i.typ === "var") {
+      declarations.push(i.value);
+    }
+  });
+  const closure = { name, cins, declarations, derefIns: [] };
+  makeDerefFunc(closure);
+  return closure;
+}
+function capture({ name, cins, declarations }, derefed) {
+  const ins = [];
+  for (let i = 0, lim = len(cins); i < lim; ++i) {
+    const cin = cins[i];
+    if (cin.typ === "clo") {
+      const closure = {
+        name: cin.value.name,
+        derefIns: cin.value.derefIns,
+        declarations: cin.value.declarations,
+        cins: capture(cin.value, derefed).ins
+      };
+      ins.push({ typ: "clo", value: closure });
+    } else if (canCapture(declarations, cin, i + 1 !== lim && cins[i + 1])) {
+      ins.push({ typ: "val", value: derefed.shift() });
+    } else {
+      ins.push(cin);
+    }
+  }
+  return { name, ins };
+}
+function makeDerefFunc({ cins, derefIns, declarations }) {
+  for (let i = 0, lim = len(cins); i < lim; ++i) {
+    const cin = cins[i];
+    if (cin.typ === "clo") {
+      makeDerefFunc(cin.value);
+      push(derefIns, cin.value.derefIns);
+    } else if (canCapture(declarations, cin, i + 1 !== lim && cins[i + 1])) {
+      derefIns.push(cin);
+    }
+  }
+}
+function canCapture(declarations, cin, next) {
+  const isExeVal = next && cin.typ === "val" && cin.value.t === "str" && next.typ === "exe";
+  return isExeVal || cin.typ === "npa" || cin.typ === "ref" && !has(declarations, cin.value);
+}
+
 ;// CONCATENATED MODULE: ./src/parse.ts
+
 
 
 const { has: parse_has, flat: parse_flat, push: parse_push, slice: parse_slice, splice: parse_splice } = poly_fills_namespaceObject;
@@ -788,7 +838,14 @@ const symAt = (node, pos = 0) => {
   return isToken(arg) && parse_has(["sym", "str"], arg.typ) && arg.text || "";
 };
 const token2str = ({ typ, text }) => typ === "str" ? `"${text}"` : text;
-const node2str = (nodes) => nodes.map((n) => isToken(n) ? token2str(n) : `(${node2str(n)})`).join(" ");
+function node2str(nodes) {
+  const sym0 = symAt(nodes, 0);
+  const isClosure = parse_has(["#", "@"], sym0);
+  if (isClosure) {
+    nodes = parse_slice(nodes, 1);
+  }
+  return `${isClosure ? sym0 : ""}(${nodes.map((n) => isToken(n) ? token2str(n) : node2str(n)).join(" ")})`;
+}
 const poppedBody = (expressions) => {
   if (parse_len(expressions) === 1) {
     return parse_flat(expressions);
@@ -953,7 +1010,7 @@ function parseForm(nodes, params, doArityCheck = true) {
       if (parse_len(nodes) === 1) {
         return err("provide at least one branch");
       } else if (parse_len(nodes) > 3) {
-        return err("provide fewer than two branches");
+        return err(`provide one or two branches, not ${parse_len(nodes)}`);
       }
       const parsed = nodes.map(nodeParser);
       const [cond, branch1] = parsed;
@@ -1130,8 +1187,7 @@ function parseForm(nodes, params, doArityCheck = true) {
       return ins2;
     } else if (op === "#" || op === "@" || op === "fn") {
       const pins = [];
-      let asStr = node2str(nodes);
-      asStr = op === "fn" ? `(fn ${asStr})` : `${op}(${asStr})`;
+      const name = node2str([firstNode, ...nodes]);
       if (op === "fn") {
         const parsedParams = parseParams(nodes, false);
         params = parsedParams.shape;
@@ -1161,18 +1217,7 @@ function parseForm(nodes, params, doArityCheck = true) {
           }
         });
       }
-      const captureIns = [];
-      const captured = [];
-      for (let i = 0; i < parse_len(cins); ++i) {
-        const ci = cins[i];
-        const isExe = ci.typ === "val" && i + 1 < parse_len(cins) && cins[i + 1].typ === "exe" && (ci.value.t === "func" && !ops[ci.value.v] || ci.value.t === "str");
-        captured[i] = ci.typ === "ref" && !cins.find((i2) => (i2.typ === "let" || i2.typ === "var") && i2.value === ci.value) || ci.typ === "npa" || isExe;
-        if (captured[i]) {
-          captureIns.push(ci);
-        }
-      }
-      const value = { name: asStr, closureIns: cins, captureIns, captured };
-      return [{ typ: op === "@" ? "par" : "clo", value, errCtx: errCtx2 }];
+      return [{ typ: "clo", value: enclose(name, cins), errCtx: errCtx2 }];
     }
     if (ops[op] && doArityCheck) {
       const errors = arityCheck(op, parse_len(nodes), errCtx2);
@@ -1383,9 +1428,8 @@ function insErrorDetect(fins) {
       case "loo":
       case "jmp":
         break;
-      case "clo":
-      case "par": {
-        const errors = insErrorDetect(ins.value.closureIns);
+      case "clo": {
+        const errors = insErrorDetect(ins.value.cins);
         if (errors) {
           return errors;
         }
@@ -1696,6 +1740,12 @@ null`
            (var x 20) (let c40 (f))
            [(c20) (c40)]`,
     out: `[20 40]`
+  },
+  {
+    name: "Closure with ext func",
+    code: `(#(test.function %) 1)`,
+    out: `1
+null`
   },
   {
     name: "Func returns closure",
@@ -2053,7 +2103,8 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220123;
+const insituxVersion = 220131;
+
 
 
 
@@ -3032,31 +3083,15 @@ function exeFunc(ctx, func, args, inClosure = false) {
         }
         i = lim;
         break;
-      case "clo":
-      case "par": {
-        const { name, captured, captureIns } = ins.value;
-        let { closureIns: cins } = ins.value;
-        const newCins = [];
-        if (!src_len(captureIns)) {
-          src_push(newCins, cins);
-        } else {
-          cins = cins.map((ins2, i2) => {
-            const decl = ins2.typ === "val" && ins2.value.t === "str" && (lets[ins2.value.v] ?? ctx.env.vars[ins2.value.v]);
-            captured[i2] = decl ? false : captured[i2];
-            return decl ? { typ: "val", value: decl } : ins2;
-          });
-          const errors = exeFunc(ctx, { ins: captureIns }, args, true);
-          if (errors) {
-            return errors;
-          }
-          const numIns = src_len(captureIns);
-          const captures = src_splice(stack, src_len(stack) - numIns, numIns);
-          const cap = (value) => ({ typ: "val", value, errCtx });
-          for (let i2 = 0, c = 0; i2 < src_len(captured); ++i2) {
-            newCins.push(captured[i2] ? cap(captures[c++]) : cins[i2]);
-          }
-        }
-        stack.push({ t: "clo", v: { name, ins: newCins } });
+      case "clo": {
+        const derefIns = src_slice(ins.value.derefIns).map((ins2, i2) => {
+          const decl = ins2.typ === "val" && ins2.value.t === "str" && (lets[ins2.value.v] ?? ctx.env.vars[ins2.value.v]);
+          return decl ? { typ: "val", value: decl } : ins2;
+        });
+        exeFunc(ctx, { ins: derefIns }, args, true);
+        const numIns = src_len(derefIns);
+        const captures = src_splice(stack, src_len(stack) - numIns, numIns);
+        stack.push({ t: "clo", v: capture(ins.value, captures) });
         break;
       }
       default:

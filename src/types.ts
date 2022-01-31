@@ -76,10 +76,10 @@ export const defaultCtx = {
 
 export type ParamsShape = { name: string; position: number[] }[];
 export type Closure = {
-  name: string;
-  closureIns: Ins[];
-  captured: boolean[];
-  captureIns: Ins[];
+  readonly name: string;
+  readonly cins: Ins[];
+  readonly derefIns: Ins[];
+  readonly declarations: string[];
 };
 
 export type Ins = { errCtx: ErrCtx } & (
@@ -93,7 +93,7 @@ export type Ins = { errCtx: ErrCtx } & (
   | { typ: "or" | "if" | "jmp" | "loo" | "cat" | "mat"; value: number } //Number of instructions
   | { typ: "ret"; value: boolean } //Return, with value?
   | { typ: "pop"; value: number } //Truncate stack, by number of values
-  | { typ: "clo" | "par"; value: Closure } //Closure and partial, text representation and instructions
+  | { typ: "clo"; value: Closure } //Closure/partial
 );
 
 /** Definition of an operation in Insitux,

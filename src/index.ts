@@ -1,6 +1,7 @@
-export const insituxVersion = 220123;
+export const insituxVersion = 220131;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
+import { capture } from "./closure";
 import { parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, sign, sqrt, floor, ceil, round, max, min, logn, log2, log10 } = pf;
@@ -1095,34 +1096,20 @@ function exeFunc(
         }
         i = lim;
         break;
-      case "clo":
-      case "par": {
-        const { name, captured, captureIns } = ins.value;
-        let { closureIns: cins } = ins.value;
-        const newCins: Ins[] = [];
-        if (!len(captureIns)) {
-          push(newCins, cins);
-        } else {
-          cins = cins.map((ins, i) => {
-            const decl =
-              ins.typ === "val" &&
-              ins.value.t === "str" &&
-              (lets[ins.value.v] ?? ctx.env.vars[ins.value.v]);
-            captured[i] = decl ? false : captured[i];
-            return decl ? <Ins>{ typ: "val", value: decl } : ins;
-          });
-          const errors = exeFunc(ctx, { ins: captureIns }, args, true);
-          if (errors) {
-            return errors;
-          }
-          const numIns = len(captureIns);
-          const captures = splice(stack, len(stack) - numIns, numIns);
-          const cap = (value: Val) => <Ins>{ typ: "val", value, errCtx };
-          for (let i = 0, c = 0; i < len(captured); ++i) {
-            newCins.push(captured[i] ? cap(captures[c++]) : cins[i]);
-          }
-        }
-        stack.push(<Val>{ t: "clo", v: <Func>{ name, ins: newCins } });
+      case "clo": {
+        //Ensure any in-scope declarations are captured here
+        const derefIns = slice(ins.value.derefIns).map((ins, i) => {
+          const decl =
+            ins.typ === "val" &&
+            ins.value.t === "str" &&
+            (lets[ins.value.v] ?? ctx.env.vars[ins.value.v]);
+          return decl ? <Ins>{ typ: "val", value: decl } : ins;
+        });
+        //Dereference closure captures
+        exeFunc(ctx, { ins: derefIns }, args, true);
+        const numIns = len(derefIns);
+        const captures = splice(stack, len(stack) - numIns, numIns);
+        stack.push(<Val>{ t: "clo", v: capture(ins.value, captures) });
         break;
       }
       default:
