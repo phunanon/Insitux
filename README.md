@@ -409,15 +409,20 @@ etc
 (reverse "Hello") → "olleH"
 (reverse [1 2 3]) → [3 2 1]
 
-;Returns a vector, dictionary, or string characters sorted,
-; optionally by the return of a function of each item
+;Returns a vector of vector items or string characters sorted
 ;Note: will only sort all number or all string
 (sort [0 7 8 9 8 6])    → [0 6 7 8 8 9]
-(sort [0 1 8 9 65] str) → [0 1 65 8 9]
-(sort [{:a 23} {:a 24} {:a 19}] :a)
-→ [{:a 19} {:a 23} {:a 24}]
-(sort {1 3 2 2 3 1} 1)  → [[3 1] [2 2] [1 3]]
 (sort "hello")          → ["e" "h" "l" "l" "o"]
+
+;Returns a vector of vector items, dictionary entries, or string characters
+;  sorted by the return of a function over each item
+;Note: will only sort all number or all string
+(sort-by val [0 7 8 9 8 6])   → [0 6 7 8 8 9]
+(sort-by str [0 1 8 9 65])    → [0 1 65 8 9]
+(sort-by :a [{:a 23} {:a 24} {:a 19}])
+→ [{:a 19} {:a 23} {:a 24}]
+(sort-by 1 {1 3 2 2 3 1})     → [[3 1] [2 2] [1 3]]
+(sort-by #(rand-int) "hello") → ["l" "e" "o" "l" "h"]
 
 ;Generates a range of numbers
 ;Note: the first argument is always inclusive, second exclusive
@@ -908,7 +913,7 @@ vector item or string character is "destructured" into.
 ; Show entry for function from this README.md (works in NodeJS REPL)
 (function man func
   (-> (read "README.md")
-      (split "### Built-in operations") 1
+      (split "### Built-in op") 1
       (split "```clj") 1
       (split "```") 0
       (split "\r\n\r\n")

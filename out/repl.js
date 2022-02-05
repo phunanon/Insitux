@@ -627,9 +627,13 @@ const ops = {
   },
   reverse: { exactArity: 1, params: [["vec", "str"]], returns: ["vec", "str"] },
   sort: {
-    minArity: 1,
-    maxArity: 2,
-    params: [["vec", "dict", "str"]],
+    exactArity: 1,
+    params: [["vec", "str"]],
+    returns: ["vec"]
+  },
+  "sort-by": {
+    exactArity: 2,
+    params: [[], ["vec", "dict", "str"]],
     returns: ["vec"]
   },
   keys: { exactArity: 1, params: ["dict"] },
@@ -2103,7 +2107,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220131;
+const insituxVersion = 220205;
 
 
 
@@ -2641,17 +2645,18 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
         _vec(src_reverse(asArray(args[0])));
       }
       return;
-    case "sort": {
-      const src = asArray(args[0]);
+    case "sort":
+    case "sort-by": {
+      const src = asArray(args[op === "sort" ? 0 : 1]);
       if (!src_len(src)) {
         _vec();
         return;
       }
       const mapped = [];
-      if (src_len(args) === 1) {
+      if (op === "sort") {
         src_push(mapped, src.map((v) => [v, v]));
       } else {
-        const closure = getExe(ctx, args.pop(), errCtx);
+        const closure = getExe(ctx, args[0], errCtx);
         for (let i = 0, lim = src_len(src); i < lim; ++i) {
           const errors = closure([src[i]]);
           if (errors) {
@@ -3160,8 +3165,8 @@ function invokeFunction(ctx, funcName, params) {
 function symbols(ctx, alsoSyntax = true) {
   let syms = [];
   if (alsoSyntax) {
-    src_push(syms, ["function", "let", "var", "if", "if!"]);
-    src_push(syms, ["when", "while", "loop", "match", "catch"]);
+    src_push(syms, ["function", "fn", "var", "let", "var!", "let!", "return"]);
+    src_push(syms, ["if", "if!", "when", "while", "loop", "match", "catch"]);
   }
   src_push(syms, ["args", "PI", "E"]);
   syms = src_concat(syms, src_objKeys(ops));

@@ -259,9 +259,13 @@ export const ops: {
   },
   reverse: { exactArity: 1, params: [["vec", "str"]], returns: ["vec", "str"] },
   sort: {
-    minArity: 1,
-    maxArity: 2,
-    params: [["vec", "dict", "str"]],
+    exactArity: 1,
+    params: [["vec", "str"]],
+    returns: ["vec"],
+  },
+  "sort-by": {
+    exactArity: 2,
+    params: [[], ["vec", "dict", "str"]],
     returns: ["vec"],
   },
   keys: { exactArity: 1, params: ["dict"] },

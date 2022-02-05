@@ -448,9 +448,13 @@ to define variables, use `var`:
 ;; function
 ;; Returns the reverse of a vector or string.
 
-(sort [8 6 9 0 4] sin)
+(sort [8 6 9 0 4])
 ;; function
-;; Sorts a vector of numbers or strings, optionally sorting by the return of a function of each item.
+;; Returns a vector of vector items or string characters sorted.
+
+(sort-by sin [8 6 9 0 4])
+;; function
+;; Returns a vector of vector items, dictionary entries, or string characters sorted by the return of a function over each item
 
 (starts? "He" "Hello")
 ;; function

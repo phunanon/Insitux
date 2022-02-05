@@ -1,4 +1,4 @@
-export const insituxVersion = 220131;
+export const insituxVersion = 220205;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { capture } from "./closure";
@@ -604,20 +604,21 @@ function exeOp(
         _vec(reverse(asArray(args[0])));
       }
       return;
-    case "sort": {
-      const src = asArray(args[0]);
+    case "sort":
+    case "sort-by": {
+      const src = asArray(args[op === "sort" ? 0 : 1]);
       if (!len(src)) {
         _vec();
         return;
       }
       const mapped: Val[][] = [];
-      if (len(args) === 1) {
+      if (op === "sort") {
         push(
           mapped,
           src.map(v => [v, v]),
         );
       } else {
-        const closure = getExe(ctx, args.pop()!, errCtx);
+        const closure = getExe(ctx, args[0], errCtx);
         for (let i = 0, lim = len(src); i < lim; ++i) {
           const errors = closure([src[i]]);
           if (errors) {
@@ -1229,8 +1230,8 @@ export function invokeFunction(
 export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
   let syms: string[] = [];
   if (alsoSyntax) {
-    push(syms, ["function", "let", "var", "if", "if!"]);
-    push(syms, ["when", "while", "loop", "match", "catch"]);
+    push(syms, ["function", "fn", "var", "let", "var!", "let!", "return"]);
+    push(syms, ["if", "if!", "when", "while", "loop", "match", "catch"]);
   }
   push(syms, ["args", "PI", "E"]);
   syms = concat(syms, objKeys(ops));
