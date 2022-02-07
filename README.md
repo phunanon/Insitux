@@ -122,7 +122,7 @@ built-in operations each within an example, with results after a `→`.
   (print "hi")
   (print "bye"))
 → "bye"
-(if! true 1 2) → 1
+(if! true 1 2) → 2
 etc
 
 ;Executes and returns argument[x+2] where argument[x+1] is equal to argument[0]
