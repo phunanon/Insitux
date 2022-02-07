@@ -68,7 +68,7 @@ module.exports = [
     target: ["web"],
     output: {
       filename: "insitux-tokenise.js",
-      path: path.resolve(__dirname, "website"),
+      path: path.resolve(__dirname, "out"),
       library: "insituxTokenise",
       libraryTarget: "window",
       libraryExport: "tokenise",

@@ -9,10 +9,10 @@
   </tr>
   <tr>
     <td>
-      <a href="https://phunanon.github.io/Insitux">Website</a>
+      <a href="https://insitux.github.io">Website</a>
     </td>
     <td>
-      <a href="https://phunanon.github.io/Insitux/website/repl">Try online</a>
+      <a href="https://insitux.github.io/repl">Try online</a>
     </td>
     <td>
       <a href="https://discord.gg/w3Fc4YZ9Qw">
