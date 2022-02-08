@@ -1,7 +1,7 @@
-import { invoke } from ".";
+import { invoke, invokeFunction } from ".";
 import { padEnd, slen, starts, substr, trimStart } from "./poly-fills";
 import { getTimeMs } from "./poly-fills";
-import { Ctx } from "./types";
+import { Ctx, InvokeResult, Val } from "./types";
 
 export type InvokeOutput = {
   type: "message" | "error";
@@ -15,6 +15,24 @@ export function invoker(ctx: Ctx, code: string, id?: string): InvokeOutput {
   id = id ? `-${id}` : `${getTimeMs()}`;
   invocations.set(id, code);
   const valOrErrs = invoke(ctx, code, id, true);
+  return valOrErrsOutput(valOrErrs);
+}
+
+export function functionInvoker(
+  ctx: Ctx,
+  name: string,
+  params: Val[],
+): InvokeOutput {
+  const valOrErrs = invokeFunction(ctx, name, params);
+  if (!valOrErrs) {
+    return [
+      { type: "message", text: `Invoke Error: function '${name}' not found.` },
+    ];
+  }
+  return valOrErrsOutput(valOrErrs);
+}
+
+function valOrErrsOutput(valOrErrs: InvokeResult) {
   if (valOrErrs.kind !== "errors") {
     return [];
   }

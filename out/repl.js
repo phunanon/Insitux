@@ -2107,7 +2107,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220205;
+const insituxVersion = 220207;
 
 
 
@@ -3156,7 +3156,7 @@ function invoke(ctx, code, invokeId, printResult = false) {
   }
   return result;
 }
-function invokeFunction(ctx, funcName, params) {
+function src_invokeFunction(ctx, funcName, params) {
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
@@ -3187,6 +3187,18 @@ function invoker(ctx, code, id) {
   id = id ? `-${id}` : `${getTimeMs()}`;
   invocations.set(id, code);
   const valOrErrs = invoke(ctx, code, id, true);
+  return valOrErrsOutput(valOrErrs);
+}
+function functionInvoker(ctx, name, params) {
+  const valOrErrs = invokeFunction(ctx, name, params);
+  if (!valOrErrs) {
+    return [
+      { type: "message", text: `Invoke Error: function '${name}' not found.` }
+    ];
+  }
+  return valOrErrsOutput(valOrErrs);
+}
+function valOrErrsOutput(valOrErrs) {
   if (valOrErrs.kind !== "errors") {
     return [];
   }
@@ -3203,8 +3215,8 @@ function invoker(ctx, code, id) {
     const lineText = invocation.split("\n")[line - 1];
     const sym = substr(lineText, col - 1).split(parensRx)[0];
     const half1 = trimStart(substr(lineText, 0, col - 1));
-    const id2 = starts(invokeId, "-") ? `${substr(invokeId, 1)} ` : "";
-    msg(`${id2}${padEnd(`${line}`, 4)} ${half1}`);
+    const id = starts(invokeId, "-") ? `${substr(invokeId, 1)} ` : "";
+    msg(`${id}${padEnd(`${line}`, 4)} ${half1}`);
     if (!sym) {
       const half2 = substr(lineText, col);
       err(lineText[col - 1]);
