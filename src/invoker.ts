@@ -11,10 +11,15 @@ export type InvokeOutput = {
 const invocations = new Map<string, string>();
 export const parensRx = /[\[\]\(\) ,]/;
 
-export function invoker(ctx: Ctx, code: string, id?: string): InvokeOutput {
+export function invoker(
+  ctx: Ctx,
+  code: string,
+  id?: string,
+  printResult = true,
+): InvokeOutput {
   id = id ? `-${id}` : `${getTimeMs()}`;
   invocations.set(id, code);
-  const valOrErrs = invoke(ctx, code, id, true);
+  const valOrErrs = invoke(ctx, code, id, printResult);
   return valOrErrsOutput(valOrErrs);
 }
 
@@ -22,8 +27,9 @@ export function functionInvoker(
   ctx: Ctx,
   name: string,
   params: Val[],
+  printResult = true,
 ): InvokeOutput {
-  const valOrErrs = invokeFunction(ctx, name, params);
+  const valOrErrs = invokeFunction(ctx, name, params, printResult);
   if (!valOrErrs) {
     return [
       { type: "message", text: `Invoke Error: function '${name}' not found.` },

@@ -2107,7 +2107,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220207;
+const insituxVersion = 220208;
 
 
 
@@ -3137,7 +3137,7 @@ function removeExternalOperations(functions) {
     delete externalOps[name];
   });
 }
-function innerInvoke(ctx, closure) {
+function innerInvoke(ctx, closure, printResult) {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   ingestExternalOperations(ctx.functions);
   const errors = closure();
@@ -3147,20 +3147,19 @@ function innerInvoke(ctx, closure) {
   delete ctx.env.funcs["entry"];
   const value = stack.pop();
   [stack, letsStack] = [[], []];
+  if (printResult && !errors && value) {
+    ctx.print(val2str(value), true);
+  }
   return errors ? { kind: "errors", errors } : value ? { kind: "val", value } : { kind: "empty" };
 }
 function invoke(ctx, code, invokeId, printResult = false) {
-  const result = innerInvoke(ctx, () => parseAndExe(ctx, code, invokeId));
-  if (printResult && result.kind === "val") {
-    ctx.print(val2str(result.value), true);
-  }
-  return result;
+  return innerInvoke(ctx, () => parseAndExe(ctx, code, invokeId), printResult);
 }
-function src_invokeFunction(ctx, funcName, params) {
+function src_invokeFunction(ctx, funcName, params, printResult = false) {
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
-  return innerInvoke(ctx, () => exeFunc(ctx, ctx.env.funcs[funcName], params));
+  return innerInvoke(ctx, () => exeFunc(ctx, ctx.env.funcs[funcName], params), printResult);
 }
 function symbols(ctx, alsoSyntax = true) {
   let syms = [];
@@ -3183,14 +3182,14 @@ function symbols(ctx, alsoSyntax = true) {
 
 const invocations = new Map();
 const parensRx = /[\[\]\(\) ,]/;
-function invoker(ctx, code, id) {
+function invoker(ctx, code, id, printResult = true) {
   id = id ? `-${id}` : `${getTimeMs()}`;
   invocations.set(id, code);
-  const valOrErrs = invoke(ctx, code, id, true);
+  const valOrErrs = invoke(ctx, code, id, printResult);
   return valOrErrsOutput(valOrErrs);
 }
-function functionInvoker(ctx, name, params) {
-  const valOrErrs = invokeFunction(ctx, name, params);
+function functionInvoker(ctx, name, params, printResult = true) {
+  const valOrErrs = invokeFunction(ctx, name, params, printResult);
   if (!valOrErrs) {
     return [
       { type: "message", text: `Invoke Error: function '${name}' not found.` }

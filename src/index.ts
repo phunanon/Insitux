@@ -1,4 +1,4 @@
-export const insituxVersion = 220207;
+export const insituxVersion = 220208;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { capture } from "./closure";
@@ -1162,6 +1162,7 @@ function removeExternalOperations(functions: ExternalFunction[]) {
 function innerInvoke(
   ctx: Ctx,
   closure: () => InvokeError[] | undefined,
+  printResult: boolean,
 ): InvokeResult {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   ingestExternalOperations(ctx.functions);
@@ -1172,6 +1173,9 @@ function innerInvoke(
   delete ctx.env.funcs["entry"];
   const value = stack.pop();
   [stack, letsStack] = [[], []];
+  if (printResult && !errors && value) {
+    ctx.print(val2str(value), true);
+  }
   return errors
     ? { kind: "errors", errors }
     : value
@@ -1194,11 +1198,7 @@ export function invoke(
   invokeId: string,
   printResult = false,
 ): InvokeResult {
-  const result = innerInvoke(ctx, () => parseAndExe(ctx, code, invokeId));
-  if (printResult && result.kind === "val") {
-    ctx.print(val2str(result.value), true);
-  }
-  return result;
+  return innerInvoke(ctx, () => parseAndExe(ctx, code, invokeId), printResult);
 }
 
 /**
@@ -1206,6 +1206,7 @@ export function invoke(
  * @param ctx An environment context you retain.
  * @param funcName The function to execute.
  * @param params The parameters to pass to the function.
+ * @param printResult Automatically print the final value of this invocation?
  * @returns Invocation errors caused during execution of the function,
  * or the final value of the invocation,
  * or undefined if the function was not found.
@@ -1214,11 +1215,16 @@ export function invokeFunction(
   ctx: Ctx,
   funcName: string,
   params: Val[],
+  printResult = false,
 ): InvokeResult | undefined {
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
-  return innerInvoke(ctx, () => exeFunc(ctx, ctx.env.funcs[funcName], params));
+  return innerInvoke(
+    ctx,
+    () => exeFunc(ctx, ctx.env.funcs[funcName], params),
+    printResult,
+  );
 }
 
 /**
