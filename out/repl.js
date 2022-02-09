@@ -428,7 +428,7 @@ const slice = (arr, start, end) => arr.slice(start, end);
 const splice = (arr, start, numDel) => arr.splice(start, numDel);
 const len = (arr) => arr.length;
 const slen = (str) => str.length;
-const isNum = (x) => !Number.isNaN(Number(x));
+const isNum = (x) => x !== "" && !Number.isNaN(Number(x));
 const isArray = (x) => Array.isArray(x);
 const substr = (str, start, length) => str.substring(start, start + (length ?? str.length));
 const strIdx = (str, idx) => str[idx];
@@ -1268,7 +1268,7 @@ function parseArg(node, params) {
         return [{ typ: "val", value: { t: "wild", v: void 0 }, errCtx }];
       } else if (parse_starts(text, ":")) {
         return [{ typ: "val", value: { t: "key", v: text }, errCtx }];
-      } else if (parse_starts(text, "%") && parse_isNum(parse_substr(text, 1))) {
+      } else if (text === "%" || parse_starts(text, "%") && parse_isNum(parse_substr(text, 1))) {
         const value = parse_toNum(parse_substr(text, 1));
         if (value < 0) {
           return [{ typ: "val", value: nullVal, errCtx }];
@@ -2107,7 +2107,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220209;
+const insituxVersion = 220210;
 
 
 

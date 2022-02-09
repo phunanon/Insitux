@@ -1,13 +1,13 @@
 (function new-game
-  (let type (rand-int 5)
-       [n0 n1] (repeat #(rand-int 10) 2)
-       [o0 o1] (repeat #((rand-int 5) [+ - * / rem]) 2)
+  (let type       (rand-int 5)
+       [n0 n1]    (repeat #(rand-int 10) 2)
+       [o0 o1 o2] (repeat #((rand-int 5) [+ - * / rem]) 3)
        body (match type
               0 (str "x " n0)
               1 (str n0 " x")
               2 (str "(" o1 " x " n0 ") " n1)
               3 (str n0 " (" o1 " " n1 " x)")
-              4 (str "(" o1 " x " n0 ") (" (2 ops) " " n1 " x)"))
+              4 (str "(" o1 " x " n0 ") (" o2 " " n1 " x)"))
        func (str "(" o0 " " body ")"))
 
   (var reveal #(str "The formula is " func))

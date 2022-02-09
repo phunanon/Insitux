@@ -507,7 +507,10 @@ function parseArg(node: Node, params: ParamsShape): ParserIns[] {
         return [{ typ: "val", value: { t: "wild", v: undefined }, errCtx }];
       } else if (starts(text, ":")) {
         return [{ typ: "val", value: <Val>{ t: "key", v: text }, errCtx }];
-      } else if (starts(text, "%") && isNum(substr(text, 1))) {
+      } else if (
+        text === "%" ||
+        (starts(text, "%") && isNum(substr(text, 1)))
+      ) {
         const value = toNum(substr(text, 1));
         if (value < 0) {
           return [{ typ: "val", value: nullVal, errCtx }];
