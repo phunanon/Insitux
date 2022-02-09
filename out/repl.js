@@ -863,7 +863,7 @@ const poppedBody = (expressions) => {
   };
   return parse_flat([...truncatedExps, [popIns], lastExp]);
 };
-function tokenise(code, invokeId, makeCollsOps = true, emitComments = false) {
+function tokenise(code, invokeId, doTransforms = true, emitComments = false) {
   const tokens = [];
   const isDigit = (ch) => parse_sub("0123456789", ch);
   let [inString, line, col, inStringAt] = [false, 1, 0, [1, 0]];
@@ -872,7 +872,7 @@ function tokenise(code, invokeId, makeCollsOps = true, emitComments = false) {
     const c = parse_strIdx(code, i), nextCh = i + 1 !== l ? parse_strIdx(code, i + 1) : "";
     ++col;
     if (c === "\\" && inString) {
-      tokens[parse_len(tokens) - 1].text += { n: "\n", t: "	", r: "\r", '"': '"' }[nextCh] || (nextCh === "\\" ? "\\" : `\\${nextCh}`);
+      tokens[parse_len(tokens) - 1].text += doTransforms ? { n: "\n", t: "	", r: "\r", '"': '"' }[nextCh] || (nextCh === "\\" ? "\\" : `\\${nextCh}`) : `\\${nextCh}`;
       ++col;
       ++i;
       continue;
@@ -922,8 +922,8 @@ function tokenise(code, invokeId, makeCollsOps = true, emitComments = false) {
     if (!inString && !inSymbol && !inNumber) {
       if (isParen) {
         const text = parse_subIdx("[{(", c) === -1 ? ")" : "(";
-        tokens.push({ typ: text, text: makeCollsOps ? text : c, errCtx });
-        if (makeCollsOps && (c === "[" || c === "{")) {
+        tokens.push({ typ: text, text: doTransforms ? text : c, errCtx });
+        if (doTransforms && (c === "[" || c === "{")) {
           tokens.push({ typ: "sym", text: c === "[" ? "vec" : "dict", errCtx });
         }
         continue;
