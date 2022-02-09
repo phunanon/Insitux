@@ -92,7 +92,7 @@ const tests: {
             (= "Hello" "hello")
             (!= "world" "world")
             (= [0 [1]] [0 [1]])]`,
-    out: `[false 1 false false [0 [1]]]`,
+    out: `[false true false false true]`,
   },
   { name: "Define and retrieve", code: `(var a 1) a`, out: `1` },
   { name: "Define and add", code: `(var a 1) (inc a)`, out: `2` },

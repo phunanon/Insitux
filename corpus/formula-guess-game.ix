@@ -1,0 +1,19 @@
+(function new-game
+  (let type (rand-int 5)
+       [n0 n1] (repeat #(rand-int 10) 2)
+       [o0 o1] (repeat #((rand-int 5) [+ - * / rem]) 2)
+       body (match type
+              0 (str "x " n0)
+              1 (str n0 " x")
+              2 (str "(" o1 " x " n0 ") " n1)
+              3 (str n0 " (" o1 " " n1 " x)")
+              4 (str "(" o1 " x " n0 ") (" (2 ops) " " n1 " x)"))
+       func (str "(" o0 " " body ")"))
+
+  (var reveal #(str "The formula is " func))
+  (var f (fn (var x %) (catch (eval func) "An error occurred. Try something else.")))
+
+  (str "Guess the Formula! Estimated difficulty: " (inc type) "/5
+Use (f x) where x is a number you want to test against the formula.
+Use (reveal) when you want to reveal the answer.
+Use (new-game) to start a new game."))

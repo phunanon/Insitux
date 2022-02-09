@@ -1,4 +1,4 @@
-export const insituxVersion = 220208;
+export const insituxVersion = 220209;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { capture } from "./closure";
@@ -100,7 +100,7 @@ function exeOp(
           return;
         }
       }
-      stack.push(args[0]);
+      _boo(true);
       return;
     case "-":
       _num(
@@ -126,11 +126,7 @@ function exeOp(
       return;
     case "fast=":
     case "fast!=":
-      if (isEqual(args[0], args[1]) !== (op === "fast=")) {
-        _boo(false);
-        return;
-      }
-      stack.push(args[0]);
+      _boo(isEqual(args[0], args[1]) === (op === "fast="));
       return;
     case "fast-":
       _num(<number>args[0].v - <number>args[1].v);

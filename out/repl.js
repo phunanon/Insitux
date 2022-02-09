@@ -488,8 +488,8 @@ const ops = {
   print: { returns: ["null"] },
   "print-str": { returns: ["null"] },
   "!": { exactArity: 1, returns: ["bool"] },
-  "=": { minArity: 2 },
-  "!=": { minArity: 2 },
+  "=": { minArity: 2, returns: ["bool"] },
+  "!=": { minArity: 2, returns: ["bool"] },
   "+": { minArity: 2, numeric: true },
   "-": { minArity: 1, numeric: true },
   "*": { minArity: 2, numeric: true },
@@ -1590,7 +1590,7 @@ null`
             (= "Hello" "hello")
             (!= "world" "world")
             (= [0 [1]] [0 [1]])]`,
-    out: `[false 1 false false [0 [1]]]`
+    out: `[false true false false true]`
   },
   { name: "Define and retrieve", code: `(var a 1) a`, out: `1` },
   { name: "Define and add", code: `(var a 1) (inc a)`, out: `2` },
@@ -2107,7 +2107,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220208;
+const insituxVersion = 220209;
 
 
 
@@ -2191,7 +2191,7 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
           return;
         }
       }
-      stack.push(args[0]);
+      _boo(true);
       return;
     case "-":
       _num(src_len(args) === 1 ? -num(args[0]) : args.map(num).reduce((sum, n) => sum - n));
@@ -2213,11 +2213,7 @@ function exeOp(op, args, ctx, errCtx, checkArity) {
       return;
     case "fast=":
     case "fast!=":
-      if (isEqual(args[0], args[1]) !== (op === "fast=")) {
-        _boo(false);
-        return;
-      }
-      stack.push(args[0]);
+      _boo(isEqual(args[0], args[1]) === (op === "fast="));
       return;
     case "fast-":
       _num(args[0].v - args[1].v);

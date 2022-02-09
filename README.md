@@ -217,9 +217,9 @@ etc
 ;Note: != will only check that each value is different from the next
 ;Note: fast= fast!= fast< fast> fast<= fast>= are also available for two
 ;  arguments only
-(= 10 10)     → 10
+(= 10 10)     → true
 (= 11 11)     → false
-(!= 1 2 4 3)  → 1
+(!= 1 2 4 3)  → false
 (!= 1 1 2)    → false
 (< 1 2 3)     → true
 (> 10 5)      → true
@@ -562,7 +562,7 @@ etc
 
 ```clj
 (= 1 _) → 1
-(= [:a :b] [:a _]) → [:a :b]
+(= [:a :b] [:a _]) → true
 ; Can also be used to discard values
 (let [_ _ c] [0 1 2])  → c is 2
 ```
@@ -845,10 +845,10 @@ vector item or string character is "destructured" into.
 (function palindrome? x
   (= x (reverse x))) ;Works even for vectors due to deep equality checks
 
-(palindrome? "aabbxbbaa") → "aabbxbbaa"
+(palindrome? "aabbxbbaa") → true
 (palindrome? "abcd")      → false
 (palindrome? [0 1 2])     → false
-(palindrome? [2 1 2])     → [2 1 2]
+(palindrome? [2 1 2])     → true
 
 
 ; Matrix addition
