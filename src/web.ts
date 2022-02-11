@@ -25,10 +25,15 @@ function exe(name: string, args: Val[]): ValOrErr {
   return { kind: "err", err: `operation ${name} does not exist` };
 }
 
-function fetchOp(url: string, method: string, callback: string) {
+function fetchOp(url: string, method: string, callback: string, body?: string) {
   setTimeout(async () => {
-    const v = await (await fetch(url, { method })).text();
-    alertErrors(functionInvoker(ctx, callback, [{ t: "str", v }]));
+    let v: Val;
+    try {
+      v = {t: "str", v: await (await fetch(url, { method, body })).text()};
+    } catch (e) {
+      v = { t: "null", v: undefined };
+    }
+    alertErrors(functionInvoker(ctx, callback, [v]));
   });
 }
 
@@ -178,14 +183,26 @@ const functions: ExternalFunction[] = [
     },
   },
   {
-    name: "fetch-str",
+    name: "GET-str",
+    definition: {
+      exactArity: 2,
+      params: ["func", "str"],
+      returns: ["str"],
+    },
+    handler: ([callback, url]) => {
+      fetchOp(str(url), "GET", str(callback));
+      return nullValOrErr;
+    },
+  },
+  {
+    name: "POST-str",
     definition: {
       exactArity: 3,
       params: ["func", "str", "str"],
       returns: ["str"],
     },
-    handler: ([callback, method, url]) => {
-      fetchOp(str(url), str(method), str(callback));
+    handler: ([callback, url, body]) => {
+      fetchOp(str(url), "POST", str(callback), str(body));
       return nullValOrErr;
     },
   },
