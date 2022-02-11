@@ -2107,7 +2107,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220210;
+const insituxVersion = 220211;
 
 
 
@@ -2137,21 +2137,8 @@ const _vec = (v = []) => stack.push({ t: "vec", v });
 const _dic = (v) => stack.push({ t: "dict", v });
 const _nul = () => stack.push({ t: "null", v: void 0 });
 const _fun = (v) => stack.push({ t: "func", v });
-function exeOp(op, args, ctx, errCtx, checkArity) {
+function exeOp(op, args, ctx, errCtx) {
   const tErr = (msg) => [typeErr(msg, errCtx)];
-  if (checkArity) {
-    const violations = arityCheck(op, src_len(args), errCtx);
-    if (violations) {
-      return violations;
-    }
-  }
-  {
-    const types = args.map((a) => [a.t]);
-    const violations = typeCheck(op, types, errCtx);
-    if (violations) {
-      return violations;
-    }
-  }
   switch (op) {
     case "str":
       stack.push({ t: "str", v: stringify(args) });
@@ -2781,12 +2768,27 @@ const monoArityError = (t, errCtx) => [
     errCtx
   }
 ];
+function checks(op, args, errCtx, checkArity) {
+  if (checkArity) {
+    const violations2 = arityCheck(op, src_len(args), errCtx);
+    if (violations2) {
+      return violations2;
+    }
+  }
+  const types = args.map((a) => [a.t]);
+  const violations = typeCheck(op, types, errCtx);
+  return violations ? violations : false;
+}
 function getExe(ctx, op, errCtx, checkArity = true) {
   if (op.t === "str" || op.t === "func") {
     const name = op.v;
     if (ops[name]) {
       if (ops[name].external) {
         return (params) => {
+          const violations = checks(name, params, errCtx, checkArity);
+          if (violations) {
+            return violations;
+          }
           const valOrErr = externalOps[name](params);
           if (valOrErr.kind === "err") {
             return [{ e: "External", m: valOrErr.err, errCtx }];
@@ -2794,7 +2796,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
           stack.push(valOrErr.value);
         };
       }
-      return (params) => exeOp(name, params, ctx, errCtx, checkArity);
+      return (params) => checks(name, params, errCtx, checkArity) || exeOp(name, params, ctx, errCtx);
     }
     if (name in ctx.env.funcs) {
       return (params) => exeFunc(ctx, ctx.env.funcs[name], params);

@@ -1,4 +1,4 @@
-export const insituxVersion = 220210;
+export const insituxVersion = 220211;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { capture } from "./closure";
@@ -36,24 +36,8 @@ function exeOp(
   args: Val[],
   ctx: Ctx,
   errCtx: ErrCtx,
-  checkArity: boolean,
 ): InvokeError[] | undefined {
   const tErr = (msg: string) => [typeErr(msg, errCtx)];
-  //Optional arity check
-  if (checkArity) {
-    const violations = arityCheck(op, len(args), errCtx);
-    if (violations) {
-      return violations;
-    }
-  }
-  //Argument type check
-  {
-    const types = args.map(a => [a.t]);
-    const violations = typeCheck(op, types, errCtx);
-    if (violations) {
-      return violations;
-    }
-  }
 
   switch (op) {
     case "str":
@@ -764,6 +748,21 @@ const monoArityError = (t: Val["t"], errCtx: ErrCtx) => [
     errCtx,
   },
 ];
+
+function checks(op: string, args: Val[], errCtx: ErrCtx, checkArity: boolean) {
+  //Optional arity check
+  if (checkArity) {
+    const violations = arityCheck(op, len(args), errCtx);
+    if (violations) {
+      return violations;
+    }
+  }
+  //Argument type check
+  const types = args.map(a => [a.t]);
+  const violations = typeCheck(op, types, errCtx);
+  return violations ? violations : false;
+}
+
 function getExe(
   ctx: Ctx,
   op: Val,
@@ -775,6 +774,10 @@ function getExe(
     if (ops[name]) {
       if (ops[name].external) {
         return (params: Val[]) => {
+          const violations = checks(name, params, errCtx, checkArity);
+          if (violations) {
+            return violations;
+          }
           const valOrErr = externalOps[name](params);
           if (valOrErr.kind === "err") {
             return [{ e: "External", m: valOrErr.err, errCtx }];
@@ -782,7 +785,9 @@ function getExe(
           stack.push(valOrErr.value);
         };
       }
-      return (params: Val[]) => exeOp(name, params, ctx, errCtx, checkArity);
+      return (params: Val[]) =>
+        checks(name, params, errCtx, checkArity) ||
+        exeOp(name, params, ctx, errCtx);
     }
     if (name in ctx.env.funcs) {
       return (params: Val[]) => exeFunc(ctx, ctx.env.funcs[name], params);
