@@ -1,4 +1,4 @@
-import { invoker } from "./invoker";
+import { functionInvoker, InvokeOutput, invoker } from "./invoker";
 import { Ctx, defaultCtx, ExternalFunction, Val, ValOrErr } from "./types";
 import { num, str, val2str } from "./val";
 
@@ -25,6 +25,13 @@ function exe(name: string, args: Val[]): ValOrErr {
   return { kind: "err", err: `operation ${name} does not exist` };
 }
 
+function fetchOp(url: string, method: string, callback: string) {
+  setTimeout(async () => {
+    const v = await (await fetch(url, { method })).text();
+    alertErrors(functionInvoker(ctx, callback, [{ t: "str", v }]));
+  });
+}
+
 const nullVal: Val = { t: "null", v: undefined };
 const nullValOrErr: ValOrErr = { kind: "val", value: nullVal };
 const v2e = (val: Val) => (val.t === "str" ? e(val.v) : <HTMLElement>val.v);
@@ -33,11 +40,18 @@ const functions: ExternalFunction[] = [
     name: "js",
     definition: { minArity: 1, params: ["str"] },
     handler: params => {
-      const func = eval(str(params[0]));
-      const v = func(params.slice(1).map(a => a.v));
-      let value: Val = { t: "ext", v };
-      if (typeof v === "string") value = { t: "str", v };
-      return { kind: "val", value };
+      try {
+        const evaluated = eval(str(params[0]));
+        const v =
+          typeof evaluated === "function"
+            ? evaluated(params.slice(1).map(a => a.v))
+            : evaluated;
+        let value: Val = { t: "ext", v };
+        if (typeof v === "string") value = { t: "str", v };
+        return { kind: "val", value };
+      } catch (e) {
+        return { kind: "err", err: `${e}` };
+      }
     },
   },
   {
@@ -163,6 +177,18 @@ const functions: ExternalFunction[] = [
       return nullValOrErr;
     },
   },
+  {
+    name: "fetch-str",
+    definition: {
+      exactArity: 3,
+      params: ["func", "str", "str"],
+      returns: ["str"],
+    },
+    handler: ([callback, method, url]) => {
+      fetchOp(str(url), str(method), str(callback));
+      return nullValOrErr;
+    },
+  },
 ];
 
 const ctx: Ctx = {
@@ -199,12 +225,13 @@ declare global {
   }
 }
 
-window.ix = code => {
-  const errors = invoker(ctx, code);
+window.ix = code => alertErrors(invoker(ctx, code));
+
+function alertErrors(errors: InvokeOutput) {
   if (errors.length > 0) {
     const errorTexts = errors.map(({ type, text }) =>
       type === "error" ? [...text, ""].join("\u0332") : text,
     );
     alert(`---- Insitux\n${errorTexts.join("")}`);
   }
-};
+}
