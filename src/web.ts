@@ -29,12 +29,19 @@ function fetchOp(url: string, method: string, callback: string, body?: string) {
   setTimeout(async () => {
     let v: Val;
     try {
-      v = {t: "str", v: await (await fetch(url, { method, body })).text()};
+      v = { t: "str", v: await (await fetch(url, { method, body })).text() };
     } catch (e) {
       v = { t: "null", v: undefined };
     }
     alertErrors(functionInvoker(ctx, callback, [v]));
   });
+}
+
+function htmlToElement(html: string) {
+  let temp = document.createElement("template");
+  html = html.trim();
+  temp.innerHTML = html;
+  return temp.content.firstChild;
 }
 
 const nullVal: Val = { t: "null", v: undefined };
@@ -60,7 +67,7 @@ const functions: ExternalFunction[] = [
     },
   },
   {
-    name: "html",
+    name: "inner-html",
     definition: { exactArity: 2, params: [["str", "ext"]], returns: ["str"] },
     handler: ([el, html]) => {
       const element = v2e(el);
@@ -71,27 +78,16 @@ const functions: ExternalFunction[] = [
     },
   },
   {
-    name: "new-el",
+    name: "html-el",
     definition: {
-      minArity: 2,
-      maxArity: 3,
-      params: ["str", "str", "dict"],
+      exactArity: 1,
       returns: ["ext"],
     },
-    handler: ([tag, body, props]) => {
-      if (str(tag) === "text") {
-      }
-      const el = document.createElement(str(tag));
-      el.innerHTML = str(body);
-      return { kind: "val", value: { t: "ext", v: el } };
-    },
-  },
-  {
-    name: "new-text-el",
-    definition: { exactArity: 1, params: ["str"], returns: ["ext"] },
-    handler: ([text]) => {
-      const el = document.createTextNode(str(text));
-      return { kind: "val", value: { t: "ext", v: el } };
+    handler: ([html]) => {
+      return {
+        kind: "val",
+        value: { t: "ext", v: htmlToElement(val2str(html)) },
+      };
     },
   },
   {
