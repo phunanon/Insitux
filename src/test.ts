@@ -37,7 +37,8 @@ const tests: {
   { name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
   {
     name: "Say Hello, world!",
-    code: `(print "Hello, world!")`,
+    code: `;This is a test comment
+           (print "Hello, world!")`,
     out: `Hello, world!\nnull`,
   },
   { name: "1 + 1 = 2", code: `(+ 1 1)`, out: `2` },
@@ -297,6 +298,17 @@ const tests: {
     out: `224`,
   },
   {
+    name: "Parameterised closure 3",
+    code: `(reduce
+             (fn primes num
+               (if (find zero? (map (rem num) primes))
+                 primes
+                 (push primes num)))
+             [2]
+             (range 3 10))`,
+    out: `[2 3 5 7]`,
+  },
+  {
     name: "Closure with mixed lets",
     code: `(let a + c 5 d 10)
            (let closure (fn b (let d 1) (a b c d)))
@@ -329,7 +341,7 @@ const tests: {
     code: `(let f (fn a [a [a]])) (f 0)`,
     out: `[0 [0]]`,
   },
-  { name: "Threading", code: "(-> 1 inc @(+ 10))", out: `12` },
+  { name: "Implicit currying", code: "(-> 1 inc (+ 10))", out: `12` },
   //Runtime errors
   {
     name: "String instead of number",

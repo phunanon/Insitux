@@ -741,8 +741,7 @@ vector item or string character is "destructured" into.
 (f ["Patrick"])
 → "Hello, Patrick"
 
-(var f (fn [x y]
-  [y x]))
+(var f (fn [x y] [y x]))
 (f [:a :b :c])
 → [:b :a]
 
@@ -956,20 +955,23 @@ vector item or string character is "destructured" into.
 (function vec->html v
   (if! (vec? v) (return v))
   (let [tag attr] v
+       from-key   @((key? %) (-> % str sect))
        has-attr   (dict? attr)
-       make-attr  (fn [k v] (str " " k "=\"" v "\""))
+       make-attr  (fn [k v] (str " " (from-key k) "=\"" v "\""))
        attr       (if has-attr (map make-attr attr) "")
-       tag        (-> tag str sect)
+       tag        (from-key tag)
        body       (sect v (has-attr 2 1))
        body       (map vec->html body))
-  (.. str "<" tag attr ">" body "</" tag ">"))
+  (if (["link" "meta" "input" "img"] tag)
+    (.. str "<" tag attr " />")
+    (.. str "<" tag attr ">" body "</" tag ">")))
 
 (vec->html
   [:div
     [:h2 "Hello"]
     [:p ".PI is " [:b (round 2 PI)] "."]
     [:p "Find more about Insitux on "
-       [:a {"href" "https://github.com/phunanon/Insitux"}
+       [:a {:href "https://github.com/phunanon/Insitux"}
           "Github"]]])
 → "<div><h2>Hello</h2><p>.PI is <b>3.14</b>.</p><p>Find more about Insitux on <a href="https://github.com/phunanon/Insitux">Github</a></p></div>"
 

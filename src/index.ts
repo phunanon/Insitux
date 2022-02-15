@@ -1,7 +1,7 @@
-export const insituxVersion = 220211;
+export const insituxVersion = 220215;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
-import { capture } from "./closure";
+import { makeEnclosure } from "./closure";
 import { parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, sign, sqrt, floor, ceil, round, max, min, logn, log2, log10 } = pf;
@@ -1112,7 +1112,7 @@ function exeFunc(
         exeFunc(ctx, { ins: derefIns }, args, true);
         const numIns = len(derefIns);
         const captures = splice(stack, len(stack) - numIns, numIns);
-        stack.push(<Val>{ t: "clo", v: capture(ins.value, captures) });
+        stack.push({ t: "clo", v: makeEnclosure(ins.value, captures) });
         break;
       }
       default:

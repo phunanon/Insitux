@@ -775,30 +775,31 @@ function keyOpErr(errCtx, types) {
 
 ;// CONCATENATED MODULE: ./src/closure.ts
 
-function enclose(name, cins) {
-  const declarations = [];
+function makeClosure(name, params, cins) {
+  const exclusions = params;
   cins.forEach((i) => {
     if (i.typ === "let" || i.typ === "var") {
-      declarations.push(i.value);
+      exclusions.push(i.value);
     }
   });
-  const closure = { name, cins, declarations, derefIns: [] };
-  makeDerefFunc(closure);
+  const closure = { name, cins, exclusions, derefIns: [] };
+  populateDereferences(closure);
   return closure;
 }
-function capture({ name, cins, declarations }, derefed) {
+function makeEnclosure(closure, derefed, exclusions = closure.exclusions) {
+  const { name, cins } = closure;
   const ins = [];
   for (let i = 0, lim = len(cins); i < lim; ++i) {
     const cin = cins[i];
     if (cin.typ === "clo") {
-      const closure = {
+      const closure2 = {
         name: cin.value.name,
         derefIns: cin.value.derefIns,
-        declarations: cin.value.declarations,
-        cins: capture(cin.value, derefed).ins
+        exclusions: cin.value.exclusions,
+        cins: makeEnclosure(cin.value, derefed, exclusions).ins
       };
-      ins.push({ typ: "clo", value: closure });
-    } else if (canCapture(declarations, cin, i + 1 !== lim && cins[i + 1])) {
+      ins.push({ typ: "clo", value: closure2 });
+    } else if (canCapture(exclusions, cin, i + 1 !== lim && cins[i + 1])) {
       ins.push({ typ: "val", value: derefed.shift() });
     } else {
       ins.push(cin);
@@ -806,20 +807,20 @@ function capture({ name, cins, declarations }, derefed) {
   }
   return { name, ins };
 }
-function makeDerefFunc({ cins, derefIns, declarations }) {
+function populateDereferences({ cins, derefIns, exclusions }) {
   for (let i = 0, lim = len(cins); i < lim; ++i) {
     const cin = cins[i];
     if (cin.typ === "clo") {
-      makeDerefFunc(cin.value);
-      push(derefIns, cin.value.derefIns);
-    } else if (canCapture(declarations, cin, i + 1 !== lim && cins[i + 1])) {
+      const subDerefs = cin.value.derefIns.filter((di) => !(di.typ === "npa" && has(exclusions, di.text)));
+      push(derefIns, subDerefs);
+    } else if (canCapture(exclusions, cin, i + 1 !== lim && cins[i + 1])) {
       derefIns.push(cin);
     }
   }
 }
-function canCapture(declarations, ins0, ins1) {
+function canCapture(exclusions, ins0, ins1) {
   const isExeVal = ins1 && ins0.typ === "val" && ins0.value.t === "str" && ins1.typ === "exe";
-  return isExeVal || ins0.typ === "npa" || ins0.typ === "ref" && !has(declarations, ins0.value);
+  return isExeVal || ins0.typ === "npa" && !has(exclusions, ins0.text) || ins0.typ === "ref" && !has(exclusions, ins0.value);
 }
 
 ;// CONCATENATED MODULE: ./src/parse.ts
@@ -1192,8 +1193,10 @@ function parseForm(nodes, params, doArityCheck = true) {
     } else if (op === "#" || op === "@" || op === "fn") {
       const pins = [];
       const name = node2str([firstNode, ...nodes]);
+      const cloParams = [];
       if (op === "fn") {
         const parsedParams = parseParams(nodes, false);
+        parse_push(cloParams, parsedParams.shape.map((p) => p.name));
         params = parsedParams.shape;
         parse_push(pins, parsedParams.errors);
         if (!parse_len(nodes)) {
@@ -1221,7 +1224,9 @@ function parseForm(nodes, params, doArityCheck = true) {
           }
         });
       }
-      return [{ typ: "clo", value: enclose(name, cins), errCtx: errCtx2 }];
+      return [
+        { typ: "clo", value: makeClosure(name, cloParams, cins), errCtx: errCtx2 }
+      ];
     }
     if (ops[op] && doArityCheck) {
       const errors = arityCheck(op, parse_len(nodes), errCtx2);
@@ -1269,19 +1274,19 @@ function parseArg(node, params) {
       } else if (parse_starts(text, ":")) {
         return [{ typ: "val", value: { t: "key", v: text }, errCtx }];
       } else if (text === "%" || parse_starts(text, "%") && parse_isNum(parse_substr(text, 1))) {
-        const value = parse_toNum(parse_substr(text, 1));
+        const value = text === "%" ? 0 : parse_toNum(parse_substr(text, 1));
         if (value < 0) {
           return [{ typ: "val", value: nullVal, errCtx }];
         }
-        return [{ typ: "upa", value, errCtx }];
+        return [{ typ: "upa", value, text, errCtx }];
       } else if (parse_has(paramNames, text)) {
         const param = params.find(({ name }) => name === text);
         if (parse_len(param.position) === 1) {
-          return [{ typ: "npa", value: param.position[0], errCtx }];
+          return [{ typ: "npa", value: param.position[0], text, errCtx }];
         }
         return [{ typ: "dpa", value: param.position, errCtx }];
       } else if (text === "args") {
-        return [{ typ: "upa", value: -1, errCtx }];
+        return [{ typ: "upa", value: -1, text: "args", errCtx }];
       } else if (text === "PI" || text === "E") {
         const v = text === "PI" ? 3.141592653589793 : 2.718281828459045;
         return [{ typ: "val", value: { t: "num", v }, errCtx }];
@@ -1533,7 +1538,8 @@ const tests = [
   { name: "Hello, world!", code: `"Hello, world!"`, out: `Hello, world!` },
   {
     name: "Say Hello, world!",
-    code: `(print "Hello, world!")`,
+    code: `;This is a test comment
+           (print "Hello, world!")`,
     out: `Hello, world!
 null`
   },
@@ -1798,6 +1804,17 @@ null`
     out: `224`
   },
   {
+    name: "Parameterised closure 3",
+    code: `(reduce
+             (fn primes num
+               (if (find zero? (map (rem num) primes))
+                 primes
+                 (push primes num)))
+             [2]
+             (range 3 10))`,
+    out: `[2 3 5 7]`
+  },
+  {
     name: "Closure with mixed lets",
     code: `(let a + c 5 d 10)
            (let closure (fn b (let d 1) (a b c d)))
@@ -1830,7 +1847,7 @@ null`
     code: `(let f (fn a [a [a]])) (f 0)`,
     out: `[0 [0]]`
   },
-  { name: "Threading", code: "(-> 1 inc @(+ 10))", out: `12` },
+  { name: "Implicit currying", code: "(-> 1 inc (+ 10))", out: `12` },
   {
     name: "String instead of number",
     code: `(function sum (.. + args))
@@ -2107,7 +2124,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220211;
+const insituxVersion = 220215;
 
 
 
@@ -3095,7 +3112,7 @@ function exeFunc(ctx, func, args, inClosure = false) {
         exeFunc(ctx, { ins: derefIns }, args, true);
         const numIns = src_len(derefIns);
         const captures = src_splice(stack, src_len(stack) - numIns, numIns);
-        stack.push({ t: "clo", v: capture(ins.value, captures) });
+        stack.push({ t: "clo", v: makeEnclosure(ins.value, captures) });
         break;
       }
       default:

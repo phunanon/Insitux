@@ -1,5 +1,5 @@
 import { arityCheck, keyOpErr, numOpErr, typeCheck } from "./checks";
-import { enclose } from "./closure";
+import { makeClosure } from "./closure";
 import * as pf from "./poly-fills";
 const { has, flat, push, slice, splice } = pf;
 const { slen, starts, sub, substr, strIdx, subIdx } = pf;
@@ -426,8 +426,13 @@ function parseForm(
     } else if (op === "#" || op === "@" || op === "fn") {
       const pins: ParserIns[] = [];
       const name = node2str([firstNode, ...nodes]);
+      const cloParams: string[] = [];
       if (op === "fn") {
         const parsedParams = parseParams(nodes, false);
+        push(
+          cloParams,
+          parsedParams.shape.map(p => p.name),
+        );
         params = parsedParams.shape;
         push(pins, parsedParams.errors);
         if (!len(nodes)) {
@@ -449,6 +454,7 @@ function parseForm(
       if (len(errors)) {
         return errors;
       }
+      //TODO: explain what this is for
       if (op === "fn") {
         cins.forEach(i => {
           if (i.typ === "npa") {
@@ -456,7 +462,9 @@ function parseForm(
           }
         });
       }
-      return [{ typ: "clo", value: enclose(name, cins), errCtx }];
+      return [
+        { typ: "clo", value: makeClosure(name, cloParams, cins), errCtx },
+      ];
     }
 
     //Operation arity check, optionally disabled for partial closures
@@ -512,19 +520,19 @@ function parseArg(node: Node, params: ParamsShape): ParserIns[] {
         text === "%" ||
         (starts(text, "%") && isNum(substr(text, 1)))
       ) {
-        const value = toNum(substr(text, 1));
+        const value = text === "%" ? 0 : toNum(substr(text, 1));
         if (value < 0) {
           return [{ typ: "val", value: nullVal, errCtx }];
         }
-        return [{ typ: "upa", value, errCtx }];
+        return [{ typ: "upa", value, text, errCtx }];
       } else if (has(paramNames, text)) {
         const param = params.find(({ name }) => name === text)!;
         if (len(param.position) === 1) {
-          return [{ typ: "npa", value: param.position[0], errCtx }];
+          return [{ typ: "npa", value: param.position[0], text, errCtx }];
         }
         return [{ typ: "dpa", value: param.position, errCtx }];
       } else if (text === "args") {
-        return [{ typ: "upa", value: -1, errCtx }];
+        return [{ typ: "upa", value: -1, text: "args", errCtx }];
       } else if (text === "PI" || text === "E") {
         const v = text === "PI" ? 3.141592653589793 : 2.718281828459045;
         return [{ typ: "val", value: { t: "num", v }, errCtx }];

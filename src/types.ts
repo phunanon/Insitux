@@ -78,13 +78,12 @@ export type ParamsShape = { name: string; position: number[] }[];
 export type Closure = {
   readonly name: string;
   readonly cins: Ins[];
+  readonly exclusions: string[]; //For declarations and parameters
   readonly derefIns: Ins[];
-  readonly declarations: string[];
 };
 
 export type Ins = { errCtx: ErrCtx } & (
-  | { typ: "val"; value: Val }
-  | { typ: "npa" | "upa"; value: number } //Named and Unnamed parameters
+  | { typ: "npa" | "upa"; value: number; text: string } //Named and Unnamed parameters
   | { typ: "dpa"; value: number[] } //Destructuring parameters
   | { typ: "var" | "let" | "ref"; value: string }
   | { typ: "dva" | "dle"; value: ParamsShape } //Destructuring var/let
@@ -94,6 +93,7 @@ export type Ins = { errCtx: ErrCtx } & (
   | { typ: "ret"; value: boolean } //Return, with value?
   | { typ: "pop"; value: number } //Truncate stack, by number of values
   | { typ: "clo"; value: Closure } //Closure/partial
+  | { typ: "val"; value: Val }
 );
 
 /** Definition of an operation in Insitux,
