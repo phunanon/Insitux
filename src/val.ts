@@ -45,8 +45,15 @@ export const isEqual = (a: Val, b: Val) => {
 export const stringify = (vals: Val[]) =>
   vals.reduce((cat, v) => cat + val2str(v), "");
 
+const quoteStr = (str: string) =>
+  str
+    .split("")
+    .map(ch => (ch === '"' ? '\\"' : ch))
+    .join("");
+
 export const val2str = (val: Val): string => {
-  const quoted = (v: Val) => (v.t === "str" ? `"${v.v}"` : val2str(v));
+  const quoted = (v: Val) =>
+    v.t === "str" ? `"${quoteStr(v.v)}"` : val2str(v);
   if (val.t === "clo") {
     return val.v.name ?? "";
   } else if (val.t === "vec") {

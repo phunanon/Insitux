@@ -1,4 +1,4 @@
-export const insituxVersion = 220215;
+export const insituxVersion = 220216;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -789,7 +789,7 @@ function getExe(
         checks(name, params, errCtx, checkArity) ||
         exeOp(name, params, ctx, errCtx);
     }
-    if (name in ctx.env.funcs) {
+    if (name in ctx.env.funcs && name !== "entry") {
       return (params: Val[]) => exeFunc(ctx, ctx.env.funcs[name], params);
     }
     if (name in ctx.env.vars) {

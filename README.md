@@ -930,7 +930,7 @@ vector item or string character is "destructured" into.
   (str result " took " (- end start) "ms"))
 
 (measure fib 35)
-→ "9227465 took 38003ms"
+→ "9227465 took 36378ms"
 
 
 ; Display the Mandelbrot fractal as ASCII

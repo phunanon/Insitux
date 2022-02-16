@@ -889,7 +889,8 @@ function tokenise(code, invokeId, doTransforms = true, emitComments = false) {
     }
     const isWhite = parse_sub(" 	\n\r,", c);
     if (!inString && isWhite) {
-      inNumber = inSymbol = false;
+      inSymbol = false;
+      inNumber && (inNumber = c === ",");
       if (c === "\n") {
         ++line;
         col = 0;
@@ -1162,7 +1163,8 @@ function parseForm(nodes, params, doArityCheck = true) {
         if (isToken(def)) {
           const defIns = parseNode(defs[d], params);
           if (parse_len(defIns) > 1 || defIns[0].typ !== "ref") {
-            return err("declaration name must be symbol", defIns[0].errCtx);
+            const errMsg = "declaration name must be a new symbol";
+            return err(errMsg, defIns[0].errCtx);
           }
           ins2.push({ typ: op, value: defIns[0].value, errCtx: errCtx2 });
         } else {
@@ -2023,8 +2025,9 @@ const isEqual = (a, b) => {
   return assertUnreachable(a);
 };
 const stringify = (vals) => vals.reduce((cat, v) => cat + val2str(v), "");
+const quoteStr = (str2) => str2.split("").map((ch) => ch === '"' ? '\\"' : ch).join("");
 const val2str = (val) => {
-  const quoted = (v) => v.t === "str" ? `"${v.v}"` : val2str(v);
+  const quoted = (v) => v.t === "str" ? `"${quoteStr(v.v)}"` : val2str(v);
   if (val.t === "clo") {
     return val.v.name ?? "";
   } else if (val.t === "vec") {
@@ -2124,7 +2127,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220215;
+const insituxVersion = 220216;
 
 
 
@@ -2815,7 +2818,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
       }
       return (params) => checks(name, params, errCtx, checkArity) || exeOp(name, params, ctx, errCtx);
     }
-    if (name in ctx.env.funcs) {
+    if (name in ctx.env.funcs && name !== "entry") {
       return (params) => exeFunc(ctx, ctx.env.funcs[name], params);
     }
     if (name in ctx.env.vars) {
