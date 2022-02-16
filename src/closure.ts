@@ -21,9 +21,9 @@ export function makeClosure(
 
 /** Create a function representing a parent closure and its sub-closures with
  * all values needing captured at this point having been replaced.
- * The parent closure's exclusions are passed down to ensure its declarations
- * and parameters aren't treated as external captures. Those will be captured
- * by subsequent enclosures. */
+ * The parent closure's parameters are passed down to ensure its parameters
+ * aren't treated as external captures; its declarations will also be excluded
+ * at the first level. All these will be captured by subsequent enclosures. */
 export function makeEnclosure(
   closure: Closure,
   derefed: Val[],
@@ -59,9 +59,11 @@ function populateDereferences({ cins, derefIns, exclusions }: Closure) {
   for (let i = 0, lim = len(cins); i < lim; ++i) {
     const cin = cins[i];
     if (cin.typ === "clo") {
-      //Don't capture the parameters of a fn closure
+      //Don't capture the parameters of a fn closure, nor any decls
       const subDerefs = cin.value.derefIns.filter(
-        di => !(di.typ === "npa" && has(exclusions, di.text)),
+        di =>
+          !(di.typ === "npa" && has(exclusions, di.text)) &&
+          !(di.typ === "ref" && has(exclusions, di.value)),
       );
       //Ensure to capture sub-closures' captures not satisfied by their parents
       push(derefIns, subDerefs);

@@ -165,7 +165,12 @@ etc
 (xor 1 true)     → false
 
 ;Like if, but either executes all arguments or returns null
-(when true (print-str "hi") 123)
+(when true
+  (print-str "hi")
+  123)
+(unless false
+  (print-str "hi")
+  123)
 → hi123
 
 ;Various arithmetic operators which take one or more arguments

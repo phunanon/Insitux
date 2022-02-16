@@ -811,7 +811,7 @@ function populateDereferences({ cins, derefIns, exclusions }) {
   for (let i = 0, lim = len(cins); i < lim; ++i) {
     const cin = cins[i];
     if (cin.typ === "clo") {
-      const subDerefs = cin.value.derefIns.filter((di) => !(di.typ === "npa" && has(exclusions, di.text)));
+      const subDerefs = cin.value.derefIns.filter((di) => !(di.typ === "npa" && has(exclusions, di.text)) && !(di.typ === "ref" && has(exclusions, di.value)));
       push(derefIns, subDerefs);
     } else if (canCapture(exclusions, cin, i + 1 !== lim && cins[i + 1])) {
       derefIns.push(cin);
@@ -1821,12 +1821,17 @@ null`
     out: `[2 3 5 7]`
   },
   {
-    name: "Closure with mixed lets",
+    name: "Closure with inter-lets",
     code: `(let a + c 5 d 10)
            (let closure (fn b (let d 1) (a b c d)))
            (let a - c 4 d 11)
            (closure 1)`,
     out: `7`
+  },
+  {
+    name: "Closure with inner-let",
+    code: `(((fn x (let y 1) #[x y]) 2))`,
+    out: `[2 1]`
   },
   {
     name: "Destructure var",
