@@ -73,7 +73,15 @@
 				"description": [
 					"(when true (print \"hi\") (print \"bye\"))",
 					"syntax",
-					"Tests a condition and executes its body else returns null."
+					"Tests a condition is true and executes its body else returns null."
+				]
+			},
+			{
+				"directory": "unless",
+				"description": [
+					"(unless false (print \"hi\") (print \"bye\"))",
+					"syntax",
+					"Tests a condition is false and executes its body else returns null."
 				]
 			},
 			{

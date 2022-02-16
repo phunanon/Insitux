@@ -1109,7 +1109,10 @@ function exeFunc(
           return decl ? <Ins>{ typ: "val", value: decl } : ins;
         });
         //Dereference closure captures
-        exeFunc(ctx, { ins: derefIns }, args, true);
+        const errors = exeFunc(ctx, { ins: derefIns }, args, true);
+        if (errors) {
+          return errors;
+        }
         const numIns = len(derefIns);
         const captures = splice(stack, len(stack) - numIns, numIns);
         stack.push({ t: "clo", v: makeEnclosure(ins.value, captures) });
@@ -1238,7 +1241,8 @@ export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
   let syms: string[] = [];
   if (alsoSyntax) {
     push(syms, ["function", "fn", "var", "let", "var!", "let!", "return"]);
-    push(syms, ["if", "if!", "when", "while", "loop", "match", "catch"]);
+    push(syms, ["if", "if!", "when", "unless"]);
+    push(syms, ["while", "loop", "match", "catch"]);
   }
   push(syms, ["args", "PI", "E"]);
   syms = concat(syms, objKeys(ops));

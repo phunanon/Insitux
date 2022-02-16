@@ -1010,7 +1010,7 @@ function parseForm(nodes, params, doArityCheck = true) {
     const err = (m, eCtx = errCtx2) => [
       { typ: "err", value: m, errCtx: eCtx }
     ];
-    if (parse_has(["if", "if!", "when", "match"], op) && !parse_len(nodes)) {
+    if (parse_has(["if", "if!", "when", "unless", "match"], op) && !parse_len(nodes)) {
       return err("provide a condition");
     } else if (parse_has(["if", "if!"], op)) {
       if (parse_len(nodes) === 1) {
@@ -1036,7 +1036,7 @@ function parseForm(nodes, params, doArityCheck = true) {
         { typ: "jmp", value: parse_len(branch2), errCtx: errCtx2 },
         ...branch2
       ];
-    } else if (op === "when") {
+    } else if (op === "when" || op === "unless") {
       if (parse_len(nodes) === 1) {
         return err("provide a body");
       }
@@ -1045,6 +1045,10 @@ function parseForm(nodes, params, doArityCheck = true) {
       const bodyIns = poppedBody(body);
       return [
         ...cond,
+        ...op === "unless" ? [
+          { typ: "val", value: { t: "func", v: "!" } },
+          { typ: "exe", value: 1 }
+        ] : [],
         { typ: "if", value: parse_len(bodyIns) + 1, errCtx: errCtx2 },
         ...bodyIns,
         { typ: "jmp", value: 1, errCtx: errCtx2 },
@@ -1550,8 +1554,8 @@ null`
   { name: "(1+1)+1+(1+1) = 5", code: `(+ (+ 1 1) 1 (+ 1 1))`, out: `5` },
   { name: "Conditional head", code: `((if true + -) 12 9 1)`, out: `22` },
   {
-    name: "Whens",
-    code: `[(when 123 (print "hi") 234) (when false (print "bye"))]`,
+    name: "when and unless",
+    code: `[(when 123 (print "hi") 234) (unless true (print "bye"))]`,
     out: `hi
 [234 null]`
   },
@@ -3112,7 +3116,10 @@ function exeFunc(ctx, func, args, inClosure = false) {
           const decl = ins2.typ === "val" && ins2.value.t === "str" && (lets[ins2.value.v] ?? ctx.env.vars[ins2.value.v]);
           return decl ? { typ: "val", value: decl } : ins2;
         });
-        exeFunc(ctx, { ins: derefIns }, args, true);
+        const errors = exeFunc(ctx, { ins: derefIns }, args, true);
+        if (errors) {
+          return errors;
+        }
         const numIns = src_len(derefIns);
         const captures = src_splice(stack, src_len(stack) - numIns, numIns);
         stack.push({ t: "clo", v: makeEnclosure(ins.value, captures) });
@@ -3183,7 +3190,8 @@ function symbols(ctx, alsoSyntax = true) {
   let syms = [];
   if (alsoSyntax) {
     src_push(syms, ["function", "fn", "var", "let", "var!", "let!", "return"]);
-    src_push(syms, ["if", "if!", "when", "while", "loop", "match", "catch"]);
+    src_push(syms, ["if", "if!", "when", "unless"]);
+    src_push(syms, ["while", "loop", "match", "catch"]);
   }
   src_push(syms, ["args", "PI", "E"]);
   syms = src_concat(syms, src_objKeys(ops));

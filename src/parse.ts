@@ -238,7 +238,7 @@ function parseForm(
       <ParserIns>{ typ: "err", value: m, errCtx: eCtx },
     ];
 
-    if (has(["if", "if!", "when", "match"], op) && !len(nodes)) {
+    if (has(["if", "if!", "when", "unless", "match"], op) && !len(nodes)) {
       return err("provide a condition");
     } else if (has(["if", "if!"], op)) {
       if (len(nodes) === 1) {
@@ -264,7 +264,7 @@ function parseForm(
         { typ: "jmp", value: len(branch2), errCtx },
         ...branch2,
       ];
-    } else if (op === "when") {
+    } else if (op === "when" || op === "unless") {
       if (len(nodes) === 1) {
         return err("provide a body");
       }
@@ -273,6 +273,12 @@ function parseForm(
       const bodyIns = poppedBody(body);
       return [
         ...cond,
+        ...(op === "unless"
+          ? [
+              <Ins>{ typ: "val", value: { t: "func", v: "!" } },
+              <Ins>{ typ: "exe", value: 1 },
+            ]
+          : []),
         { typ: "if", value: len(bodyIns) + 1, errCtx },
         ...bodyIns,
         { typ: "jmp", value: 1, errCtx },
