@@ -479,6 +479,14 @@
 				]
 			},
 			{
+				"directory": "distinct",
+				"description": [
+					"(distinct 8 6 9 0 0 9)",
+					"function",
+					"Returns vector of distinct arguments, or if given one vector, a vector of distinct values"
+				]
+			},
+			{
 				"directory": "starts?",
 				"description": [
 					"(starts? \"He\" \"Hello\")",

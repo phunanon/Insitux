@@ -184,7 +184,11 @@ to define variables, use `var`:
 
 (when true (print "hi") (print "bye"))
 ;; syntax
-;; Tests a condition and executes its body else returns null.
+;; Tests a condition is true and executes its body else returns null.
+
+(unless false (print "hi") (print "bye"))
+;; syntax
+;; Tests a condition is false and executes its body else returns null.
 
 (while (pos? n) (print "hi") (var n (dec n)))
 ;; syntax
@@ -455,6 +459,10 @@ to define variables, use `var`:
 (sort-by sin [8 6 9 0 4])
 ;; function
 ;; Returns a vector of vector items, dictionary entries, or string characters sorted by the return of a function over each item
+
+(distinct 8 6 9 0 0 9)
+;; function
+;; Returns vector of distinct arguments, or if given one vector, a vector of distinct values
 
 (starts? "He" "Hello")
 ;; function

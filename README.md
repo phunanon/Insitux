@@ -429,6 +429,13 @@ etc
 (sort-by 1 {1 3 2 2 3 1})     → [[3 1] [2 2] [1 3]]
 (sort-by #(rand-int) "hello") → ["l" "e" "o" "l" "h"]
 
+;Returns vector of distinct arguments
+; or if given one vector, a vector of distinct values
+(distinct 0 9 8 7 8 7 9 6)    → [0 9 8 7 6]
+(distinct [0 1] [0 1] [2])    → [[0 1] [2]]
+(.. distinct [0 1] [0 1] [2]) → [0 1 2]
+(distinct [1 1 :a :a])        → [1 :a]
+
 ;Generates a range of numbers
 ;Note: the first argument is always inclusive, second exclusive
 (range 5)      → [0 1 2 3 4]
@@ -975,10 +982,10 @@ vector item or string character is "destructured" into.
   [:div
     [:h2 "Hello"]
     [:p ".PI is " [:b (round 2 PI)] "."]
-    [:p "Find more about Insitux on "
-       [:a {:href "https://github.com/phunanon/Insitux"}
+    [:p "Find out about Insitux on "
+       [:a {:href "https://insitux.github.io"}
           "Github"]]])
-→ "<div><h2>Hello</h2><p>.PI is <b>3.14</b>.</p><p>Find more about Insitux on <a href="https://github.com/phunanon/Insitux">Github</a></p></div>"
+→ "<div><h2>Hello</h2><p>.PI is <b>3.14</b>.</p><p>Find out about Insitux on <a href=\"https://insitux.github.io\">Github</a></p></div>"
 
 
 ; Neural network for genetic algorithms with two hidden layers

@@ -268,6 +268,9 @@ export const ops: {
     params: [[], ["vec", "dict", "str"]],
     returns: ["vec"],
   },
+  distinct: {
+    returns: ["vec"],
+  },
   keys: { exactArity: 1, params: ["dict"] },
   vals: { exactArity: 1, params: ["dict"] },
   do: { minArity: 1 },

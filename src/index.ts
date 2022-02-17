@@ -1,4 +1,4 @@
-export const insituxVersion = 220216;
+export const insituxVersion = 220217;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -617,6 +617,17 @@ function exeOp(
         sortBy(mapped, ([x, a], [y, b]) => (str(a) > str(b) ? 1 : -1));
       }
       _vec(mapped.map(([v]) => v));
+      return;
+    }
+    case "distinct": {
+      const arr = len(args) === 1 && args[0].t === "vec" ? vec(args[0]) : args;
+      const distinct: Val[] = [];
+      arr.forEach(a => {
+        if (!distinct.some(v => isEqual(a, v))) {
+          distinct.push(a);
+        }
+      });
+      _vec(distinct);
       return;
     }
     case "range": {

@@ -636,6 +636,9 @@ const ops = {
     params: [[], ["vec", "dict", "str"]],
     returns: ["vec"]
   },
+  distinct: {
+    returns: ["vec"]
+  },
   keys: { exactArity: 1, params: ["dict"] },
   vals: { exactArity: 1, params: ["dict"] },
   do: { minArity: 1 },
@@ -2136,7 +2139,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220216;
+const insituxVersion = 220217;
 
 
 
@@ -2687,6 +2690,17 @@ function exeOp(op, args, ctx, errCtx) {
         src_sortBy(mapped, ([x, a2], [y, b2]) => str(a2) > str(b2) ? 1 : -1);
       }
       _vec(mapped.map(([v]) => v));
+      return;
+    }
+    case "distinct": {
+      const arr = src_len(args) === 1 && args[0].t === "vec" ? vec(args[0]) : args;
+      const distinct = [];
+      arr.forEach((a2) => {
+        if (!distinct.some((v) => isEqual(a2, v))) {
+          distinct.push(a2);
+        }
+      });
+      _vec(distinct);
       return;
     }
     case "range": {
