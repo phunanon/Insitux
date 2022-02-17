@@ -24,7 +24,7 @@
 (function measure n
   (let report [(time) (mandelbrot 100 100 10) (time)])
   (let diff (- (2 report) (0 report)))
-  (var results (push results diff))
+  (var results (append diff results))
   (print n " " (version) ": took " diff "ms"
     "   " (best-avg) "ms best avg"))
 

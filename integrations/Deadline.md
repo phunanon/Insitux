@@ -382,11 +382,21 @@ to define variables, use `var`:
 ;; function
 ;; Returns the concatenation of vectors and dictionaries.
 
-(push [0 1 2] 3)
+(append 3 [0 1 2])
 ;; function
-;; Returns a vector or dictionary with one item or key-value pair appended;
-;; or, inserts a value into a vector at a specified index;
-;; or, removes a key from a dictionary.
+;; Append item to the end of a vector.
+
+(prepend 3 [0 1 2])
+;; function
+;; Prepend item to the beginning of a vector.
+
+(omit :a {:a 1 :b 2})
+;; function
+;; Removes key from a dictionary.
+
+(insert :a 1 [1 2])
+;; function
+;; Insert item at a specified index in a vector.
 
 (sect "Hello, world!" 1 3)
 ;; function

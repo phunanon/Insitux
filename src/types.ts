@@ -245,12 +245,6 @@ export const ops: {
     ],
     returns: ["vec", "dict"],
   },
-  push: {
-    minArity: 2,
-    maxArity: 3,
-    params: [["vec", "dict"]],
-    returns: ["vec", "dict"],
-  },
   omit: {
     exactArity: 2,
     params: [[], "dict"],
@@ -259,6 +253,16 @@ export const ops: {
   insert: {
     exactArity: 3,
     params: [[], "num", "vec"],
+    returns: ["vec"],
+  },
+  append: {
+    exactArity: 2,
+    params: [[], "vec"],
+    returns: ["vec"],
+  },
+  prepend: {
+    exactArity: 2,
+    params: [[], "vec"],
     returns: ["vec"],
   },
   sect: {

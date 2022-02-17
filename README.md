@@ -362,14 +362,6 @@ etc
 (into {:a 123 :b 456} {:a 456}) → {:a 456, :b 456}
 (into [1 2 3] [4 5 6])          → [1 2 3 4 5 6]
 
-;Returns a vector or dictionary with one item or key-value pair appended
-;Or, inserts a value into a vector at a specified index
-;Or, removes a key from a dictionary
-(push [1 2] :a)   → [1 2 :a]
-(push {1 2} 1)    → {}
-(push [1 2] :a 1) → [1 :a 2]
-(push {1 2} 3 4)  → {1 2, 3 4}
-
 ;Removes key from a dictionary
 (omit :a {:a 1 :b 2}) → {:b 2}
 (omit [1] {[1] 1 :b 2}) → {:b 2}
@@ -379,6 +371,12 @@ etc
 (insert :a 1 [1 2])  → [1 :a 2]
 (insert :a -1 [1 2]) → [1 2 :a]
 (insert :a 9 [1 2])  → [1 2 :a]
+
+;Append item to the end of a vector
+(append :a [1 2]) → [1 2 :a]
+
+;Prepend item to the beginning of a vector
+(prepend :a [1 2]) → [:a 1 2]
 
 ;Returns a section of a string or vector
 (sect "Patrick")       → "atrick"
@@ -418,7 +416,7 @@ etc
 
 ;"Thread" return values into the next function, seeded with first argument
 (-> "hello" 1 upper-case)      → "E"
-(-> [0 1] #(push % 2) reverse) → [2 1 0]
+(-> [0 1] (append 2) reverse) → [2 1 0]
 
 ;Returns the reverse of a vector or string
 (reverse "Hello") → "olleH"
@@ -743,7 +741,7 @@ captured.
 ;This also works fine
 (function cumulative-sum nums
   (var acc 0)
-  (reduce #(push % (var! acc + %1)) [] nums))
+  (reduce #(append (var! acc + %1) %) [] nums))
 (cumulative-sum (range 5))
 → [0 1 3 6 10]
 ```
@@ -843,7 +841,7 @@ vector item or string character is "destructured" into.
   (fn primes num
     (if (find zero? (map (rem num) primes))
       primes
-      (push primes num)))
+      (append num primes)))
   [2]
   (range 3 1000))
 
@@ -908,27 +906,10 @@ vector item or string character is "destructured" into.
 
 ; Clojure's frequencies
 (function frequencies list
-  (reduce #(push % %1 (inc (or (% %1) 0))) {} list))
+  (reduce #(% %1 (inc (or (% %1) 0))) {} list))
 
 (frequencies "hello")
 → {"h" 1, "e" 1, "l" 2, "o" 1}
-
-
-; Deduplicate a list recursively
-(function dedupe list -out
-  (let out  (or -out [])
-       next (if (out (0 list)) [] [(0 list)]))
-  (if (empty? list) out
-    (recur (sect list) (into out next))))
-;or via dictionary keys
-(function dedupe list
-  (keys (.. .. dict (for vec list [0]))))
-;or via reduction
-(function dedupe list
-  (reduce #(if (% %1) % (push % %1)) [] list))
-
-(dedupe [1 2 3 3])
-→ [1 2 3]
 
 
 ; Show entry for function from this README.md (works in NodeJS REPL)

@@ -14,7 +14,7 @@
 (function measure n
   (let report [(time) (fib 28) (time)])
   (let diff (- (2 report) (0 report)))
-  (var results (push results diff))
+  (var results (append diff results))
   (print n " " (version) ": " (1 report) " took " diff "ms"
     "   " (best-avg) "ms best avg"))
 

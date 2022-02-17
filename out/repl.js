@@ -613,12 +613,6 @@ const ops = {
     ],
     returns: ["vec", "dict"]
   },
-  push: {
-    minArity: 2,
-    maxArity: 3,
-    params: [["vec", "dict"]],
-    returns: ["vec", "dict"]
-  },
   omit: {
     exactArity: 2,
     params: [[], "dict"],
@@ -627,6 +621,16 @@ const ops = {
   insert: {
     exactArity: 3,
     params: [[], "num", "vec"],
+    returns: ["vec"]
+  },
+  append: {
+    exactArity: 2,
+    params: [[], "vec"],
+    returns: ["vec"]
+  },
+  prepend: {
+    exactArity: 2,
+    params: [[], "vec"],
     returns: ["vec"]
   },
   sect: {
@@ -2613,6 +2617,9 @@ function exeOp(op, args, ctx, errCtx) {
     case "append":
       _vec(src_concat(vec(args[1]), [args[0]]));
       return;
+    case "prepend":
+      _vec(src_concat([args[0]], vec(args[1])));
+      return;
     case "insert": {
       const v = vec(args[2]);
       let n = num(args[1]);
@@ -2623,24 +2630,6 @@ function exeOp(op, args, ctx, errCtx) {
       } else {
         n = n > 0 ? src_min(n, src_len(v)) : src_max(src_len(v) + 1 + n, 0);
         _vec(src_concat(src_concat(src_slice(v, 0, n), [args[0]]), src_slice(v, n)));
-      }
-      return;
-    }
-    case "push": {
-      if (args[0].t === "vec") {
-        const v = args[0].v;
-        if (src_len(args) < 3) {
-          _vec(src_concat(v, [args[1]]));
-        } else {
-          const n = num(args[2]);
-          _vec(src_concat(src_concat(src_slice(v, 0, n), [args[1]]), src_slice(v, n)));
-        }
-      } else {
-        if (src_len(args) < 3) {
-          stack.push(dictDrop(dic(args[0]), args[1]));
-        } else {
-          _dic(dictSet(dic(args[0]), args[1], args[2]));
-        }
       }
       return;
     }
@@ -3356,7 +3345,7 @@ const functions = [
     handler: (params) => writeOrAppend(params[0].v, params[1].v)
   },
   {
-    name: "append",
+    name: "file-append",
     definition: writingOpDef,
     handler: (params) => writeOrAppend(params[0].v, params[1].v, true)
   },

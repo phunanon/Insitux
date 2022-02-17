@@ -1,7 +1,7 @@
 Insitux
 ```clj
 (function frequencies list
-  (reduce #(push % %1 (inc (or (% %1) 0))) {} list))
+  (reduce #(% %1 (inc (or (% %1) 0))) {} list))
 ```
 TypeScript
 ```ts

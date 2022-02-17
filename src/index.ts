@@ -523,6 +523,12 @@ function exeOp(
     case "omit":
       stack.push(dictDrop(dic(args[1]), args[0]));
       return;
+    case "append":
+      _vec(concat(vec(args[1]), [args[0]]));
+      return;
+    case "prepend":
+      _vec(concat([args[0]], vec(args[1])));
+      return;
     case "insert": {
       const v = vec(args[2]);
       let n = num(args[1]);
@@ -531,26 +537,8 @@ function exeOp(
       } else if (n === -1) {
         _vec(concat(v, [args[0]]));
       } else {
-        n = n > 0 ? min(n, len(v)): max(len(v) + 1 + n, 0);
+        n = n > 0 ? min(n, len(v)) : max(len(v) + 1 + n, 0);
         _vec(concat(concat(slice(v, 0, n), [args[0]]), slice(v, n)));
-      }
-      return;
-    }
-    case "push": {
-      if (args[0].t === "vec") {
-        const v = args[0].v;
-        if (len(args) < 3) {
-          _vec(concat(v, [args[1]]));
-        } else {
-          const n = num(args[2]);
-          _vec(concat(concat(slice(v, 0, n), [args[1]]), slice(v, n)));
-        }
-      } else {
-        if (len(args) < 3) {
-          stack.push(dictDrop(dic(args[0]), args[1]));
-        } else {
-          _dic(dictSet(dic(args[0]), args[1], args[2]));
-        }
       }
       return;
     }

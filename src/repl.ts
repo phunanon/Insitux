@@ -54,7 +54,7 @@ const functions: ExternalFunction[] = [
       writeOrAppend(<string>params[0].v, <string>params[1].v),
   },
   {
-    name: "append",
+    name: "file-append",
     definition: writingOpDef,
     handler: (params: Val[]) =>
       writeOrAppend(<string>params[0].v, <string>params[1].v, true),
