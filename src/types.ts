@@ -251,6 +251,16 @@ export const ops: {
     params: [["vec", "dict"]],
     returns: ["vec", "dict"],
   },
+  omit: {
+    exactArity: 2,
+    params: [[], "dict"],
+    returns: ["dict"],
+  },
+  insert: {
+    exactArity: 3,
+    params: [[], "num", "vec"],
+    returns: ["vec"],
+  },
   sect: {
     minArity: 1,
     maxArity: 3,

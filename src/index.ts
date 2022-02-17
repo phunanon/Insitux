@@ -1,4 +1,4 @@
-export const insituxVersion = 220217;
+export const insituxVersion = 220218;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -517,6 +517,22 @@ function exeOp(
           const d1 = dic(args[1]);
           _dic({ keys: concat(keys, d1.keys), vals: concat(vals, d1.vals) });
         }
+      }
+      return;
+    }
+    case "omit":
+      stack.push(dictDrop(dic(args[1]), args[0]));
+      return;
+    case "insert": {
+      const v = vec(args[2]);
+      let n = num(args[1]);
+      if (n === 0) {
+        _vec(concat([args[0]], v));
+      } else if (n === -1) {
+        _vec(concat(v, [args[0]]));
+      } else {
+        n = n > 0 ? min(n, len(v)): max(len(v) + 1 + n, 0);
+        _vec(concat(concat(slice(v, 0, n), [args[0]]), slice(v, n)));
       }
       return;
     }

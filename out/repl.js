@@ -619,6 +619,16 @@ const ops = {
     params: [["vec", "dict"]],
     returns: ["vec", "dict"]
   },
+  omit: {
+    exactArity: 2,
+    params: [[], "dict"],
+    returns: ["dict"]
+  },
+  insert: {
+    exactArity: 3,
+    params: [[], "num", "vec"],
+    returns: ["vec"]
+  },
   sect: {
     minArity: 1,
     maxArity: 3,
@@ -2139,7 +2149,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220217;
+const insituxVersion = 220218;
 
 
 
@@ -2594,6 +2604,25 @@ function exeOp(op, args, ctx, errCtx) {
           const d1 = dic(args[1]);
           _dic({ keys: src_concat(keys, d1.keys), vals: src_concat(vals, d1.vals) });
         }
+      }
+      return;
+    }
+    case "omit":
+      stack.push(dictDrop(dic(args[1]), args[0]));
+      return;
+    case "append":
+      _vec(src_concat(vec(args[1]), [args[0]]));
+      return;
+    case "insert": {
+      const v = vec(args[2]);
+      let n = num(args[1]);
+      if (n === 0) {
+        _vec(src_concat([args[0]], v));
+      } else if (n === -1) {
+        _vec(src_concat(v, [args[0]]));
+      } else {
+        n = n > 0 ? src_min(n, src_len(v)) : src_max(src_len(v) + 1 + n, 0);
+        _vec(src_concat(src_concat(src_slice(v, 0, n), [args[0]]), src_slice(v, n)));
       }
       return;
     }

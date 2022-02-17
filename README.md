@@ -370,6 +370,16 @@ etc
 (push [1 2] :a 1) → [1 :a 2]
 (push {1 2} 3 4)  → {1 2, 3 4}
 
+;Removes key from a dictionary
+(omit :a {:a 1 :b 2}) → {:b 2}
+(omit [1] {[1] 1 :b 2}) → {:b 2}
+
+;Insert item at a specified index in a vector
+(insert :a 0 [1 2])  → [:a 1 2]
+(insert :a 1 [1 2])  → [1 :a 2]
+(insert :a -1 [1 2]) → [1 2 :a]
+(insert :a 9 [1 2])  → [1 2 :a]
+
 ;Returns a section of a string or vector
 (sect "Patrick")       → "atrick"
 (sect "Patrick" 2)     → "trick"
