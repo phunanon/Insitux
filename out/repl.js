@@ -613,6 +613,11 @@ const ops = {
     ],
     returns: ["vec", "dict"]
   },
+  assoc: {
+    exactArity: 3,
+    params: [[], [], "dict"],
+    returns: ["dict"]
+  },
   omit: {
     exactArity: 2,
     params: [[], "dict"],
@@ -2153,7 +2158,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220218;
+const insituxVersion = 220219;
 
 
 
@@ -2613,6 +2618,9 @@ function exeOp(op, args, ctx, errCtx) {
     }
     case "omit":
       stack.push(dictDrop(dic(args[1]), args[0]));
+      return;
+    case "assoc":
+      _dic(dictSet(dic(args[2]), args[0], args[1]));
       return;
     case "append":
       _vec(src_concat(vec(args[1]), [args[0]]));

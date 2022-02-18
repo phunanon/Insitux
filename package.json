@@ -1,6 +1,6 @@
 {
   "name": "insitux",
-  "version": "22.2.17",
+  "version": "22.2.19",
   "description": "Extensible scripting language written in portable TypeScript.",
   "main": "dist/invoker.js",
   "types": "dist/invoker.d.ts",
@@ -29,5 +29,5 @@
   "bugs": {
     "url": "https://github.com/phunanon/Insitux/issues"
   },
-  "homepage": "https://phunanon.github.io/Insitux/"
+  "homepage": "https://insitux.github.io/"
 }

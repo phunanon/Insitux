@@ -245,6 +245,11 @@ export const ops: {
     ],
     returns: ["vec", "dict"],
   },
+  assoc: {
+    exactArity: 3,
+    params: [[], [], "dict"],
+    returns: ["dict"]
+  },
   omit: {
     exactArity: 2,
     params: [[], "dict"],

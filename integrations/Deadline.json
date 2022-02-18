@@ -385,6 +385,14 @@
 				]
 			},
 			{
+				"directory": "assoc",
+				"description": [
+					"(assoc :a 2 {:a 1 :b 2})",
+					"function",
+					"Associates a value to a key in a dictionary."
+				]
+			},
+			{
 				"directory": "insert",
 				"description": [
 					"(insert :a 1 [1 2])",

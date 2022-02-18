@@ -394,6 +394,10 @@ to define variables, use `var`:
 ;; function
 ;; Removes key from a dictionary.
 
+(assoc :a 2 {:a 1 :b 2})
+;; function
+;; Associates a value to a key in a dictionary.
+
 (insert :a 1 [1 2])
 ;; function
 ;; Insert item at a specified index in a vector.

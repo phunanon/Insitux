@@ -289,6 +289,7 @@ etc
 ({:a "hi" :b "bye"} :c) → null
 
 ;Associates a new key and value in a dictionary
+;See also: assoc
 ({:a 2 :b 3} :c 4) → {:a 2 :b 3 :c 4}
 
 ;Returns either its first or second argument, or null
@@ -365,6 +366,10 @@ etc
 ;Removes key from a dictionary
 (omit :a {:a 1 :b 2}) → {:b 2}
 (omit [1] {[1] 1 :b 2}) → {:b 2}
+
+;Associates a value to a key in a dictionary
+(assoc :a 2 {:a 1 :b 2}) → {:a 2, :b 2}
+(assoc [1] 3 {:b 2}) → {:b 2, [1] 3}
 
 ;Insert item at a specified index in a vector
 (insert :a 0 [1 2])  → [:a 1 2]
@@ -536,7 +541,7 @@ etc
 (tests true)
 
 ;Returns Insitux version as number
-(version) → 2021****
+(version) → 22****
 
 ;Returns symbol name strings vector by definition order in the Insitux session
 (symbols) → ["print" "print-str" "!" "=" …]

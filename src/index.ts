@@ -1,4 +1,4 @@
-export const insituxVersion = 220218;
+export const insituxVersion = 220219;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -522,6 +522,9 @@ function exeOp(
     }
     case "omit":
       stack.push(dictDrop(dic(args[1]), args[0]));
+      return;
+    case "assoc":
+      _dic(dictSet(dic(args[2]), args[0], args[1]));
       return;
     case "append":
       _vec(concat(vec(args[1]), [args[0]]));
