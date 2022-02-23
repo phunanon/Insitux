@@ -248,7 +248,7 @@ export const ops: {
   assoc: {
     exactArity: 3,
     params: [[], [], "dict"],
-    returns: ["dict"]
+    returns: ["dict"],
   },
   omit: {
     exactArity: 2,

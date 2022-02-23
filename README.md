@@ -977,11 +977,11 @@ vector item or string character is "destructured" into.
 (vec->html
   [:div
     [:h2 "Hello"]
-    [:p ".PI is " [:b (round 2 PI)] "."]
+    [:p "PI is " [:b (round 2 PI)] "."]
     [:p "Find out about Insitux on "
        [:a {:href "https://insitux.github.io"}
           "Github"]]])
-→ "<div><h2>Hello</h2><p>.PI is <b>3.14</b>.</p><p>Find out about Insitux on <a href=\"https://insitux.github.io\">Github</a></p></div>"
+→ "<div><h2>Hello</h2><p>PI is <b>3.14</b>.</p><p>Find out about Insitux on <a href=\"https://insitux.github.io\">Github</a></p></div>"
 
 
 ; Neural network for genetic algorithms with two hidden layers
@@ -990,9 +990,9 @@ vector item or string character is "destructured" into.
 
 (function make-brain  num-in num-out num-hid
   (let make-neuron #{:bias 0 :weights (repeat 1 %)})
-  [(repeat #(make-neuron num-in) num-hid)
-   (repeat #(make-neuron num-hid) num-hid)
-   (repeat #(make-neuron num-hid) num-out)])
+  [(repeat (make-neuron num-in)  num-hid)
+   (repeat (make-neuron num-hid) num-hid)
+   (repeat (make-neuron num-hid) num-out)])
 
 (function mutate  brain
   (let mutate-neuron

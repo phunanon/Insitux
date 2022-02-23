@@ -40,23 +40,22 @@ const functions: ExternalFunction[] = [
   {
     name: "read",
     definition: { exactArity: 1, params: ["str"], returns: ["str"] },
-    handler: (params: Val[]) => read(<string>params[0].v, false),
+    handler: params => read(<string>params[0].v, false),
   },
   {
     name: "read-lines",
     definition: { exactArity: 1, params: ["str"], returns: ["vec"] },
-    handler: (params: Val[]) => read(<string>params[0].v, true),
+    handler: params => read(<string>params[0].v, true),
   },
   {
     name: "write",
     definition: writingOpDef,
-    handler: (params: Val[]) =>
-      writeOrAppend(<string>params[0].v, <string>params[1].v),
+    handler: params => writeOrAppend(<string>params[0].v, <string>params[1].v),
   },
   {
     name: "file-append",
     definition: writingOpDef,
-    handler: (params: Val[]) =>
+    handler: params =>
       writeOrAppend(<string>params[0].v, <string>params[1].v, true),
   },
   {
@@ -66,7 +65,7 @@ const functions: ExternalFunction[] = [
       params: ["str"],
       returns: ["str"],
     },
-    handler: (params: Val[]) => ({
+    handler: params => ({
       kind: "val",
       value: { t: "str", v: prompt()(<string>params[0].v) },
     }),

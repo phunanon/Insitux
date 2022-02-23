@@ -1837,7 +1837,7 @@ null`
              (fn primes num
                (if (find zero? (map (rem num) primes))
                  primes
-                 (push primes num)))
+                 (append num primes)))
              [2]
              (range 3 10))`,
     out: `[2 3 5 7]`
@@ -1932,7 +1932,7 @@ null`
   {
     name: "frequencies",
     code: `(function frequencies list
-             (reduce #(push % %1 (inc (or (% %1) 0))) {} list))
+             (reduce #(% %1 (inc (or (% %1) 0))) {} list))
            (frequencies "12121212")`,
     out: `{"1" 4, "2" 4}`
   },
@@ -2158,7 +2158,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220219;
+const insituxVersion = 220220;
 
 
 
