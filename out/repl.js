@@ -696,6 +696,23 @@ const ops = {
   reset: { exactArity: 0 },
   recur: {}
 };
+const syntaxes = [
+  "function",
+  "fn",
+  "var",
+  "let",
+  "var!",
+  "let!",
+  "return",
+  "if",
+  "if!",
+  "when",
+  "unless",
+  "while",
+  "loop",
+  "match",
+  "catch"
+];
 const typeNames = {
   null: "null",
   str: "string",
@@ -1233,6 +1250,11 @@ function parseForm(nodes, params, doArityCheck = true) {
         nodes.unshift({ typ: "sym", text: "do", errCtx: errCtx2 });
       }
       if (op === "@") {
+        const firstSym = symAt(nodes, 0);
+        if (parse_has(syntaxes, firstSym)) {
+          const { errCtx: errCtx3 } = nodes[0];
+          return err(`"${firstSym}" syntax unavailable in partial closure`, errCtx3);
+        }
         nodes = [
           { typ: "sym", text: "...", errCtx: errCtx2 },
           ...nodes,
@@ -2158,7 +2180,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220220;
+const insituxVersion = 220223;
 
 
 
@@ -3234,9 +3256,7 @@ function src_invokeFunction(ctx, funcName, params, printResult = false) {
 function symbols(ctx, alsoSyntax = true) {
   let syms = [];
   if (alsoSyntax) {
-    src_push(syms, ["function", "fn", "var", "let", "var!", "let!", "return"]);
-    src_push(syms, ["if", "if!", "when", "unless"]);
-    src_push(syms, ["while", "loop", "match", "catch"]);
+    src_push(syms, syntaxes);
   }
   src_push(syms, ["args", "PI", "E"]);
   syms = src_concat(syms, src_objKeys(ops));

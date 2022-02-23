@@ -329,6 +329,24 @@ export const ops: {
   recur: {},
 };
 
+export const syntaxes = [
+  "function",
+  "fn",
+  "var",
+  "let",
+  "var!",
+  "let!",
+  "return",
+  "if",
+  "if!",
+  "when",
+  "unless",
+  "while",
+  "loop",
+  "match",
+  "catch",
+];
+
 export const typeNames = {
   null: "null",
   str: "string",

@@ -1,4 +1,4 @@
-export const insituxVersion = 220220;
+export const insituxVersion = 220223;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -12,7 +12,7 @@ const { trim, trimStart, trimEnd, charCode, codeChar, strIdx } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
-import { assertUnreachable, InvokeError, InvokeResult } from "./types";
+import { assertUnreachable, InvokeError, InvokeResult, syntaxes } from "./types";
 import { ExternalFunction, ExternalHandler } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
@@ -1258,9 +1258,7 @@ export function invokeFunction(
 export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
   let syms: string[] = [];
   if (alsoSyntax) {
-    push(syms, ["function", "fn", "var", "let", "var!", "let!", "return"]);
-    push(syms, ["if", "if!", "when", "unless"]);
-    push(syms, ["while", "loop", "match", "catch"]);
+    push(syms, syntaxes);
   }
   push(syms, ["args", "PI", "E"]);
   syms = concat(syms, objKeys(ops));

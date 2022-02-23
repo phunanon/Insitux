@@ -4,8 +4,8 @@ import * as pf from "./poly-fills";
 const { has, flat, push, slice, splice } = pf;
 const { slen, starts, sub, substr, strIdx, subIdx } = pf;
 const { isNum, len, toNum } = pf;
-import { ParamsShape, ErrCtx, Func, Funcs, Ins, ops, Val } from "./types";
-import { assertUnreachable, InvokeError } from "./types";
+import { ParamsShape, Func, Funcs, Ins, ops, Val, syntaxes } from "./types";
+import { assertUnreachable, InvokeError, ErrCtx } from "./types";
 
 export type Token = {
   typ: "str" | "num" | "sym" | "rem" | "(" | ")";
@@ -450,6 +450,14 @@ function parseForm(
       }
       //Rewrite partial closure to #(... [body] args)
       if (op === "@") {
+        const firstSym = symAt(nodes, 0);
+        if (has(syntaxes, firstSym)) {
+          const { errCtx } = nodes[0] as Token;
+          return err(
+            `"${firstSym}" syntax unavailable in partial closure`,
+            errCtx,
+          );
+        }
         nodes = [
           { typ: "sym", text: "...", errCtx },
           ...nodes,
