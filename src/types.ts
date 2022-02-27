@@ -180,6 +180,7 @@ export const ops: {
   "func?": { exactArity: 1, returns: ["bool"] },
   "wild?": { exactArity: 1, returns: ["bool"] },
   "ext?": { exactArity: 1, returns: ["bool"] },
+  "type-of": { exactArity: 1, returns: ["str"] },
   rem: { minArity: 2, numeric: true },
   sin: { exactArity: 1, numeric: true },
   cos: { exactArity: 1, numeric: true },
@@ -199,6 +200,7 @@ export const ops: {
     returns: ["num", "null"],
   },
   "to-key": { exactArity: 1, params: [["str", "num"]], returns: ["key"] },
+  "to-vec": { exactArity: 1, params: [["str", "dict"]], returns: ["vec"] },
   "substr?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
   idx: {
     exactArity: 2,
@@ -304,6 +306,11 @@ export const ops: {
   join: {
     exactArity: 2,
     params: ["str", ["vec", "dict", "str"]],
+    returns: ["str"],
+  },
+  replace: {
+    exactArity: 3,
+    params: ["str", "str", "str"],
     returns: ["str"],
   },
   "starts?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },

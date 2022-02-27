@@ -396,6 +396,7 @@ __webpack_require__.d(poly_fills_namespaceObject, {
   "randInt": () => (randInt),
   "randNum": () => (randNum),
   "range": () => (range),
+  "replace": () => (replace),
   "reverse": () => (reverse),
   "round": () => (round),
   "sign": () => (sign),
@@ -437,6 +438,7 @@ const subIdx = (x, s) => x.indexOf(s);
 const has = (x, y) => x.includes(y);
 const starts = (str, prefix) => str.startsWith(prefix);
 const ends = (str, x) => str.endsWith(x);
+const replace = (str, what, to) => str.replace(new RegExp(what, "g"), to);
 const flat = (arr) => arr.flat();
 const concat = (a, b) => a.concat(b);
 const push = (arr, add) => arr.push(...add);
@@ -548,6 +550,7 @@ const ops = {
   "func?": { exactArity: 1, returns: ["bool"] },
   "wild?": { exactArity: 1, returns: ["bool"] },
   "ext?": { exactArity: 1, returns: ["bool"] },
+  "type-of": { exactArity: 1, returns: ["str"] },
   rem: { minArity: 2, numeric: true },
   sin: { exactArity: 1, numeric: true },
   cos: { exactArity: 1, numeric: true },
@@ -567,6 +570,7 @@ const ops = {
     returns: ["num", "null"]
   },
   "to-key": { exactArity: 1, params: [["str", "num"]], returns: ["key"] },
+  "to-vec": { exactArity: 1, params: [["str", "dict"]], returns: ["vec"] },
   "substr?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
   idx: {
     exactArity: 2,
@@ -672,6 +676,11 @@ const ops = {
   join: {
     exactArity: 2,
     params: ["str", ["vec", "dict", "str"]],
+    returns: ["str"]
+  },
+  replace: {
+    exactArity: 3,
+    params: ["str", "str", "str"],
     returns: ["str"]
   },
   "starts?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
@@ -2197,7 +2206,7 @@ const { abs: src_abs, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: sr
 const { cos: src_cos, sin: src_sin, tan: src_tan, acos: src_acos, asin: src_asin, atan: src_atan, sinh: src_sinh, cosh: src_cosh, tanh: src_tanh } = poly_fills_namespaceObject;
 const { concat: src_concat, has: src_has, flat: src_flat, push: src_push, reverse: src_reverse, slice: src_slice, splice: src_splice, sortBy: src_sortBy } = poly_fills_namespaceObject;
 const { ends: src_ends, slen: src_slen, starts: src_starts, sub: src_sub, subIdx: src_subIdx, substr: src_substr, upperCase: src_upperCase, lowerCase: src_lowerCase } = poly_fills_namespaceObject;
-const { trim: src_trim, trimStart: src_trimStart, trimEnd: src_trimEnd, charCode: src_charCode, codeChar: src_codeChar, strIdx: src_strIdx } = poly_fills_namespaceObject;
+const { trim: src_trim, trimStart: src_trimStart, trimEnd: src_trimEnd, charCode: src_charCode, codeChar: src_codeChar, strIdx: src_strIdx, replace: src_replace } = poly_fills_namespaceObject;
 const { getTimeMs: src_getTimeMs, randInt: src_randInt, randNum: src_randNum } = poly_fills_namespaceObject;
 const { isNum: src_isNum, len: src_len, objKeys: src_objKeys, range: src_range, toNum: src_toNum, isArray: src_isArray } = poly_fills_namespaceObject;
 
@@ -2247,6 +2256,9 @@ function exeOp(op, args, ctx, errCtx) {
       return;
     case "to-key":
       stack.push({ t: "key", v: `:${val2str(args[0])}` });
+      return;
+    case "to-vec":
+      _vec(asArray(args[0]));
       return;
     case "!":
       _boo(!asBoo(args[0]));
@@ -2422,6 +2434,9 @@ function exeOp(op, args, ctx, errCtx) {
       _boo(op === "func?" && (t === "func" || t === "clo") || src_substr(op, 0, src_slen(op) - 1) === t);
       return;
     }
+    case "type-of":
+      _str(args[0].t);
+      return;
     case "substr?":
       _boo(src_sub(str(args[1]), str(args[0])));
       return;
@@ -2789,6 +2804,9 @@ function exeOp(op, args, ctx, errCtx) {
       return;
     case "join":
       _str(asArray(args[1]).map(val2str).join(str(args[0])));
+      return;
+    case "replace":
+      _str(src_replace(str(args[2]), str(args[0]), str(args[1])));
       return;
     case "starts?":
     case "ends?":

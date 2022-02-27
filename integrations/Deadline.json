@@ -537,6 +537,22 @@
         ]
       },
       {
+        "directory": "to-vec",
+        "description": [
+          "(to-vec \"hello\")",
+          "function",
+          "Returns string or dictionary as vector."
+        ]
+      },
+      {
+        "directory": "type-of",
+        "description": [
+          "(type-of \"hello\")",
+          "function",
+          "Returns type string of argument."
+        ]
+      },
+      {
         "directory": "keys",
         "description": [
           "(keys {0 1 2 3})",
@@ -709,6 +725,14 @@
         "directory": "join",
         "description": [
           "(join \", \" [0 1 2 3])",
+          "function",
+          "Joins a vector into a string by a provided string."
+        ]
+      },
+      {
+        "directory": "replace",
+        "description": [
+          "(replace \"l\" \"x\" \"hello\")",
           "function",
           "Joins a vector into a string by a provided string."
         ]

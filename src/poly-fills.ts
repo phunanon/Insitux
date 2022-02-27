@@ -17,6 +17,8 @@ export const has = <T>(x: T[], y: T): boolean => x.includes(y);
 export const starts = (str: string, prefix: string): boolean =>
   str.startsWith(prefix);
 export const ends = (str: string, x: string): boolean => str.endsWith(x);
+export const replace = (str: string, what: string, to: string): string =>
+  str.replace(new RegExp(what, "g"), to);
 export const flat = <T>(arr: T[][]): T[] => arr.flat(); //e.g. [[0], [1], []] => [0, 1]
 export const concat = <T>(a: T[], b: T[]): T[] => a.concat(b);
 export const push = <T>(arr: T[], add: T[]) => arr.push(...add);

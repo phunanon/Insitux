@@ -267,6 +267,16 @@ etc
 (to-key "hello") → :hello
 (to-key 123)     → :123
 
+;Returns string or dictionary as vector
+(to-vec "hello")     → ["h" "e" "l" "l" "o"]
+(to-vec {:a 1 :b 2}) → [[:a 1] [:b 2]]
+
+;Returns type string of argument
+(type-of 123)     → "num"
+(type-of "hello") → "str"
+(type-of _)       → "wild"
+etc
+
 ;Returns character from string index or item from vector index
 ;Note: the first letter/item is 0, the second is 1, etc
 (2 "Hello!")    → l
@@ -466,9 +476,13 @@ etc
 (split "e" "Hello") → ["H" "llo"]
 
 ;Joins a vector, dictionary, or string by a provided string
-(join " " [1 2 3])      → "1 2 3"
-(join " " "hello")      → "h e l l o"
+(join " " [1 2 3])  → "1 2 3"
+(join " " "hello")  → "h e l l o"
 (join ", " [1 2 3]) → "1, 2, 3"
+
+;Replaces all occurrences of a substring with another in a string
+(replace "l" "x" "hello") → "hexxo"
+(replace " " "" "yo yo")  → "yoyo"
 
 ;Tests if a string starts with and ends with another string
 (starts? "He" "Hello") → true

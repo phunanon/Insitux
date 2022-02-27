@@ -8,7 +8,7 @@ const { abs, sign, sqrt, floor, ceil, round, max, min, logn, log2, log10 } = pf;
 const { cos, sin, tan, acos, asin, atan, sinh, cosh, tanh } = pf;
 const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
 const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
-const { trim, trimStart, trimEnd, charCode, codeChar, strIdx } = pf;
+const { trim, trimStart, trimEnd, charCode, codeChar, strIdx, replace } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum, isArray } = pf;
 import { doTests } from "./test";
@@ -72,6 +72,9 @@ function exeOp(
       return;
     case "to-key":
       stack.push({ t: "key", v: `:${val2str(args[0])}` });
+      return;
+    case "to-vec":
+      _vec(asArray(args[0]));
       return;
     case "!":
       _boo(!asBoo(args[0]));
@@ -271,6 +274,9 @@ function exeOp(
       );
       return;
     }
+    case "type-of":
+      _str(args[0].t);
+      return;
     case "substr?":
       _boo(sub(str(args[1]), str(args[0])));
       return;
@@ -672,6 +678,9 @@ function exeOp(
       return;
     case "join":
       _str(asArray(args[1]).map(val2str).join(str(args[0])));
+      return;
+    case "replace":
+      _str(replace(str(args[2]), str(args[0]), str(args[1])));
       return;
     case "starts?":
     case "ends?":
