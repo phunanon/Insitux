@@ -1,4 +1,4 @@
-export const insituxVersion = 220226;
+export const insituxVersion = 220227;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -1067,7 +1067,6 @@ function exeFunc(
         if (recurArgs) {
           letsStack[len(letsStack) - 1] = {};
           i = -1;
-          const nArgs = ins.value;
           args = recurArgs;
           recurArgs = undefined;
           --ctx.recurBudget;

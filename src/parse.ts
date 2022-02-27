@@ -435,6 +435,7 @@ function parseForm(
       const pins: ParserIns[] = [];
       const name = node2str([firstNode, ...nodes]);
       const cloParams: string[] = [];
+      let monoFnBody = false;
       if (op === "fn") {
         const parsedParams = parseParams(nodes, false);
         push(
@@ -446,6 +447,7 @@ function parseForm(
         if (!len(nodes)) {
           return err("provide a body");
         }
+        monoFnBody = len(nodes) === 1;
         nodes.unshift({ typ: "sym", text: "do", errCtx });
       }
       //Rewrite partial closure to #(... [body] args)
@@ -469,6 +471,11 @@ function parseForm(
       const errors = pins.filter(i => i.typ === "err");
       if (len(errors)) {
         return errors;
+      }
+      //Remove do exe when fn body is only one expression
+      if (monoFnBody) {
+        cins.pop();
+        cins.pop();
       }
       return [
         { typ: "clo", value: makeClosure(name, cloParams, cins), errCtx },
@@ -758,6 +765,7 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
         if (errors) {
           return errors;
         }
+        stack.push({});
       }
       case "ref":
       case "npa":

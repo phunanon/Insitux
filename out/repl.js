@@ -1236,6 +1236,7 @@ function parseForm(nodes, params, doArityCheck = true) {
       const pins = [];
       const name = node2str([firstNode, ...nodes]);
       const cloParams = [];
+      let monoFnBody = false;
       if (op === "fn") {
         const parsedParams = parseParams(nodes, false);
         parse_push(cloParams, parsedParams.shape.map((p) => p.name));
@@ -1244,6 +1245,7 @@ function parseForm(nodes, params, doArityCheck = true) {
         if (!parse_len(nodes)) {
           return err("provide a body");
         }
+        monoFnBody = parse_len(nodes) === 1;
         nodes.unshift({ typ: "sym", text: "do", errCtx: errCtx2 });
       }
       if (op === "@") {
@@ -1263,6 +1265,10 @@ function parseForm(nodes, params, doArityCheck = true) {
       const errors = pins.filter((i) => i.typ === "err");
       if (parse_len(errors)) {
         return errors;
+      }
+      if (monoFnBody) {
+        cins.pop();
+        cins.pop();
       }
       return [
         { typ: "clo", value: makeClosure(name, cloParams, cins), errCtx: errCtx2 },
@@ -1483,6 +1489,7 @@ function insErrorDetect(fins) {
         if (errors) {
           return errors;
         }
+        stack.push({});
       }
       case "ref":
       case "npa":
@@ -2176,7 +2183,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220226;
+const insituxVersion = 220227;
 
 
 
@@ -3119,7 +3126,6 @@ function exeFunc(ctx, func, args, inClosure = false) {
         if (recurArgs) {
           letsStack[src_len(letsStack) - 1] = {};
           i = -1;
-          const nArgs2 = ins.value;
           args = recurArgs;
           recurArgs = void 0;
           --ctx.recurBudget;
