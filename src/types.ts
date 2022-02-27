@@ -104,7 +104,7 @@ export type Operation = {
   maxArity?: number;
   exactArity?: number;
   numeric?: true | "in only";
-  params?: (Val["t"] | Val["t"][])[];
+  params?: ("any" | Val["t"] | Val["t"][])[];
   returns?: Val["t"][];
 };
 export type ExternalHandler = (params: Val[]) => ValOrErr;
@@ -202,12 +202,12 @@ export const ops: {
   "substr?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
   idx: {
     exactArity: 2,
-    params: [[], ["str", "vec"]],
+    params: ["any", ["str", "vec"]],
     returns: ["num"],
   },
   "set-at": {
     exactArity: 3,
-    params: ["vec", [], ["vec", "dict"]],
+    params: ["vec", "any", ["vec", "dict"]],
     returns: ["vec", "dict"],
   },
   map: { minArity: 2, returns: ["vec"] },
@@ -215,21 +215,21 @@ export const ops: {
   reduce: { minArity: 2, maxArity: 3 },
   filter: {
     minArity: 2,
-    params: [[], ["vec", "dict", "str"]],
+    params: ["any", ["vec", "dict", "str"]],
     returns: ["vec", "str", "dict"],
   },
   remove: {
     minArity: 2,
-    params: [[], ["vec", "dict", "str"]],
+    params: ["any", ["vec", "dict", "str"]],
     returns: ["vec", "str", "dict"],
   },
-  find: { minArity: 2, params: [[], ["vec", "dict", "str"]] },
+  find: { minArity: 2, params: ["any", ["vec", "dict", "str"]] },
   count: {
     minArity: 2,
-    params: [[], ["vec", "dict", "str"]],
+    params: ["any", ["vec", "dict", "str"]],
     returns: ["num"],
   },
-  repeat: { minArity: 2, params: [[], "num"] },
+  repeat: { minArity: 2, params: ["any", "num"] },
   "->": { minArity: 2 },
   str: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
@@ -247,27 +247,27 @@ export const ops: {
   },
   assoc: {
     exactArity: 3,
-    params: [[], [], "dict"],
+    params: ["any", "any", "dict"],
     returns: ["dict"],
   },
   omit: {
     exactArity: 2,
-    params: [[], "dict"],
+    params: ["any", "dict"],
     returns: ["dict"],
   },
   insert: {
     exactArity: 3,
-    params: [[], "num", "vec"],
+    params: ["any", "num", "vec"],
     returns: ["vec"],
   },
   append: {
     exactArity: 2,
-    params: [[], "vec"],
+    params: ["any", "vec"],
     returns: ["vec"],
   },
   prepend: {
     exactArity: 2,
-    params: [[], "vec"],
+    params: ["any", "vec"],
     returns: ["vec"],
   },
   sect: {
@@ -284,7 +284,7 @@ export const ops: {
   },
   "sort-by": {
     exactArity: 2,
-    params: [[], ["vec", "dict", "str"]],
+    params: ["any", ["vec", "dict", "str"]],
     returns: ["vec"],
   },
   distinct: {
@@ -325,6 +325,7 @@ export const ops: {
   tests: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["str"] },
   symbols: { exactArity: 0, returns: ["vec"] },
   eval: { exactArity: 1, params: ["str"] },
+  info: { exactArity: 1, params: [["str", "func"]], returns: ["dict"] },
   reset: { exactArity: 0 },
   recur: {},
 };

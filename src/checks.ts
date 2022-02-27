@@ -54,7 +54,7 @@ export function typeCheck(
   }
   const typeViolations = types
     .map((need, i) => {
-      if (i >= nArg || !args[i]) {
+      if (i >= nArg || !args[i] || need === "any") {
         return false;
       }
       const argTypes = args[i]!;

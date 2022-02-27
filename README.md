@@ -549,6 +549,13 @@ etc
 ;Evaluates a string as code, returning any values returned or null
 (eval "(+ 2 2)") → 4
 
+;Returns arity, type, and other information about specified function
+(info +)
+→ {:external? false, :minimum-arity 2, :in-types ["num"], :out-types ["num"]}
+(info "info")
+→ {:external? false, :exact-arity 1, :in-types [["str" "func"]],
+   :out-types ["dict"]}
+
 ;Resets an Insitux session back to how it started
 ;Note: safely position this in a program as it may cause Reference Errors
 (reset)

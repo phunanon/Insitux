@@ -570,12 +570,12 @@ const ops = {
   "substr?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
   idx: {
     exactArity: 2,
-    params: [[], ["str", "vec"]],
+    params: ["any", ["str", "vec"]],
     returns: ["num"]
   },
   "set-at": {
     exactArity: 3,
-    params: ["vec", [], ["vec", "dict"]],
+    params: ["vec", "any", ["vec", "dict"]],
     returns: ["vec", "dict"]
   },
   map: { minArity: 2, returns: ["vec"] },
@@ -583,21 +583,21 @@ const ops = {
   reduce: { minArity: 2, maxArity: 3 },
   filter: {
     minArity: 2,
-    params: [[], ["vec", "dict", "str"]],
+    params: ["any", ["vec", "dict", "str"]],
     returns: ["vec", "str", "dict"]
   },
   remove: {
     minArity: 2,
-    params: [[], ["vec", "dict", "str"]],
+    params: ["any", ["vec", "dict", "str"]],
     returns: ["vec", "str", "dict"]
   },
-  find: { minArity: 2, params: [[], ["vec", "dict", "str"]] },
+  find: { minArity: 2, params: ["any", ["vec", "dict", "str"]] },
   count: {
     minArity: 2,
-    params: [[], ["vec", "dict", "str"]],
+    params: ["any", ["vec", "dict", "str"]],
     returns: ["num"]
   },
-  repeat: { minArity: 2, params: [[], "num"] },
+  repeat: { minArity: 2, params: ["any", "num"] },
   "->": { minArity: 2 },
   str: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
@@ -615,27 +615,27 @@ const ops = {
   },
   assoc: {
     exactArity: 3,
-    params: [[], [], "dict"],
+    params: ["any", "any", "dict"],
     returns: ["dict"]
   },
   omit: {
     exactArity: 2,
-    params: [[], "dict"],
+    params: ["any", "dict"],
     returns: ["dict"]
   },
   insert: {
     exactArity: 3,
-    params: [[], "num", "vec"],
+    params: ["any", "num", "vec"],
     returns: ["vec"]
   },
   append: {
     exactArity: 2,
-    params: [[], "vec"],
+    params: ["any", "vec"],
     returns: ["vec"]
   },
   prepend: {
     exactArity: 2,
-    params: [[], "vec"],
+    params: ["any", "vec"],
     returns: ["vec"]
   },
   sect: {
@@ -652,7 +652,7 @@ const ops = {
   },
   "sort-by": {
     exactArity: 2,
-    params: [[], ["vec", "dict", "str"]],
+    params: ["any", ["vec", "dict", "str"]],
     returns: ["vec"]
   },
   distinct: {
@@ -693,6 +693,7 @@ const ops = {
   tests: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["str"] },
   symbols: { exactArity: 0, returns: ["vec"] },
   eval: { exactArity: 1, params: ["str"] },
+  info: { exactArity: 1, params: [["str", "func"]], returns: ["dict"] },
   reset: { exactArity: 0 },
   recur: {}
 };
@@ -773,7 +774,7 @@ function typeCheck(op, args, errCtx, optimistic = false) {
     return;
   }
   const typeViolations = types.map((need, i) => {
-    if (i >= nArg || !args[i]) {
+    if (i >= nArg || !args[i] || need === "any") {
       return false;
     }
     const argTypes = args[i];
@@ -2198,7 +2199,8 @@ const { concat: src_concat, has: src_has, flat: src_flat, push: src_push, revers
 const { ends: src_ends, slen: src_slen, starts: src_starts, sub: src_sub, subIdx: src_subIdx, substr: src_substr, upperCase: src_upperCase, lowerCase: src_lowerCase } = poly_fills_namespaceObject;
 const { trim: src_trim, trimStart: src_trimStart, trimEnd: src_trimEnd, charCode: src_charCode, codeChar: src_codeChar, strIdx: src_strIdx } = poly_fills_namespaceObject;
 const { getTimeMs: src_getTimeMs, randInt: src_randInt, randNum: src_randNum } = poly_fills_namespaceObject;
-const { isNum: src_isNum, len: src_len, objKeys: src_objKeys, range: src_range, toNum: src_toNum } = poly_fills_namespaceObject;
+const { isNum: src_isNum, len: src_len, objKeys: src_objKeys, range: src_range, toNum: src_toNum, isArray: src_isArray } = poly_fills_namespaceObject;
+
 
 
 
@@ -2844,6 +2846,39 @@ function exeOp(op, args, ctx, errCtx) {
       if (sLen === src_len(stack)) {
         _nul();
       }
+      return;
+    }
+    case "info": {
+      const func = str(args[0]);
+      const entry = ops[func];
+      if (!entry) {
+        _nul();
+        return;
+      }
+      const infos = [];
+      const info = (what, val) => infos.push({ t: "key", v: `:${what}` }, val);
+      const toStrVec = (v) => ({
+        t: "vec",
+        v: v.map((typ) => src_isArray(typ) ? { t: "vec", v: typ.map((v2) => ({ t: "str", v: v2 })) } : { t: "str", v: typ })
+      });
+      info("external?", { t: "bool", v: !!entry.external });
+      if (entry.exactArity) {
+        info("exact-arity", { t: "num", v: entry.exactArity });
+      } else {
+        if (entry.minArity) {
+          info("minimum-arity", { t: "num", v: entry.minArity });
+        }
+        if (entry.maxArity) {
+          info("maximum-arity", { t: "num", v: entry.maxArity });
+        }
+      }
+      if (entry.params || entry.numeric) {
+        info("in-types", toStrVec(entry.params ? entry.params : ["num"]));
+      }
+      if (entry.returns || entry.numeric === true) {
+        info("out-types", toStrVec(entry.returns ? entry.returns : ["num"]));
+      }
+      stack.push(toDict(infos));
       return;
     }
     case "recur":

@@ -574,4 +574,16 @@ to define variables, use `var`:
 (eval "(+ 2 2)")
 ;; function
 ;; Evaluates a string as code, returning any values returned or null.
+
+(symbols)
+;; function
+;; Returns symbol name strings vector by definition order in the Insitux session.
+
+(tests)
+;; function
+;; Returns report of built-in Insitux tests as a string, optionally verbose.
+
+(info set-at)
+;; function
+;; Returns arity, type, and other information about specified function.
 ```

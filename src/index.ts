@@ -10,15 +10,10 @@ const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
 const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
 const { trim, trimStart, trimEnd, charCode, codeChar, strIdx } = pf;
 const { getTimeMs, randInt, randNum } = pf;
-const { isNum, len, objKeys, range, toNum } = pf;
+const { isNum, len, objKeys, range, toNum, isArray } = pf;
 import { doTests } from "./test";
-import {
-  assertUnreachable,
-  InvokeError,
-  InvokeResult,
-  syntaxes,
-} from "./types";
-import { ExternalFunction, ExternalHandler } from "./types";
+import { assertUnreachable, InvokeError, InvokeResult } from "./types";
+import { ExternalFunction, ExternalHandler, syntaxes } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
 import { dic, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
@@ -748,6 +743,44 @@ function exeOp(
       if (sLen === len(stack)) {
         _nul();
       }
+      return;
+    }
+    case "info": {
+      const func = str(args[0]);
+      const entry = ops[func];
+      if (!entry) {
+        _nul();
+        return;
+      }
+      const infos: Val[] = [];
+      const info = (what: string, val: Val) =>
+        infos.push({ t: "key", v: `:${what}` }, val);
+      const toStrVec = (v: (string | string[])[]): Val => ({
+        t: "vec",
+        v: v.map(typ =>
+          isArray(typ)
+            ? { t: "vec", v: typ.map(v => <Val>{ t: "str", v }) }
+            : { t: "str", v: typ },
+        ),
+      });
+      info("external?", { t: "bool", v: !!entry.external });
+      if (entry.exactArity) {
+        info("exact-arity", { t: "num", v: entry.exactArity });
+      } else {
+        if (entry.minArity) {
+          info("minimum-arity", { t: "num", v: entry.minArity });
+        }
+        if (entry.maxArity) {
+          info("maximum-arity", { t: "num", v: entry.maxArity });
+        }
+      }
+      if (entry.params || entry.numeric) {
+        info("in-types", toStrVec(entry.params ? entry.params : ["num"]));
+      }
+      if (entry.returns || entry.numeric === true) {
+        info("out-types", toStrVec(entry.returns ? entry.returns : ["num"]));
+      }
+      stack.push(toDict(infos));
       return;
     }
     case "recur":
