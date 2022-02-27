@@ -1297,7 +1297,7 @@ function parseForm(nodes, params, doArityCheck = true) {
     head[0] = { typ: "val", value: { t: "str", v }, errCtx: errCtx2 };
   }
   parse_push(ins, head);
-  const typ = parse_len(head) > 1 ? "exa" : "exe";
+  const typ = parse_len(head) > 1 || parse_has(["npa", "upa"], head[0].typ) ? "exa" : "exe";
   return [...ins, { typ, value: parse_len(args), errCtx }];
 }
 function parseArg(node, params) {

@@ -508,7 +508,7 @@ function parseForm(
     head[0] = { typ: "val", value: { t: "str", v }, errCtx };
   }
   push(ins, head);
-  const typ = len(head) > 1 ? "exa" : "exe";
+  const typ = len(head) > 1 || has(["npa", "upa"], head[0].typ) ? "exa" : "exe";
   return [...ins, { typ, value: len(args), errCtx }];
 }
 
