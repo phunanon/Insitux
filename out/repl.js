@@ -815,47 +815,44 @@ function keyOpErr(errCtx, types) {
 ;// CONCATENATED MODULE: ./src/closure.ts
 
 function makeClosure(name, params, cins) {
+  const captures = [];
+  const derefs = [];
   const exclusions = params;
-  cins.forEach((i) => {
-    if (i.typ === "let" || i.typ === "var") {
-      exclusions.push(i.value);
-    }
-  });
-  const closure = { name, cins, exclusions, derefIns: [] };
-  populateDereferences(closure);
-  return closure;
-}
-function makeEnclosure(closure, derefed, exclusions = closure.exclusions) {
-  const { name, cins } = closure;
-  const ins = [];
   for (let i = 0, lim = len(cins); i < lim; ++i) {
     const cin = cins[i];
+    let capture = false;
     if (cin.typ === "clo") {
-      const closure2 = {
-        name: cin.value.name,
-        derefIns: cin.value.derefIns,
-        exclusions: cin.value.exclusions,
-        cins: makeEnclosure(cin.value, derefed, exclusions).ins
-      };
-      ins.push({ typ: "clo", value: closure2 });
+      i += cin.value.length;
+      continue;
+    } else if (cin.typ === "let" || cin.typ === "var") {
+      exclusions.push(cin.value);
     } else if (canCapture(exclusions, cin, i + 1 !== lim && cins[i + 1])) {
-      ins.push({ typ: "val", value: derefed.shift() });
+      derefs.push(cin);
+      capture = true;
+    }
+    captures.push(capture);
+  }
+  return { name, length: len(cins), captures, derefs };
+}
+function makeEnclosure({ name, length, captures, derefs }, cins, derefed) {
+  const ins = [];
+  const errCtxs = derefs.map((i) => i.errCtx);
+  for (let i = 0, ci = 0; i < length; ++i) {
+    const cin = cins[i];
+    if (cin.typ === "clo") {
+      push(ins, slice(cins, i, i + 1 + cin.value.length));
+      i += cin.value.length;
+    } else if (captures[ci++]) {
+      ins.push({
+        typ: "val",
+        value: derefed.shift(),
+        errCtx: errCtxs.shift()
+      });
     } else {
       ins.push(cin);
     }
   }
   return { name, ins };
-}
-function populateDereferences({ cins, derefIns, exclusions }) {
-  for (let i = 0, lim = len(cins); i < lim; ++i) {
-    const cin = cins[i];
-    if (cin.typ === "clo") {
-      const subDerefs = cin.value.derefIns.filter((di) => !(di.typ === "npa" && has(exclusions, di.text)) && !(di.typ === "ref" && has(exclusions, di.value)));
-      push(derefIns, subDerefs);
-    } else if (canCapture(exclusions, cin, i + 1 !== lim && cins[i + 1])) {
-      derefIns.push(cin);
-    }
-  }
 }
 function canCapture(exclusions, ins0, ins1) {
   const isExeVal = ins1 && ins0.typ === "val" && ins0.value.t === "str" && ins1.typ === "exe";
@@ -1267,15 +1264,9 @@ function parseForm(nodes, params, doArityCheck = true) {
       if (parse_len(errors)) {
         return errors;
       }
-      if (op === "fn") {
-        cins.forEach((i) => {
-          if (i.typ === "npa") {
-            i.typ = "upa";
-          }
-        });
-      }
       return [
-        { typ: "clo", value: makeClosure(name, cloParams, cins), errCtx: errCtx2 }
+        { typ: "clo", value: makeClosure(name, cloParams, cins), errCtx: errCtx2 },
+        ...cins
       ];
     }
     if (ops[op] && doArityCheck) {
@@ -1488,7 +1479,7 @@ function insErrorDetect(fins) {
       case "jmp":
         break;
       case "clo": {
-        const errors = insErrorDetect(ins.value.cins);
+        const errors = insErrorDetect(parse_slice(fins, i + 1, i + ins.value.length));
         if (errors) {
           return errors;
         }
@@ -1878,6 +1869,11 @@ null`
     out: `[2 1]`
   },
   {
+    name: "Closure with captured f",
+    code: `[((fn x (@(val x))) 0) (var f val) ((fn x (@(f x))) 0)]`,
+    out: `[0 val 0]`
+  },
+  {
     name: "Destructure var",
     code: `(var [x [y]] [1 [2]]) [y x]`,
     out: `[2 1]`
@@ -2180,7 +2176,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220223;
+const insituxVersion = 220226;
 
 
 
@@ -3179,7 +3175,7 @@ function exeFunc(ctx, func, args, inClosure = false) {
         i = lim;
         break;
       case "clo": {
-        const derefIns = src_slice(ins.value.derefIns).map((ins2, i2) => {
+        const derefIns = src_slice(ins.value.derefs).map((ins2) => {
           const decl = ins2.typ === "val" && ins2.value.t === "str" && (lets[ins2.value.v] ?? ctx.env.vars[ins2.value.v]);
           return decl ? { typ: "val", value: decl } : ins2;
         });
@@ -3189,7 +3185,9 @@ function exeFunc(ctx, func, args, inClosure = false) {
         }
         const numIns = src_len(derefIns);
         const captures = src_splice(stack, src_len(stack) - numIns, numIns);
-        stack.push({ t: "clo", v: makeEnclosure(ins.value, captures) });
+        const cins = src_slice(func.ins, i + 1, i + 1 + ins.value.length);
+        stack.push({ t: "clo", v: makeEnclosure(ins.value, cins, captures) });
+        i += ins.value.length;
         break;
       }
       default:

@@ -1000,15 +1000,14 @@ vector item or string character is "destructured" into.
       :weights (map @((m) (rand -1 1)) (:weights %))})
   (map (map mutate-neuron) brain))
 
-(function neuron-think  neuron inputs
+(function neuron-think  inputs neuron
   (let weighted (map * (:weights neuron) inputs)
        average  (/ (.. + weighted) (len inputs)))
   (sigmoid (+ average (:bias neuron))))
 
 (function think  brain inputs
-  (let thoughts (map #(neuron-think % inputs)   (0 brain))
-       thoughts (map #(neuron-think % thoughts) (1 brain))
-       thoughts (map #(neuron-think % thoughts) (2 brain))))
+  (reduce (fn in layer (map @(neuron-think in) layer))
+          inputs brain))
 
 (var brain (mutate (make-brain 5 5 5)))
 (-> (repeat #(rand-int) 5)

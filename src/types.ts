@@ -77,9 +77,9 @@ export const defaultCtx = {
 export type ParamsShape = { name: string; position: number[] }[];
 export type Closure = {
   readonly name: string;
-  readonly cins: Ins[];
-  readonly exclusions: string[]; //For declarations and parameters
-  readonly derefIns: Ins[];
+  readonly length: number;
+  readonly captures: boolean[];
+  readonly derefs: Ins[];
 };
 
 export type Ins = { errCtx: ErrCtx } & (

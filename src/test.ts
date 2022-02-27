@@ -322,6 +322,11 @@ const tests: {
     out: `[2 1]`,
   },
   {
+    name: "Closure with captured f",
+    code: `[((fn x (@(val x))) 0) (var f val) ((fn x (@(f x))) 0)]`,
+    out: `[0 val 0]`,
+  },
+  {
     name: "Destructure var",
     code: `(var [x [y]] [1 [2]]) [y x]`,
     out: `[2 1]`,

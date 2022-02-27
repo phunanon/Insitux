@@ -1,4 +1,4 @@
-export const insituxVersion = 220223;
+export const insituxVersion = 220226;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -12,7 +12,12 @@ const { trim, trimStart, trimEnd, charCode, codeChar, strIdx } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum } = pf;
 import { doTests } from "./test";
-import { assertUnreachable, InvokeError, InvokeResult, syntaxes } from "./types";
+import {
+  assertUnreachable,
+  InvokeError,
+  InvokeResult,
+  syntaxes,
+} from "./types";
 import { ExternalFunction, ExternalHandler } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
@@ -1119,7 +1124,7 @@ function exeFunc(
         break;
       case "clo": {
         //Ensure any in-scope declarations are captured here
-        const derefIns = slice(ins.value.derefIns).map((ins, i) => {
+        const derefIns = slice(ins.value.derefs).map(ins => {
           const decl =
             ins.typ === "val" &&
             ins.value.t === "str" &&
@@ -1131,9 +1136,12 @@ function exeFunc(
         if (errors) {
           return errors;
         }
+        //Enclose the closure with dereferenced values
         const numIns = len(derefIns);
         const captures = splice(stack, len(stack) - numIns, numIns);
-        stack.push({ t: "clo", v: makeEnclosure(ins.value, captures) });
+        const cins = slice(func.ins, i + 1, i + 1 + ins.value.length);
+        stack.push({ t: "clo", v: makeEnclosure(ins.value, cins, captures) });
+        i += ins.value.length;
         break;
       }
       default:

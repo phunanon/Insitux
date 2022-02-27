@@ -470,16 +470,9 @@ function parseForm(
       if (len(errors)) {
         return errors;
       }
-      //TODO: explain what this is for
-      if (op === "fn") {
-        cins.forEach(i => {
-          if (i.typ === "npa") {
-            i.typ = "upa";
-          }
-        });
-      }
       return [
         { typ: "clo", value: makeClosure(name, cloParams, cins), errCtx },
+        ...cins,
       ];
     }
 
@@ -761,7 +754,7 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
       case "jmp":
         break;
       case "clo": {
-        const errors = insErrorDetect(ins.value.cins);
+        const errors = insErrorDetect(slice(fins, i + 1, i + ins.value.length));
         if (errors) {
           return errors;
         }
