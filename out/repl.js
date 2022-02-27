@@ -702,7 +702,7 @@ const ops = {
   tests: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["str"] },
   symbols: { exactArity: 0, returns: ["vec"] },
   eval: { exactArity: 1, params: ["str"] },
-  info: { exactArity: 1, params: [["str", "func"]], returns: ["dict"] },
+  about: { exactArity: 1, params: [["str", "func"]], returns: ["dict"] },
   reset: { exactArity: 0 },
   recur: {}
 };
@@ -2866,7 +2866,7 @@ function exeOp(op, args, ctx, errCtx) {
       }
       return;
     }
-    case "info": {
+    case "about": {
       const func = str(args[0]);
       const entry = ops[func];
       if (!entry) {

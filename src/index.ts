@@ -754,7 +754,7 @@ function exeOp(
       }
       return;
     }
-    case "info": {
+    case "about": {
       const func = str(args[0]);
       const entry = ops[func];
       if (!entry) {

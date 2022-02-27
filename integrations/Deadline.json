@@ -866,9 +866,9 @@
         ]
       },
       {
-        "directory": "info",
+        "directory": "about",
         "description": [
-          "(info set-at)",
+          "(about set-at)",
           "function",
           "Returns arity, type, and other information about specified function."
         ]

@@ -564,9 +564,9 @@ etc
 (eval "(+ 2 2)") → 4
 
 ;Returns arity, type, and other information about specified function
-(info +)
+(about +)
 → {:external? false, :minimum-arity 2, :in-types ["num"], :out-types ["num"]}
-(info "info")
+(about "about")
 → {:external? false, :exact-arity 1, :in-types [["str" "func"]],
    :out-types ["dict"]}
 

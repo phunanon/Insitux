@@ -583,7 +583,7 @@ to define variables, use `var`:
 ;; function
 ;; Returns report of built-in Insitux tests as a string, optionally verbose.
 
-(info set-at)
+(about set-at)
 ;; function
 ;; Returns arity, type, and other information about specified function.
 ```
