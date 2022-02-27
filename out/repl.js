@@ -1197,20 +1197,23 @@ function parseForm(nodes, params, doArityCheck = true) {
         return err("provide a value after each declaration name");
       }
       const ins2 = [];
+      const symErrMsg = `${op} name must be a new symbol or destructuring`;
       for (let d = 0, lim = parse_len(defs); d < lim; ++d) {
         parse_push(ins2, nodeParser(vals[d]));
         const def = defs[d];
         if (isToken(def)) {
           const defIns = parseNode(defs[d], params);
           if (parse_len(defIns) > 1 || defIns[0].typ !== "ref") {
-            const errMsg = "declaration name must be a new symbol";
-            return err(errMsg, defIns[0].errCtx);
+            return err(symErrMsg, defIns[0].errCtx);
           }
           ins2.push({ typ: op, value: defIns[0].value, errCtx: errCtx2 });
         } else {
           const { shape, errors } = parseParams([def], true);
           if (parse_len(errors)) {
             return errors;
+          }
+          if (!parse_len(shape)) {
+            return err(symErrMsg);
           }
           const typ2 = op === "var" ? "dva" : "dle";
           ins2.push({ typ: typ2, value: shape, errCtx: errCtx2 });
