@@ -641,6 +641,22 @@
         ]
       },
       {
+        "directory": "flatten",
+        "description": [
+          "(flatten [8 [6 9] [0 [4]]])",
+          "function",
+          "\"Flattens\" its argument's immediate sub-vectors, and their immediate sub-vectors, etc."
+        ]
+      },
+      {
+        "directory": "shuffle",
+        "description": [
+          "(shuffle (range 10))",
+          "function",
+          "Randomly rearranges a vector's items."
+        ]
+      },
+      {
         "directory": "sort",
         "description": [
           "(sort [8 6 9 0 4])",

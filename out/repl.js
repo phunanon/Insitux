@@ -649,6 +649,16 @@ const ops = {
     returns: ["vec", "str"]
   },
   reverse: { exactArity: 1, params: [["vec", "str"]], returns: ["vec", "str"] },
+  flatten: {
+    exactArity: 1,
+    params: ["vec"],
+    returns: ["vec"]
+  },
+  shuffle: {
+    exactArity: 1,
+    params: ["vec"],
+    returns: ["vec"]
+  },
   sort: {
     exactArity: 1,
     params: [["vec", "str"]],
@@ -2211,7 +2221,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220228;
+const insituxVersion = 220301;
 
 
 
@@ -2746,6 +2756,23 @@ function exeOp(op, args, ctx, errCtx) {
         _vec(src_reverse(asArray(args[0])));
       }
       return;
+    case "flatten": {
+      const src = vec(args[0]);
+      const flattened = [];
+      const recur = (vec2) => vec2.forEach((v) => v.t === "vec" ? recur(v.v) : flattened.push(v));
+      recur(src);
+      _vec(flattened);
+      return;
+    }
+    case "shuffle": {
+      const arr = src_slice(vec(args[0]));
+      for (let i = src_len(arr) - 1; i; --i) {
+        const j = src_floor(src_randInt(0, i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      _vec(arr);
+      return;
+    }
     case "sort":
     case "sort-by": {
       const src = asArray(args[op === "sort" ? 0 : 1]);

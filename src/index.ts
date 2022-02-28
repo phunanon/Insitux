@@ -1,4 +1,4 @@
-export const insituxVersion = 220228;
+export const insituxVersion = 220301;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -597,6 +597,24 @@ function exeOp(
         _vec(reverse(asArray(args[0])));
       }
       return;
+    case "flatten": {
+      const src = vec(args[0]);
+      const flattened: Val[] = [];
+      const recur = (vec: Val[]): void =>
+        vec.forEach(v => (v.t === "vec" ? recur(v.v) : flattened.push(v)));
+      recur(src);
+      _vec(flattened);
+      return;
+    }
+    case "shuffle": {
+      const arr = slice(vec(args[0]));
+      for (let i = len(arr) - 1; i; --i) {
+        const j = floor(randInt(0, i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      _vec(arr);
+      return;
+    }
     case "sort":
     case "sort-by": {
       const src = asArray(args[op === "sort" ? 0 : 1]);

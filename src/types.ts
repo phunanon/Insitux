@@ -279,6 +279,16 @@ export const ops: {
     returns: ["vec", "str"],
   },
   reverse: { exactArity: 1, params: [["vec", "str"]], returns: ["vec", "str"] },
+  flatten: {
+    exactArity: 1,
+    params: ["vec"],
+    returns: ["vec"],
+  },
+  shuffle: {
+    exactArity: 1,
+    params: ["vec"],
+    returns: ["vec"],
+  },
   sort: {
     exactArity: 1,
     params: [["vec", "str"]],

@@ -43,3 +43,23 @@ const healthItems: HealthItem[] = [
 totalState(healthItems);
 //Returns "error" as it's the worst state
 ```
+
+Insitux
+```clj
+(-> (fn a b (repeat #(char-code (rand-int a b)) 4))
+   #(map % [97 65 48 33] [123 91 58 48])
+    flatten
+    shuffle
+    (.. str))
+```
+Python
+```py
+from random import randint, shuffle
+from itertools import chain
+
+randChars = lambda a, b: [chr(randint(a, b)) for i in range(4)]
+parts = map(randChars, [97, 65, 48, 33], [123, 91, 58, 48])
+combined = list(chain(*parts))
+shuffle(combined)
+print("".join(combined))
+```

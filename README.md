@@ -430,17 +430,25 @@ etc
 (repeat val 5) → [0 1 2 3 4]
 
 ;"Thread" return values into the next function, seeded with first argument
-(-> "hello" 1 upper-case)      → "E"
+(-> "hello" 1 upper-case)     → "E"
 (-> [0 1] (append 2) reverse) → [2 1 0]
 
 ;Returns the reverse of a vector or string
 (reverse "Hello") → "olleH"
 (reverse [1 2 3]) → [3 2 1]
 
+;"Flattens" its argument's immediate sub-vectors,
+;  and their immediate sub-vectors, etc
+(flatten [0 1 [2 3] [4 5 [6 7]]]) → [0 1 2 3 4 5 6 7]
+(flatten [[1 [[[[{1 [[1]]}]]]]]]) → [1 {1 [[1]]}]
+
+;Randomly rearranges a vector's items
+(shuffle (range 10)) → [7 1 0 3 4 2 6 5 8 9]
+
 ;Returns a vector of vector items or string characters sorted
 ;Note: will only sort all number or all string
-(sort [0 7 8 9 8 6])    → [0 6 7 8 8 9]
-(sort "hello")          → ["e" "h" "l" "l" "o"]
+(sort [0 7 8 9 8 6]) → [0 6 7 8 8 9]
+(sort "hello")       → ["e" "h" "l" "l" "o"]
 
 ;Returns a vector of vector items, dictionary entries, or string characters
 ;  sorted by the return of a function over each item

@@ -474,6 +474,14 @@ to define variables, use `var`:
 ;; function
 ;; Returns the reverse of a vector or string.
 
+(flatten [8 [6 9] [0 [4]]])
+;; function
+;; "Flattens" its argument's immediate sub-vectors, and their immediate sub-vectors, etc.
+
+(shuffle (range 10))
+;; function
+;; Randomly rearranges a vector's items.
+
 (sort [8 6 9 0 4])
 ;; function
 ;; Returns a vector of vector items or string characters sorted.
