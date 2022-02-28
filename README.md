@@ -452,8 +452,37 @@ etc
 (sort-by 1 {1 3 2 2 3 1})     → [[3 1] [2 2] [1 3]]
 (sort-by #(rand-int) "hello") → ["l" "e" "o" "l" "h"]
 
-;Returns vector of distinct arguments
-; or if given one vector, a vector of distinct values
+;Groups by a function return into a dictionary of vectors, for vector items,
+;  string characters; or a dictionary of dictionaries for dictionary entries.
+;Calls are (f i) for vector items or characters, (f k v) for dictionary entries.
+(group-by odd? [0 1 2 3]) → {false [0 2], true [1 3]}
+(group-by val [0 0 1 2])  → {0 [0 0], 1 [1], 2 [2]}
+(group-by upper-case "hello")
+→ {"H" ["h"], "E", ["e"], "L", ["l" "l"], "O" ["o"]}
+(group-by val {1 2, false 2, true 3})
+→ {1 {1 2}, false {false 2}, true {true 3}}
+(group-by do {1 2, false 2, true 3})
+→ {2 {1 2 false 2}, 3 {true 3}}
+
+;Partitions by a function return into a vector of [when-true when-false] vectors
+;  for vector items or string characters; or a vector of two dictionaries for
+;  dictionary entries.
+;Calls are (f i) for vector items or characters, (f k v) for dictionary entries.
+(part-by odd? [0 1 2 3 4])   → [[1 3] [0 2 4]]
+(part-by str? ["hi" 1 "yo"]) → [["hi" "yo"] [1]]
+(part-by neg? [0 1 2 3])     → [[] [0 1 2 3]]
+(part-by #(key? %) {:a 1 "b" 2 :c 3})
+→ [{:a 1, :c 3} {"b" 2}]
+(part-by @(= (upper-case %)) "Hello!")
+→ [["H" "!"] ["e" "l" "l" "o"]]
+
+;Returns dictionary with keys as distinct vector items, string characters,
+;  with values as number of occurrences
+(frequencies [0 0 1 2 3]) → {0 2, 1 1, 2 1, 3 1}
+(frequencies "hellooooo") → {"h" 1, "e" 1, "l" 2, "o" 5}
+
+;Returns vector of distinct arguments or,
+;  if given one vector, a vector of distinct values
 (distinct 0 9 8 7 8 7 9 6)    → [0 9 8 7 6]
 (distinct [0 1] [0 1] [2])    → [[0 1] [2]]
 (.. distinct [0 1] [0 1] [2]) → [0 1 2]

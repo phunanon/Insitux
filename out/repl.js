@@ -662,6 +662,21 @@ const ops = {
   distinct: {
     returns: ["vec"]
   },
+  "group-by": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["dict"]
+  },
+  "part-by": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["vec"]
+  },
+  frequencies: {
+    exactArity: 1,
+    params: [["vec", "str"]],
+    returns: ["dict"]
+  },
   keys: { exactArity: 1, params: ["dict"] },
   vals: { exactArity: 1, params: ["dict"] },
   do: { minArity: 1 },
@@ -788,7 +803,7 @@ function typeCheck(op, args, errCtx, optimistic = false) {
     }
     const argTypes = args[i];
     if (isArray(need)) {
-      if (!len(need) || (optimistic ? !len(argTypes) || argTypes.some((t) => has(need, t)) : len(argTypes) === 1 && has(need, argTypes[0]))) {
+      if (optimistic ? !len(argTypes) || argTypes.some((t) => has(need, t)) : len(argTypes) === 1 && has(need, argTypes[0])) {
         return false;
       }
       const names = argTypes.map((t) => typeNames[t]);
@@ -2196,7 +2211,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220227;
+const insituxVersion = 220228;
 
 
 
@@ -2761,6 +2776,101 @@ function exeOp(op, args, ctx, errCtx) {
         src_sortBy(mapped, ([x, a2], [y, b2]) => str(a2) > str(b2) ? 1 : -1);
       }
       _vec(mapped.map(([v]) => v));
+      return;
+    }
+    case "group-by": {
+      const closure = getExe(ctx, args[0], errCtx);
+      let groups = { keys: [], vals: [] };
+      const isDic = args[1].t === "dict";
+      if (isDic) {
+        const { keys, vals } = dic(args[1]);
+        for (let i = 0, lim = src_len(keys); i < lim; ++i) {
+          const errors = closure([keys[i], vals[i]]);
+          if (errors) {
+            return errors;
+          }
+          const v = stack.pop();
+          const existingKey = groups.keys.findIndex((k) => isEqual(k, v));
+          if (existingKey === -1) {
+            groups.keys.push(v);
+            groups.vals.push({
+              t: "dict",
+              v: { keys: [keys[i]], vals: [vals[i]] }
+            });
+          } else {
+            const subDict = dic(groups.vals[existingKey]);
+            subDict.keys.push(keys[i]);
+            subDict.vals.push(vals[i]);
+          }
+        }
+      } else {
+        const src = asArray(args[1]);
+        for (let i = 0, lim = src_len(src); i < lim; ++i) {
+          const errors = closure([src[i]]);
+          if (errors) {
+            return errors;
+          }
+          const v = stack.pop();
+          const existingKey = groups.keys.findIndex((k) => isEqual(k, v));
+          if (existingKey === -1) {
+            groups.keys.push(v);
+            groups.vals.push({ t: "vec", v: [src[i]] });
+          } else {
+            const subVec = vec(groups.vals[existingKey]);
+            subVec.push(src[i]);
+          }
+        }
+      }
+      _dic(groups);
+      return;
+    }
+    case "part-by": {
+      const closure = getExe(ctx, args[0], errCtx);
+      const isDic = args[1].t === "dict";
+      if (isDic) {
+        const { keys, vals } = dic(args[1]);
+        const parted = [
+          { keys: [], vals: [] },
+          { keys: [], vals: [] }
+        ];
+        for (let i = 0, lim = src_len(keys); i < lim; ++i) {
+          const errors = closure([keys[i], vals[i]]);
+          if (errors) {
+            return errors;
+          }
+          const p = asBoo(stack.pop()) ? 0 : 1;
+          parted[p].keys.push(keys[i]);
+          parted[p].vals.push(vals[i]);
+        }
+        _vec(parted.map((v) => ({ t: "dict", v })));
+      } else {
+        const src = asArray(args[1]);
+        const parted = [[], []];
+        for (let i = 0, lim = src_len(src); i < lim; ++i) {
+          const errors = closure([src[i]]);
+          if (errors) {
+            return errors;
+          }
+          parted[asBoo(stack.pop()) ? 0 : 1].push(src[i]);
+        }
+        _vec(parted.map((v) => ({ t: "vec", v })));
+      }
+      return;
+    }
+    case "frequencies": {
+      const src = asArray(args[0]);
+      const distinct = [];
+      const counts = [];
+      src.forEach((x) => {
+        const i = distinct.findIndex((y) => isEqual(x, y));
+        if (i !== -1) {
+          ++counts[i];
+        } else {
+          distinct.push(x);
+          counts.push(1);
+        }
+      });
+      _dic({ keys: distinct, vals: counts.map((v) => ({ t: "num", v })) });
       return;
     }
     case "distinct": {
@@ -3495,22 +3605,22 @@ if (process.argv.length > 2) {
   }
 }
 printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
-if ((0,external_fs_.existsSync)(".repl.clj")) {
-  printErrorOutput(invoker(ctx, (0,external_fs_.readFileSync)(".repl.clj").toString()));
+if ((0,external_fs_.existsSync)(".repl.ix")) {
+  printErrorOutput(invoker(ctx, (0,external_fs_.readFileSync)(".repl.ix").toString()));
 }
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
   prompt: "\u276F ",
   completer,
-  history: (0,external_fs_.existsSync)(".repl-history") ? (0,external_fs_.readFileSync)(".repl-history").toString().split("\n").reverse() : []
+  history: (0,external_fs_.existsSync)(".repl-history.txt") ? (0,external_fs_.readFileSync)(".repl-history.txt").toString().split("\n").reverse() : []
 });
 rl.on("line", (line) => {
   lines.push(line);
   const input = lines.join("\n");
   if (isFinished(input)) {
     if (lines.length === 1) {
-      (0,external_fs_.appendFileSync)(".repl-history", `
+      (0,external_fs_.appendFileSync)(".repl-history.txt", `
 ${input}`);
     }
     lines = [];

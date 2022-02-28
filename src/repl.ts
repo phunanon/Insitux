@@ -128,8 +128,8 @@ if (process.argv.length > 2) {
   }
 }
 printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
-if (existsSync(".repl.clj")) {
-  printErrorOutput(invoker(ctx, readFileSync(".repl.clj").toString()));
+if (existsSync(".repl.ix")) {
+  printErrorOutput(invoker(ctx, readFileSync(".repl.ix").toString()));
 }
 
 const rl = readline.createInterface({
@@ -137,8 +137,8 @@ const rl = readline.createInterface({
   output: process.stdout,
   prompt: "❯ ",
   completer,
-  history: existsSync(".repl-history")
-    ? readFileSync(".repl-history").toString().split("\n").reverse()
+  history: existsSync(".repl-history.txt")
+    ? readFileSync(".repl-history.txt").toString().split("\n").reverse()
     : [],
 });
 
@@ -147,7 +147,7 @@ rl.on("line", line => {
   const input = lines.join("\n");
   if (isFinished(input)) {
     if (lines.length === 1) {
-      appendFileSync(".repl-history", `\n${input}`);
+      appendFileSync(".repl-history.txt", `\n${input}`);
     }
     lines = [];
     if (input === "quit") {

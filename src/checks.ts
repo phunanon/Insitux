@@ -60,10 +60,9 @@ export function typeCheck(
       const argTypes = args[i]!;
       if (isArray(need)) {
         if (
-          !len(need) ||
-          (optimistic
+          optimistic
             ? !len(argTypes) || argTypes.some(t => has(need, t))
-            : len(argTypes) === 1 && has(need, argTypes[0]))
+            : len(argTypes) === 1 && has(need, argTypes[0])
         ) {
           return false;
         }

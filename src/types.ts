@@ -292,6 +292,21 @@ export const ops: {
   distinct: {
     returns: ["vec"],
   },
+  "group-by": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["dict"],
+  },
+  "part-by": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["vec"],
+  },
+  frequencies: {
+    exactArity: 1,
+    params: [["vec", "str"]],
+    returns: ["dict"],
+  },
   keys: { exactArity: 1, params: ["dict"] },
   vals: { exactArity: 1, params: ["dict"] },
   do: { minArity: 1 },

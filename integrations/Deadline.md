@@ -418,6 +418,14 @@ to define variables, use `var`:
 ;; function
 ;; Converts a string or number into a keyword.
 
+(to-vec "hello")
+;; function
+;; Returns string or dictionary as vector.
+
+(type-of "hello")
+;; function
+;; Returns type string of argument.
+
 (keys {0 1 2 3})
 ;; function
 ;; Returns the keys of a dictionary.
@@ -452,15 +460,15 @@ to define variables, use `var`:
 
 (count odd? (range 10))
 ;; function
-;; Returns the number of items or characters in a vector or string matching a predicate, optionally passing extra arguments
+;; Returns the number of items or characters in a vector or string matching a predicate, optionally passing extra arguments.
 
 (repeat 1 10)
 ;; function
-;; Returns a vector of either a function called N times with the incrementation, or a value repeated N times
+;; Returns a vector of either a function called N times with the incrementation, or a value repeated N times.
 
 (-> "hello" 1 upper-case)
 ;; function
-;; "Thread" return values into the next function, seeded with first argument
+;; "Thread" return values into the next function, seeded with first argument.
 
 (reverse [0 1 2 3])
 ;; function
@@ -472,11 +480,25 @@ to define variables, use `var`:
 
 (sort-by sin [8 6 9 0 4])
 ;; function
-;; Returns a vector of vector items, dictionary entries, or string characters sorted by the return of a function over each item
+;; Returns a vector of vector items, dictionary entries, or string characters sorted by the return of a function over each item.
+
+(group-by odd? [0 1 2 3])
+;; function
+;; Groups by a function return into a dictionary of vectors, for vector items, string characters;
+;; or a dictionary of dictionaries for dictionary entries.
+
+(part-by odd? [0 1 2 3 4])
+;; function
+;; Partitions by a function return into a vector of [when-true when-false] vectors for vector items or string characters;
+;; or a vector of two dictionaries for dictionary entries.
+
+(frequencies [0 0 1 2 3])
+;; function
+;; Returns dictionary with keys as distinct vector items, string characters, with values as number of occurrences.
 
 (distinct 8 6 9 0 0 9)
 ;; function
-;; Returns vector of distinct arguments, or if given one vector, a vector of distinct values
+;; Returns vector of distinct arguments, or if given one vector, a vector of distinct values.
 
 (starts? "He" "Hello")
 ;; function
@@ -496,18 +518,22 @@ to define variables, use `var`:
 
 (str* "hello " 6)
 ;; function
-;; Returns a string repeated a specified number of times
+;; Returns a string repeated a specified number of times.
 
 (char-code "hello ")
 ;; function
-;; Returns the code associated with a string's first or Nth character, or null
-;; Or returns a string with the associated supplied character code
+;; Returns the code associated with a string's first or Nth character, or null;
+;; Or returns a string with the associated supplied character code.
 
 (split "e" "hello")
 ;; function
 ;; Splits a string into a vector by spaces or a provided string.
 
 (join ", " [0 1 2 3])
+;; function
+;; Joins a vector into a string by a provided string.
+
+(replace "l" "x" "hello")
 ;; function
 ;; Joins a vector into a string by a provided string.
 
