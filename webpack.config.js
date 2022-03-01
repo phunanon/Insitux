@@ -89,7 +89,8 @@ module.exports = [
       path: path.resolve(__dirname, "out"),
       library: {
         type: "commonjs-module",
-      }
+      },
     },
+    optimization: { minimize: true },
   },
 ];
