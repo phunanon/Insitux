@@ -75,4 +75,17 @@ module.exports = [
     },
     optimization: { minimize: true },
   },
+  //Scriptable
+  {
+    ...standard,
+    entry: `./src/invoker.ts`,
+    target: ["web"],
+    output: {
+      filename: "insitux-scriptable.js",
+      path: path.resolve(__dirname, "out"),
+      library: {
+        type: "commonjs-module",
+      }
+    },
+  },
 ];

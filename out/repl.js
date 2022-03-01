@@ -2036,7 +2036,7 @@ function doTests(invoke, terse = true) {
   for (let t = 0; t < len(tests); ++t) {
     const { name, code, err, out } = tests[t];
     const state = {
-      dict: new Map(),
+      dict: /* @__PURE__ */ new Map(),
       output: ""
     };
     const env = { funcs: {}, vars: {} };
@@ -3468,7 +3468,7 @@ function symbols(ctx, alsoSyntax = true) {
 
 
 
-const invocations = new Map();
+const invocations = /* @__PURE__ */ new Map();
 const parensRx = /[\[\]\(\) ,]/;
 function invoker(ctx, code, id, printResult = true) {
   id = id ? `-${id}` : `${getTimeMs()}`;
@@ -3587,7 +3587,7 @@ const functions = [
     })
   }
 ];
-const env = new Map();
+const env = /* @__PURE__ */ new Map();
 function repl_get(key) {
   return env.has(key) ? { kind: "val", value: env.get(key) } : { kind: "err", err: `key ${key} not found` };
 }
@@ -3601,7 +3601,7 @@ const ctx = {
   set: repl_set,
   functions,
   print(str, withNewLine) {
-    process.stdout.write(`[32m${str}[0m${withNewLine ? "\n" : ""}`);
+    process.stdout.write(`\x1B[32m${str}\x1B[0m${withNewLine ? "\n" : ""}`);
   },
   exe: repl_exe
 };
@@ -3687,7 +3687,7 @@ function isFinished(code) {
 function printErrorOutput(lines2) {
   const colours = { error: 31, message: 35 };
   lines2.forEach(({ type, text }) => {
-    process.stdout.write(`[${colours[type]}m${text}[0m`);
+    process.stdout.write(`\x1B[${colours[type]}m${text}\x1B[0m`);
   });
 }
 
