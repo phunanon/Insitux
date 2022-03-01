@@ -30,9 +30,11 @@ module.exports = [
     output: {
       filename: "insitux.lib.min.js",
       path: path.resolve(__dirname, "out"),
-      library: "insitux",
-      libraryTarget: "window",
-      libraryExport: "invoker",
+      library: {
+        name: "insitux",
+        type: "window",
+        export: "invoker",
+      }
     },
     optimization: { minimize: true },
   },
@@ -69,9 +71,11 @@ module.exports = [
     output: {
       filename: "insitux-tokenise.js",
       path: path.resolve(__dirname, "out"),
-      library: "insituxTokenise",
-      libraryTarget: "window",
-      libraryExport: "tokenise",
+      library: {
+        name: "insituxTokenise",
+        type: "window",
+        export: "tokenise",
+      }
     },
     optimization: { minimize: true },
   },
