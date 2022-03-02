@@ -1,4 +1,4 @@
-export const insituxVersion = 220301;
+export const insituxVersion = 220302;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -652,7 +652,7 @@ function exeOp(
     }
     case "group-by": {
       const closure = getExe(ctx, args[0], errCtx);
-      let groups: Dict = { keys: [], vals: [] };
+      const groups: Dict = { keys: [], vals: [] };
       const isDic = args[1].t === "dict";
       if (isDic) {
         const { keys, vals } = dic(args[1]);
@@ -981,12 +981,20 @@ function getExe(
         if (!len(params)) {
           return monoArityError(op.t, errCtx);
         }
+        if (!ctx.set) {
+          const m = `"set" feature not implemented on this platform`;
+          return [{ e: "External", m, errCtx }];
+        }
         const err = ctx.set(substr(name, 1), params[0]);
         stack.push(params[0]);
         return err ? [{ e: "External", m: err, errCtx }] : undefined;
       };
     }
     return (params: Val[]) => {
+      if (!ctx.exe) {
+        const m = `operation "${name}" does not exist"`;
+        return [{ e: "External", m, errCtx }];
+      }
       const valAndErr = ctx.exe(name, params);
       if (valAndErr.kind === "val") {
         stack.push(valAndErr.value);
@@ -1182,6 +1190,10 @@ function exeFunc(
         if (ops[name]) {
           _fun(name);
         } else if (starts(name, "$")) {
+          if (!ctx.get) {
+            const m = `"get" feature not implemented on this platform`;
+            return [{ e: "External", m, errCtx }];
+          }
           const valAndErr = ctx.get(substr(name, 1));
           if (valAndErr.kind === "err") {
             return [{ e: "External", m: valAndErr.err, errCtx }];

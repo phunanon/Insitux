@@ -912,8 +912,8 @@ vector item or string character is "destructured" into.
 ; Generate random strong password
 (-> (fn a b (repeat #(char-code (rand-int a b)) 4))
    #(map % [97 65 48 33] [123 91 58 48])
-   @(.. .. vec)
-   #(sort % #(rand-int))
+    flatten
+    shuffle
     (.. str))
 
 → "d$W1iP*tO9'V9(y8"

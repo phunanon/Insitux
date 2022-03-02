@@ -1,5 +1,6 @@
 Insitux
 ```clj
+;Note: it is now built into Insitux directly
 (function frequencies list
   (reduce #(% %1 (inc (or (% %1) 0))) {} list))
 ```
@@ -55,11 +56,19 @@ Insitux
 Python
 ```py
 from random import randint, shuffle
-from itertools import chain
-
 randChars = lambda a, b: [chr(randint(a, b)) for i in range(4)]
 parts = map(randChars, [97, 65, 48, 33], [123, 91, 58, 48])
-combined = list(chain(*parts))
+combined = sum(parts, [])
 shuffle(combined)
-print("".join(combined))
+"".join(combined)
+```
+
+Insitux
+```clj
+(.. str (repeat #(char-code (rand-int 33 126)) 16))
+```
+Python
+```py
+import string, random
+"".join(random.choices(string.printable.strip(), k=16))
 ```

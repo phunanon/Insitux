@@ -89,8 +89,8 @@ function set(key: string, val: Val) {
 
 const ctx: Ctx = {
   ...defaultCtx,
-  get,
-  set,
+  //get,
+  //set,
   functions,
   print(str, withNewLine) {
     process.stdout.write(`\x1b[32m${str}\x1b[0m${withNewLine ? "\n" : ""}`);

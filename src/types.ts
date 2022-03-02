@@ -42,17 +42,17 @@ export type Env = {
 /** A context supplied with an Insitux invocation to provide its environment. */
 export type Ctx = {
   /** Called to set an external variable, returning nothing or an error. */
-  set: (key: string, val: Val) => undefined | string;
+  set?: (key: string, val: Val) => undefined | string;
   /** Called to retrieve an external variable,
    * returning the value or an error. */
-  get: (key: string) => ValOrErr;
+  get?: (key: string) => ValOrErr;
   /** Called to print data out of Insitux. */
   print: (str: string, withNewline: boolean) => void;
   /** Extra function definitions to make available within this invocation */
   functions: ExternalFunction[];
   /** Called when Insitux cannot find a function definition otherwise.
    * You should return an error if unknown externally too. */
-  exe: (name: string, args: Val[]) => ValOrErr;
+  exe?: (name: string, args: Val[]) => ValOrErr;
   /** Function and variable definitions, retained by you for each invocation. */
   env: Env;
   /** The number of loops an invocation is permitted. */

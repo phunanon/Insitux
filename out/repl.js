@@ -438,7 +438,7 @@ const subIdx = (x, s) => x.indexOf(s);
 const has = (x, y) => x.includes(y);
 const starts = (str, prefix) => str.startsWith(prefix);
 const ends = (str, x) => str.endsWith(x);
-const replace = (str, what, to) => str.replace(new RegExp(what, "g"), to);
+const replace = (str, what, to) => str.split(what).join(to);
 const flat = (arr) => arr.flat();
 const concat = (a, b) => a.concat(b);
 const push = (arr, add) => arr.push(...add);
@@ -2221,7 +2221,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220301;
+const insituxVersion = 220302;
 
 
 
@@ -2807,7 +2807,7 @@ function exeOp(op, args, ctx, errCtx) {
     }
     case "group-by": {
       const closure = getExe(ctx, args[0], errCtx);
-      let groups = { keys: [], vals: [] };
+      const groups = { keys: [], vals: [] };
       const isDic = args[1].t === "dict";
       if (isDic) {
         const { keys, vals } = dic(args[1]);
@@ -3099,12 +3099,20 @@ function getExe(ctx, op, errCtx, checkArity = true) {
         if (!src_len(params)) {
           return monoArityError(op.t, errCtx);
         }
+        if (!ctx.set) {
+          const m = `"set" feature not implemented on this platform`;
+          return [{ e: "External", m, errCtx }];
+        }
         const err = ctx.set(src_substr(name, 1), params[0]);
         stack.push(params[0]);
         return err ? [{ e: "External", m: err, errCtx }] : void 0;
       };
     }
     return (params) => {
+      if (!ctx.exe) {
+        const m = `operation "${name}" does not exist"`;
+        return [{ e: "External", m, errCtx }];
+      }
       const valAndErr = ctx.exe(name, params);
       if (valAndErr.kind === "val") {
         stack.push(valAndErr.value);
@@ -3282,6 +3290,10 @@ function exeFunc(ctx, func, args, inClosure = false) {
         if (ops[name]) {
           _fun(name);
         } else if (src_starts(name, "$")) {
+          if (!ctx.get) {
+            const m = `"get" feature not implemented on this platform`;
+            return [{ e: "External", m, errCtx }];
+          }
           const valAndErr = ctx.get(src_substr(name, 1));
           if (valAndErr.kind === "err") {
             return [{ e: "External", m: valAndErr.err, errCtx }];
@@ -3597,8 +3609,6 @@ function repl_set(key, val) {
 }
 const ctx = {
   ...defaultCtx,
-  get: repl_get,
-  set: repl_set,
   functions,
   print(str, withNewLine) {
     process.stdout.write(`[32m${str}[0m${withNewLine ? "\n" : ""}`);
