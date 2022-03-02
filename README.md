@@ -967,29 +967,6 @@ vector item or string character is "destructured" into.
 → [1 3 5 7 9]
 
 
-; Clojure's frequencies
-(function frequencies list
-  (reduce #(% %1 (inc (or (% %1) 0))) {} list))
-
-(frequencies "hello")
-→ {"h" 1, "e" 1, "l" 2, "o" 1}
-
-
-; Show entry for function from this README.md (works in NodeJS REPL)
-(function man func
-  (-> (read "README.md")
-      (split "### Built-in op") 1
-      (split "```clj") 1
-      (split "```") 0
-      (split "\r\n\r\n")
-      (find (substr? (str "\n(" func)))))
-
-(man vec)
-→ ;Creates a vector (list) of values in two different ways
-→ [1 "hello" :c]
-→ (vec 1 "hello" :c)
-
-
 ; Time a function call
 (function measure
   (let [start result end] [(time) (.. . args) (time)])

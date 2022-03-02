@@ -62,7 +62,8 @@ export type Ctx = {
   /** The total number of function calls permitted. */
   callBudget: number;
   /** The total number of explicit recursions permitted.
-   * Explicit recursions are unlikely to cause a stack-overflow. */
+   * Explicit recursions are unlikely to cause a stack-overflow,
+   * rather this effectively limits the time an Insitux program may hang for. */
   recurBudget: number;
 };
 
