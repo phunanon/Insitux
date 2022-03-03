@@ -506,7 +506,8 @@ function parseForm(
   const ins: ParserIns[] = flat(args);
   if (symAt([firstNode]) === "return") {
     return [...ins, { typ: "ret", value: !!len(args), errCtx }];
-  } else if (head[0].typ === "ref") {
+  } else if (len(head) === 1 && head[0].typ === "ref") {
+     //Transform potential external function into string
     const { value: v, errCtx } = head[0];
     head[0] = { typ: "val", value: { t: "str", v }, errCtx };
   }
@@ -607,7 +608,7 @@ function parseParams(
   return { shape, errors: errs };
 }
 
-function compileFunc({ name, nodes: nodes }: NamedNodes): Func | InvokeError {
+function compileFunc({ name, nodes }: NamedNodes): Func | InvokeError {
   const { shape: params, errors } = parseParams(nodes, false);
   const ins = [...errors, ...flat(nodes.map(node => parseArg(node, params)))];
   for (let i = 0, lim = len(ins); i < lim; i++) {

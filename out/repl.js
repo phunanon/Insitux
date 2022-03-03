@@ -1330,7 +1330,7 @@ function parseForm(nodes, params, doArityCheck = true) {
   const ins = parse_flat(args);
   if (symAt([firstNode]) === "return") {
     return [...ins, { typ: "ret", value: !!parse_len(args), errCtx }];
-  } else if (head[0].typ === "ref") {
+  } else if (parse_len(head) === 1 && head[0].typ === "ref") {
     const { value: v, errCtx: errCtx2 } = head[0];
     head[0] = { typ: "val", value: { t: "str", v }, errCtx: errCtx2 };
   }
@@ -2221,7 +2221,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220302;
+const insituxVersion = 220303;
 
 
 

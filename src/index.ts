@@ -1,4 +1,4 @@
-export const insituxVersion = 220302;
+export const insituxVersion = 220303;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
