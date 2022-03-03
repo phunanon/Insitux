@@ -1,8 +1,8 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Request a language-specific new feature
 title: ''
-labels: ''
+labels: enhancement
 assignees: phunanon
 
 ---
