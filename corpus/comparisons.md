@@ -62,13 +62,3 @@ combined = sum(parts, [])
 shuffle(combined)
 "".join(combined)
 ```
-
-Insitux
-```clj
-(.. str (repeat #(char-code (rand-int 33 126)) 16))
-```
-Python
-```py
-import string, random
-"".join(random.choices(string.printable.strip(), k=16))
-```

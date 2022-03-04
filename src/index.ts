@@ -1,4 +1,4 @@
-export const insituxVersion = 220303;
+export const insituxVersion = 220304;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -19,138 +19,111 @@ import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
 import { dic, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
 
 const externalOps: { [name: string]: ExternalHandler } = {};
-let stack: Val[] = [];
 let letsStack: { [key: string]: Val }[] = [];
 let lets: typeof letsStack[0] = {};
 let recurArgs: undefined | Val[];
-const _boo = (v: boolean) => stack.push({ t: "bool", v });
-const _num = (v: number) => stack.push({ t: "num", v });
-const _str = (v = "") => stack.push({ t: "str", v });
-const _vec = (v: Val[] = []) => stack.push({ t: "vec", v });
-const _dic = (v: Dict) => stack.push({ t: "dict", v });
-const _nul = () => stack.push({ t: "null", v: undefined });
-const _fun = (v: string) => stack.push({ t: "func", v });
+const _boo = (v: boolean) => <Val>{ t: "bool", v };
+const _num = (v: number) => <Val>{ t: "num", v };
+const _str = (v = "") => <Val>{ t: "str", v };
+const _key = (v: string) => <Val>{ t: "key", v };
+const _vec = (v: Val[] = []) => <Val>{ t: "vec", v };
+const _dic = (v: Dict) => <Val>{ t: "dict", v };
+const _nul = () => <Val>{ t: "null", v: undefined };
+const _fun = (v: string) => <Val>{ t: "func", v };
 
-function exeOp(
-  op: string,
-  args: Val[],
-  ctx: Ctx,
-  errCtx: ErrCtx,
-): InvokeError[] | undefined {
-  const tErr = (msg: string) => [typeErr(msg, errCtx)];
+type _Exception = { errors: InvokeError[] };
+function _throw(errors: InvokeError[]): Val {
+  throw <_Exception>{ errors };
+}
+function isThrown(e: unknown): e is _Exception {
+  return !!e && typeof e === "object" && "errors" in e;
+}
+const throwTypeErr = (msg: string, errCtx: ErrCtx) =>
+  _throw([typeErr(msg, errCtx)]);
 
+function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
   switch (op) {
     case "str":
-      stack.push({ t: "str", v: stringify(args) });
-      return;
+      return _str(stringify(args));
     case "print":
     case "print-str":
       ctx.print(stringify(args), op === "print");
-      _nul();
-      return;
+      return _nul();
     case "vec":
-      _vec(args);
-      return;
+      return _vec(args);
     case "dict":
-      stack.push(toDict(args));
-      return;
+      return toDict(args);
     case "len":
-      _num(
+      return _num(
         args[0].t === "str"
           ? slen(args[0].v)
           : args[0].t === "vec"
           ? len(args[0].v)
           : len(dic(args[0]).keys),
       );
-      return;
     case "to-num":
       if (isNum(args[0].v)) {
-        _num(toNum(args[0].v));
+        return _num(toNum(args[0].v));
       } else {
-        _nul();
+        return _nul();
       }
-      return;
     case "to-key":
-      stack.push({ t: "key", v: `:${val2str(args[0])}` });
-      return;
+      return _key(`:${val2str(args[0])}`);
     case "to-vec":
-      _vec(asArray(args[0]));
-      return;
+      return _vec(asArray(args[0]));
     case "!":
-      _boo(!asBoo(args[0]));
-      return;
+      return _boo(!asBoo(args[0]));
     case "=":
     case "!=":
       for (let i = 1, lim = len(args); i < lim; ++i) {
         if (isEqual(args[i - 1], args[i]) !== (op === "=")) {
-          _boo(false);
-          return;
+          return _boo(false);
         }
       }
-      _boo(true);
-      return;
+      return _boo(true);
     case "-":
-      _num(
+      return _num(
         len(args) === 1
           ? -num(args[0])
           : args.map(num).reduce((sum, n) => sum - n),
       );
-      return;
     case "**":
-      _num(num(args[0]) ** (len(args) === 1 ? 2 : num(args[1])));
-      return;
+      return _num(num(args[0]) ** (len(args) === 1 ? 2 : num(args[1])));
     case "+":
-      _num(args.map(num).reduce((sum, n) => sum + n));
-      return;
+      return _num(args.map(num).reduce((sum, n) => sum + n));
     case "*":
-      _num(args.map(num).reduce((sum, n) => sum * n));
-      return;
+      return _num(args.map(num).reduce((sum, n) => sum * n));
     case "/":
-      _num(args.map(num).reduce((sum, n) => sum / n));
-      return;
+      return _num(args.map(num).reduce((sum, n) => sum / n));
     case "//":
-      _num(args.map(num).reduce((sum, n) => floor(sum / n)));
-      return;
+      return _num(args.map(num).reduce((sum, n) => floor(sum / n)));
     case "fast=":
     case "fast!=":
-      _boo(isEqual(args[0], args[1]) === (op === "fast="));
-      return;
+      return _boo(isEqual(args[0], args[1]) === (op === "fast="));
     case "fast-":
-      _num(<number>args[0].v - <number>args[1].v);
-      return;
+      return _num(<number>args[0].v - <number>args[1].v);
     case "fast+":
-      _num(<number>args[0].v + <number>args[1].v);
-      return;
+      return _num(<number>args[0].v + <number>args[1].v);
     case "fast*":
-      _num(<number>args[0].v * <number>args[1].v);
-      return;
+      return _num(<number>args[0].v * <number>args[1].v);
     case "fast/":
-      _num(<number>args[0].v / <number>args[1].v);
-      return;
+      return _num(<number>args[0].v / <number>args[1].v);
     case "fast//":
-      _num(floor(<number>args[0].v / <number>args[1].v));
-      return;
+      return _num(floor(<number>args[0].v / <number>args[1].v));
     case "fast<":
-      _boo(<number>args[0].v < <number>args[1].v);
-      return;
+      return _boo(<number>args[0].v < <number>args[1].v);
     case "fast>":
-      _boo(<number>args[0].v > <number>args[1].v);
-      return;
+      return _boo(<number>args[0].v > <number>args[1].v);
     case "fast<=":
-      _boo(<number>args[0].v <= <number>args[1].v);
-      return;
+      return _boo(<number>args[0].v <= <number>args[1].v);
     case "fast>=":
-      _boo(<number>args[0].v >= <number>args[1].v);
-      return;
+      return _boo(<number>args[0].v >= <number>args[1].v);
     case "rem":
-      _num(args.map(num).reduce((sum, n) => sum % n));
-      return;
+      return _num(args.map(num).reduce((sum, n) => sum % n));
     case "min":
-      _num(args.map(num).reduce((sum, n) => min(sum, n)));
-      return;
+      return _num(args.map(num).reduce((sum, n) => min(sum, n)));
     case "max":
-      _num(args.map(num).reduce((sum, n) => max(sum, n)));
-      return;
+      return _num(args.map(num).reduce((sum, n) => max(sum, n)));
     case "<":
     case ">":
     case "<=":
@@ -163,29 +136,23 @@ function exeOp(
           (op === "<=" && a > b) ||
           (op === ">=" && a < b)
         ) {
-          _boo(false);
-          return;
+          return _boo(false);
         }
       }
-      _boo(true);
-      return;
+      return _boo(true);
     case "inc":
-      _num(<number>args[0].v + 1);
-      return;
+      return _num(<number>args[0].v + 1);
     case "dec":
-      _num(<number>args[0].v - 1);
-      return;
+      return _num(<number>args[0].v - 1);
     case "abs":
-      _num(abs(<number>args[0].v));
-      return;
+      return _num(abs(<number>args[0].v));
     case "round":
       if (len(args) === 2) {
         const x = 10 ** <number>args[0].v;
-        _num(round(<number>args[1].v * x) / x);
+        return _num(round(<number>args[1].v * x) / x);
       } else {
-        _num(round(<number>args[0].v));
+        return _num(round(<number>args[0].v));
       }
-      return;
     case "sin":
     case "cos":
     case "tan":
@@ -196,8 +163,7 @@ function exeOp(
     case "log2":
     case "log10": {
       const f = { sin, cos, tan, sqrt, floor, ceil, logn, log2, log10 }[op];
-      _num(f(num(args[0])));
-      return;
+      return _num(f(num(args[0])));
     }
     case "asin":
     case "acos":
@@ -206,22 +172,18 @@ function exeOp(
     case "cosh":
     case "tanh": {
       const f = { asin, acos, atan, sinh, cosh, tanh }[op];
-      _num(f(num(args[0])));
-      return;
+      return _num(f(num(args[0])));
     }
     case "and":
-      _boo(args.every(asBoo));
-      return;
+      return _boo(args.every(asBoo));
     case "or":
-      _boo(args.some(asBoo));
-      return;
+      return _boo(args.some(asBoo));
     case "xor":
       if (asBoo(args[0]) !== asBoo(args[1])) {
-        stack.push(asBoo(args[0]) ? args[0] : args[1]);
+        return asBoo(args[0]) ? args[0] : args[1];
       } else {
-        _boo(false);
+        return _boo(false);
       }
-      return;
     case "&":
     case "|":
     case "^":
@@ -229,7 +191,7 @@ function exeOp(
     case ">>":
     case ">>>":
       const [a, b] = [num(args[0]), num(args[1])];
-      _num(
+      return _num(
         op === "&"
           ? a & b
           : op === "|"
@@ -242,20 +204,16 @@ function exeOp(
           ? a >> b
           : a >>> b,
       );
-      return;
     case "~":
-      _num(~num(args[0]));
-      return;
+      return _num(~num(args[0]));
     case "odd?":
     case "even?":
-      _boo(num(args[0]) % 2 === (op === "odd?" ? 1 : 0));
-      return;
+      return _boo(num(args[0]) % 2 === (op === "odd?" ? 1 : 0));
     case "pos?":
     case "neg?":
     case "zero?": {
       const n = num(args[0]);
-      _boo(op === "pos?" ? n > 0 : op === "neg?" ? n < 0 : !n);
-      return;
+      return _boo(op === "pos?" ? n > 0 : op === "neg?" ? n < 0 : !n);
     }
     case "null?":
     case "num?":
@@ -268,39 +226,35 @@ function exeOp(
     case "wild?":
     case "ext?": {
       const { t } = args[0];
-      _boo(
+      return _boo(
         (op === "func?" && (t === "func" || t === "clo")) ||
           substr(op, 0, slen(op) - 1) === t,
       );
-      return;
     }
     case "type-of":
-      _str(args[0].t);
-      return;
+      return _str(args[0].t);
     case "substr?":
-      _boo(sub(str(args[1]), str(args[0])));
-      return;
+      return _boo(sub(str(args[1]), str(args[0])));
     case "idx": {
       let i = -1;
       if (args[0].t === "str") {
         if (args[1].t !== "str") {
-          return tErr("strings can only contain strings");
+          throwTypeErr("strings can only contain strings", errCtx);
+        } else {
+          i = subIdx(args[1].v, args[0].v);
         }
-        i = subIdx(args[1].v, args[0].v);
       } else if (args[0].t === "vec") {
         i = args[0].v.findIndex(a => isEqual(a, args[1]));
       }
       if (i === -1) {
-        _nul();
+        return _nul();
       } else {
-        _num(i);
+        return _num(i);
       }
-      return;
     }
     case "set-at": {
       const [pathVal, replacement, coll] = args;
-      stack.push(pathSet(vec(pathVal), replacement, coll));
-      return;
+      return pathSet(vec(pathVal), replacement, coll);
     }
     case "map":
     case "for":
@@ -316,10 +270,11 @@ function exeOp(
         );
         if (badArg !== -1) {
           const badType = typeNames[args[badArg].t];
-          return tErr(
+          throwTypeErr(
             `argument ${
               badArg + 2
             } must be either: string, vector, dictionary, not ${badType}`,
+            errCtx,
           );
         }
       }
@@ -333,19 +288,14 @@ function exeOp(
         divisors.unshift(1);
         const lim = divisors.pop()!;
         if (lim > ctx.loopBudget) {
-          return [{ e: "Budget", m: "would exceed loop budget", errCtx }];
+          _throw([{ e: "Budget", m: "would exceed loop budget", errCtx }]);
         }
         const array: Val[] = [];
         for (let t = 0; t < lim; ++t) {
           const argIdxs = divisors.map((d, i) => floor((t / d) % lims[i]));
-          const errors = closure(arrays.map((a, i) => a[argIdxs[i]]));
-          if (errors) {
-            return errors;
-          }
-          array.push(stack.pop()!);
+          array.push(closure(arrays.map((a, i) => a[argIdxs[i]])));
         }
-        _vec(array);
-        return;
+        return _vec(array);
       }
 
       if (op === "map") {
@@ -353,14 +303,9 @@ function exeOp(
         const shortest = min(...arrays.map(len));
         const array: Val[] = [];
         for (let i = 0; i < shortest; ++i) {
-          const errors = closure(arrays.map(a => a[i]));
-          if (errors) {
-            return errors;
-          }
-          array.push(stack.pop()!);
+          array.push(closure(arrays.map(a => a[i])));
         }
-        _vec(array);
-        return;
+        return _vec(array);
       }
 
       if (op !== "reduce") {
@@ -372,17 +317,12 @@ function exeOp(
         const filtered: Val[] = [];
         let count = 0;
         for (let i = 0, lim = len(array); i < lim; ++i) {
-          const errors = closure([array[i], ...args]);
-          if (errors) {
-            return errors;
-          }
-          const b = asBoo(stack.pop()!);
+          const b = asBoo(closure([array[i], ...args]));
           if (isCount) {
             count += b ? 1 : 0;
           } else if (isFind) {
             if (b) {
-              stack.push(array[i]);
-              return;
+              return array[i];
             }
           } else if (b !== isRemove) {
             filtered.push(array[i]);
@@ -390,110 +330,96 @@ function exeOp(
         }
         switch (op) {
           case "count":
-            _num(count);
-            return;
+            return _num(count);
           case "find":
-            _nul();
-            return;
+            return _nul();
         }
         if (arrArg.t === "str") {
-          _str(filtered.map(v => val2str(v)).join(""));
+          return _str(filtered.map(v => val2str(v)).join(""));
         } else if (arrArg.t === "dict") {
-          stack.push(toDict(flat(filtered.map(v => <Val[]>v.v))));
+          return toDict(flat(filtered.map(v => <Val[]>v.v)));
         } else {
-          _vec(filtered);
+          return _vec(filtered);
         }
-        return;
       }
       const arrayVal = args.pop()!;
       if (!has(["vec", "dict", "str"], arrayVal.t)) {
-        return tErr(
+        throwTypeErr(
           `must reduce either: string, vector, dictionary, not ${
             typeNames[arrayVal.t]
           }`,
+          errCtx,
         );
       }
       const array = asArray(arrayVal);
 
       if (!len(array)) {
         if (len(args)) {
-          stack.push(args[0]);
+          return args[0];
         } else {
-          _vec();
+          return _vec();
         }
-        return;
       }
       if (len(array) < 2 && !len(args)) {
-        push(stack, array);
-        return;
+        return array[0];
       }
 
       let reduction: Val = (len(args) ? args : array).shift()!;
       for (let i = 0, lim = len(array); i < lim; ++i) {
-        const errors = closure([reduction, array[i]]);
-        if (errors) {
-          return errors;
-        }
-        reduction = stack.pop()!;
+        reduction = closure([reduction, array[i]]);
       }
-      stack.push(reduction);
-      return;
+      return reduction;
     }
     case "repeat": {
       const toRepeat = args.shift()!;
       const result: Val[] = [];
       const count = num(args[0]);
       if (count > ctx.rangeBudget) {
-        return [{ e: "Budget", m: "would exceed range budget", errCtx }];
+        _throw([{ e: "Budget", m: "would exceed range budget", errCtx }]);
       }
       ctx.rangeBudget -= count;
       if (toRepeat.t === "func" || toRepeat.t === "clo") {
         const closure = getExe(ctx, toRepeat, errCtx);
         for (let i = 0; i < count; ++i) {
-          const errors = closure([{ t: "num", v: i }]);
-          if (errors) {
-            return errors;
-          }
-          result.push(stack.pop()!);
+          result.push(closure([_num(i)]));
         }
       } else {
         for (let i = 0; i < count; ++i) {
           result.push(toRepeat);
         }
       }
-      _vec(result);
-      return;
+      return _vec(result);
     }
     case "->": {
-      stack.push(args.shift()!);
+      let passed = args.shift()!;
       for (let i = 0, lim = len(args); i < lim; ++i) {
-        const errors = getExe(ctx, args[i], errCtx)([stack.pop()!]);
-        if (errors) {
-          errors.forEach(err => (err.m = `-> arg ${i + 2}: ${err.m}`));
-          return errors;
+        try {
+          passed = getExe(ctx, args[i], errCtx)([passed]);
+        } catch (e) {
+          if (isThrown(e)) {
+            e.errors.forEach(err => (err.m = `-> arg ${i + 2}: ${err.m}`));
+            throw e;
+          }
         }
       }
-      return;
+      return passed;
     }
     case "rand-int":
-    case "rand":
-      {
-        const nArgs = len(args);
-        const [a, b] = [
-          nArgs < 2 ? 0 : num(args[0]),
-          nArgs === 0
-            ? 1 + toNum(op === "rand-int")
-            : nArgs === 1
-            ? num(args[0])
-            : num(args[1]),
-        ];
-        _num(op === "rand-int" ? randInt(a, b) : randNum(a, b));
-      }
-      return;
+    case "rand": {
+      const nArgs = len(args);
+      const [a, b] = [
+        nArgs < 2 ? 0 : num(args[0]),
+        nArgs === 0
+          ? 1 + toNum(op === "rand-int")
+          : nArgs === 1
+          ? num(args[0])
+          : num(args[1]),
+      ];
+      return _num(op === "rand-int" ? randInt(a, b) : randNum(a, b));
+    }
     case "do":
     case "val":
-      stack.push(op === "do" ? args.pop()! : args.shift()!);
-      return;
+      return op === "do" ? args.pop()! : args.shift()!;
     case ".":
     case "..":
     case "...": {
@@ -512,44 +438,36 @@ function exeOp(
     }
     case "into": {
       if (args[0].t === "vec") {
-        _vec(concat(args[0].v, asArray(args[1])));
+        return _vec(concat(args[0].v, asArray(args[1])));
       } else {
         if (args[1].t === "vec") {
-          stack.push(
-            toDict(concat(flat(asArray(args[0]).map(vec)), args[1].v)),
-          );
+          return toDict(concat(flat(asArray(args[0]).map(vec)), args[1].v));
         } else {
-          const { keys, vals } = dic(args[0]);
-          const d1 = dic(args[1]);
-          _dic({ keys: concat(keys, d1.keys), vals: concat(vals, d1.vals) });
+          const { keys: ks1, vals: vs1 } = dic(args[0]);
+          const { keys: ks2, vals: vs2 } = dic(args[1]);
+          return _dic({ keys: concat(ks1, ks2), vals: concat(vs1, vs2) });
         }
       }
-      return;
     }
     case "omit":
-      stack.push(dictDrop(dic(args[1]), args[0]));
-      return;
+      return dictDrop(dic(args[1]), args[0]);
     case "assoc":
-      _dic(dictSet(dic(args[2]), args[0], args[1]));
-      return;
+      return _dic(dictSet(dic(args[2]), args[0], args[1]));
     case "append":
-      _vec(concat(vec(args[1]), [args[0]]));
-      return;
+      return _vec(concat(vec(args[1]), [args[0]]));
     case "prepend":
-      _vec(concat([args[0]], vec(args[1])));
-      return;
+      return _vec(concat([args[0]], vec(args[1])));
     case "insert": {
       const v = vec(args[2]);
       let n = num(args[1]);
       if (n === 0) {
-        _vec(concat([args[0]], v));
+        return _vec(concat([args[0]], v));
       } else if (n === -1) {
-        _vec(concat(v, [args[0]]));
+        return _vec(concat(v, [args[0]]));
       } else {
         n = n > 0 ? min(n, len(v)) : max(len(v) + 1 + n, 0);
-        _vec(concat(concat(slice(v, 0, n), [args[0]]), slice(v, n)));
+        return _vec(concat(concat(slice(v, 0, n), [args[0]]), slice(v, n)));
       }
-      return;
     }
     case "sect": {
       const v = args[0];
@@ -580,31 +498,27 @@ function exeOp(
       a = max(a, 0);
       b = min(b, vlen);
       if (a > b) {
-        (v.t === "vec" ? _vec : _str)();
-        return;
+        return (v.t === "vec" ? _vec : _str)();
       }
       if (v.t === "vec") {
-        _vec(slice(v.v, a, b));
+        return _vec(slice(v.v, a, b));
       } else {
-        _str(substr(str(args[0]), a, b - a));
+        return _str(substr(str(args[0]), a, b - a));
       }
-      return;
     }
     case "reverse":
       if (args[0].t === "str") {
-        _str(stringify(reverse(asArray(args[0]))));
+        return _str(stringify(reverse(asArray(args[0]))));
       } else {
-        _vec(reverse(asArray(args[0])));
+        return _vec(reverse(asArray(args[0])));
       }
-      return;
     case "flatten": {
       const src = vec(args[0]);
       const flattened: Val[] = [];
       const recur = (vec: Val[]): void =>
         vec.forEach(v => (v.t === "vec" ? recur(v.v) : flattened.push(v)));
       recur(src);
-      _vec(flattened);
-      return;
+      return _vec(flattened);
     }
     case "shuffle": {
       const arr = slice(vec(args[0]));
@@ -612,15 +526,13 @@ function exeOp(
         const j = floor(randInt(0, i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
       }
-      _vec(arr);
-      return;
+      return _vec(arr);
     }
     case "sort":
     case "sort-by": {
       const src = asArray(args[op === "sort" ? 0 : 1]);
       if (!len(src)) {
-        _vec();
-        return;
+        return _vec();
       }
       const mapped: Val[][] = [];
       if (op === "sort") {
@@ -631,24 +543,19 @@ function exeOp(
       } else {
         const closure = getExe(ctx, args[0], errCtx);
         for (let i = 0, lim = len(src); i < lim; ++i) {
-          const errors = closure([src[i]]);
-          if (errors) {
-            return errors;
-          }
-          mapped.push([src[i], stack.pop()!]);
+          mapped.push([src[i], closure([src[i]])]);
         }
       }
       const okT = mapped[0][1].t;
       if (mapped.some(([_, { t }]) => t !== okT || !has(["num", "str"], t))) {
-        return tErr("can only sort by all number or all string");
+        throwTypeErr("can only sort by all number or all string", errCtx);
       }
       if (okT === "num") {
         sortBy(mapped, ([x, a], [y, b]) => (num(a) > num(b) ? 1 : -1));
       } else {
         sortBy(mapped, ([x, a], [y, b]) => (str(a) > str(b) ? 1 : -1));
       }
-      _vec(mapped.map(([v]) => v));
-      return;
+      return _vec(mapped.map(([v]) => v));
     }
     case "group-by": {
       const closure = getExe(ctx, args[0], errCtx);
@@ -657,18 +564,11 @@ function exeOp(
       if (isDic) {
         const { keys, vals } = dic(args[1]);
         for (let i = 0, lim = len(keys); i < lim; ++i) {
-          const errors = closure([keys[i], vals[i]]);
-          if (errors) {
-            return errors;
-          }
-          const v = stack.pop()!;
+          const v = closure([keys[i], vals[i]]);
           const existingKey = groups.keys.findIndex(k => isEqual(k, v));
           if (existingKey === -1) {
             groups.keys.push(v);
-            groups.vals.push({
-              t: "dict",
-              v: { keys: [keys[i]], vals: [vals[i]] },
-            });
+            groups.vals.push(_dic({ keys: [keys[i]], vals: [vals[i]] }));
           } else {
             const subDict = dic(groups.vals[existingKey]);
             subDict.keys.push(keys[i]);
@@ -678,23 +578,18 @@ function exeOp(
       } else {
         const src = asArray(args[1]);
         for (let i = 0, lim = len(src); i < lim; ++i) {
-          const errors = closure([src[i]]);
-          if (errors) {
-            return errors;
-          }
-          const v = stack.pop()!;
+          const v = closure([src[i]]);
           const existingKey = groups.keys.findIndex(k => isEqual(k, v));
           if (existingKey === -1) {
             groups.keys.push(v);
-            groups.vals.push({ t: "vec", v: [src[i]] });
+            groups.vals.push(_vec([src[i]]));
           } else {
             const subVec = vec(groups.vals[existingKey]);
             subVec.push(src[i]);
           }
         }
       }
-      _dic(groups);
-      return;
+      return _dic(groups);
     }
     case "part-by": {
       const closure = getExe(ctx, args[0], errCtx);
@@ -706,28 +601,19 @@ function exeOp(
           { keys: [], vals: [] },
         ];
         for (let i = 0, lim = len(keys); i < lim; ++i) {
-          const errors = closure([keys[i], vals[i]]);
-          if (errors) {
-            return errors;
-          }
-          const p = asBoo(stack.pop()!) ? 0 : 1;
+          const p = asBoo(closure([keys[i], vals[i]])) ? 0 : 1;
           parted[p].keys.push(keys[i]);
           parted[p].vals.push(vals[i]);
         }
-        _vec(parted.map(v => <Val>{ t: "dict", v }));
+        return _vec(parted.map(_dic));
       } else {
         const src = asArray(args[1]);
         const parted: Val[][] = [[], []];
         for (let i = 0, lim = len(src); i < lim; ++i) {
-          const errors = closure([src[i]]);
-          if (errors) {
-            return errors;
-          }
-          parted[asBoo(stack.pop()!) ? 0 : 1].push(src[i]);
+          parted[asBoo(closure([src[i]])) ? 0 : 1].push(src[i]);
         }
-        _vec(parted.map(v => <Val>{ t: "vec", v }));
+        return _vec(parted.map(_vec));
       }
-      return;
     }
     case "frequencies": {
       const src = asArray(args[0]);
@@ -742,8 +628,7 @@ function exeOp(
           counts.push(1);
         }
       });
-      _dic({ keys: distinct, vals: counts.map(v => <Val>{ t: "num", v }) });
-      return;
+      return _dic({ keys: distinct, vals: counts.map(_num) });
     }
     case "distinct": {
       const arr = len(args) === 1 && args[0].t === "vec" ? vec(args[0]) : args;
@@ -753,8 +638,7 @@ function exeOp(
           distinct.push(a);
         }
       });
-      _vec(distinct);
-      return;
+      return _vec(distinct);
     }
     case "range": {
       const [a, b, s] = args.map(num);
@@ -764,47 +648,37 @@ function exeOp(
       const step = sign((y - x) * (s || 1)) * (s || 1);
       const count = ceil(abs((y - x) / step));
       if (!count) {
-        _vec([]);
-        return;
+        return _vec();
       }
       if (count > ctx.rangeBudget) {
-        return [{ e: "Budget", m: "would exceed range budget", errCtx }];
+        _throw([{ e: "Budget", m: "would exceed range budget", errCtx }]);
       }
       ctx.rangeBudget -= count;
       const nums = range(count).map(n => n * step + x);
-      _vec(nums.map(v => <Val>{ t: "num", v }));
-      return;
+      return _vec(nums.map(_num));
     }
     case "empty?":
-      _boo(!len(asArray(args[0])));
-      return;
+      return _boo(!len(asArray(args[0])));
     case "keys":
     case "vals":
-      _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
-      return;
+      return _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);
     case "split":
-      _vec(
-        str(args[1])
-          .split(str(args[0]))
-          .map(v => <Val>{ t: "str", v }),
-      );
-      return;
+      return _vec(str(args[1]).split(str(args[0])).map(_str));
     case "join":
-      _str(asArray(args[1]).map(val2str).join(str(args[0])));
-      return;
+      return _str(asArray(args[1]).map(val2str).join(str(args[0])));
     case "replace":
-      _str(replace(str(args[2]), str(args[0]), str(args[1])));
-      return;
+      return _str(replace(str(args[2]), str(args[0]), str(args[1])));
     case "starts?":
     case "ends?":
-      _boo((op === "starts?" ? starts : ends)(str(args[1]), str(args[0])));
-      return;
+      return _boo(
+        (op === "starts?" ? starts : ends)(str(args[1]), str(args[0])),
+      );
     case "upper-case":
     case "lower-case":
     case "trim":
     case "trim-start":
     case "trim-end":
-      _str(
+      return _str(
         (op === "upper-case"
           ? upperCase
           : op === "lower-case"
@@ -815,85 +689,70 @@ function exeOp(
           ? trimStart
           : trimEnd)(str(args[0])),
       );
-      return;
     case "str*": {
       const text = str(args[0]);
-      _str(
+      return _str(
         range(max(ceil(num(args[1])), 0))
           .map(n => text)
           .join(""),
       );
-      return;
     }
     case "char-code": {
       if (args[0].t === "str") {
         const n = len(args) > 1 ? num(args[1]) : 0;
         const s = str(args[0]);
         if (slen(s) <= n || n < 0) {
-          _nul();
+          return _nul();
         } else {
-          _num(charCode(strIdx(s, n)));
+          return _num(charCode(strIdx(s, n)));
         }
       } else {
-        _str(codeChar(num(args[0])));
+        return _str(codeChar(num(args[0])));
       }
-      return;
     }
     case "time":
-      _num(getTimeMs());
-      return;
+      return _num(getTimeMs());
     case "version":
-      _num(insituxVersion);
-      return;
+      return _num(insituxVersion);
     case "tests":
-      _str(doTests(invoke, !(len(args) && asBoo(args[0]))).join("\n"));
-      return;
+      return _str(doTests(invoke, !(len(args) && asBoo(args[0]))).join("\n"));
     case "symbols":
-      _vec(symbols(ctx, false).map(v => ({ t: "str", v })));
-      return;
+      return _vec(symbols(ctx, false).map(_str));
     case "eval": {
       delete ctx.env.funcs["entry"];
-      const sLen = len(stack);
       const invokeId = `${errCtx.invokeId} eval`;
-      const errors = parseAndExe(ctx, str(args[0]), invokeId);
-      if (errors) {
-        return [
-          { e: "Eval", m: "error within evaluated code", errCtx },
-          ...errors,
-        ];
+      try {
+        const valOrNone = parseAndExe(ctx, str(args[0]), invokeId, []);
+        return valOrNone ? valOrNone : _nul();
+      } catch (e) {
+        if (isThrown(e)) {
+          _throw([
+            { e: "Eval", m: "error within evaluated code", errCtx },
+            ...e.errors,
+          ]);
+        }
       }
-      if (sLen === len(stack)) {
-        _nul();
-      }
-      return;
     }
     case "about": {
       const func = str(args[0]);
       const entry = ops[func];
       if (!entry) {
-        _nul();
-        return;
+        return _nul();
       }
       const infos: Val[] = [];
       const info = (what: string, val: Val) =>
-        infos.push({ t: "key", v: `:${what}` }, val);
-      const toStrVec = (v: (string | string[])[]): Val => ({
-        t: "vec",
-        v: v.map(typ =>
-          isArray(typ)
-            ? { t: "vec", v: typ.map(v => <Val>{ t: "str", v }) }
-            : { t: "str", v: typ },
-        ),
-      });
-      info("external?", { t: "bool", v: !!entry.external });
+        infos.push(_key(`:${what}`), val);
+      const toStrVec = (v: (string | string[])[]): Val =>
+        _vec(v.map(typ => (isArray(typ) ? _vec(typ.map(_str)) : _str(typ))));
+      info("external?", _boo(!!entry.external));
       if (entry.exactArity) {
-        info("exact-arity", { t: "num", v: entry.exactArity });
+        info("exact-arity", _num(entry.exactArity));
       } else {
         if (entry.minArity) {
-          info("minimum-arity", { t: "num", v: entry.minArity });
+          info("minimum-arity", _num(entry.minArity));
         }
         if (entry.maxArity) {
-          info("maximum-arity", { t: "num", v: entry.maxArity });
+          info("maximum-arity", _num(entry.maxArity));
         }
       }
       if (entry.params || entry.numeric) {
@@ -902,21 +761,19 @@ function exeOp(
       if (entry.returns || entry.numeric === true) {
         info("out-types", toStrVec(entry.returns ? entry.returns : ["num"]));
       }
-      stack.push(toDict(infos));
-      return;
+      return toDict(infos);
     }
     case "recur":
       recurArgs = args;
-      return;
+      return _nul();
     case "reset":
       ctx.env.vars = {};
       ctx.env.funcs = {};
       letsStack = [];
-      _nul();
-      return;
+      return _nul();
   }
 
-  return [{ e: "Unexpected", m: "operation doesn't exist", errCtx }];
+  return _throw([{ e: "Unexpected", m: "operation doesn't exist", errCtx }]);
 }
 
 const monoArityError = (t: Val["t"], errCtx: ErrCtx) => [
@@ -946,7 +803,7 @@ function getExe(
   op: Val,
   errCtx: ErrCtx,
   checkArity = true,
-): (params: Val[]) => InvokeError[] | undefined {
+): (params: Val[]) => Val {
   if (op.t === "str" || op.t === "func") {
     const name = op.v;
     if (ops[name]) {
@@ -954,18 +811,22 @@ function getExe(
         return (params: Val[]) => {
           const violations = checks(name, params, errCtx, checkArity);
           if (violations) {
-            return violations;
+            _throw(violations);
           }
           const valOrErr = externalOps[name](params);
           if (valOrErr.kind === "err") {
-            return [{ e: "External", m: valOrErr.err, errCtx }];
+            throw [{ e: "External", m: valOrErr.err, errCtx }];
           }
-          stack.push(valOrErr.value);
+          return valOrErr.value;
         };
       }
-      return (params: Val[]) =>
-        checks(name, params, errCtx, checkArity) ||
-        exeOp(name, params, ctx, errCtx);
+      return (params: Val[]) => {
+        const violations = checks(name, params, errCtx, checkArity);
+        if (violations) {
+          _throw(violations);
+        }
+        return exeOp(name, params, ctx, errCtx);
+      };
     }
     if (name in ctx.env.funcs && name !== "entry") {
       return (params: Val[]) => exeFunc(ctx, ctx.env.funcs[name], params);
@@ -979,127 +840,111 @@ function getExe(
     if (starts(name, "$")) {
       return (params: Val[]) => {
         if (!len(params)) {
-          return monoArityError(op.t, errCtx);
+          _throw(monoArityError(op.t, errCtx));
         }
         if (!ctx.set) {
           const m = `"set" feature not implemented on this platform`;
-          return [{ e: "External", m, errCtx }];
+          return _throw([{ e: "External", m, errCtx }]);
         }
         const err = ctx.set(substr(name, 1), params[0]);
-        stack.push(params[0]);
-        return err ? [{ e: "External", m: err, errCtx }] : undefined;
+        if (err) {
+          _throw([{ e: "External", m: err, errCtx }]);
+        }
+        return params[0];
       };
     }
     return (params: Val[]) => {
       if (!ctx.exe) {
         const m = `operation "${name}" does not exist"`;
-        return [{ e: "External", m, errCtx }];
+        return _throw([{ e: "External", m, errCtx }]);
       }
       const valAndErr = ctx.exe(name, params);
       if (valAndErr.kind === "val") {
-        stack.push(valAndErr.value);
-        return;
+        return valAndErr.value;
       }
-      return [{ e: "External", m: valAndErr.err, errCtx }];
+      return _throw([{ e: "External", m: valAndErr.err, errCtx }]);
     };
   } else if (op.t === "clo") {
     return (params: Val[]) => exeFunc(ctx, op.v, params);
   } else if (op.t === "key") {
     return (params: Val[]) => {
       if (!len(params)) {
-        return monoArityError(op.t, errCtx);
+        _throw(monoArityError(op.t, errCtx));
       }
       if (params[0].t === "dict") {
-        stack.push(dictGet(dic(params[0]), op));
+        return dictGet(dic(params[0]), op);
       } else if (params[0].t === "vec") {
         const found = vec(params[0]).find(v => isEqual(v, op));
-        stack.push(found ?? { t: "null", v: undefined });
+        return found ?? _nul();
       } else {
-        return keyOpErr(errCtx, [params[0].t]);
+        return _throw(keyOpErr(errCtx, [params[0].t]));
       }
-      return;
     };
   } else if (op.t === "num") {
     const n = floor(op.v);
     return (params: Val[]) => {
       if (!len(params)) {
-        return monoArityError(op.t, errCtx);
+        _throw(monoArityError(op.t, errCtx));
       }
       const a = params[0];
       if (a.t !== "str" && a.t !== "vec" && a.t !== "dict") {
-        return numOpErr(errCtx, [a.t]);
+        return _throw(numOpErr(errCtx, [a.t]));
       }
       const arr = asArray(a),
         alen = len(arr);
       if ((n >= 0 && n >= alen) || (n < 0 && -n > alen)) {
-        _nul();
+        return _nul();
       } else if (n < 0) {
-        stack.push(arr[alen + n]);
-      } else {
-        stack.push(arr[n]);
+        return arr[alen + n];
       }
-      return;
+      return arr[n];
     };
   } else if (op.t === "vec") {
     const { v } = op;
     return (params: Val[]) => {
       if (!len(params)) {
-        return monoArityError(op.t, errCtx);
+        _throw(monoArityError(op.t, errCtx));
       }
       const found = v.find(val => isEqual(val, params[0]));
-      if (found) {
-        stack.push(found);
-      } else {
-        _nul();
-      }
-      return;
+      return found ?? _nul();
     };
   } else if (op.t === "dict") {
     const dict = op.v;
     return (params: Val[]) => {
       if (len(params) === 1) {
-        stack.push(dictGet(dict, params[0]));
+        return dictGet(dict, params[0]);
       } else if (len(params) === 2) {
-        _dic(dictSet(dict, params[0], params[1]));
-      } else {
-        return [
-          { e: "Arity", m: "provide 1 or 2 arguments for dictionary", errCtx },
-        ];
+        return _dic(dictSet(dict, params[0], params[1]));
       }
-      return;
+      return _throw([
+        { e: "Arity", m: "provide 1 or 2 arguments for dictionary", errCtx },
+      ]);
     };
   } else if (op.t === "bool") {
     const cond = op.v;
     return (params: Val[]) => {
       if (!len(params) || len(params) > 2) {
-        return [
+        return _throw([
           { e: "Arity", m: "provide 1 or 2 arguments for boolean", errCtx },
-        ];
+        ]);
       }
-      stack.push(
-        cond
-          ? params[0]
-          : len(params) > 1
-          ? params[1]
-          : { t: "null", v: undefined },
-      );
-      return;
+      return cond ? params[0] : len(params) > 1 ? params[1] : _nul();
     };
   }
-  return _ => [
-    { e: "Operation", m: `${val2str(op)} is an invalid operation`, errCtx },
-  ];
+  return _ =>
+    _throw([
+      { e: "Operation", m: `${val2str(op)} is an invalid operation`, errCtx },
+    ]);
 }
 
 function errorsToDict(errors: InvokeError[]) {
-  const newKey = (d: Dict, k: string, v: Val) =>
-    dictSet(d, { t: "key", v: k }, v);
+  const newKey = (d: Dict, k: string, v: Val) => dictSet(d, _key(k), v);
   return errors.map(({ e, m, errCtx }) => {
-    let dict = newKey({ keys: [], vals: [] }, ":e", { t: "str", v: e });
-    dict = newKey(dict, ":m", { t: "str", v: m });
-    dict = newKey(dict, ":line", { t: "num", v: errCtx.line });
-    dict = newKey(dict, ":col", { t: "num", v: errCtx.col });
-    return <Val>{ t: "dict", v: dict };
+    let dict = newKey({ keys: [], vals: [] }, ":e", _str(e));
+    dict = newKey(dict, ":m", _str(m));
+    dict = newKey(dict, ":line", _num(errCtx.line));
+    dict = newKey(dict, ":col", _num(errCtx.col));
+    return _dic(dict);
   });
 }
 
@@ -1110,40 +955,35 @@ function destruct(args: Val[], shape: number[]): Val {
     if (val.t === "vec") {
       arr = val.v;
     } else if (val.t === "str" && a + 1 === b && shape[a + 1] < slen(val.v)) {
-      return { t: "str", v: strIdx(val.v, shape[a + 1]) };
+      return _str(strIdx(val.v, shape[a + 1]));
     } else {
-      return { t: "null", v: undefined };
+      return _nul();
     }
   }
   const pos = shape[len(shape) - 1];
-  return pos >= len(arr) ? { t: "null", v: undefined } : arr[pos];
+  return pos >= len(arr) ? _nul() : arr[pos];
 }
 
-function exeFunc(
-  ctx: Ctx,
-  func: Func,
-  args: Val[],
-  inClosure = false,
-): InvokeError[] | undefined {
+function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
   --ctx.callBudget;
-  if (!inClosure) {
+  if (!closureDeref) {
     letsStack.push({});
     lets = letsStack[len(letsStack) - 1];
   }
-  const stackLen = len(stack);
+  const stack: Val[] = [];
   for (let i = 0, lim = len(func.ins); i < lim; ++i) {
     const ins = func.ins[i];
     const { errCtx } = func.ins[i];
 
     const tooManyLoops = ctx.loopBudget < 1;
     if (tooManyLoops || ctx.callBudget < 1) {
-      return [
+      _throw([
         {
           e: "Budget",
           m: `${tooManyLoops ? "looped" : "called"} too many times`,
           errCtx,
         },
-      ];
+      ]);
     }
 
     switch (ins.typ) {
@@ -1174,9 +1014,9 @@ function exeFunc(
       case "upa": {
         const paramIdx = ins.value;
         if (paramIdx === -1) {
-          _vec(args);
+          stack.push(_vec(args));
         } else if (len(args) <= paramIdx) {
-          _nul();
+          stack.push(_nul());
         } else {
           stack.push(args[paramIdx]);
         }
@@ -1188,15 +1028,15 @@ function exeFunc(
       case "ref": {
         const name = ins.value;
         if (ops[name]) {
-          _fun(name);
+          stack.push(_fun(name));
         } else if (starts(name, "$")) {
           if (!ctx.get) {
             const m = `"get" feature not implemented on this platform`;
-            return [{ e: "External", m, errCtx }];
+            return _throw([{ e: "External", m, errCtx }]);
           }
           const valAndErr = ctx.get(substr(name, 1));
           if (valAndErr.kind === "err") {
-            return [{ e: "External", m: valAndErr.err, errCtx }];
+            return _throw([{ e: "External", m: valAndErr.err, errCtx }]);
           }
           stack.push(valAndErr.value);
         } else if (name in ctx.env.vars) {
@@ -1204,32 +1044,33 @@ function exeFunc(
         } else if (name in lets) {
           stack.push(lets[name]);
         } else if (name in ctx.env.funcs) {
-          _fun(name);
+          stack.push(_fun(name));
         } else {
-          return [{ e: "Reference", m: `"${name}" did not exist`, errCtx }];
+          _throw([{ e: "Reference", m: `"${name}" did not exist`, errCtx }]);
         }
         break;
       }
       case "exa":
       case "exe": {
-        const closure = getExe(ctx, stack.pop()!, errCtx, ins.typ === "exa");
+        const op = stack.pop()!;
+        const closure = getExe(ctx, op, errCtx, ins.typ === "exa");
         const nArgs = ins.value;
         const params = splice(stack, len(stack) - nArgs, nArgs);
-        const errors = closure(params);
-        if (errors) {
-          //Find next catch statement
-          const nextCat = slice(func.ins, i).findIndex(
-            ins => ins.typ === "cat",
-          );
-          if (nextCat !== -1) {
-            i += nextCat;
-            lets["errors"] = {
-              t: "vec",
-              v: errorsToDict(errors),
-            };
-            break;
+        try {
+          stack.push(closure(params));
+        } catch (e) {
+          if (isThrown(e)) {
+            //Find next catch statement
+            const nextCat = slice(func.ins, i).findIndex(
+              ins => ins.typ === "cat",
+            );
+            if (nextCat !== -1) {
+              i += nextCat;
+              lets["errors"] = _vec(errorsToDict(e.errors));
+              break;
+            }
           }
-          return errors;
+          throw e;
         }
         if (recurArgs) {
           letsStack[len(letsStack) - 1] = {};
@@ -1238,9 +1079,8 @@ function exeFunc(
           recurArgs = undefined;
           --ctx.recurBudget;
           if (!ctx.recurBudget) {
-            return [{ e: "Budget", m: `recurred too many times`, errCtx }];
+            _throw([{ e: "Budget", m: `recurred too many times`, errCtx }]);
           }
-          break;
         }
         break;
       }
@@ -1281,10 +1121,8 @@ function exeFunc(
         }
         break;
       case "ret":
-        if (ins.value) {
-          splice(stack, stackLen, len(stack) - stackLen - 1);
-        } else {
-          _nul();
+        if (!ins.value) {
+          stack.push(_nul());
         }
         i = lim;
         break;
@@ -1298,13 +1136,8 @@ function exeFunc(
           return decl ? <Ins>{ typ: "val", value: decl } : ins;
         });
         //Dereference closure captures
-        const errors = exeFunc(ctx, { ins: derefIns }, args, true);
-        if (errors) {
-          return errors;
-        }
+        const captures = <Val[]>exeFunc(ctx, { ins: derefIns }, args, true).v;
         //Enclose the closure with dereferenced values
-        const numIns = len(derefIns);
-        const captures = splice(stack, len(stack) - numIns, numIns);
         const cins = slice(func.ins, i + 1, i + 1 + ins.value.length);
         stack.push({ t: "clo", v: makeEnclosure(ins.value, cins, captures) });
         i += ins.value.length;
@@ -1314,28 +1147,30 @@ function exeFunc(
         assertUnreachable(ins);
     }
   }
-  if (!inClosure) {
+  if (closureDeref) {
+    return _vec(stack);
+  } else {
     letsStack.pop();
     lets = letsStack[len(letsStack) - 1];
-    splice(stack, stackLen, len(stack) - (stackLen + 1));
   }
-  return;
+  return stack[len(stack) - 1];
 }
 
 function parseAndExe(
   ctx: Ctx,
   code: string,
   invokeId: string,
-): InvokeError[] | undefined {
+  params: Val[],
+): Val | undefined {
   const parsed = parse(code, invokeId);
   if (len(parsed.errors)) {
-    return parsed.errors;
+    _throw(parsed.errors);
   }
   ctx.env.funcs = { ...ctx.env.funcs, ...parsed.funcs };
   if (!("entry" in ctx.env.funcs)) {
     return;
   }
-  return exeFunc(ctx, ctx.env.funcs["entry"], []);
+  return exeFunc(ctx, ctx.env.funcs["entry"], params);
 }
 
 function ingestExternalOperations(functions: ExternalFunction[]) {
@@ -1357,26 +1192,32 @@ function removeExternalOperations(functions: ExternalFunction[]) {
 
 function innerInvoke(
   ctx: Ctx,
-  closure: () => InvokeError[] | undefined,
+  closure: () => Val | undefined,
   printResult: boolean,
 ): InvokeResult {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   ingestExternalOperations(ctx.functions);
-  const errors = closure();
+  let errors: InvokeError[] = [];
+  let value: Val | undefined;
+  try {
+    value = closure();
+  } catch (e) {
+    if (isThrown(e)) {
+      errors = e.errors;
+    }
+  }
   removeExternalOperations(ctx.functions);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
-  const value = stack.pop();
-  [stack, letsStack] = [[], []];
-  if (printResult && !errors && value) {
+  letsStack = [];
+  if (len(errors)) {
+    return { kind: "errors", errors };
+  }
+  if (printResult && value) {
     ctx.print(val2str(value), true);
   }
-  return errors
-    ? { kind: "errors", errors }
-    : value
-    ? { kind: "val", value }
-    : { kind: "empty" };
+  return value ? { kind: "val", value } : { kind: "empty" };
 }
 
 /**
@@ -1393,8 +1234,13 @@ export function invoke(
   code: string,
   invokeId: string,
   printResult = false,
+  params: Val[] = [],
 ): InvokeResult {
-  return innerInvoke(ctx, () => parseAndExe(ctx, code, invokeId), printResult);
+  return innerInvoke(
+    ctx,
+    () => parseAndExe(ctx, code, invokeId, params),
+    printResult,
+  );
 }
 
 /**
