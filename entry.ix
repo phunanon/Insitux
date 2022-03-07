@@ -1,0 +1,2 @@
+(import "other.ix")
+(print "Hello, world!")

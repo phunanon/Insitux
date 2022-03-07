@@ -1,5 +1,12 @@
 import { functionInvoker, InvokeOutput, invoker } from "./invoker";
-import { Ctx, defaultCtx, ExternalFunction, Val, ValOrErr } from "./types";
+import {
+  Ctx,
+  defaultCtx,
+  ExternalFunction,
+  ExternalFunctions,
+  Val,
+  ValOrErr,
+} from "./types";
 import { num, str, val2str } from "./val";
 
 const e = (el: string) => document.querySelector(el);
@@ -33,7 +40,7 @@ function fetchOp(url: string, method: string, callback: string, body?: string) {
     } catch (e) {
       v = { t: "null", v: undefined };
     }
-    alertErrors(functionInvoker(ctx, callback, [v]));
+    alertErrors(await functionInvoker(ctx, callback, [v]));
   });
 }
 
@@ -47,11 +54,10 @@ function htmlToElement(html: string) {
 const nullVal: Val = { t: "null", v: undefined };
 const nullValOrErr: ValOrErr = { kind: "val", value: nullVal };
 const v2e = (val: Val) => (val.t === "str" ? e(val.v) : <HTMLElement>val.v);
-const functions: ExternalFunction[] = [
-  {
-    name: "js",
+const functions: ExternalFunctions = {
+  js: {
     definition: { minArity: 1, params: ["str"] },
-    handler: params => {
+    handler: async params => {
       try {
         const evaluated = eval(str(params[0]));
         const v =
@@ -66,10 +72,9 @@ const functions: ExternalFunction[] = [
       }
     },
   },
-  {
-    name: "inner-html",
+  "inner-html": {
     definition: { exactArity: 2, params: [["str", "ext"]], returns: ["str"] },
-    handler: ([el, html]) => {
+    handler: async ([el, html]) => {
       const element = v2e(el);
       if (element) {
         element.innerHTML = val2str(html);
@@ -77,52 +82,48 @@ const functions: ExternalFunction[] = [
       return nullValOrErr;
     },
   },
-  {
-    name: "html-el",
+  "html-el": {
     definition: {
       exactArity: 1,
       returns: ["ext"],
     },
-    handler: ([html]) => {
+    handler: async ([html]) => {
       return {
         kind: "val",
         value: { t: "ext", v: htmlToElement(val2str(html)) },
       };
     },
   },
-  {
-    name: "child-at",
+  "child-at": {
     definition: {
       exactArity: 2,
       params: [["str", "ext"], "num"],
       returns: ["ext", "null"],
     },
-    handler: ([parent, index]) => {
+    handler: async ([parent, index]) => {
       const el = v2e(parent)?.childNodes[num(index)];
       return { kind: "val", value: el ? { t: "ext", v: el } : nullVal };
     },
   },
-  {
-    name: "append-child",
+  "append-child": {
     definition: {
       exactArity: 2,
       params: [["str", "ext"], "ext"],
       returns: ["null"],
     },
-    handler: ([parent, child]) => {
+    handler: async ([parent, child]) => {
       const parentEl = v2e(parent);
       parentEl?.appendChild(<HTMLElement>child.v);
       return nullValOrErr;
     },
   },
-  {
-    name: "remove-child",
+  "remove-child": {
     definition: {
       exactArity: 2,
       params: [["str", "ext"], "num"],
       returns: ["null"],
     },
-    handler: ([parent, index]) => {
+    handler: async ([parent, index]) => {
       if (parent.t === "str") {
         const parentEl = v2e(parent);
         parentEl?.removeChild(parentEl.childNodes[num(index)]);
@@ -130,14 +131,13 @@ const functions: ExternalFunction[] = [
       return nullValOrErr;
     },
   },
-  {
-    name: "replace-child",
+  "replace-child": {
     definition: {
       exactArity: 3,
       params: [["str", "ext"], "ext", "num"],
       returns: ["null"],
     },
-    handler: ([parent, child, index]) => {
+    handler: async ([parent, child, index]) => {
       const [parentEl, childEl] = [v2e(parent), v2e(child)];
       const replacedEl = parentEl?.childNodes[num(index)];
       if (parentEl && childEl && replacedEl) {
@@ -146,63 +146,57 @@ const functions: ExternalFunction[] = [
       return nullValOrErr;
     },
   },
-  {
-    name: "prompt",
+  prompt: {
     definition: { exactArity: 1, returns: ["str", "null"] },
-    handler: params => {
+    handler: async params => {
       const reply = prompt(val2str(params[0]));
       return { kind: "val", value: reply ? { t: "str", v: reply } : nullVal };
     },
   },
-  {
-    name: "alert",
+  alert: {
     definition: { exactArity: 1, returns: ["null"] },
-    handler: params => {
+    handler: async params => {
       alert(val2str(params[0]));
       return nullValOrErr;
     },
   },
-  {
-    name: "interval",
+  interval: {
     definition: { exactArity: 2, params: ["func", "num"], returns: ["null"] },
-    handler: ([func, interval]) => {
+    handler: async ([func, interval]) => {
       setInterval(() => invoker(ctx, `(${func.v})`), num(interval));
       return nullValOrErr;
     },
   },
-  {
-    name: "timeout",
+  timeout: {
     definition: { exactArity: 2, params: ["func", "num"], returns: ["null"] },
-    handler: ([func, interval]) => {
+    handler: async ([func, interval]) => {
       setTimeout(() => invoker(ctx, `(${func.v})`), num(interval));
       return nullValOrErr;
     },
   },
-  {
-    name: "GET-str",
+  "GET-str": {
     definition: {
       exactArity: 2,
       params: ["func", "str"],
       returns: ["str"],
     },
-    handler: ([callback, url]) => {
+    handler: async ([callback, url]) => {
       fetchOp(str(url), "GET", str(callback));
       return nullValOrErr;
     },
   },
-  {
-    name: "POST-str",
+  "POST-str": {
     definition: {
       exactArity: 3,
       params: ["func", "str", "str"],
       returns: ["str"],
     },
-    handler: ([callback, url, body]) => {
+    handler: async ([callback, url, body]) => {
       fetchOp(str(url), "POST", str(callback), str(body));
       return nullValOrErr;
     },
   },
-];
+};
 
 const ctx: Ctx = {
   ...defaultCtx,
@@ -238,11 +232,11 @@ declare global {
   }
 }
 
-window.ix = code => alertErrors(invoker(ctx, code));
+window.ix = async code => alertErrors(await invoker(ctx, code));
 
-function alertErrors(errors: InvokeOutput) {
-  if (errors.length > 0) {
-    const errorTexts = errors.map(({ type, text }) =>
+function alertErrors({ output }: { output: InvokeOutput }) {
+  if (output.length > 0) {
+    const errorTexts = output.map(({ type, text }) =>
       type === "error" ? [...text, ""].join("\u0332") : text,
     );
     alert(`---- Insitux\n${errorTexts.join("")}`);

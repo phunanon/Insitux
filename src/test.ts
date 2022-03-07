@@ -444,15 +444,15 @@ const tests: {
   { name: "Parser arity error 1", code: `(abs)`, err: ["Parse"] },
 ];
 
-export function doTests(
+export async function doTests(
   invoke: (
     ctx: Ctx,
     code: string,
     invokeId: string,
     print: boolean,
-  ) => InvokeResult,
+  ) => Promise<InvokeResult>,
   terse = true,
-): string[] {
+): Promise<string[]> {
   const results: {
     okErr: boolean;
     okOut: boolean;
@@ -467,15 +467,16 @@ export function doTests(
     };
     const env: Env = { funcs: {}, vars: {} };
     const startTime = getTimeMs();
-    const valOrErrs = invoke(
+    const valOrErrs = await invoke(
       {
+        innerCtx: undefined,
         get: (key: string) => get(state, key),
         set: (key: string, val: Val) => set(state, key, val),
         print: (str, withNewLine) => {
           state.output += str + (withNewLine ? "\n" : "");
         },
         exe: (name: string, args: Val[]) => exe(state, name, args),
-        functions: [],
+        functions: {},
         env,
         loopBudget: 10000,
         rangeBudget: 1000,

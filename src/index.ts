@@ -1,4 +1,4 @@
-export const insituxVersion = 220304;
+export const insituxVersion = 220306;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -12,24 +12,16 @@ const { trim, trimStart, trimEnd, charCode, codeChar, strIdx, replace } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum, isArray } = pf;
 import { doTests } from "./test";
-import { assertUnreachable, InvokeError, InvokeResult } from "./types";
-import { ExternalFunction, ExternalHandler, syntaxes } from "./types";
+import { assertUnreachable, Env, InvokeError, InvokeResult } from "./types";
+import { ExternalFunctions, syntaxes } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
 import { dic, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
+import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun } from "./val";
 
-const externalOps: { [name: string]: ExternalHandler } = {};
 let letsStack: { [key: string]: Val }[] = [];
 let lets: typeof letsStack[0] = {};
 let recurArgs: undefined | Val[];
-const _boo = (v: boolean) => <Val>{ t: "bool", v };
-const _num = (v: number) => <Val>{ t: "num", v };
-const _str = (v = "") => <Val>{ t: "str", v };
-const _key = (v: string) => <Val>{ t: "key", v };
-const _vec = (v: Val[] = []) => <Val>{ t: "vec", v };
-const _dic = (v: Dict) => <Val>{ t: "dict", v };
-const _nul = () => <Val>{ t: "null", v: undefined };
-const _fun = (v: string) => <Val>{ t: "func", v };
 
 type _Exception = { errors: InvokeError[] };
 function _throw(errors: InvokeError[]): Val {
@@ -41,7 +33,12 @@ function isThrown(e: unknown): e is _Exception {
 const throwTypeErr = (msg: string, errCtx: ErrCtx) =>
   _throw([typeErr(msg, errCtx)]);
 
-function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
+async function exeOp<T>(
+  op: string,
+  args: Val[],
+  ctx: Ctx<T>,
+  errCtx: ErrCtx,
+): Promise<Val> {
   switch (op) {
     case "str":
       return _str(stringify(args));
@@ -293,7 +290,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         const array: Val[] = [];
         for (let t = 0; t < lim; ++t) {
           const argIdxs = divisors.map((d, i) => floor((t / d) % lims[i]));
-          array.push(closure(arrays.map((a, i) => a[argIdxs[i]])));
+          array.push(await closure(arrays.map((a, i) => a[argIdxs[i]])));
         }
         return _vec(array);
       }
@@ -303,7 +300,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         const shortest = min(...arrays.map(len));
         const array: Val[] = [];
         for (let i = 0; i < shortest; ++i) {
-          array.push(closure(arrays.map(a => a[i])));
+          array.push(await closure(arrays.map(a => a[i])));
         }
         return _vec(array);
       }
@@ -317,7 +314,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         const filtered: Val[] = [];
         let count = 0;
         for (let i = 0, lim = len(array); i < lim; ++i) {
-          const b = asBoo(closure([array[i], ...args]));
+          const b = asBoo(await closure([array[i], ...args]));
           if (isCount) {
             count += b ? 1 : 0;
           } else if (isFind) {
@@ -366,7 +363,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
 
       let reduction: Val = (len(args) ? args : array).shift()!;
       for (let i = 0, lim = len(array); i < lim; ++i) {
-        reduction = closure([reduction, array[i]]);
+        reduction = await closure([reduction, array[i]]);
       }
       return reduction;
     }
@@ -381,7 +378,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       if (toRepeat.t === "func" || toRepeat.t === "clo") {
         const closure = getExe(ctx, toRepeat, errCtx);
         for (let i = 0; i < count; ++i) {
-          result.push(closure([_num(i)]));
+          result.push(await closure([_num(i)]));
         }
       } else {
         for (let i = 0; i < count; ++i) {
@@ -394,7 +391,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       let passed = args.shift()!;
       for (let i = 0, lim = len(args); i < lim; ++i) {
         try {
-          passed = getExe(ctx, args[i], errCtx)([passed]);
+          passed = await getExe(ctx, args[i], errCtx)([passed]);
         } catch (e) {
           if (isThrown(e)) {
             e.errors.forEach(err => (err.m = `-> arg ${i + 2}: ${err.m}`));
@@ -543,7 +540,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       } else {
         const closure = getExe(ctx, args[0], errCtx);
         for (let i = 0, lim = len(src); i < lim; ++i) {
-          mapped.push([src[i], closure([src[i]])]);
+          mapped.push([src[i], await closure([src[i]])]);
         }
       }
       const okT = mapped[0][1].t;
@@ -564,7 +561,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       if (isDic) {
         const { keys, vals } = dic(args[1]);
         for (let i = 0, lim = len(keys); i < lim; ++i) {
-          const v = closure([keys[i], vals[i]]);
+          const v = await closure([keys[i], vals[i]]);
           const existingKey = groups.keys.findIndex(k => isEqual(k, v));
           if (existingKey === -1) {
             groups.keys.push(v);
@@ -578,7 +575,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       } else {
         const src = asArray(args[1]);
         for (let i = 0, lim = len(src); i < lim; ++i) {
-          const v = closure([src[i]]);
+          const v = await closure([src[i]]);
           const existingKey = groups.keys.findIndex(k => isEqual(k, v));
           if (existingKey === -1) {
             groups.keys.push(v);
@@ -601,7 +598,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
           { keys: [], vals: [] },
         ];
         for (let i = 0, lim = len(keys); i < lim; ++i) {
-          const p = asBoo(closure([keys[i], vals[i]])) ? 0 : 1;
+          const p = asBoo(await closure([keys[i], vals[i]])) ? 0 : 1;
           parted[p].keys.push(keys[i]);
           parted[p].vals.push(vals[i]);
         }
@@ -610,7 +607,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         const src = asArray(args[1]);
         const parted: Val[][] = [[], []];
         for (let i = 0, lim = len(src); i < lim; ++i) {
-          parted[asBoo(closure([src[i]])) ? 0 : 1].push(src[i]);
+          parted[asBoo(await closure([src[i]])) ? 0 : 1].push(src[i]);
         }
         return _vec(parted.map(_vec));
       }
@@ -714,15 +711,17 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _num(getTimeMs());
     case "version":
       return _num(insituxVersion);
-    case "tests":
-      return _str(doTests(invoke, !(len(args) && asBoo(args[0]))).join("\n"));
+    case "tests": {
+      const summaries = await doTests(invoke, !(len(args) && asBoo(args[0])));
+      return _str(summaries.join("\n"));
+    }
     case "symbols":
-      return _vec(symbols(ctx, false).map(_str));
+      return _vec(symbols(ctx.env, false).map(_str));
     case "eval": {
       delete ctx.env.funcs["entry"];
       const invokeId = `${errCtx.invokeId} eval`;
       try {
-        const valOrNone = parseAndExe(ctx, str(args[0]), invokeId, []);
+        const valOrNone = await parseAndExe(ctx, str(args[0]), invokeId, []);
         return valOrNone ? valOrNone : _nul();
       } catch (e) {
         if (isThrown(e)) {
@@ -798,38 +797,39 @@ function checks(op: string, args: Val[], errCtx: ErrCtx, checkArity: boolean) {
   return violations ? violations : false;
 }
 
-function getExe(
-  ctx: Ctx,
+function getExe<T>(
+  ctx: Ctx<T>,
   op: Val,
   errCtx: ErrCtx,
   checkArity = true,
-): (params: Val[]) => Val {
+): (params: Val[]) => Promise<Val> {
   if (op.t === "str" || op.t === "func") {
     const name = op.v;
     if (ops[name]) {
       if (ops[name].external) {
-        return (params: Val[]) => {
+        return async (params: Val[]) => {
           const violations = checks(name, params, errCtx, checkArity);
           if (violations) {
             _throw(violations);
           }
-          const valOrErr = externalOps[name](params);
+          const valOrErr = await ctx.functions[name].handler(params, ctx);
           if (valOrErr.kind === "err") {
-            throw [{ e: "External", m: valOrErr.err, errCtx }];
+            return _throw([{ e: "External", m: valOrErr.err, errCtx }]);
           }
           return valOrErr.value;
         };
       }
-      return (params: Val[]) => {
+      return async (params: Val[]) => {
         const violations = checks(name, params, errCtx, checkArity);
         if (violations) {
           _throw(violations);
         }
-        return exeOp(name, params, ctx, errCtx);
+        return await exeOp(name, params, ctx, errCtx);
       };
     }
     if (name in ctx.env.funcs && name !== "entry") {
-      return (params: Val[]) => exeFunc(ctx, ctx.env.funcs[name], params);
+      return async (params: Val[]) =>
+        await exeFunc(ctx, ctx.env.funcs[name], params);
     }
     if (name in ctx.env.vars) {
       return getExe(ctx, ctx.env.vars[name], errCtx);
@@ -838,7 +838,7 @@ function getExe(
       return getExe(ctx, lets[name], errCtx);
     }
     if (starts(name, "$")) {
-      return (params: Val[]) => {
+      return async (params: Val[]) => {
         if (!len(params)) {
           _throw(monoArityError(op.t, errCtx));
         }
@@ -853,7 +853,7 @@ function getExe(
         return params[0];
       };
     }
-    return (params: Val[]) => {
+    return async (params: Val[]) => {
       if (!ctx.exe) {
         const m = `operation "${name}" does not exist"`;
         return _throw([{ e: "External", m, errCtx }]);
@@ -867,7 +867,7 @@ function getExe(
   } else if (op.t === "clo") {
     return (params: Val[]) => exeFunc(ctx, op.v, params);
   } else if (op.t === "key") {
-    return (params: Val[]) => {
+    return async (params: Val[]) => {
       if (!len(params)) {
         _throw(monoArityError(op.t, errCtx));
       }
@@ -882,7 +882,7 @@ function getExe(
     };
   } else if (op.t === "num") {
     const n = floor(op.v);
-    return (params: Val[]) => {
+    return async (params: Val[]) => {
       if (!len(params)) {
         _throw(monoArityError(op.t, errCtx));
       }
@@ -901,7 +901,7 @@ function getExe(
     };
   } else if (op.t === "vec") {
     const { v } = op;
-    return (params: Val[]) => {
+    return async (params: Val[]) => {
       if (!len(params)) {
         _throw(monoArityError(op.t, errCtx));
       }
@@ -910,7 +910,7 @@ function getExe(
     };
   } else if (op.t === "dict") {
     const dict = op.v;
-    return (params: Val[]) => {
+    return async (params: Val[]) => {
       if (len(params) === 1) {
         return dictGet(dict, params[0]);
       } else if (len(params) === 2) {
@@ -922,7 +922,7 @@ function getExe(
     };
   } else if (op.t === "bool") {
     const cond = op.v;
-    return (params: Val[]) => {
+    return async (params: Val[]) => {
       if (!len(params) || len(params) > 2) {
         return _throw([
           { e: "Arity", m: "provide 1 or 2 arguments for boolean", errCtx },
@@ -931,7 +931,7 @@ function getExe(
       return cond ? params[0] : len(params) > 1 ? params[1] : _nul();
     };
   }
-  return _ =>
+  return async _ =>
     _throw([
       { e: "Operation", m: `${val2str(op)} is an invalid operation`, errCtx },
     ]);
@@ -964,7 +964,12 @@ function destruct(args: Val[], shape: number[]): Val {
   return pos >= len(arr) ? _nul() : arr[pos];
 }
 
-function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
+async function exeFunc<T>(
+  ctx: Ctx<T>,
+  func: Func,
+  args: Val[],
+  closureDeref = false,
+): Promise<Val> {
   --ctx.callBudget;
   if (!closureDeref) {
     letsStack.push({});
@@ -1057,7 +1062,7 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         const nArgs = ins.value;
         const params = splice(stack, len(stack) - nArgs, nArgs);
         try {
-          stack.push(closure(params));
+          stack.push(await closure(params));
         } catch (e) {
           if (isThrown(e)) {
             //Find next catch statement
@@ -1136,7 +1141,9 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
           return decl ? <Ins>{ typ: "val", value: decl } : ins;
         });
         //Dereference closure captures
-        const captures = <Val[]>exeFunc(ctx, { ins: derefIns }, args, true).v;
+        const captures = <Val[]>(
+          (await exeFunc(ctx, { ins: derefIns }, args, true)).v
+        );
         //Enclose the closure with dereferenced values
         const cins = slice(func.ins, i + 1, i + 1 + ins.value.length);
         stack.push({ t: "clo", v: makeEnclosure(ins.value, cins, captures) });
@@ -1156,12 +1163,12 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
   return stack[len(stack) - 1];
 }
 
-function parseAndExe(
-  ctx: Ctx,
+async function parseAndExe<T>(
+  ctx: Ctx<T>,
   code: string,
   invokeId: string,
   params: Val[],
-): Val | undefined {
+): Promise<Val | undefined> {
   const parsed = parse(code, invokeId);
   if (len(parsed.errors)) {
     _throw(parsed.errors);
@@ -1170,40 +1177,40 @@ function parseAndExe(
   if (!("entry" in ctx.env.funcs)) {
     return;
   }
-  return exeFunc(ctx, ctx.env.funcs["entry"], params);
+  return await exeFunc(ctx, ctx.env.funcs["entry"], params);
 }
 
-function ingestExternalOperations(functions: ExternalFunction[]) {
-  functions.forEach(({ name, definition, handler }) => {
-    if (ops[name] && !externalOps[name]) {
+function ingestExternalOperations<T>(functions: ExternalFunctions<T>) {
+  Object.keys(functions).forEach(name => {
+    if (ops[name] && !ops[name].external) {
       throw "Redefining internal operations is disallowed.";
     }
-    ops[name] = { ...definition, external: true };
-    externalOps[name] = handler;
+    ops[name] = { ...functions[name].definition, external: true };
   });
 }
 
-function removeExternalOperations(functions: ExternalFunction[]) {
-  functions.forEach(({ name }) => {
+function removeExternalOperations<T>(functions: ExternalFunctions<T>) {
+  Object.keys(functions).forEach(name => {
     delete ops[name];
-    delete externalOps[name];
   });
 }
 
-function innerInvoke(
-  ctx: Ctx,
-  closure: () => Val | undefined,
+async function innerInvoke<T>(
+  ctx: Ctx<T>,
+  closure: () => Promise<Val | undefined>,
   printResult: boolean,
-): InvokeResult {
+): Promise<InvokeResult> {
   const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   ingestExternalOperations(ctx.functions);
   let errors: InvokeError[] = [];
   let value: Val | undefined;
   try {
-    value = closure();
+    value = await closure();
   } catch (e) {
     if (isThrown(e)) {
       errors = e.errors;
+    } else {
+      throw e;
     }
   }
   removeExternalOperations(ctx.functions);
@@ -1229,16 +1236,16 @@ function innerInvoke(
  * @returns Invocation errors caused during execution of the code,
  * or the final value of the invocation.
  */
-export function invoke(
-  ctx: Ctx,
+export async function invoke<T>(
+  ctx: Ctx<T>,
   code: string,
   invokeId: string,
   printResult = false,
   params: Val[] = [],
-): InvokeResult {
-  return innerInvoke(
+): Promise<InvokeResult> {
+  return await innerInvoke(
     ctx,
-    () => parseAndExe(ctx, code, invokeId, params),
+    async () => await parseAndExe(ctx, code, invokeId, params),
     printResult,
   );
 }
@@ -1253,37 +1260,37 @@ export function invoke(
  * or the final value of the invocation,
  * or undefined if the function was not found.
  */
-export function invokeFunction(
+export async function invokeFunction(
   ctx: Ctx,
   funcName: string,
   params: Val[],
   printResult = false,
-): InvokeResult | undefined {
+): Promise<InvokeResult | undefined> {
   if (!(funcName in ctx.env.funcs)) {
     return;
   }
-  return innerInvoke(
+  return await innerInvoke(
     ctx,
-    () => exeFunc(ctx, ctx.env.funcs[funcName], params),
+    async () => await exeFunc(ctx, ctx.env.funcs[funcName], params),
     printResult,
   );
 }
 
 /**
- * @param ctx An environment context you retain.
+ * @param env An environment context you retain.
  * @param alsoSyntax To optionally include syntax symbols.
  * @returns List of symbols defined in Insitux, including built-in operations,
  * (optionally) syntax, constants, and user-defined functions.
  */
-export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
+export function symbols(env: Env, alsoSyntax = true): string[] {
   let syms: string[] = [];
   if (alsoSyntax) {
     push(syms, syntaxes);
   }
   push(syms, ["args", "PI", "E"]);
   syms = concat(syms, objKeys(ops));
-  syms = concat(syms, objKeys(ctx.env.funcs));
-  syms = concat(syms, objKeys(ctx.env.vars));
+  syms = concat(syms, objKeys(env.funcs));
+  syms = concat(syms, objKeys(env.vars));
   const hidden = ["entry"];
   syms = syms.filter(o => !has(hidden, o));
   return sortBy(syms, (a, b) => (a > b ? 1 : -1));

@@ -39,8 +39,11 @@ export type Env = {
   vars: { [key: string]: Val };
 };
 
-/** A context supplied with an Insitux invocation to provide its environment. */
-export type Ctx = {
+/** A context supplied with an Insitux invocation to provide its environment.
+ * Specifying a generic type T makes the definition of innerCtx required. */
+export type Ctx<T = undefined> = {
+  /** A value passed to external functions. */
+  innerCtx: T;
   /** Called to set an external variable, returning nothing or an error. */
   set?: (key: string, val: Val) => undefined | string;
   /** Called to retrieve an external variable,
@@ -49,7 +52,7 @@ export type Ctx = {
   /** Called to print data out of Insitux. */
   print: (str: string, withNewline: boolean) => void;
   /** Extra function definitions to make available within this invocation */
-  functions: ExternalFunction[];
+  functions: ExternalFunctions<T>;
   /** Called when Insitux cannot find a function definition otherwise.
    * You should return an error if unknown externally too. */
   exe?: (name: string, args: Val[]) => ValOrErr;
@@ -68,6 +71,7 @@ export type Ctx = {
 };
 
 export const defaultCtx = {
+  innerCtx: undefined,
   env: { funcs: {}, vars: {} },
   loopBudget: 1e7,
   rangeBudget: 1e6,
@@ -108,11 +112,16 @@ export type Operation = {
   params?: ("any" | Val["t"] | Val["t"][])[];
   returns?: Val["t"][];
 };
-export type ExternalHandler = (params: Val[]) => ValOrErr;
-export type ExternalFunction = {
-  name: string;
+export type ExternalHandler<T> = (
+  params: Val[],
+  ctx: Ctx<T>,
+) => Promise<ValOrErr>;
+export type ExternalFunction<T = undefined> = {
   definition: Operation;
-  handler: ExternalHandler;
+  handler: ExternalHandler<T>;
+};
+export type ExternalFunctions<T = undefined> = {
+  [name: string]: ExternalFunction<T>;
 };
 
 export const ops: {
