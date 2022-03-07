@@ -1,6 +1,6 @@
 import { functionInvoker, InvokeOutput, invoker } from "./invoker";
-import { Ctx, defaultCtx, ExternalFunction, Val, ValOrErr } from "./types";
-import { num, str, val2str } from "./val";
+import { Ctx, defaultCtx, ExternalFunctions, Val, ValOrErr } from "./types";
+import { num, str, val2str, _nul, _str } from "./val";
 
 const e = (el: string) => document.querySelector(el);
 let state = new Map<string, Val>();
@@ -44,12 +44,10 @@ function htmlToElement(html: string) {
   return temp.content.firstChild;
 }
 
-const nullVal: Val = { t: "null", v: undefined };
-const nullValOrErr: ValOrErr = { kind: "val", value: nullVal };
+const nullValOrErr: ValOrErr = { kind: "val", value: _nul() };
 const v2e = (val: Val) => (val.t === "str" ? e(val.v) : <HTMLElement>val.v);
-const functions: ExternalFunction[] = [
-  {
-    name: "js",
+const functions: ExternalFunctions = {
+  js: {
     definition: { minArity: 1, params: ["str"] },
     handler: params => {
       try {
@@ -59,15 +57,14 @@ const functions: ExternalFunction[] = [
             ? evaluated(params.slice(1).map(a => a.v))
             : evaluated;
         let value: Val = { t: "ext", v };
-        if (typeof v === "string") value = { t: "str", v };
+        if (typeof v === "string") value = _str(v);
         return { kind: "val", value };
       } catch (e) {
         return { kind: "err", err: `${e}` };
       }
     },
   },
-  {
-    name: "inner-html",
+  "inner-html": {
     definition: { exactArity: 2, params: [["str", "ext"]], returns: ["str"] },
     handler: ([el, html]) => {
       const element = v2e(el);
@@ -77,8 +74,7 @@ const functions: ExternalFunction[] = [
       return nullValOrErr;
     },
   },
-  {
-    name: "html-el",
+  "html-el": {
     definition: {
       exactArity: 1,
       returns: ["ext"],
@@ -90,8 +86,7 @@ const functions: ExternalFunction[] = [
       };
     },
   },
-  {
-    name: "child-at",
+  "child-at": {
     definition: {
       exactArity: 2,
       params: [["str", "ext"], "num"],
@@ -99,11 +94,10 @@ const functions: ExternalFunction[] = [
     },
     handler: ([parent, index]) => {
       const el = v2e(parent)?.childNodes[num(index)];
-      return { kind: "val", value: el ? { t: "ext", v: el } : nullVal };
+      return { kind: "val", value: el ? { t: "ext", v: el } : _nul() };
     },
   },
-  {
-    name: "append-child",
+  "append-child": {
     definition: {
       exactArity: 2,
       params: [["str", "ext"], "ext"],
@@ -115,8 +109,7 @@ const functions: ExternalFunction[] = [
       return nullValOrErr;
     },
   },
-  {
-    name: "remove-child",
+  "remove-child": {
     definition: {
       exactArity: 2,
       params: [["str", "ext"], "num"],
@@ -130,8 +123,7 @@ const functions: ExternalFunction[] = [
       return nullValOrErr;
     },
   },
-  {
-    name: "replace-child",
+  "replace-child": {
     definition: {
       exactArity: 3,
       params: [["str", "ext"], "ext", "num"],
@@ -146,40 +138,35 @@ const functions: ExternalFunction[] = [
       return nullValOrErr;
     },
   },
-  {
-    name: "prompt",
+  prompt: {
     definition: { exactArity: 1, returns: ["str", "null"] },
     handler: params => {
       const reply = prompt(val2str(params[0]));
-      return { kind: "val", value: reply ? { t: "str", v: reply } : nullVal };
+      return { kind: "val", value: reply ? _str(reply) : _nul() };
     },
   },
-  {
-    name: "alert",
+  alert: {
     definition: { exactArity: 1, returns: ["null"] },
     handler: params => {
       alert(val2str(params[0]));
       return nullValOrErr;
     },
   },
-  {
-    name: "interval",
+  interval: {
     definition: { exactArity: 2, params: ["func", "num"], returns: ["null"] },
     handler: ([func, interval]) => {
       setInterval(() => invoker(ctx, `(${func.v})`), num(interval));
       return nullValOrErr;
     },
   },
-  {
-    name: "timeout",
+  timeout: {
     definition: { exactArity: 2, params: ["func", "num"], returns: ["null"] },
     handler: ([func, interval]) => {
       setTimeout(() => invoker(ctx, `(${func.v})`), num(interval));
       return nullValOrErr;
     },
   },
-  {
-    name: "GET-str",
+  "GET-str": {
     definition: {
       exactArity: 2,
       params: ["func", "str"],
@@ -190,8 +177,7 @@ const functions: ExternalFunction[] = [
       return nullValOrErr;
     },
   },
-  {
-    name: "POST-str",
+  "POST-str": {
     definition: {
       exactArity: 3,
       params: ["func", "str", "str"],
@@ -202,7 +188,7 @@ const functions: ExternalFunction[] = [
       return nullValOrErr;
     },
   },
-];
+};
 
 const ctx: Ctx = {
   ...defaultCtx,
@@ -240,9 +226,9 @@ declare global {
 
 window.ix = code => alertErrors(invoker(ctx, code));
 
-function alertErrors(errors: InvokeOutput) {
-  if (errors.length > 0) {
-    const errorTexts = errors.map(({ type, text }) =>
+function alertErrors({ output }: { output: InvokeOutput }) {
+  if (output.length > 0) {
+    const errorTexts = output.map(({ type, text }) =>
       type === "error" ? [...text, ""].join("\u0332") : text,
     );
     alert(`---- Insitux\n${errorTexts.join("")}`);

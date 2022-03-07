@@ -1,4 +1,4 @@
-export const insituxVersion = 220304;
+export const insituxVersion = 220307;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -12,24 +12,16 @@ const { trim, trimStart, trimEnd, charCode, codeChar, strIdx, replace } = pf;
 const { getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum, isArray } = pf;
 import { doTests } from "./test";
-import { assertUnreachable, InvokeError, InvokeResult } from "./types";
-import { ExternalFunction, ExternalHandler, syntaxes } from "./types";
+import { assertUnreachable, Env, InvokeError, InvokeResult } from "./types";
+import { ExternalFunctions, syntaxes } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
 import { dic, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
+import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun } from "./val";
 
-const externalOps: { [name: string]: ExternalHandler } = {};
 let letsStack: { [key: string]: Val }[] = [];
 let lets: typeof letsStack[0] = {};
 let recurArgs: undefined | Val[];
-const _boo = (v: boolean) => <Val>{ t: "bool", v };
-const _num = (v: number) => <Val>{ t: "num", v };
-const _str = (v = "") => <Val>{ t: "str", v };
-const _key = (v: string) => <Val>{ t: "key", v };
-const _vec = (v: Val[] = []) => <Val>{ t: "vec", v };
-const _dic = (v: Dict) => <Val>{ t: "dict", v };
-const _nul = () => <Val>{ t: "null", v: undefined };
-const _fun = (v: string) => <Val>{ t: "func", v };
 
 type _Exception = { errors: InvokeError[] };
 function _throw(errors: InvokeError[]): Val {
@@ -717,7 +709,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "tests":
       return _str(doTests(invoke, !(len(args) && asBoo(args[0]))).join("\n"));
     case "symbols":
-      return _vec(symbols(ctx, false).map(_str));
+      return _vec(symbols(ctx.env, false).map(_str));
     case "eval": {
       delete ctx.env.funcs["entry"];
       const invokeId = `${errCtx.invokeId} eval`;
@@ -813,9 +805,9 @@ function getExe(
           if (violations) {
             _throw(violations);
           }
-          const valOrErr = externalOps[name](params);
+          const valOrErr = ctx.functions[name].handler(params);
           if (valOrErr.kind === "err") {
-            throw [{ e: "External", m: valOrErr.err, errCtx }];
+            return _throw([{ e: "External", m: valOrErr.err, errCtx }]);
           }
           return valOrErr.value;
         };
@@ -1173,20 +1165,21 @@ function parseAndExe(
   return exeFunc(ctx, ctx.env.funcs["entry"], params);
 }
 
-function ingestExternalOperations(functions: ExternalFunction[]) {
-  functions.forEach(({ name, definition, handler }) => {
-    if (ops[name] && !externalOps[name]) {
+function ingestExternalOperations(functions: ExternalFunctions) {
+  Object.keys(functions).forEach(name => {
+    if (ops[name] && !ops[name].external) {
       throw "Redefining internal operations is disallowed.";
     }
-    ops[name] = { ...definition, external: true };
-    externalOps[name] = handler;
+    ops[name] = { ...functions[name].definition, external: true };
   });
 }
 
-function removeExternalOperations(functions: ExternalFunction[]) {
-  functions.forEach(({ name }) => {
+export function removeExternalOperations(functionNames: string[]) {
+  functionNames.forEach(name => {
+    if (ops[name] && !ops[name].external) {
+      throw "Removing internal operations is disallowed.";
+    }
     delete ops[name];
-    delete externalOps[name];
   });
 }
 
@@ -1202,11 +1195,11 @@ function innerInvoke(
   try {
     value = closure();
   } catch (e) {
-    if (isThrown(e)) {
-      errors = e.errors;
+    if (!isThrown(e)) {
+      throw e;
     }
+    errors = e.errors;
   }
-  removeExternalOperations(ctx.functions);
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
@@ -1270,20 +1263,20 @@ export function invokeFunction(
 }
 
 /**
- * @param ctx An environment context you retain.
+ * @param env An environment context you retain.
  * @param alsoSyntax To optionally include syntax symbols.
  * @returns List of symbols defined in Insitux, including built-in operations,
  * (optionally) syntax, constants, and user-defined functions.
  */
-export function symbols(ctx: Ctx, alsoSyntax = true): string[] {
+export function symbols(env: Env, alsoSyntax = true): string[] {
   let syms: string[] = [];
   if (alsoSyntax) {
     push(syms, syntaxes);
   }
   push(syms, ["args", "PI", "E"]);
   syms = concat(syms, objKeys(ops));
-  syms = concat(syms, objKeys(ctx.env.funcs));
-  syms = concat(syms, objKeys(ctx.env.vars));
+  syms = concat(syms, objKeys(env.funcs));
+  syms = concat(syms, objKeys(env.vars));
   const hidden = ["entry"];
   syms = syms.filter(o => !has(hidden, o));
   return sortBy(syms, (a, b) => (a > b ? 1 : -1));

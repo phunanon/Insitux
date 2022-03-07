@@ -49,7 +49,7 @@ export type Ctx = {
   /** Called to print data out of Insitux. */
   print: (str: string, withNewline: boolean) => void;
   /** Extra function definitions to make available within this invocation */
-  functions: ExternalFunction[];
+  functions: ExternalFunctions;
   /** Called when Insitux cannot find a function definition otherwise.
    * You should return an error if unknown externally too. */
   exe?: (name: string, args: Val[]) => ValOrErr;
@@ -110,10 +110,10 @@ export type Operation = {
 };
 export type ExternalHandler = (params: Val[]) => ValOrErr;
 export type ExternalFunction = {
-  name: string;
   definition: Operation;
   handler: ExternalHandler;
 };
+export type ExternalFunctions = { [name: string]: ExternalFunction };
 
 export const ops: {
   [name: string]: Operation & { external?: boolean };

@@ -16,11 +16,11 @@ export function invoker(
   code: string,
   id?: string,
   printResult = true,
-): InvokeOutput {
+): { output: InvokeOutput; result: InvokeResult } {
   id = id ? `-${id}` : `${getTimeMs()}`;
   invocations.set(id, code);
-  const valOrErrs = invoke(ctx, code, id, printResult);
-  return valOrErrsOutput(valOrErrs);
+  const result = invoke(ctx, code, id, printResult);
+  return { output: invokeResultToOutput(result), result };
 }
 
 export function functionInvoker(
@@ -28,24 +28,26 @@ export function functionInvoker(
   name: string,
   params: Val[],
   printResult = true,
-): InvokeOutput {
-  const valOrErrs = invokeFunction(ctx, name, params, printResult);
-  if (!valOrErrs) {
-    return [
-      { type: "message", text: `Invoke Error: function '${name}' not found.` },
-    ];
+): { output: InvokeOutput; result?: InvokeResult } {
+  const result = invokeFunction(ctx, name, params, printResult);
+  if (!result) {
+    const message = <InvokeOutput[0]>{
+      type: "message",
+      text: `Invoke Error: function '${name}' not found.`,
+    };
+    return { output: [message] };
   }
-  return valOrErrsOutput(valOrErrs);
+  return { output: invokeResultToOutput(result), result };
 }
 
-function valOrErrsOutput(valOrErrs: InvokeResult) {
-  if (valOrErrs.kind !== "errors") {
+function invokeResultToOutput(result: InvokeResult) {
+  if (result.kind !== "errors") {
     return [];
   }
   let out: InvokeOutput = [];
   const msg = (text: string) => out.push({ type: "message", text });
   const err = (text: string) => out.push({ type: "error", text });
-  valOrErrs.errors.forEach(({ e, m, errCtx: { line, col, invokeId } }) => {
+  result.errors.forEach(({ e, m, errCtx: { line, col, invokeId } }) => {
     const invocation = invocations.get(invokeId);
     if (!invocation) {
       msg(`${e} Error: ${invokeId} line ${line} col ${col}: ${m}\n`);
@@ -54,8 +56,8 @@ function valOrErrsOutput(valOrErrs: InvokeResult) {
     const lineText = invocation.split("\n")[line - 1];
     const sym = substr(lineText, col - 1).split(parensRx)[0];
     const half1 = trimStart(substr(lineText, 0, col - 1));
-    const id = starts(invokeId, "-") ? `${substr(invokeId, 1)} ` : "";
-    msg(`${id}${padEnd(`${line}`, 4)} ${half1}`);
+    const path = starts(invokeId, "-") ? `In ${substr(invokeId, 1)}\n` : "";
+    msg(`\n${padEnd(`${line}`, 4)} ${half1}`);
     if (!sym) {
       const half2 = substr(lineText, col);
       err(lineText[col - 1]);
@@ -65,7 +67,7 @@ function valOrErrsOutput(valOrErrs: InvokeResult) {
       err(sym);
       msg(`${half2}\n`);
     }
-    msg(`${e} Error: ${m}.\n`);
+    msg(`${e} Error: ${m}.\n${path}`);
   });
   return out;
 }

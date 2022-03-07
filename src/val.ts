@@ -6,6 +6,15 @@ export const str = ({ v }: Val) => v as string;
 export const vec = ({ v }: Val) => v as Val[];
 export const dic = ({ v }: Val) => v as Dict;
 
+export const _boo = (v: boolean) => <Val>{ t: "bool", v };
+export const _num = (v: number) => <Val>{ t: "num", v };
+export const _str = (v = "") => <Val>{ t: "str", v };
+export const _key = (v: string) => <Val>{ t: "key", v };
+export const _vec = (v: Val[] = []) => <Val>{ t: "vec", v };
+export const _dic = (v: Dict) => <Val>{ t: "dict", v };
+export const _nul = () => <Val>{ t: "null", v: undefined };
+export const _fun = (v: string) => <Val>{ t: "func", v };
+
 export const isVecEqual = (a: Val[], b: Val[]): boolean =>
   len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
 

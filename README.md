@@ -27,9 +27,44 @@ Inspired by [Chika](https://github.com/phunanon/Chika),
 [Kuan](https://github.com/phunanon/Kuan).
 
 - [**Main Github repository**](https://github.com/phunanon/Insitux)
-- [**Roblox-ts NPM package**](https://www.npmjs.com/package/@rbxts/insitux) and its [Github repository](https://github.com/insitux/rbxts-Insitux).
+- [**Roblox-ts NPM package**](https://www.npmjs.com/package/@rbxts/insitux) and its [Github repository](https://github.com/insitux/rbxts-Insitux)
 
-## Usage
+Works in Node, the web, and Roblox.
+
+## Node CLI tool usage & installation
+Requires [Node](https://nodejs.org/en/download/).
+```console
+$ npm i -g insitux  #install Insitux globally on your machine
+$ npm r -g insitux  #if you want to uninstall after
+
+$ ix help           #or -h, to show this help
+$ ix                #open a REPL session (exit with Ctrl+D or Ctrl+C)
+$ ix .              #execute entry.ix in the working directory
+$ ix . -r           #… then open a REPL session
+$ ix file.ix        #execute file.ix in the working directory
+$ ix file.ix -r     #… then open a REPL session
+
+$ ix i              #installs dependencies listed in deps.txt
+$ ix r              #remove dependencies listed in deps
+$ ix i user/repo    #clone Github repository into the .ix directory
+$ ix r user/repo    #… and subsequently remove
+$ ix i alias http…  #download file via HTTP into the .ix directory as alias.ix
+$ ix r alias        #… and subsequently remove
+
+If you have Visual Studio Code, install the syntax highlighter!
+$ code --install-extension insitux.insitux-syntax
+```
+### `ix` environment operations
+```clj
+;Execute the entry.ix file of a cloned repository from the .ix directory
+;Or execute the [alias].ix file from the .ix directory
+;Or execute [file.ix] from the working directory / same directory of execution
+(import "username/some-dep")
+(import "alias")
+(import "file.ix")
+```
+
+## Coding in Insitux
 
 Like any programming language it is written down as _code_. Insitux takes your
 code and follows it like complex instructions.  
@@ -973,7 +1008,7 @@ vector item or string character is "destructured" into.
   (str result " took " (- end start) "ms"))
 
 (measure fib 35)
-→ "9227465 took 35510ms"
+→ "9227465 took 22914ms"
 
 
 ; Display the Mandelbrot fractal as ASCII

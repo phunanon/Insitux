@@ -475,7 +475,7 @@ export function doTests(
           state.output += str + (withNewLine ? "\n" : "");
         },
         exe: (name: string, args: Val[]) => exe(state, name, args),
-        functions: [],
+        functions: {},
         env,
         loopBudget: 10000,
         rangeBudget: 1000,
