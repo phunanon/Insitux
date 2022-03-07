@@ -34,8 +34,7 @@ Works in Node, the web, and Roblox.
 ## Node CLI tool usage & installation
 Requires [Node](https://nodejs.org/en/download/).
 ```console
-$ npm i -g insitux  #install Insitux globally on your machine
-$ npm r -g insitux  #if you want to uninstall after
+$ alias ix="npx insitux"  #make `ix` available for your bash session
 
 $ ix help           #or -h, to show this help
 $ ix                #open a REPL session (exit with Ctrl+D or Ctrl+C)

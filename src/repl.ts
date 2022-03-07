@@ -168,35 +168,31 @@ type DependencyResolution =
 async function dependencyResolve(dependency: DependencyResolution) {
   mkdirSync(".ix", { recursive: true });
   try {
-    switch (dependency.kind) {
-      case "http install": {
-        const response = await fetch(dependency.url);
-        if (!response.ok) {
-          throw `${response.status}: ${response.statusText}: ${dependency.url}`;
-        }
-        const text = await response.text();
-        writeFileSync(`.ix/${dependency.alias}.ix`, text);
-        break;
+    if (dependency.kind === "http install") {
+      const response = await fetch(dependency.url);
+      if (!response.ok) {
+        throw `${response.status}: ${response.statusText}: ${dependency.url}`;
       }
-      case "alias remove":
-        unlinkSync(`.ix/${dependency.alias}.ix`);
-        break;
-      case "Github install": {
-        const path = `.ix/${dependency.repo}`;
-        if (existsSync(path)) {
-          unlinkSync(`.ix/${dependency.repo}`);
-        }
-        await clone(`https://github.com/${dependency.repo}.git`, path, {
-          shallow: true,
-        });
-        break;
-      }
-      case "Github remove":
+      const text = await response.text();
+      writeFileSync(`.ix/${dependency.alias}.ix`, text);
+    } else if (dependency.kind === "alias remove") {
+      unlinkSync(`.ix/${dependency.alias}.ix`);
+    } else if (
+      dependency.kind === "Github install" ||
+      dependency.kind === "Github remove"
+    ) {
+      const path = `.ix/${dependency.repo}`;
+      if (existsSync(path)) {
         rmSync(`.ix/${dependency.repo.split("/")[0]}`, {
           recursive: true,
           force: true,
         });
-        break;
+      }
+      if (dependency.kind === "Github install") {
+        await clone(`https://github.com/${dependency.repo}.git`, path, {
+          shallow: true,
+        });
+      }
     }
   } catch (err) {
     const message =

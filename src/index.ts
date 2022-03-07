@@ -28,7 +28,7 @@ function _throw(errors: InvokeError[]): Val {
   throw <_Exception>{ errors };
 }
 function isThrown(e: unknown): e is _Exception {
-  return !!e && typeof e === "object" && "errors" in e;
+  return !!e && typeof e === "object" && "errors" in e!;
 }
 const throwTypeErr = (msg: string, errCtx: ErrCtx) =>
   _throw([typeErr(msg, errCtx)]);
