@@ -4685,6 +4685,26 @@ const types_ops = {
     params: [["vec", "str"], "num", "num"],
     returns: ["vec", "str"]
   },
+  skip: {
+    exactArity: 2,
+    params: ["num", ["vec", "str"]],
+    returns: ["vec", "str"]
+  },
+  first: {
+    exactArity: 2,
+    params: ["num", ["vec", "str"]],
+    returns: ["vec", "str"]
+  },
+  last: {
+    exactArity: 2,
+    params: ["num", ["vec", "str"]],
+    returns: ["vec", "str"]
+  },
+  crop: {
+    exactArity: 3,
+    params: ["num", "num", ["vec", "str"]],
+    returns: ["vec", "str"]
+  },
   reverse: { exactArity: 1, params: [["vec", "str"]], returns: ["vec", "str"] },
   flatten: {
     exactArity: 1,
@@ -6266,7 +6286,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220307;
+const insituxVersion = 220308;
 
 
 
@@ -6704,6 +6724,18 @@ function exeOp(op, args, ctx, errCtx) {
       } else {
         return _str(src_substr(str(args[0]), a2, b2 - a2));
       }
+    }
+    case "skip":
+    case "first":
+    case "last":
+    case "crop": {
+      const a2 = src_max(0, num(args[0]));
+      const { t, v } = args[op === "crop" ? 2 : 1];
+      const l = t === "str" ? src_slen(v) : src_len(v);
+      let x = op === "first" ? 0 : op === "last" ? l - a2 : a2;
+      const y = op === "first" ? a2 : op === "crop" ? l - src_max(0, num(args[1])) : l;
+      x = x > y ? y : x;
+      return t === "str" ? _str(src_substr(v, x, y - x)) : _vec(src_slice(v, x, y));
     }
     case "reverse":
       if (args[0].t === "str") {

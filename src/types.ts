@@ -279,6 +279,26 @@ export const ops: {
     params: [["vec", "str"], "num", "num"],
     returns: ["vec", "str"],
   },
+  skip: {
+    exactArity: 2,
+    params: ["num", ["vec", "str"]],
+    returns: ["vec", "str"],
+  },
+  first: {
+    exactArity: 2,
+    params: ["num", ["vec", "str"]],
+    returns: ["vec", "str"],
+  },
+  last: {
+    exactArity: 2,
+    params: ["num", ["vec", "str"]],
+    returns: ["vec", "str"],
+  },
+  crop: {
+    exactArity: 3,
+    params: ["num", "num", ["vec", "str"]],
+    returns: ["vec", "str"],
+  },
   reverse: { exactArity: 1, params: [["vec", "str"]], returns: ["vec", "str"] },
   flatten: {
     exactArity: 1,

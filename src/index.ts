@@ -1,4 +1,4 @@
-export const insituxVersion = 220307;
+export const insituxVersion = 220308;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -497,6 +497,21 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       } else {
         return _str(substr(str(args[0]), a, b - a));
       }
+    }
+    case "skip":
+    case "first":
+    case "last":
+    case "crop": {
+      const a = max(0, num(args[0]));
+      const { t, v } = args[op === "crop" ? 2 : 1];
+      const l = t === "str" ? slen(<string>v) : len(<Val[]>v);
+      let x = op === "first" ? 0 : op === "last" ? l - a : a;
+      const y =
+        op === "first" ? a : op === "crop" ? l - max(0, num(args[1])) : l;
+      x = x > y ? y : x;
+      return t === "str"
+        ? _str(substr(<string>v, x, y - x))
+        : _vec(slice(<Val[]>v, x, y));
     }
     case "reverse":
       if (args[0].t === "str") {

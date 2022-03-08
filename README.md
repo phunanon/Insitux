@@ -438,6 +438,12 @@ etc
 (sect [0 1 2 3])       → [1 2 3]
 etc
 
+;Returns particular sections of a string or vector
+(skip 1 "hello")   → "ello"
+(first 2 "hello")  → "he"
+(last 2 "hello")   → "lo"
+(crop 1 1 "hello") → "ell"
+
 ;Filter a vector or string by a function, optionally passing extra arguments.
 ;Return value is the same type as the second argument.
 (filter odd? [0 1 2 3])    → [1 3]

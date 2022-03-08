@@ -513,6 +513,38 @@
         ]
       },
       {
+        "directory": "skip",
+        "description": [
+          "(skip 7 \"Hello, world!\")",
+          "function",
+          "Returns a section of a vector or string, skipping N elements."
+        ]
+      },
+      {
+        "directory": "first",
+        "description": [
+          "(first 5 \"Hello, world!\")",
+          "function",
+          "Returns a section of a vector or string, up to N elements."
+        ]
+      },
+      {
+        "directory": "last",
+        "description": [
+          "(last \"Hello, world!\")",
+          "function",
+          "Returns a section of a vector or string, of the last N elements."
+        ]
+      },
+      {
+        "directory": "crop",
+        "description": [
+          "(crop 2 2 \"Hello, world!\")",
+          "function",
+          "Returns a section of a vector or string, after X elements, less Y elements."
+        ]
+      },
+      {
         "directory": "substr?",
         "description": [
           "(substr? \"ll\" \"Hello\")",
