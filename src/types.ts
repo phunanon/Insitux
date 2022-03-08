@@ -216,6 +216,7 @@ export const ops: {
   map: { minArity: 2, returns: ["vec"] },
   for: { minArity: 2, returns: ["vec"] },
   reduce: { minArity: 2, maxArity: 3 },
+  reductions: { minArity: 2, maxArity: 3 },
   filter: {
     minArity: 2,
     params: ["any", ["vec", "dict", "str"]],

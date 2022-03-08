@@ -4622,6 +4622,7 @@ const types_ops = {
   map: { minArity: 2, returns: ["vec"] },
   for: { minArity: 2, returns: ["vec"] },
   reduce: { minArity: 2, maxArity: 3 },
+  reductions: { minArity: 2, maxArity: 3 },
   filter: {
     minArity: 2,
     params: ["any", ["vec", "dict", "str"]],
@@ -6504,6 +6505,7 @@ function exeOp(op, args, ctx, errCtx) {
     case "map":
     case "for":
     case "reduce":
+    case "reductions":
     case "filter":
     case "remove":
     case "find":
@@ -6541,7 +6543,7 @@ function exeOp(op, args, ctx, errCtx) {
         }
         return _vec(array2);
       }
-      if (op !== "reduce") {
+      if (op !== "reduce" && op != "reductions") {
         const arrArg = args.shift();
         const array2 = asArray(arrArg);
         const isRemove = op === "remove", isFind = op === "find", isCount = op === "count";
@@ -6589,6 +6591,15 @@ function exeOp(op, args, ctx, errCtx) {
         return array[0];
       }
       let reduction = (src_len(args) ? args : array).shift();
+      if (op === "reductions") {
+        const reductions = [];
+        for (let i = 0, lim = src_len(array); i < lim; ++i) {
+          reductions.push(reduction);
+          reduction = closure([reduction, array[i]]);
+        }
+        reductions.push(reduction);
+        return _vec(reductions);
+      }
       for (let i = 0, lim = src_len(array); i < lim; ++i) {
         reduction = closure([reduction, array[i]]);
       }

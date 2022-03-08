@@ -251,6 +251,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "map":
     case "for":
     case "reduce":
+    case "reductions":
     case "filter":
     case "remove":
     case "find":
@@ -300,7 +301,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         return _vec(array);
       }
 
-      if (op !== "reduce") {
+      if (op !== "reduce" && op != "reductions") {
         const arrArg = args.shift()!;
         const array = asArray(arrArg);
         const isRemove = op === "remove",
@@ -357,6 +358,15 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
 
       let reduction: Val = (len(args) ? args : array).shift()!;
+      if (op === "reductions") {
+        const reductions: Val[] = [];
+        for (let i = 0, lim = len(array); i < lim; ++i) {
+          reductions.push(reduction);
+          reduction = closure([reduction, array[i]]);
+        }
+        reductions.push(reduction);
+        return _vec(reductions);
+      }
       for (let i = 0, lim = len(array); i < lim; ++i) {
         reduction = closure([reduction, array[i]]);
       }
