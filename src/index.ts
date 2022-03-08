@@ -392,20 +392,6 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       return _vec(result);
     }
-    case "->": {
-      let passed = args.shift()!;
-      for (let i = 0, lim = len(args); i < lim; ++i) {
-        try {
-          passed = getExe(ctx, args[i], errCtx)([passed]);
-        } catch (e) {
-          if (isThrown(e)) {
-            e.errors.forEach(err => (err.m = `-> arg ${i + 2}: ${err.m}`));
-            throw e;
-          }
-        }
-      }
-      return passed;
-    }
     case "rand-int":
     case "rand": {
       const nArgs = len(args);

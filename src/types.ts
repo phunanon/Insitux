@@ -234,7 +234,6 @@ export const ops: {
     returns: ["num"],
   },
   repeat: { minArity: 2, params: ["any", "num"] },
-  "->": { minArity: 2 },
   str: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
   "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },

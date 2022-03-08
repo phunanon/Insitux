@@ -59,6 +59,14 @@
         ]
       },
       {
+        "directory": "->",
+        "description": [
+          "(-> \"hello\" 1 upper-case)",
+          "syntax",
+          "\"Thread\" return values into the next function, seeded with first argument."
+        ]
+      },
+      {
         "directory": "and",
         "description": [
           "(and null (print \"hi\"))",
@@ -654,14 +662,6 @@
           "(repeat 1 10)",
           "function",
           "Returns a vector of either a function called N times with the incrementation, or a value repeated N times."
-        ]
-      },
-      {
-        "directory": "->",
-        "description": [
-          "(-> \"hello\" 1 upper-case)",
-          "function",
-          "\"Thread\" return values into the next function, seeded with first argument."
         ]
       },
       {

@@ -4640,7 +4640,6 @@ const types_ops = {
     returns: ["num"]
   },
   repeat: { minArity: 2, params: ["any", "num"] },
-  "->": { minArity: 2 },
   str: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
   "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },
@@ -5370,6 +5369,10 @@ function parseForm(nodes, params, doArityCheck = true) {
         { typ: "clo", value: makeClosure(name, cloParams, cins), errCtx: errCtx2 },
         ...cins
       ];
+    } else if (op === "->") {
+      const newNodes = nodes.reduce((acc, node) => [node, acc]);
+      const parsed = parseForm(newNodes, params);
+      return parsed;
     }
     if (types_ops[op] && doArityCheck) {
       const errors = arityCheck(op, parse_len(nodes), errCtx2);
@@ -6624,20 +6627,6 @@ function exeOp(op, args, ctx, errCtx) {
         }
       }
       return _vec(result);
-    }
-    case "->": {
-      let passed = args.shift();
-      for (let i = 0, lim = src_len(args); i < lim; ++i) {
-        try {
-          passed = getExe(ctx, args[i], errCtx)([passed]);
-        } catch (e) {
-          if (isThrown(e)) {
-            e.errors.forEach((err) => err.m = `-> arg ${i + 2}: ${err.m}`);
-            throw e;
-          }
-        }
-      }
-      return passed;
     }
     case "rand-int":
     case "rand": {

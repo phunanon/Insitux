@@ -484,6 +484,10 @@ function parseForm(
         { typ: "clo", value: makeClosure(name, cloParams, cins), errCtx },
         ...cins,
       ];
+    } else if (op === "->") {
+      const newNodes = nodes.reduce((acc, node) => [node, acc]) as Node[];
+      const parsed = parseForm(newNodes, params);
+      return parsed;
     }
 
     //Operation arity check, optionally disabled for partial closures

@@ -375,6 +375,12 @@ etc
 (reduce + 1 [])        → 1  ;
 (reduce + [])          → [] ; + is never called
 
+;Returns the intermediate values of a vector, string, or dictionary reduction
+;  starting with the initial value
+;See: reduce
+(reductions + [1 2 3])   → [1 3 6]
+(reductions + 2 [1 2 3]) → [2 3 5 8]
+
 ;Continues looping until condition becomes false
 ;Note: returns the final value or null if the first evaluated condition is false
 (var n 0)
