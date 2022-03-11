@@ -51,6 +51,14 @@
 				]
 			},
 			{
+				"directory": "->",
+				"description": [
+					"(-> \"hello\" 1 upper-case)",
+					"syntax",
+					"\"Thread\" return values into the next function, seeded with first argument."
+				]
+			},
+			{
 				"directory": "and",
 				"description": [
 					"(and null (print \"hi\"))",
@@ -73,7 +81,15 @@
 				"description": [
 					"(when true (print \"hi\") (print \"bye\"))",
 					"syntax",
-					"Tests a condition and executes its body else returns null."
+					"Tests a condition is true and executes its body else returns null."
+				]
+			},
+			{
+				"directory": "unless",
+				"description": [
+					"(unless false (print \"hi\") (print \"bye\"))",
+					"syntax",
+					"Tests a condition is false and executes its body else returns null."
 				]
 			},
 			{
@@ -353,22 +369,64 @@
 				]
 			},
 			{
-				"directory": "push",
-				"description": [
-					"(push [0 1 2] 3)",
-					"function",
-					"Returns a vector or dictionary with one item or key-value pair appended;",
-					"or, inserts a value into a vector at a specified index;",
-					"or, removes a key from a dictionary."
-				]
+				"directory": "append",
+				"description": ["(append 3 [0 1 2])", "function", "Append item to the end of a vector."]
+			},
+			{
+				"directory": "prepend",
+				"description": ["(prepend 3 [0 1 2])", "function", "Prepend item to the beginning of a vector."]
+			},
+			{
+				"directory": "omit",
+				"description": ["(omit :a {:a 1 :b 2})", "function", "Removes key from a dictionary."]
+			},
+			{
+				"directory": "assoc",
+				"description": ["(assoc :a 2 {:a 1 :b 2})", "function", "Associates a value to a key in a dictionary."]
+			},
+			{
+				"directory": "insert",
+				"description": ["(insert :a 1 [1 2])", "function", "Insert item at a specified index in a vector."]
 			},
 			{
 				"directory": "sect",
 				"description": ["(sect \"Hello, world!\" 1 3)", "function", "Returns a section of a vector or string."]
 			},
 			{
-				"directory": "has?",
-				"description": ["(has? \"Hello\" \"ll\")", "function", "Tests if a string contains a sub-string."]
+				"directory": "skip",
+				"description": [
+					"(skip 7 \"Hello, world!\")",
+					"function",
+					"Returns a section of a vector or string, skipping N elements."
+				]
+			},
+			{
+				"directory": "first",
+				"description": [
+					"(first 5 \"Hello, world!\")",
+					"function",
+					"Returns a section of a vector or string, up to N elements."
+				]
+			},
+			{
+				"directory": "last",
+				"description": [
+					"(last \"Hello, world!\")",
+					"function",
+					"Returns a section of a vector or string, of the last N elements."
+				]
+			},
+			{
+				"directory": "crop",
+				"description": [
+					"(crop 2 2 \"Hello, world!\")",
+					"function",
+					"Returns a section of a vector or string, after X elements, less Y elements."
+				]
+			},
+			{
+				"directory": "substr?",
+				"description": ["(substr? \"ll\" \"Hello\")", "function", "Tests if a sub-string is in a string."]
 			},
 			{
 				"directory": "to-num",
@@ -377,6 +435,14 @@
 			{
 				"directory": "to-key",
 				"description": ["(to-key \"hello\")", "function", "Converts a string or number into a keyword."]
+			},
+			{
+				"directory": "to-vec",
+				"description": ["(to-vec \"hello\")", "function", "Returns string or dictionary as vector."]
+			},
+			{
+				"directory": "type-of",
+				"description": ["(type-of \"hello\")", "function", "Returns type string of argument."]
 			},
 			{
 				"directory": "keys",
@@ -431,7 +497,7 @@
 				"description": [
 					"(count odd? (range 10))",
 					"function",
-					"Returns the number of items or characters in a vector or string matching a predicate, optionally passing extra arguments"
+					"Returns the number of items or characters in a vector or string matching a predicate, optionally passing extra arguments."
 				]
 			},
 			{
@@ -439,15 +505,7 @@
 				"description": [
 					"(repeat 1 10)",
 					"function",
-					"Returns a vector of either a function called N times with the incrementation, or a value repeated N times"
-				]
-			},
-			{
-				"directory": "->",
-				"description": [
-					"(-> \"hello\" 1 upper-case)",
-					"function",
-					"\"Thread\" return values into the next function, seeded with first argument"
+					"Returns a vector of either a function called N times with the incrementation, or a value repeated N times."
 				]
 			},
 			{
@@ -455,11 +513,65 @@
 				"description": ["(reverse [0 1 2 3])", "function", "Returns the reverse of a vector or string."]
 			},
 			{
+				"directory": "flatten",
+				"description": [
+					"(flatten [8 [6 9] [0 [4]]])",
+					"function",
+					"\"Flattens\" its argument's immediate sub-vectors, and their immediate sub-vectors, etc."
+				]
+			},
+			{
+				"directory": "shuffle",
+				"description": ["(shuffle (range 10))", "function", "Randomly rearranges a vector's items."]
+			},
+			{
 				"directory": "sort",
 				"description": [
-					"(sort [8 6 9 0 4] sin)",
+					"(sort [8 6 9 0 4])",
 					"function",
-					"Sorts a vector of numbers or strings, optionally sorting by the return of a function of each item."
+					"Returns a vector of vector items or string characters sorted."
+				]
+			},
+			{
+				"directory": "sort-by",
+				"description": [
+					"(sort-by sin [8 6 9 0 4])",
+					"function",
+					"Returns a vector of vector items, dictionary entries, or string characters sorted by the return of a function over each item."
+				]
+			},
+			{
+				"directory": "group-by",
+				"description": [
+					"(group-by odd? [0 1 2 3])",
+					"function",
+					"Groups by a function return into a dictionary of vectors, for vector items, string characters;",
+					"or a dictionary of dictionaries for dictionary entries."
+				]
+			},
+			{
+				"directory": "part-by",
+				"description": [
+					"(part-by odd? [0 1 2 3 4])",
+					"function",
+					"Partitions by a function return into a vector of [when-true when-false] vectors for vector items or string characters;",
+					"or a vector of two dictionaries for dictionary entries."
+				]
+			},
+			{
+				"directory": "frequencies",
+				"description": [
+					"(frequencies [0 0 1 2 3])",
+					"function",
+					"Returns dictionary with keys as distinct vector items, string characters, with values as number of occurrences."
+				]
+			},
+			{
+				"directory": "distinct",
+				"description": [
+					"(distinct 8 6 9 0 0 9)",
+					"function",
+					"Returns vector of distinct arguments, or if given one vector, a vector of distinct values."
 				]
 			},
 			{
@@ -487,7 +599,7 @@
 				"description": [
 					"(str* \"hello \" 6)",
 					"function",
-					"Returns a string repeated a specified number of times"
+					"Returns a string repeated a specified number of times."
 				]
 			},
 			{
@@ -495,8 +607,8 @@
 				"description": [
 					"(char-code \"hello \")",
 					"function",
-					"Returns the code associated with a string's first or Nth character, or null",
-					"Or returns a string with the associated supplied character code"
+					"Returns the code associated with a string's first or Nth character, or null;",
+					"Or returns a string with the associated supplied character code."
 				]
 			},
 			{
@@ -511,6 +623,14 @@
 				"directory": "join",
 				"description": [
 					"(join \", \" [0 1 2 3])",
+					"function",
+					"Joins a vector into a string by a provided string."
+				]
+			},
+			{
+				"directory": "replace",
+				"description": [
+					"(replace \"l\" \"x\" \"hello\")",
 					"function",
 					"Joins a vector into a string by a provided string."
 				]
@@ -581,6 +701,30 @@
 					"(eval \"(+ 2 2)\")",
 					"function",
 					"Evaluates a string as code, returning any values returned or null."
+				]
+			},
+			{
+				"directory": "symbols",
+				"description": [
+					"(symbols)",
+					"function",
+					"Returns symbol name strings vector by definition order in the Insitux session."
+				]
+			},
+			{
+				"directory": "tests",
+				"description": [
+					"(tests)",
+					"function",
+					"Returns report of built-in Insitux tests as a string, optionally verbose."
+				]
+			},
+			{
+				"directory": "about",
+				"description": [
+					"(about set-at)",
+					"function",
+					"Returns arity, type, and other information about specified function."
 				]
 			}
 		]
