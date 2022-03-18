@@ -62,3 +62,36 @@ combined = sum(parts, [])
 shuffle(combined)
 "".join(combined)
 ```
+
+Insitux
+```clj
+(-> (read "ix-demo.cast")
+    trim
+    (split "\n")
+    (var all-lines)
+    (skip 1)
+    (map (split ","))
+    (map #[(to-num (skip 1 (0 %)))
+           (join "," (skip 1 %))])
+   @(map vec (skip 1 %))
+    (map (fn [[b] [a s]] [(min 1 (- b a)) s]))
+    (reductions (fn [sum] [t s] [(+ sum t) s]))
+    (map (fn [t s] (str "[" t "," s)))
+    (prepend (0 all-lines))
+    (join "\n"))
+```
+JavaScript
+```js
+import { readFileSync } from "fs";
+const text = readFileSync("ix-demo.cast").toString().trim();
+const lines = text.split("\n");
+let prevT = 0,
+  sum = 0;
+const newLines = lines.slice(1).map(line => {
+  let [_, t, s] = line.match(/\[(.+?)(.+$)/);
+  sum += Math.min(1, t - prevT);
+  return `[${sum}${s}`;
+});
+newLines.unshift(lines[0]);
+console.log(newLines.join('\n'));
+```

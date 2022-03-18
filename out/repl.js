@@ -5980,6 +5980,11 @@ null`
     out: `[0 val 0]`
   },
   {
+    name: "Closure w/ inter-params",
+    code: `(function f x (fn y [x y])) ((f :a) :b)`,
+    out: `[:a :b]`
+  },
+  {
     name: "Destructure var",
     code: `(var [x [y]] [1 [2]]) [y x]`,
     out: `[2 1]`
@@ -7495,6 +7500,7 @@ const repl_prompt = __webpack_require__(161);
 const clone = __webpack_require__(33);
 const _val = (value) => ({ kind: "val", value });
 const githubRegex = /^(?!https*:)[^\/]+?\/[^\/]+$/;
+let colourMode = true;
 function read(path, asLines) {
   if (!(0,external_fs_.existsSync)(path)) {
     return _val(_nul());
@@ -7685,6 +7691,7 @@ async function processCliArguments(args) {
     startRepl();
     return;
   }
+  colourMode = false;
   const openReplAfter = args.includes("-r");
   const parts = openReplAfter ? args.filter((a) => a !== "-r") : args;
   const matchParts = (b) => parts.length === b.length && parts.every((part, i) => b[i] && b[i].test(part));
@@ -7701,10 +7708,10 @@ async function processCliArguments(args) {
       printErrorOutput(invoker(ctx, code, path));
     }
   } else if (matchParts([/^i$/, githubRegex])) {
-    dependencyResolve({ kind: "Github install", repo: arg1 });
+    await dependencyResolve({ kind: "Github install", repo: arg1 });
   } else if (matchParts([/^i$/, /.+/, /https*:/])) {
     exitIfBadAlias(arg1);
-    dependencyResolve({ kind: "http install", url: arg2, alias: arg1 });
+    await dependencyResolve({ kind: "http install", url: arg2, alias: arg1 });
   } else if (arg0 === "i") {
     await depsFileAction("install");
     (0,external_process_namespaceObject.exit)();
@@ -7727,6 +7734,7 @@ async function processCliArguments(args) {
     }
   }
   if (openReplAfter) {
+    colourMode = true;
     startRepl();
   }
 }
@@ -7789,7 +7797,11 @@ function haveFinishedEntry(code) {
 function printErrorOutput({ output: lines2 }) {
   const colours = { error: 31, message: 35 };
   lines2.forEach(({ type, text }) => {
-    process.stdout.write(`[${colours[type]}m${text}[0m`);
+    if (colourMode) {
+      process.stdout.write(`[${colours[type]}m${text}[0m`);
+    } else {
+      process.stdout.write(text);
+    }
   });
 }
 

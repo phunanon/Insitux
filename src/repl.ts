@@ -15,6 +15,7 @@ import clone = require("git-clone/promise");
 
 const _val = (value: Val) => <ValOrErr>{ kind: "val", value };
 const githubRegex = /^(?!https*:)[^\/]+?\/[^\/]+$/;
+let colourMode = true;
 
 //#region External operations
 function read(path: string, asLines: boolean) {
@@ -37,10 +38,6 @@ const writingOpDef: Operation = {
   exactArity: 2,
   params: ["str", "str"],
   returns: ["str"],
-};
-
-type ReplCtx = {
-  workingDirectory: string;
 };
 
 function makeFunctions(workingDirectory = process.cwd()) {
@@ -256,6 +253,8 @@ async function processCliArguments(args: string[]) {
     return;
   }
 
+  colourMode = false;
+
   const openReplAfter = args.includes("-r");
   const parts = openReplAfter ? args.filter(a => a !== "-r") : args;
 
@@ -278,11 +277,11 @@ async function processCliArguments(args: string[]) {
     }
   } else if (matchParts([/^i$/, githubRegex])) {
     //Install dependency via Github
-    dependencyResolve({ kind: "Github install", repo: arg1 });
+    await dependencyResolve({ kind: "Github install", repo: arg1 });
   } else if (matchParts([/^i$/, /.+/, /https*:/])) {
     //Install dependency via HTTP
     exitIfBadAlias(arg1);
-    dependencyResolve({ kind: "http install", url: arg2, alias: arg1 });
+    await dependencyResolve({ kind: "http install", url: arg2, alias: arg1 });
   } else if (arg0 === "i") {
     await depsFileAction("install");
     exit();
@@ -309,6 +308,7 @@ async function processCliArguments(args: string[]) {
   }
 
   if (openReplAfter) {
+    colourMode = true;
     startRepl();
   }
 }
@@ -383,7 +383,11 @@ function haveFinishedEntry(code: string): boolean {
 function printErrorOutput({ output: lines }: { output: InvokeOutput }) {
   const colours = { error: 31, message: 35 };
   lines.forEach(({ type, text }) => {
-    process.stdout.write(`\x1b[${colours[type]}m${text}\x1b[0m`);
+    if (colourMode) {
+      process.stdout.write(`\x1b[${colours[type]}m${text}\x1b[0m`);
+    } else {
+      process.stdout.write(text);
+    }
   });
 }
 //#endregion
