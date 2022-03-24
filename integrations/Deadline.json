@@ -559,9 +559,9 @@
 				]
 			},
 			{
-				"directory": "frequencies",
+				"directory": "freqs",
 				"description": [
-					"(frequencies [0 0 1 2 3])",
+					"(freqs [0 0 1 2 3])",
 					"function",
 					"Returns dictionary with keys as distinct vector items, string characters, with values as number of occurrences."
 				]

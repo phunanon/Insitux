@@ -532,8 +532,8 @@ etc
 
 ;Returns dictionary with keys as distinct vector items, string characters,
 ;  with values as number of occurrences
-(frequencies [0 0 1 2 3]) → {0 2, 1 1, 2 1, 3 1}
-(frequencies "hellooooo") → {"h" 1, "e" 1, "l" 2, "o" 5}
+(freqs [0 0 1 2 3]) → {0 2, 1 1, 2 1, 3 1}
+(freqs "hellooooo") → {"h" 1, "e" 1, "l" 2, "o" 5}
 
 ;Returns vector of distinct arguments or,
 ;  if given one vector, a vector of distinct values
@@ -956,10 +956,11 @@ vector item or string character is "destructured" into.
 
 
 ; Generate random strong password
-(-> (fn a b (repeat #(char-code (rand-int a b)) 4))
-   #(map % [97 65 48 33] [123 91 58 48])
+(-> #(map rand-int [97 65 48 33] [123 91 58 48])
+   #(repeat % 4)
     flatten
     shuffle
+    (map char-code)
     (.. str))
 
 → "d$W1iP*tO9'V9(y8"

@@ -327,6 +327,11 @@ const tests: {
     out: `[0 val 0]`,
   },
   {
+    name: "future: Closure w/ inter-params",
+    code: `(function f x (fn y [x y])) ((f :a) :b)`,
+    out: `[:a :b]`,
+  },
+  {
     name: "Destructure var",
     code: `(var [x [y]] [1 [2]]) [y x]`,
     out: `[2 1]`,

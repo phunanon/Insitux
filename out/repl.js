@@ -4739,7 +4739,7 @@ const types_ops = {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["vec"]
   },
-  frequencies: {
+  freqs: {
     exactArity: 1,
     params: [["vec", "str"]],
     returns: ["dict"]
@@ -5980,7 +5980,7 @@ null`
     out: `[0 val 0]`
   },
   {
-    name: "Closure w/ inter-params",
+    name: "future: Closure w/ inter-params",
     code: `(function f x (fn y [x y])) ((f :a) :b)`,
     out: `[:a :b]`
   },
@@ -6295,7 +6295,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220308;
+const insituxVersion = 220324;
 
 
 
@@ -6847,7 +6847,7 @@ function exeOp(op, args, ctx, errCtx) {
         return _vec(parted.map(_vec));
       }
     }
-    case "frequencies": {
+    case "freqs": {
       const src = asArray(args[0]);
       const distinct = [];
       const counts = [];

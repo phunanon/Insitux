@@ -333,7 +333,7 @@ export const ops: {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["vec"],
   },
-  frequencies: {
+  freqs: {
     exactArity: 1,
     params: [["vec", "str"]],
     returns: ["dict"],

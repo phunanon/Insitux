@@ -1,4 +1,4 @@
-export const insituxVersion = 220308;
+export const insituxVersion = 220324;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -618,7 +618,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         return _vec(parted.map(_vec));
       }
     }
-    case "frequencies": {
+    case "freqs": {
       const src = asArray(args[0]);
       const distinct: Val[] = [];
       const counts: number[] = [];
