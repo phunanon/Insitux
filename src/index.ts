@@ -8,8 +8,8 @@ const { abs, sign, sqrt, floor, ceil, round, max, min, logn, log2, log10 } = pf;
 const { cos, sin, tan, acos, asin, atan, sinh, cosh, tanh } = pf;
 const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
 const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
-const { trim, trimStart, trimEnd, charCode, codeChar, strIdx, replace } = pf;
-const { getTimeMs, randInt, randNum } = pf;
+const { trim, trimStart, trimEnd, strIdx, replace, rreplace } = pf;
+const { charCode, codeChar, getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum, isArray } = pf;
 import { doTests } from "./test";
 import { assertUnreachable, Env, InvokeError, InvokeResult } from "./types";
@@ -37,6 +37,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
   switch (op) {
     case "str":
       return _str(stringify(args));
+    case "strn":
+      return _str(stringify(args.filter(a => a.t !== "null")));
     case "print":
     case "print-str":
       ctx.print(stringify(args), op === "print");
@@ -531,6 +533,16 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       return _vec(arr);
     }
+    case "sample": {
+      const shuffled = slice(vec(args[1]));
+      const size = max(0, min(len(shuffled), num(args[0])));
+      const minimum = len(shuffled) - size;
+      for (let i = len(shuffled) - 1; i > minimum; --i) {
+        const index = floor(randInt(0, i + 1));
+        [shuffled[i], shuffled[index]] = [shuffled[index], shuffled[i]];
+      }
+      return _vec(slice(shuffled, minimum));
+    }
     case "sort":
     case "sort-by": {
       const src = asArray(args[op === "sort" ? 0 : 1]);
@@ -670,7 +682,10 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "join":
       return _str(asArray(args[1]).map(val2str).join(str(args[0])));
     case "replace":
-      return _str(replace(str(args[2]), str(args[0]), str(args[1])));
+    case "rreplace": {
+      const rop = op === "replace" ? replace : rreplace;
+      return _str(rop(str(args[2]), str(args[0]), str(args[1])));
+    }
     case "starts?":
     case "ends?":
       return _boo(

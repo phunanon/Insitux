@@ -4436,6 +4436,7 @@ __webpack_require__.d(poly_fills_namespaceObject, {
   "replace": () => (replace),
   "reverse": () => (reverse),
   "round": () => (round),
+  "rreplace": () => (rreplace),
   "sign": () => (sign),
   "sin": () => (sin),
   "sinh": () => (sinh),
@@ -4476,6 +4477,7 @@ const has = (x, y) => x.includes(y);
 const starts = (str, prefix) => str.startsWith(prefix);
 const ends = (str, x) => str.endsWith(x);
 const replace = (str, what, to) => str.split(what).join(to);
+const rreplace = (str, what, to) => str.replace(new RegExp(what, "g"), to);
 const flat = (arr) => arr.flat();
 const concat = (a, b) => a.concat(b);
 const push = (arr, add) => arr.push(...add);
@@ -4641,6 +4643,7 @@ const types_ops = {
   },
   repeat: { minArity: 2, params: ["any", "num"] },
   str: { returns: ["str"] },
+  strn: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
   "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },
   ".": { minArity: 1 },
@@ -4716,6 +4719,11 @@ const types_ops = {
     params: ["vec"],
     returns: ["vec"]
   },
+  sample: {
+    exactArity: 2,
+    params: ["num", "vec"],
+    returns: ["vec"]
+  },
   sort: {
     exactArity: 1,
     params: [["vec", "str"]],
@@ -4761,6 +4769,11 @@ const types_ops = {
     returns: ["str"]
   },
   replace: {
+    exactArity: 3,
+    params: ["str", "str", "str"],
+    returns: ["str"]
+  },
+  rreplace: {
     exactArity: 3,
     params: ["str", "str", "str"],
     returns: ["str"]
@@ -6321,8 +6334,8 @@ const { abs: src_abs, sign: src_sign, sqrt: src_sqrt, floor: src_floor, ceil: sr
 const { cos: src_cos, sin: src_sin, tan: src_tan, acos: src_acos, asin: src_asin, atan: src_atan, sinh: src_sinh, cosh: src_cosh, tanh: src_tanh } = poly_fills_namespaceObject;
 const { concat: src_concat, has: src_has, flat: src_flat, push: src_push, reverse: src_reverse, slice: src_slice, splice: src_splice, sortBy: src_sortBy } = poly_fills_namespaceObject;
 const { ends: src_ends, slen: src_slen, starts: src_starts, sub: src_sub, subIdx: src_subIdx, substr: src_substr, upperCase: src_upperCase, lowerCase: src_lowerCase } = poly_fills_namespaceObject;
-const { trim: src_trim, trimStart: src_trimStart, trimEnd: src_trimEnd, charCode: src_charCode, codeChar: src_codeChar, strIdx: src_strIdx, replace: src_replace } = poly_fills_namespaceObject;
-const { getTimeMs: src_getTimeMs, randInt: src_randInt, randNum: src_randNum } = poly_fills_namespaceObject;
+const { trim: src_trim, trimStart: src_trimStart, trimEnd: src_trimEnd, strIdx: src_strIdx, replace: src_replace, rreplace: src_rreplace } = poly_fills_namespaceObject;
+const { charCode: src_charCode, codeChar: src_codeChar, getTimeMs: src_getTimeMs, randInt: src_randInt, randNum: src_randNum } = poly_fills_namespaceObject;
 const { isNum: src_isNum, len: src_len, objKeys: src_objKeys, range: src_range, toNum: src_toNum, isArray: src_isArray } = poly_fills_namespaceObject;
 
 
@@ -6345,6 +6358,8 @@ function exeOp(op, args, ctx, errCtx) {
   switch (op) {
     case "str":
       return _str(stringify(args));
+    case "strn":
+      return _str(stringify(args.filter((a2) => a2.t !== "null")));
     case "print":
     case "print-str":
       ctx.print(stringify(args), op === "print");
@@ -6779,6 +6794,16 @@ function exeOp(op, args, ctx, errCtx) {
       }
       return _vec(arr);
     }
+    case "sample": {
+      const shuffled = src_slice(vec(args[1]));
+      const size = src_max(0, src_min(src_len(shuffled), num(args[0])));
+      const minimum = src_len(shuffled) - size;
+      for (let i = src_len(shuffled) - 1; i > minimum; --i) {
+        const index = src_floor(src_randInt(0, i + 1));
+        [shuffled[i], shuffled[index]] = [shuffled[index], shuffled[i]];
+      }
+      return _vec(src_slice(shuffled, minimum));
+    }
     case "sort":
     case "sort-by": {
       const src = asArray(args[op === "sort" ? 0 : 1]);
@@ -6914,7 +6939,10 @@ function exeOp(op, args, ctx, errCtx) {
     case "join":
       return _str(asArray(args[1]).map(val2str).join(str(args[0])));
     case "replace":
-      return _str(src_replace(str(args[2]), str(args[0]), str(args[1])));
+    case "rreplace": {
+      const rop = op === "replace" ? src_replace : src_rreplace;
+      return _str(rop(str(args[2]), str(args[0]), str(args[1])));
+    }
     case "starts?":
     case "ends?":
       return _boo((op === "starts?" ? src_starts : src_ends)(str(args[1]), str(args[0])));

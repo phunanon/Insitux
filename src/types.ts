@@ -235,6 +235,7 @@ export const ops: {
   },
   repeat: { minArity: 2, params: ["any", "num"] },
   str: { returns: ["str"] },
+  strn: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
   "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },
   ".": { minArity: 1 },
@@ -310,6 +311,11 @@ export const ops: {
     params: ["vec"],
     returns: ["vec"],
   },
+  sample: {
+    exactArity: 2,
+    params: ["num", "vec"],
+    returns: ["vec"],
+  },
   sort: {
     exactArity: 1,
     params: [["vec", "str"]],
@@ -355,6 +361,11 @@ export const ops: {
     returns: ["str"],
   },
   replace: {
+    exactArity: 3,
+    params: ["str", "str", "str"],
+    returns: ["str"],
+  },
+  rreplace: {
     exactArity: 3,
     params: ["str", "str", "str"],
     returns: ["str"],
