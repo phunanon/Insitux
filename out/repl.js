@@ -4906,14 +4906,32 @@ function keyOpErr(errCtx, types) {
 
 ;// CONCATENATED MODULE: ./src/closure.ts
 
-function makeClosure(name, params, cins) {
+function makeClosure(name, outerParams, cloParams, cins) {
   const captures = [];
   const derefs = [];
-  const exclusions = params;
+  const exclusions = cloParams;
   for (let i = 0, lim = len(cins); i < lim; ++i) {
     const cin = cins[i];
     let capture = false;
     if (cin.typ === "clo") {
+      captures.push(false);
+      const newSubDerefs = [];
+      const newSubCaptures = [];
+      for (let j = 0, d = 0; j < cin.value.length; ++j) {
+        const ccin = cins[i + 1 + j];
+        const capture2 = ccin.typ === "npa" && has(outerParams, ccin.text);
+        captures.push(capture2);
+        newSubCaptures.push(!capture2 && cin.value.captures[j]);
+        if (capture2) {
+          derefs.push(cin.value.derefs[d++]);
+        } else {
+          if (cin.value.captures[j]) {
+            newSubDerefs.push(cin.value.derefs[d++]);
+          }
+        }
+      }
+      cin.value.derefs = newSubDerefs;
+      cin.value.captures = newSubCaptures;
       i += cin.value.length;
       continue;
     } else if (cin.typ === "let" || cin.typ === "var") {
@@ -4927,21 +4945,20 @@ function makeClosure(name, params, cins) {
   return { name, length: len(cins), captures, derefs };
 }
 function makeEnclosure({ name, length, captures, derefs }, cins, derefed) {
+  if (!len(derefed)) {
+    return { name, ins: cins };
+  }
   const ins = [];
   const errCtxs = derefs.map((i) => i.errCtx);
-  for (let i = 0, ci = 0; i < length; ++i) {
-    const cin = cins[i];
-    if (cin.typ === "clo") {
-      push(ins, slice(cins, i, i + 1 + cin.value.length));
-      i += cin.value.length;
-    } else if (captures[ci++]) {
+  for (let i = 0; i < length; ++i) {
+    if (captures[i]) {
       ins.push({
         typ: "val",
         value: derefed.shift(),
         errCtx: errCtxs.shift()
       });
     } else {
-      ins.push(cin);
+      ins.push(cins[i]);
     }
   }
   return { name, ins };
@@ -5331,11 +5348,12 @@ function parseForm(nodes, params, doArityCheck = true) {
       const pins = [];
       const name = node2str([firstNode, ...nodes]);
       const cloParams = [];
+      const outerParams = parse_slice(params).map((p) => p.name);
       let monoFnBody = false;
       if (op === "fn") {
         const parsedParams = parseParams(nodes, false);
         parse_push(cloParams, parsedParams.shape.map((p) => p.name));
-        params = parsedParams.shape;
+        parse_push(params, parsedParams.shape);
         parse_push(pins, parsedParams.errors);
         if (!parse_len(nodes)) {
           return err("provide a body");
@@ -5365,10 +5383,8 @@ function parseForm(nodes, params, doArityCheck = true) {
         cins.pop();
         cins.pop();
       }
-      return [
-        { typ: "clo", value: makeClosure(name, cloParams, cins), errCtx: errCtx2 },
-        ...cins
-      ];
+      const value = makeClosure(name, outerParams, cloParams, cins);
+      return [{ typ: "clo", value, errCtx: errCtx2 }, ...cins];
     } else if (op === "->") {
       const newNodes = nodes.reduce((acc, node) => [node, acc]);
       const parsed = parseForm(newNodes, params);
@@ -5976,13 +5992,13 @@ null`
   },
   {
     name: "Closure with captured f",
-    code: `[((fn x (@(val x))) 0) (var f val) ((fn x (@(f x))) 0)]`,
+    code: `[((fn x (@(val x))) 0) (var f val) ((fn y (@(f y))) 0)]`,
     out: `[0 val 0]`
   },
   {
-    name: "future: Closure w/ inter-params",
-    code: `(function f x (fn y [x y])) ((f :a) :b)`,
-    out: `[:a :b]`
+    name: "Closure w/ inter-params",
+    code: `(function f x (fn y (fn z [x y z]))) (((f :a) :b) :c)`,
+    out: `[:a :b :c]`
   },
   {
     name: "Destructure var",
@@ -6295,7 +6311,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220324;
+const insituxVersion = 220403;
 
 
 
@@ -6990,7 +7006,7 @@ function exeOp(op, args, ctx, errCtx) {
 const monoArityError = (t, errCtx) => [
   {
     e: "Arity",
-    m: `${typeNames[t]} as op requires one sole argument`,
+    m: `${typeNames[t]} as operation requires one sole argument`,
     errCtx
   }
 ];

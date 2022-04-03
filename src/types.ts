@@ -79,8 +79,8 @@ export type ParamsShape = { name: string; position: number[] }[];
 export type Closure = {
   readonly name: string;
   readonly length: number;
-  readonly captures: boolean[];
-  readonly derefs: Ins[];
+  captures: boolean[];
+  derefs: Ins[];
 };
 
 export type Ins = { errCtx: ErrCtx } & (

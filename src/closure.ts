@@ -2,21 +2,39 @@ import { has, len, push, slice } from "./poly-fills";
 import { Closure, Func, Ins, Val } from "./types";
 
 /** Declare a closure from instructions and other info, calculating its
- * captures ahead-of-time. Skips sub-closures as the parser builds them
- * bottom-up. */
+ * captures ahead-of-time. */
 export function makeClosure(
   name: string,
-  params: string[],
+  outerParams: string[],
+  cloParams: string[],
   cins: Ins[],
 ): Closure {
   const captures: boolean[] = [];
   const derefs: Ins[] = [];
-  const exclusions: string[] = params;
+  const exclusions: string[] = cloParams;
   for (let i = 0, lim = len(cins); i < lim; ++i) {
     const cin = cins[i];
     let capture = false;
     if (cin.typ === "clo") {
-      //Skip sub-closures as they have already calculated their captures
+      //Inherit direct sub-closures' outer-parameter captures
+      captures.push(false);
+      const newSubDerefs: Ins[] = [];
+      const newSubCaptures: boolean[] = [];
+      for (let j = 0, d = 0; j < cin.value.length; ++j) {
+        const ccin = cins[i + 1 + j];
+        const capture = ccin.typ === "npa" && has(outerParams, ccin.text);
+        captures.push(capture);
+        newSubCaptures.push(!capture && cin.value.captures[j]);
+        if (capture) {
+          derefs.push(cin.value.derefs[d++]);
+        } else {
+          if (cin.value.captures[j]) {
+            newSubDerefs.push(cin.value.derefs[d++]);
+          }
+        }
+      }
+      cin.value.derefs = newSubDerefs;
+      cin.value.captures = newSubCaptures;
       i += cin.value.length;
       continue;
     } else if (cin.typ === "let" || cin.typ === "var") {
@@ -37,21 +55,20 @@ export function makeEnclosure(
   cins: Ins[],
   derefed: Val[],
 ): Func {
+  if (!len(derefed)) {
+    return { name, ins: cins };
+  }
   const ins: Ins[] = [];
   const errCtxs = derefs.map(i => i.errCtx);
-  for (let i = 0, ci = 0; i < length; ++i) {
-    const cin = cins[i];
-    if (cin.typ === "clo") {
-      push(ins, slice(cins, i, i + 1 + cin.value.length));
-      i += cin.value.length;
-    } else if (captures[ci++]) {
+  for (let i = 0; i < length; ++i) {
+    if (captures[i]) {
       ins.push({
         typ: "val",
         value: derefed.shift()!,
         errCtx: errCtxs.shift()!,
       });
     } else {
-      ins.push(cin);
+      ins.push(cins[i]);
     }
   }
   return { name, ins };

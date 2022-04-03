@@ -1,4 +1,4 @@
-export const insituxVersion = 220324;
+export const insituxVersion = 220403;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -782,7 +782,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
 const monoArityError = (t: Val["t"], errCtx: ErrCtx) => [
   {
     e: "Arity",
-    m: `${typeNames[t]} as op requires one sole argument`,
+    m: `${typeNames[t]} as operation requires one sole argument`,
     errCtx,
   },
 ];

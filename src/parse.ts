@@ -438,6 +438,7 @@ function parseForm(
       const pins: ParserIns[] = [];
       const name = node2str([firstNode, ...nodes]);
       const cloParams: string[] = [];
+      const outerParams = slice(params).map(p => p.name);
       let monoFnBody = false;
       if (op === "fn") {
         const parsedParams = parseParams(nodes, false);
@@ -445,7 +446,7 @@ function parseForm(
           cloParams,
           parsedParams.shape.map(p => p.name),
         );
-        params = parsedParams.shape;
+        push(params, parsedParams.shape);
         push(pins, parsedParams.errors);
         if (!len(nodes)) {
           return err("provide a body");
@@ -480,10 +481,8 @@ function parseForm(
         cins.pop();
         cins.pop();
       }
-      return [
-        { typ: "clo", value: makeClosure(name, cloParams, cins), errCtx },
-        ...cins,
-      ];
+      const value = makeClosure(name, outerParams, cloParams, cins);
+      return [{ typ: "clo", value, errCtx }, ...cins];
     } else if (op === "->") {
       const newNodes = nodes.reduce((acc, node) => [node, acc]) as Node[];
       const parsed = parseForm(newNodes, params);
@@ -511,7 +510,7 @@ function parseForm(
   if (symAt([firstNode]) === "return") {
     return [...ins, { typ: "ret", value: !!len(args), errCtx }];
   } else if (len(head) === 1 && head[0].typ === "ref") {
-     //Transform potential external function into string
+    //Transform potential external function into string
     const { value: v, errCtx } = head[0];
     head[0] = { typ: "val", value: { t: "str", v }, errCtx };
   }

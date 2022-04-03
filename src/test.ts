@@ -323,13 +323,13 @@ const tests: {
   },
   {
     name: "Closure with captured f",
-    code: `[((fn x (@(val x))) 0) (var f val) ((fn x (@(f x))) 0)]`,
+    code: `[((fn x (@(val x))) 0) (var f val) ((fn y (@(f y))) 0)]`,
     out: `[0 val 0]`,
   },
   {
-    name: "future: Closure w/ inter-params",
-    code: `(function f x (fn y [x y])) ((f :a) :b)`,
-    out: `[:a :b]`,
+    name: "Closure w/ inter-params",
+    code: `(function f x (fn y (fn z [x y z]))) (((f :a) :b) :c)`,
+    out: `[:a :b :c]`,
   },
   {
     name: "Destructure var",
