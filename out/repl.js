@@ -4642,6 +4642,7 @@ const types_ops = {
     returns: ["num"]
   },
   repeat: { minArity: 2, params: ["any", "num"] },
+  times: { minArity: 2, params: ["num", "any"] },
   str: { returns: ["str"] },
   strn: { returns: ["str"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
@@ -6324,7 +6325,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220403;
+const insituxVersion = 220404;
 
 
 
@@ -6644,10 +6645,11 @@ function exeOp(op, args, ctx, errCtx) {
       }
       return reduction;
     }
-    case "repeat": {
-      const toRepeat = args.shift();
+    case "repeat":
+    case "times": {
+      const toRepeat = args[op === "repeat" ? 0 : 1];
       const result = [];
-      const count = num(args[0]);
+      const count = num(args[op === "repeat" ? 1 : 0]);
       if (count > ctx.rangeBudget) {
         _throw([{ e: "Budget", m: "would exceed range budget", errCtx }]);
       }

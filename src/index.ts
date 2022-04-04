@@ -1,4 +1,4 @@
-export const insituxVersion = 220403;
+export const insituxVersion = 220404;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -374,10 +374,11 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       return reduction;
     }
-    case "repeat": {
-      const toRepeat = args.shift()!;
+    case "repeat":
+    case "times": {
+      const toRepeat = args[op === "repeat" ? 0 : 1];
       const result: Val[] = [];
-      const count = num(args[0]);
+      const count = num(args[op === "repeat" ? 1 : 0]);
       if (count > ctx.rangeBudget) {
         _throw([{ e: "Budget", m: "would exceed range budget", errCtx }]);
       }
