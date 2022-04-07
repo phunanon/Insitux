@@ -222,6 +222,7 @@ etc
 (>>> 5 1)    → 2  ;Zero-fill
 
 ;Various arithmetic and test functions which take one argument only
+(neg 10)     → -10
 (inc 100)    → 101
 (dec 50)     → 49
 (abs -123)   → 123
@@ -292,6 +293,9 @@ etc
      " my app. "
      [:a :b "c"])
 → "Hello, world! Welcome 2 my app. [:a :b c]"
+
+;Same as str, but ignores null arguments
+(strn "Hello" null ", world!") → "Hello, world!"
 
 ;Returns a string parsed into a number, or null
 (to-num "123") → 123
@@ -474,6 +478,8 @@ etc
 ; or a value repeated N times
 (repeat 1 5)   → [1 1 1 1 1]
 (repeat val 5) → [0 1 2 3 4]
+(times 5 1)    → [1 1 1 1 1]
+(times 5 val)  → [0 1 2 3 4]
 
 ;"Thread" return values into the next function, seeded with first argument
 (-> "hello" 1 upper-case)     → "E"
@@ -490,6 +496,10 @@ etc
 
 ;Randomly rearranges a vector's items
 (shuffle (range 10)) → [7 1 0 3 4 2 6 5 8 9]
+
+;Returns a random distinct sample of a vector's items
+(sample 5 (range 10)) → [5 1 0 7 8]
+(-> 100 range (sample 50) distinct len) → 50
 
 ;Returns a vector of vector items or string characters sorted
 ;Note: will only sort all number or all string
@@ -566,6 +576,10 @@ etc
 ;Replaces all occurrences of a substring with another in a string
 (replace "l" "x" "hello") → "hexxo"
 (replace " " "" "yo yo")  → "yoyo"
+
+;Same as replace, but with regular expressions (platform dependent)
+(rreplace "[eo]" "x" "hello") → "hxllx"
+(rreplace "\d" "" "h1e2l3l4o") → "hello"
 
 ;Tests if a string starts with and ends with another string
 (starts? "He" "Hello") → true
@@ -957,7 +971,7 @@ vector item or string character is "destructured" into.
 
 ; Generate random strong password
 (-> #(map rand-int [97 65 48 33] [123 91 58 48])
-   #(repeat % 4)
+    (times 4)
     flatten
     shuffle
     (map char-code)
@@ -980,19 +994,22 @@ vector item or string character is "destructured" into.
 (palindrome? [2 1 2])     → true
 
 
-; Matrix addition
-(let A [[3  8] [4  6]]
+; Matrix addition, subtraction, transposition
+(var A [[3  8] [4  6]]
      B [[4  0] [1 -9]])
 
 (map (map +) A B)
 → [[7 8] [5 -3]]
 
-
-; Matrix negation
-(let M [[2 -4] [7 10]])
+(var M [[2 -4] [7 10]])
 
 (map (map -) M)
 → [[-2 4] [-7 -10]]
+
+(var M [[0 1 2] [3 4 5]])
+
+(@(.. map vec) M)
+→ [[0 3] [1 4] [2 5]]
 
 
 ; Clojure's juxt

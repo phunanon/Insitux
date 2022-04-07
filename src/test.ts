@@ -42,7 +42,7 @@ const tests: {
     out: `Hello, world!\nnull`,
   },
   { name: "1 + 1 = 2", code: `(+ 1 1)`, out: `2` },
-  { name: "Negate 1 = -1", code: `(- 1)`, out: `-1` },
+  { name: "Negate 1 = -1", code: `(neg 1)`, out: `-1` },
   { name: "(1+1)+1+(1+1) = 5", code: `(+ (+ 1 1) 1 (+ 1 1))`, out: `5` },
   { name: "Conditional head", code: `((if true + -) 12 9 1)`, out: `22` },
   {

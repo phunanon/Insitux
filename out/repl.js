@@ -4532,7 +4532,7 @@ const types_ops = {
   "=": { minArity: 2, returns: ["bool"] },
   "!=": { minArity: 2, returns: ["bool"] },
   "+": { minArity: 2, numeric: true },
-  "-": { minArity: 1, numeric: true },
+  "-": { minArity: 2, numeric: true },
   "*": { minArity: 2, numeric: true },
   "/": { minArity: 2, numeric: true },
   "//": { minArity: 2, numeric: true },
@@ -4552,6 +4552,7 @@ const types_ops = {
   "fast>": { exactArity: 2, numeric: true },
   "fast<=": { exactArity: 2, numeric: true },
   "fast>=": { exactArity: 2, numeric: true },
+  neg: { exactArity: 1, numeric: true },
   inc: { exactArity: 1, numeric: true },
   dec: { exactArity: 1, numeric: true },
   min: { minArity: 2, numeric: true },
@@ -5721,7 +5722,7 @@ const tests = [
 null`
   },
   { name: "1 + 1 = 2", code: `(+ 1 1)`, out: `2` },
-  { name: "Negate 1 = -1", code: `(- 1)`, out: `-1` },
+  { name: "Negate 1 = -1", code: `(neg 1)`, out: `-1` },
   { name: "(1+1)+1+(1+1) = 5", code: `(+ (+ 1 1) 1 (+ 1 1))`, out: `5` },
   { name: "Conditional head", code: `((if true + -) 12 9 1)`, out: `22` },
   {
@@ -6325,7 +6326,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220404;
+const insituxVersion = 220407;
 
 
 
@@ -6392,7 +6393,7 @@ function exeOp(op, args, ctx, errCtx) {
       }
       return _boo(true);
     case "-":
-      return _num(src_len(args) === 1 ? -num(args[0]) : args.map(num).reduce((sum, n) => sum - n));
+      return _num(args.map(num).reduce((sum, n) => sum - n));
     case "**":
       return _num(num(args[0]) ** (src_len(args) === 1 ? 2 : num(args[1])));
     case "+":
@@ -6424,6 +6425,8 @@ function exeOp(op, args, ctx, errCtx) {
       return _boo(args[0].v <= args[1].v);
     case "fast>=":
       return _boo(args[0].v >= args[1].v);
+    case "neg":
+      return _num(-num(args[0]));
     case "rem":
       return _num(args.map(num).reduce((sum, n) => sum % n));
     case "min":

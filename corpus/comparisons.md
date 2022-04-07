@@ -47,10 +47,11 @@ totalState(healthItems);
 
 Insitux
 ```clj
-(-> (fn a b (repeat #(char-code (rand-int a b)) 4))
-   #(map % [97 65 48 33] [123 91 58 48])
+(-> #(map rand-int [97 65 48 33] [123 91 58 48])
+    (times 4)
     flatten
     shuffle
+    (map char-code)
     (.. str))
 ```
 Python
@@ -61,6 +62,17 @@ parts = map(randChars, [97, 65, 48, 33], [123, 91, 58, 48])
 combined = sum(parts, [])
 shuffle(combined)
 "".join(combined)
+```
+or
+```py
+from random import randint, shuffle
+charRanges = [[97, 123], [65, 91], [48, 58], [33, 48]]
+string = []
+for start, stop in charRanges:
+    for _ in range(4):
+        string.append(chr(randint(start, stop)))
+shuffle(string)
+print("".join(string))
 ```
 
 Insitux

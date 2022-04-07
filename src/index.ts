@@ -1,4 +1,4 @@
-export const insituxVersion = 220404;
+export const insituxVersion = 220407;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -76,11 +76,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       return _boo(true);
     case "-":
-      return _num(
-        len(args) === 1
-          ? -num(args[0])
-          : args.map(num).reduce((sum, n) => sum - n),
-      );
+      return _num(args.map(num).reduce((sum, n) => sum - n));
     case "**":
       return _num(num(args[0]) ** (len(args) === 1 ? 2 : num(args[1])));
     case "+":
@@ -112,6 +108,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _boo(<number>args[0].v <= <number>args[1].v);
     case "fast>=":
       return _boo(<number>args[0].v >= <number>args[1].v);
+    case "neg":
+      return _num(-num(args[0]));
     case "rem":
       return _num(args.map(num).reduce((sum, n) => sum % n));
     case "min":
