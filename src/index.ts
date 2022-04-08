@@ -1,4 +1,4 @@
-export const insituxVersion = 220407;
+export const insituxVersion = 220408;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -12,7 +12,13 @@ const { trim, trimStart, trimEnd, strIdx, replace, rreplace } = pf;
 const { charCode, codeChar, getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum, isArray } = pf;
 import { doTests } from "./test";
-import { assertUnreachable, Env, InvokeError, InvokeResult } from "./types";
+import {
+  assertUnreachable,
+  Closure,
+  Env,
+  InvokeError,
+  InvokeResult,
+} from "./types";
 import { ExternalFunctions, syntaxes } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
@@ -247,6 +253,45 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "set-at": {
       const [pathVal, replacement, coll] = args;
       return pathSet(vec(pathVal), replacement, coll);
+    }
+    case "juxt": {
+      const makeArg = (value: Val): Ins[] => [
+        { typ: "val", value, errCtx },
+        { typ: "upa", value: -1, text: "args", errCtx },
+        { typ: "val", value: _fun("..."), errCtx },
+        { typ: "exe", value: 2, errCtx },
+      ];
+      const ins: Ins[] = [
+        ...flat(args.map(makeArg)),
+        { typ: "val", value: _fun("vec"), errCtx },
+        { typ: "exe", value: len(args), errCtx },
+      ];
+      return {
+        t: "clo",
+        v: <Func>{
+          name: `(juxt ${args.map(val2str).join(" ")})`,
+          ins,
+        },
+      };
+    }
+    case "pos-juxt": {
+      const makeArg = (value: Val, n: number): Ins[] => [
+        { typ: "dpa", value: [0, n], errCtx },
+        { typ: "val", value, errCtx },
+        { typ: "exe", value: 1, errCtx },
+      ];
+      const ins: Ins[] = [
+        ...flat(args.map(makeArg)),
+        { typ: "val", value: _fun("vec"), errCtx },
+        { typ: "exe", value: len(args), errCtx },
+      ];
+      return {
+        t: "clo",
+        v: <Func>{
+          name: `(pos-juxt ${args.map(val2str).join(" ")})`,
+          ins,
+        },
+      };
     }
     case "map":
     case "for":

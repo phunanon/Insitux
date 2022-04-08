@@ -622,6 +622,17 @@ etc
 (set-at [5 0] 1 [0 1 2])        → [0 1 2]
 (set-at [0 0] 1 [:a])           → [:a]
 
+;Takes functions and returns a function that returns a vector of the result of
+;  applying each function to those arguments
+;E.g. (juxt + -) is equivalent to #[(... + args) (... - args)]
+((juxt + - * /) 10 8) → [18 2 80 1.25]
+
+;Takes functions and returns a function that takes a vector and returns a vector
+;  of the result of applying each function positionally to the vector items
+;E.g. (pos-juxt inc dec) is equivalent to #[(inc (0 %)) (dec (1 %))]
+((pos-juxt inc dec (+ 10)) [1 1 1]) → [2 0 11]
+((pos-juxt inc dec) [0 1 2])        → [1 0]
+
 ;Treats its arguments as an expression, first argument as the expression head
 (. + 2 2) → 4
 (map @(.) [+ -] [10 12] [13 6])
@@ -1012,19 +1023,10 @@ vector item or string character is "destructured" into.
 → [[0 3] [1 4] [2 5]]
 
 
-; Clojure's juxt
-(function juxt
-  (let funcs args)
-  #(for ... funcs [args]))
-
-((juxt + - * /) 10 8)
-→ [18 2 80 1.25]
-
-
 ; Clojure's comp
 (function comp f
   (let funcs (sect args))
-  #(do (let 1st (.. f args))
+  #(do (let 1st (... f args))
        (reduce #(%1 %) 1st funcs)))
 
 (map (comp + inc) [0 1 2 3 4] [0 1 2 3 4])
@@ -1033,7 +1035,7 @@ vector item or string character is "destructured" into.
 
 ; Time a function call
 (function measure
-  (let [start result end] [(time) (.. . args) (time)])
+  (let [start result end] [(time) (... . args) (time)])
   (str result " took " (- end start) "ms"))
 
 (measure fib 35)
@@ -1114,3 +1116,13 @@ vector item or string character is "destructured" into.
     (map @(round 2)))
 → [0.23 0.41 0.63 0.64 0.57]
 ```
+
+
+**Known bugs I put here to make sure I can't lose them,**  
+**and to shame myself that they still exist.**
+⚠️ (= {:a 1 :b 2} {:b 2 :a 1}) -> false  
+⚠️ don't capture #(var x x) - write test for it  
+⚠️ (prompt) breaking on the web REPL  
+⚠️ (loop 3 i (print (+ 1 i)))  
+⚠️ ((< 1 2) :a) type-errors
+⚠️ syntax highlighter omits commas

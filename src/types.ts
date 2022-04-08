@@ -214,6 +214,8 @@ export const ops: {
     params: ["vec", "any", ["vec", "dict"]],
     returns: ["vec", "dict"],
   },
+  juxt: { returns: ["clo"] },
+  "pos-juxt": { returns: ["clo"] },
   map: { minArity: 2, returns: ["vec"] },
   for: { minArity: 2, returns: ["vec"] },
   reduce: { minArity: 2, maxArity: 3 },

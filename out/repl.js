@@ -4622,6 +4622,8 @@ const types_ops = {
     params: ["vec", "any", ["vec", "dict"]],
     returns: ["vec", "dict"]
   },
+  juxt: { returns: ["clo"] },
+  "pos-juxt": { returns: ["clo"] },
   map: { minArity: 2, returns: ["vec"] },
   for: { minArity: 2, returns: ["vec"] },
   reduce: { minArity: 2, maxArity: 3 },
@@ -6326,7 +6328,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220407;
+const insituxVersion = 220408;
 
 
 
@@ -6544,6 +6546,45 @@ function exeOp(op, args, ctx, errCtx) {
     case "set-at": {
       const [pathVal, replacement, coll] = args;
       return pathSet(vec(pathVal), replacement, coll);
+    }
+    case "juxt": {
+      const makeArg = (value) => [
+        { typ: "val", value, errCtx },
+        { typ: "upa", value: -1, text: "args", errCtx },
+        { typ: "val", value: _fun("..."), errCtx },
+        { typ: "exe", value: 2, errCtx }
+      ];
+      const ins = [
+        ...src_flat(args.map(makeArg)),
+        { typ: "val", value: _fun("vec"), errCtx },
+        { typ: "exe", value: src_len(args), errCtx }
+      ];
+      return {
+        t: "clo",
+        v: {
+          name: `(juxt ${args.map(val2str).join(" ")})`,
+          ins
+        }
+      };
+    }
+    case "pos-juxt": {
+      const makeArg = (value, n) => [
+        { typ: "dpa", value: [0, n], errCtx },
+        { typ: "val", value, errCtx },
+        { typ: "exe", value: 1, errCtx }
+      ];
+      const ins = [
+        ...src_flat(args.map(makeArg)),
+        { typ: "val", value: _fun("vec"), errCtx },
+        { typ: "exe", value: src_len(args), errCtx }
+      ];
+      return {
+        t: "clo",
+        v: {
+          name: `(pos-juxt ${args.map(val2str).join(" ")})`,
+          ins
+        }
+      };
     }
     case "map":
     case "for":
