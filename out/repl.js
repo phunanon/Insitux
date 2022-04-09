@@ -6328,7 +6328,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220408;
+const insituxVersion = 220409;
 
 
 
@@ -6482,8 +6482,10 @@ function exeOp(op, args, ctx, errCtx) {
     }
     case "and":
       return _boo(args.every(asBoo));
-    case "or":
-      return _boo(args.some(asBoo));
+    case "or": {
+      const i = args.findIndex(asBoo);
+      return i === -1 ? _nul() : args[i];
+    }
     case "xor":
       if (asBoo(args[0]) !== asBoo(args[1])) {
         return asBoo(args[0]) ? args[0] : args[1];
@@ -6525,17 +6527,19 @@ function exeOp(op, args, ctx, errCtx) {
     case "type-of":
       return _str(args[0].t);
     case "substr?":
+      if (!src_slen(str(args[0])))
+        return _boo(false);
       return _boo(src_sub(str(args[1]), str(args[0])));
     case "idx": {
       let i = -1;
-      if (args[0].t === "str") {
-        if (args[1].t !== "str") {
+      if (args[1].t === "str") {
+        if (args[0].t !== "str") {
           throwTypeErr("strings can only contain strings", errCtx);
         } else {
-          i = src_subIdx(args[1].v, args[0].v);
+          i = src_subIdx(args[0].v, args[1].v);
         }
-      } else if (args[0].t === "vec") {
-        i = args[0].v.findIndex((a2) => isEqual(a2, args[1]));
+      } else if (args[1].t === "vec") {
+        i = args[1].v.findIndex((a2) => isEqual(a2, args[0]));
       }
       if (i === -1) {
         return _nul();

@@ -1,4 +1,4 @@
-export const insituxVersion = 220408;
+export const insituxVersion = 220409;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -174,8 +174,10 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     }
     case "and":
       return _boo(args.every(asBoo));
-    case "or":
-      return _boo(args.some(asBoo));
+    case "or": {
+      const i = args.findIndex(asBoo);
+      return i === -1 ? _nul() : args[i];
+    }
     case "xor":
       if (asBoo(args[0]) !== asBoo(args[1])) {
         return asBoo(args[0]) ? args[0] : args[1];
@@ -232,17 +234,19 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "type-of":
       return _str(args[0].t);
     case "substr?":
+      if (!slen(str(args[0])))
+        return _boo(false);
       return _boo(sub(str(args[1]), str(args[0])));
     case "idx": {
       let i = -1;
-      if (args[0].t === "str") {
-        if (args[1].t !== "str") {
+      if (args[1].t === "str") {
+        if (args[0].t !== "str") {
           throwTypeErr("strings can only contain strings", errCtx);
         } else {
-          i = subIdx(args[1].v, args[0].v);
+          i = subIdx(args[0].v, args[1].v);
         }
-      } else if (args[0].t === "vec") {
-        i = args[0].v.findIndex(a => isEqual(a, args[1]));
+      } else if (args[1].t === "vec") {
+        i = args[1].v.findIndex(a => isEqual(a, args[0]));
       }
       if (i === -1) {
         return _nul();
