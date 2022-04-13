@@ -1144,4 +1144,3 @@ vector item or string character is "destructured" into.
 ⚠️ (loop 3 i (print (+ 1 i)))  
 ⚠️ ((< 1 2) :a) type-errors
 ⚠️ syntax highlighter omits commas
-⚠️ (#) and (@) crash

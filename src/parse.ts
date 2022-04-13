@@ -677,11 +677,16 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   //Check for any empty expressions
   let emptyHead: Token | undefined;
   for (let t = 0, lastWasL = false; t < len(tokens); ++t) {
-    if (lastWasL && tokens[t].typ === ")") {
-      emptyHead = tokens[t];
+    const token = tokens[t];
+    //To catch (#) and (@)
+    if (token.typ === "sym" && token.text === "#" || token.text === "@") {
+      continue;
+    }
+    if (lastWasL && token.typ === ")") {
+      emptyHead = token;
       break;
     }
-    lastWasL = tokens[t].typ === "(";
+    lastWasL = token.typ === "(";
   }
   if (emptyHead) {
     err("empty expression forbidden", emptyHead.errCtx);

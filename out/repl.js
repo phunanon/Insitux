@@ -5553,11 +5553,15 @@ function tokenErrorDetect(stringError, tokens) {
   }
   let emptyHead;
   for (let t = 0, lastWasL = false; t < parse_len(tokens); ++t) {
-    if (lastWasL && tokens[t].typ === ")") {
-      emptyHead = tokens[t];
+    const token = tokens[t];
+    if (token.typ === "sym" && token.text === "#" || token.text === "@") {
+      continue;
+    }
+    if (lastWasL && token.typ === ")") {
+      emptyHead = token;
       break;
     }
-    lastWasL = tokens[t].typ === "(";
+    lastWasL = token.typ === "(";
   }
   if (emptyHead) {
     err("empty expression forbidden", emptyHead.errCtx);
@@ -6333,7 +6337,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220413;
+const insituxVersion = 220414;
 
 
 
@@ -7124,7 +7128,7 @@ function getExe(ctx, op, errCtx, checkArity = true) {
         };
       }
       return (params) => {
-        const violations = checks(name, params, errCtx, checkArity);
+        const violations = checks(name, params, errCtx, true);
         if (violations) {
           _throw(violations);
         }
