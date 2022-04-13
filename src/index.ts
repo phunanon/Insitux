@@ -1,4 +1,4 @@
-export const insituxVersion = 220409;
+export const insituxVersion = 220413;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -12,13 +12,7 @@ const { trim, trimStart, trimEnd, strIdx, replace, rreplace } = pf;
 const { charCode, codeChar, getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum, isArray } = pf;
 import { doTests } from "./test";
-import {
-  assertUnreachable,
-  Closure,
-  Env,
-  InvokeError,
-  InvokeResult,
-} from "./types";
+import { assertUnreachable, Env, InvokeError, InvokeResult } from "./types";
 import { ExternalFunctions, syntaxes } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
@@ -234,9 +228,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "type-of":
       return _str(args[0].t);
     case "substr?":
-      if (!slen(str(args[0])))
-        return _boo(false);
-      return _boo(sub(str(args[1]), str(args[0])));
+      return _boo(!!slen(str(args[0])) && sub(str(args[1]), str(args[0])));
     case "idx": {
       let i = -1;
       if (args[1].t === "str") {
@@ -489,6 +481,10 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     }
     case "omit":
       return dictDrop(dic(args[1]), args[0]);
+    case "drop": {
+      const [n, v] = [num(args[0]), vec(args[1])];
+      return _vec(concat(slice(v, 0, n), slice(v, n + 1)));
+    }
     case "assoc":
       return _dic(dictSet(dic(args[2]), args[0], args[1]));
     case "append":

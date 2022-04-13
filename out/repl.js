@@ -4671,6 +4671,11 @@ const types_ops = {
     params: ["any", "dict"],
     returns: ["dict"]
   },
+  drop: {
+    exactArity: 2,
+    params: ["num", "vec"],
+    returns: ["vec"]
+  },
   insert: {
     exactArity: 3,
     params: ["any", "num", "vec"],
@@ -6328,7 +6333,7 @@ function pathSet(path, replacement, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220409;
+const insituxVersion = 220413;
 
 
 
@@ -6527,9 +6532,7 @@ function exeOp(op, args, ctx, errCtx) {
     case "type-of":
       return _str(args[0].t);
     case "substr?":
-      if (!src_slen(str(args[0])))
-        return _boo(false);
-      return _boo(src_sub(str(args[1]), str(args[0])));
+      return _boo(!!src_slen(str(args[0])) && src_sub(str(args[1]), str(args[0])));
     case "idx": {
       let i = -1;
       if (args[1].t === "str") {
@@ -6757,6 +6760,10 @@ function exeOp(op, args, ctx, errCtx) {
     }
     case "omit":
       return dictDrop(dic(args[1]), args[0]);
+    case "drop": {
+      const [n, v] = [num(args[0]), vec(args[1])];
+      return _vec(src_concat(src_slice(v, 0, n), src_slice(v, n + 1)));
+    }
     case "assoc":
       return _dic(dictSet(dic(args[2]), args[0], args[1]));
     case "append":

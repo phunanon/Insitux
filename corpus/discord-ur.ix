@@ -1,0 +1,176 @@
+;https://insitux.repl.co/
+;https://insitux.github.io/
+;https://royalur.net/rules/
+;https://royalur.net/dice/
+
+(var cmds "1234567ABCDEFG")
+
+(function roll
+  (times 4 #(rand-int)))
+
+(function new-positions
+  (-> (times 14 false) (times 2)))
+
+(function new-game
+  (var positions (new-positions)
+       dice      (roll)
+       turn      0
+       off-board []))
+
+(unless ((symbols) "positions")
+  (new-game))
+
+
+(function no-dice?
+  (zero? (.. + dice)))
+
+(function player-name
+  (str "Player " ({0 "ONE" 1 "TWO"} turn)))
+
+(function next-turn
+  (var turn (abs (dec turn))))
+
+(function ▢s list
+  (map #(or % "███") list))
+
+(function ▩ list n
+  (let where (or n 0))
+  (set-at [where] (or (where list) "░░░") list))
+
+(function spaced text
+  (map #(if (substr? % cmds) (str " " % " ") %)  text))
+
+(function stone-indicator stone
+  (match stone
+    (off-board stone) "✅"
+    ((flatten positions) stone) "🤞"
+    (str stone " ")))
+
+(function render-board another-turn?
+  (let segment (juxt (first 4) (crop 4 2) (last 2))
+       reverses (pos-juxt reverse val reverse)
+       prepare #(reverses (segment %))
+       ;Slice and orient the player's positions for rendering
+       [[a1 a2 a3] [b1 b2 b3]] (map prepare positions)
+       ;Replace blank spaces with the correct tiles
+       middle (spaced (▢s (▩ (map or a2 b2) 3)))
+       [a1 a3 b1 b3] (-> [a1 a3 b1 b3] (map ▩) (map ▢s) (map spaced))
+       ;Build the stones string, showing what stones can be used
+       stones [(split "" "1234567") (split "" "ABCDEFG")]
+       stones (map (map stone-indicator) stones)
+       ;Build the dice string
+       dice-str (map {0 "⚪" 1 "⚫"} dice))
+  (.. .. str
+    (player-name) "'s turn"
+    (if another-turn? " again! 👀" ".") "\n"
+    a1 "      " a3 " " (0 stones) "\n"
+    middle "  " dice-str "\n"
+    b1 "      " b3 " " (1 stones)))
+
+
+(function move player which by
+  ;Calculate old position, new position, and if stones are already there
+  (let other-p  (abs (dec player))
+       old-pos  (idx which (player positions))
+       new-pos  (+ (or old-pos -1) by)
+       at-new   (-> positions player new-pos)
+       at-other (-> positions other-p new-pos))
+
+  ;Can't move onto own stone
+  (when at-new (return :illegal))
+
+  ;Can only move off board with exact move
+  (if (< 14 new-pos) (return :next))
+
+  ;Remove stone from old position
+  (var! positions (set-at [player old-pos] false))
+
+  ;Move off board with exact move
+  (when (= new-pos 14)
+    (var! off-board (append which))
+    (return :next))
+
+  ;Knock off other stone if necessary
+  (when (and (< 3 new-pos 12) at-other)
+    (if (= new-pos 7) (return :illegal))
+    (print (-> positions other-p new-pos) " knocked off by " which " 😮")
+    (var! positions (set-at [other-p new-pos] false)))
+
+  ;Place stone in new position
+  (var! positions (set-at [player new-pos] which))
+
+  ;Let player have another turn if on a rosette tile
+  (if ([3 7 13] new-pos) :again :next))
+
+
+(function handler input
+
+  (when (= input "help")
+    (return "
+The Royal Game of Ur
+
+↓←←←  ←←
+→→→→→→→⇅
+↑←←←  ←←
+
+Stones move around the board.
+Player one starts at the top, playing numbers.
+Player two starts at the bottom, playing letters.
+You can remove your opponent's stones by landing on them.
+Removed stones must start from the beginning.
+If you land on ░░░ you get another turn.
+A stone on the central ░░░ cannot be knocked off.
+You must finally leave the board with exactly the correct move.
+First person to have all their stones leave the board wins!
+
+Learn more about the game at:
+ https://royalur.net
+There's even a Tom Scott video:
+ https://www.youtube.com/watch?v=WZskjLq040I
+Make your own Insitux Discord app:
+ https://insitux.repl.co/
+Learn more about Insitux:
+ https://discord.gg/w3Fc4YZ9Qw
+See the source code for this app:
+ https://gist.github.com/phunanon/1e0b75f9619f67c4a9d91e8593bb5016"))
+
+  (when (= input "new")
+    (new-game)
+    (print (render-board))
+    (return ""))
+
+  (let cmd (upper-case input))
+
+  (unless ((split "" cmds) cmd)
+    (print (render-board))
+    (return (str "Commands: \"help\" \"new\" or " cmds)))
+
+  ;Don't allow move with used stone
+  (when (off-board cmd)
+    (print "That stone is no longer on the board.")
+    (return (render-board)))
+
+  (let move-by   (.. + dice)
+       is-p0     (substr? cmd "1234567")
+       prev-turn turn)
+
+  (when (!= is-p0 (= turn 0))
+    (return (render-board)))
+
+  (let result (move (is-p0 0 1) cmd move-by))
+
+  (when (= result :illegal)
+    (print "A stone was already there!"))
+
+  ;Roll dice for next player
+  (var dice (roll))
+  (when (!= result :again)
+    (next-turn))
+
+  ;Keep rolling until non-zero
+  (while (no-dice?)
+    (print (player-name) " rolled zero! ⚪")
+    (var dice (roll))
+    (next-turn))
+
+  (render-board (= turn prev-turn)))

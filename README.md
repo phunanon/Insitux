@@ -418,8 +418,11 @@ etc
 (into [1 2 3] [4 5 6])          → [1 2 3 4 5 6]
 
 ;Removes key from a dictionary
-(omit :a {:a 1 :b 2}) → {:b 2}
+(omit :a {:a 1 :b 2})   → {:b 2}
 (omit [1] {[1] 1 :b 2}) → {:b 2}
+
+;Removes value with index from a vector
+(drop 1 [:a :b :c]) → [:a :c]
 
 ;Associates a value to a key in a dictionary
 (assoc :a 2 {:a 1 :b 2}) → {:a 2, :b 2}
@@ -939,6 +942,16 @@ vector item or string character is "destructured" into.
 
 (fib 13) → 233
 
+; and iterative
+
+(function fib n
+  (when (zero? n) (return 0))
+  (let a 1 b 0)
+  (loop n i
+    (let t (+ a b) a b b t)))
+
+(fib 35) → 9227465
+
 
 ; FizzBuzz with match syntax
 (function fizzbuzz n
@@ -1042,6 +1055,11 @@ vector item or string character is "destructured" into.
 → "9227465 took 22914ms"
 
 
+;Insitux quine
+(#(join(char-code 34)[% %(char-code 41)])"(#(join(char-code 34)[% %(char-code 41)])")
+→ (#(join(char-code 34)[% %(char-code 41)])"(#(join(char-code 34)[% %(char-code 41)])")
+
+
 ; Display the Mandelbrot fractal as ASCII
 (function mandelbrot width height depth
   (.. str (for #(do
@@ -1126,3 +1144,4 @@ vector item or string character is "destructured" into.
 ⚠️ (loop 3 i (print (+ 1 i)))  
 ⚠️ ((< 1 2) :a) type-errors
 ⚠️ syntax highlighter omits commas
+⚠️ (#) and (@) crash

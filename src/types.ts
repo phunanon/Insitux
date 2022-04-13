@@ -263,6 +263,11 @@ export const ops: {
     params: ["any", "dict"],
     returns: ["dict"],
   },
+  drop: {
+    exactArity: 2,
+    params: ["num", "vec"],
+    returns: ["vec"],
+  },
   insert: {
     exactArity: 3,
     params: ["any", "num", "vec"],
