@@ -258,13 +258,19 @@ etc
 ;Note: fast= fast!= fast< fast> fast<= fast>= are also available for two
 ;  arguments only
 (= 10 10)     → true
-(= 11 11)     → false
-(!= 1 2 4 3)  → false
+(= :a :b)     → false
+(!= 1 2 4 3)  → true
 (!= 1 1 2)    → false
 (< 1 2 3)     → true
 (> 10 5)      → true
 (<= 10 10 15) → true
 (>= 10 11 11) → false
+
+;Compares two strings for their character order
+(str< "a" "b" "c")  → true
+(str> "aa" "ab")    → false
+(str<= "a" "a" "b") → true
+(str>= "A" "b")     → false
 
 ;Negates boolean value
 (! true)  → false
@@ -612,9 +618,9 @@ etc
 (substr? "x" "abcd")   → false
 
 ;Returns index of an item or sub-string in a vector or string, or null
-(idx 3 [1 2 3 4])    → 2
-(idx 5 [1 2 3 4])    → null
-(idx "ll" "Hello")   → 2
+(idx 3 [1 2 3 4])  → 2
+(idx 5 [1 2 3 4])  → null
+(idx "ll" "Hello") → 2
 
 ;Returns vector or dictionary with specified index or key/value set or replaced
 ;  with another value

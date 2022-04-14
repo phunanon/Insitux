@@ -4541,6 +4541,10 @@ const types_ops = {
   ">": { minArity: 2, numeric: true },
   "<=": { minArity: 2, numeric: true },
   ">=": { minArity: 2, numeric: true },
+  "str<": { minArity: 2, returns: ["bool"] },
+  "str>": { minArity: 2, returns: ["bool"] },
+  "str<=": { minArity: 2, returns: ["bool"] },
+  "str>=": { minArity: 2, returns: ["bool"] },
   "fast=": { exactArity: 2 },
   "fast!=": { exactArity: 2 },
   "fast+": { exactArity: 2, numeric: true },
@@ -6451,6 +6455,20 @@ function exeOp(op, args, ctx, errCtx) {
       for (let i = 1, lim = src_len(args); i < lim; ++i) {
         const [a2, b2] = [args[i - 1].v, args[i].v];
         if (op === "<" && a2 >= b2 || op === ">" && a2 <= b2 || op === "<=" && a2 > b2 || op === ">=" && a2 < b2) {
+          return _boo(false);
+        }
+      }
+      return _boo(true);
+    case "str<":
+    case "str>":
+    case "str<=":
+    case "str>=":
+      if (args.some(({ t }) => t !== "str")) {
+        throwTypeErr("can only compare all string", errCtx);
+      }
+      for (let i = 1, lim = src_len(args); i < lim; ++i) {
+        const [a2, b2] = [args[i - 1].v, args[i].v];
+        if (op === "str<" && a2 >= b2 || op === "str>" && a2 <= b2 || op === "str<=" && a2 > b2 || op === "str>=" && a2 < b2) {
           return _boo(false);
         }
       }

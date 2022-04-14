@@ -132,6 +132,25 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         }
       }
       return _boo(true);
+    case "str<":
+    case "str>":
+    case "str<=":
+    case "str>=":
+      if (args.some(({ t }) => t !== "str")) {
+        throwTypeErr("can only compare all string", errCtx);
+      }
+      for (let i = 1, lim = len(args); i < lim; ++i) {
+        const [a, b] = [<string>args[i - 1].v, <string>args[i].v];
+        if (
+          (op === "str<" && a >= b) ||
+          (op === "str>" && a <= b) ||
+          (op === "str<=" && a > b) ||
+          (op === "str>=" && a < b)
+        ) {
+          return _boo(false);
+        }
+      }
+      return _boo(true);
     case "inc":
       return _num(<number>args[0].v + 1);
     case "dec":
