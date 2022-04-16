@@ -4537,25 +4537,25 @@ const types_ops = {
   "/": { minArity: 2, numeric: true },
   "//": { minArity: 2, numeric: true },
   "**": { minArity: 1, maxArity: 2, numeric: true },
-  "<": { minArity: 2, numeric: true },
-  ">": { minArity: 2, numeric: true },
-  "<=": { minArity: 2, numeric: true },
-  ">=": { minArity: 2, numeric: true },
+  "<": { minArity: 2, numeric: "in only", returns: ["bool"] },
+  ">": { minArity: 2, numeric: "in only", returns: ["bool"] },
+  "<=": { minArity: 2, numeric: "in only", returns: ["bool"] },
+  ">=": { minArity: 2, numeric: "in only", returns: ["bool"] },
   "str<": { minArity: 2, returns: ["bool"] },
   "str>": { minArity: 2, returns: ["bool"] },
   "str<=": { minArity: 2, returns: ["bool"] },
   "str>=": { minArity: 2, returns: ["bool"] },
-  "fast=": { exactArity: 2 },
-  "fast!=": { exactArity: 2 },
+  "fast=": { exactArity: 2, returns: ["bool"] },
+  "fast!=": { exactArity: 2, returns: ["bool"] },
   "fast+": { exactArity: 2, numeric: true },
   "fast-": { exactArity: 2, numeric: true },
   "fast*": { exactArity: 2, numeric: true },
   "fast/": { exactArity: 2, numeric: true },
   "fast//": { exactArity: 2, numeric: true },
-  "fast<": { exactArity: 2, numeric: true },
-  "fast>": { exactArity: 2, numeric: true },
-  "fast<=": { exactArity: 2, numeric: true },
-  "fast>=": { exactArity: 2, numeric: true },
+  "fast<": { exactArity: 2, numeric: "in only", returns: ["bool"] },
+  "fast>": { exactArity: 2, numeric: "in only", returns: ["bool"] },
+  "fast<=": { exactArity: 2, numeric: "in only", returns: ["bool"] },
+  "fast>=": { exactArity: 2, numeric: "in only", returns: ["bool"] },
   neg: { exactArity: 1, numeric: true },
   inc: { exactArity: 1, numeric: true },
   dec: { exactArity: 1, numeric: true },
@@ -4622,6 +4622,11 @@ const types_ops = {
     returns: ["num"]
   },
   "set-at": {
+    exactArity: 3,
+    params: ["vec", "any", ["vec", "dict"]],
+    returns: ["vec", "dict"]
+  },
+  "update-at": {
     exactArity: 3,
     params: ["vec", "any", ["vec", "dict"]],
     returns: ["vec", "dict"]
@@ -5139,12 +5144,16 @@ function collectFuncs(nodes) {
   nodes.forEach((node) => {
     if (!isToken(node) && isToken(node[0]) && symAt(node) === "function") {
       const name = symAt(node, 1);
+      const errCtx = node[0].errCtx;
       if (!name) {
-        funcs.push({ err: "nameless function", errCtx: node[0].errCtx });
+        funcs.push({ err: "nameless function", errCtx });
       } else if (parse_len(node) < 3) {
-        funcs.push({ err: "empty function body", errCtx: node[0].errCtx });
+        funcs.push({ err: "empty function body", errCtx });
+      } else if (types_ops[name]) {
+        funcs.push({ err: "redeclaration of built-in operation", errCtx });
+      } else {
+        funcs.push({ name, nodes: parse_slice(node, 2) });
       }
-      funcs.push({ name, nodes: parse_slice(node, 2) });
     } else {
       entries.push(node);
     }
@@ -6317,7 +6326,7 @@ function errorsToDict(errors) {
     return { t: "dict", v: dict };
   });
 }
-function pathSet(path, replacement, coll) {
+function pathSet(path, replacer, coll) {
   if (!len(path) || coll.t !== "vec" && coll.t !== "dict" || coll.t === "vec" && (path[0].t !== "num" || path[0].v < 0 || path[0].v > len(coll.v))) {
     return coll;
   }
@@ -6325,23 +6334,24 @@ function pathSet(path, replacement, coll) {
     const vecCopy = slice(coll.v);
     const idx = num(path[0]);
     if (len(path) === 1) {
-      vecCopy[idx] = replacement;
+      vecCopy[idx] = replacer(vecCopy[idx]);
       return { t: "vec", v: vecCopy };
     }
-    vecCopy[idx] = pathSet(slice(path, 1), replacement, vecCopy[idx]);
+    vecCopy[idx] = pathSet(slice(path, 1), replacer, vecCopy[idx]);
     return { t: "vec", v: vecCopy };
   }
   if (len(path) === 1) {
-    return { t: "dict", v: dictSet(coll.v, path[0], replacement) };
+    const existing = dictGet(coll.v, path[0]);
+    return { t: "dict", v: dictSet(coll.v, path[0], replacer(existing)) };
   }
   return {
     t: "dict",
-    v: dictSet(coll.v, path[0], pathSet(slice(path, 1), replacement, dictGet(coll.v, path[0])))
+    v: dictSet(coll.v, path[0], pathSet(slice(path, 1), replacer, dictGet(coll.v, path[0])))
   };
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220414;
+const insituxVersion = 220416;
 
 
 
@@ -6574,7 +6584,12 @@ function exeOp(op, args, ctx, errCtx) {
     }
     case "set-at": {
       const [pathVal, replacement, coll] = args;
-      return pathSet(vec(pathVal), replacement, coll);
+      return pathSet(vec(pathVal), (_) => replacement, coll);
+    }
+    case "update-at": {
+      const [pathVal, replacer, coll] = args;
+      const closure = getExe(ctx, replacer, errCtx);
+      return pathSet(vec(pathVal), (v) => closure([v]), coll);
     }
     case "juxt": {
       const makeArg = (value) => [
@@ -7055,7 +7070,7 @@ function exeOp(op, args, ctx, errCtx) {
     case "tests":
       return _str(doTests(invoke, !(src_len(args) && asBoo(args[0]))).join("\n"));
     case "symbols":
-      return _vec(symbols(ctx.env, false).map(_str));
+      return _vec(symbols(ctx.env, false).map((s) => (types_ops[s] ? _fun : _str)(s)));
     case "eval": {
       delete ctx.env.funcs["entry"];
       const invokeId = `${errCtx.invokeId} eval`;

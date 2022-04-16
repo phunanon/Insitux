@@ -28,6 +28,7 @@ Inspired by [Chika](https://github.com/phunanon/Chika),
 
 - [**Main Github repository**](https://github.com/phunanon/Insitux)
 - [**Roblox-ts NPM package**](https://www.npmjs.com/package/@rbxts/insitux) and its [Github repository](https://github.com/insitux/rbxts-Insitux)
+- [YouTube tutorials and demonstrations playlist](https://www.youtube.com/watch?v=iKOuzXhs14A&list=PLOKSmPXGYmewQI3dNBubTNljRD2C4Dg0z)
 
 Works in Node, the web, and Roblox.
 
@@ -61,6 +62,15 @@ $ code --install-extension insitux.insitux-syntax
 (import "username/some-dep")
 (import "alias")
 (import "file.ix")
+
+;Read, read the lines of, write, and append to a file at a specified path
+(read "path/to/file")
+(read-lines "path/to/file")
+(write "path" "content as string")
+(file-append "path" "content as string")
+
+;Prompt user for input
+(prompt "Prompt message")
 ```
 
 ## Coding in Insitux
@@ -546,7 +556,7 @@ etc
 (part-by neg? [0 1 2 3])     → [[] [0 1 2 3]]
 (part-by #(key? %) {:a 1 "b" 2 :c 3})
 → [{:a 1, :c 3} {"b" 2}]
-(part-by @(= (upper-case %)) "Hello!")
+(part-by (= (upper-case %)) "Hello!")
 → [["H" "!"] ["e" "l" "l" "o"]]
 
 ;Returns dictionary with keys as distinct vector items, string characters,
@@ -631,6 +641,14 @@ etc
 (set-at [5 0] 1 [0 1 2])        → [0 1 2]
 (set-at [0 0] 1 [:a])           → [:a]
 
+;Returns vector or dictionary with specified index or key/value set or replaced
+;  with another value, as returned from a specified function
+(update-at [0] inc [0])       → [1]
+(update-at [5 0] inc [0 1 2]) → [0 1 2]
+(update-at [0 1] upper-case
+  [["hi" "hello"] ["hi" "hello"]])
+→ [["hi" "HELLO"] ["hi" "hello"]]
+
 ;Takes functions and returns a function that returns a vector of the result of
 ;  applying each function to those arguments
 ;E.g. (juxt + -) is equivalent to #[(... + args) (... - args)]
@@ -644,7 +662,7 @@ etc
 
 ;Treats its arguments as an expression, first argument as the expression head
 (. + 2 2) → 4
-(map @(.) [+ -] [10 12] [13 6])
+(map . [+ -] [10 12] [13 6])
 → [23 6]
 
 ;Applies a vector's items and other arguments as a function's parameters
@@ -1148,5 +1166,4 @@ vector item or string character is "destructured" into.
 ⚠️ don't capture #(var x x) - write test for it  
 ⚠️ (prompt) breaking on the web REPL  
 ⚠️ (loop 3 i (print (+ 1 i)))  
-⚠️ ((< 1 2) :a) type-errors
 ⚠️ syntax highlighter omits commas

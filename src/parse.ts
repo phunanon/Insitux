@@ -187,12 +187,16 @@ function collectFuncs(
   nodes.forEach(node => {
     if (!isToken(node) && isToken(node[0]) && symAt(node) === "function") {
       const name = symAt(node, 1);
+      const errCtx = node[0].errCtx;
       if (!name) {
-        funcs.push({ err: "nameless function", errCtx: node[0].errCtx });
+        funcs.push({ err: "nameless function", errCtx });
       } else if (len(node) < 3) {
-        funcs.push({ err: "empty function body", errCtx: node[0].errCtx });
+        funcs.push({ err: "empty function body", errCtx });
+      } else if (ops[name]) {
+        funcs.push({ err: "redeclaration of built-in operation", errCtx });
+      } else {
+        funcs.push({ name, nodes: slice(node, 2) });
       }
-      funcs.push({ name, nodes: slice(node, 2) });
     } else {
       entries.push(node);
     }

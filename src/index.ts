@@ -1,4 +1,4 @@
-export const insituxVersion = 220414;
+export const insituxVersion = 220416;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -267,7 +267,12 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     }
     case "set-at": {
       const [pathVal, replacement, coll] = args;
-      return pathSet(vec(pathVal), replacement, coll);
+      return pathSet(vec(pathVal), _ => replacement, coll);
+    }
+    case "update-at": {
+      const [pathVal, replacer, coll] = args;
+      const closure = getExe(ctx, replacer, errCtx);
+      return pathSet(vec(pathVal), v => closure([v]), coll);
     }
     case "juxt": {
       const makeArg = (value: Val): Ins[] => [
@@ -798,7 +803,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "tests":
       return _str(doTests(invoke, !(len(args) && asBoo(args[0]))).join("\n"));
     case "symbols":
-      return _vec(symbols(ctx.env, false).map(_str));
+      return _vec(symbols(ctx.env, false).map(s => (ops[s] ? _fun : _str)(s)));
     case "eval": {
       delete ctx.env.funcs["entry"];
       const invokeId = `${errCtx.invokeId} eval`;

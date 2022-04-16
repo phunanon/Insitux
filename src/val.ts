@@ -156,7 +156,11 @@ export function errorsToDict(errors: InvokeError[]) {
 
 /** Replaces or sets index or key/value with another value in a string or
  * dictionary */
-export function pathSet(path: Val[], replacement: Val, coll: Val): Val {
+export function pathSet(
+  path: Val[],
+  replacer: (v: Val) => Val,
+  coll: Val,
+): Val {
   //If we're at the end of the path or it's a non-number index for non-dict
   if (
     !len(path) ||
@@ -170,21 +174,22 @@ export function pathSet(path: Val[], replacement: Val, coll: Val): Val {
     const vecCopy = slice(coll.v);
     const idx = num(path[0]);
     if (len(path) === 1) {
-      vecCopy[idx] = replacement;
+      vecCopy[idx] = replacer(vecCopy[idx]);
       return { t: "vec", v: vecCopy };
     }
-    vecCopy[idx] = pathSet(slice(path, 1), replacement, vecCopy[idx]);
+    vecCopy[idx] = pathSet(slice(path, 1), replacer, vecCopy[idx]);
     return { t: "vec", v: vecCopy };
   }
   if (len(path) === 1) {
-    return { t: "dict", v: dictSet(coll.v, path[0], replacement) };
+    const existing = dictGet(coll.v, path[0]);
+    return { t: "dict", v: dictSet(coll.v, path[0], replacer(existing)) };
   }
   return {
     t: "dict",
     v: dictSet(
       coll.v,
       path[0],
-      pathSet(slice(path, 1), replacement, dictGet(coll.v, path[0])),
+      pathSet(slice(path, 1), replacer, dictGet(coll.v, path[0])),
     ),
   };
 }

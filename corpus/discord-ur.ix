@@ -13,16 +13,21 @@
 
 (function new-game
   (var positions (new-positions)
-       dice      (roll)
-       turn      0
-       off-board []))
-
-(unless ((symbols) "positions")
-  (new-game))
-
+       dice (roll) turn 0
+       off-board [])
+  (keep-rolling))
 
 (function no-dice?
   (zero? (.. + dice)))
+
+(function keep-rolling
+  (while (no-dice?)
+    (print "⚪ " (player-name) " rolled zero!")
+    (var dice (roll))
+    (next-turn)))
+
+(unless ((symbols) "positions")
+  (new-game))
 
 (function player-name
   (str "Player " ({0 "ONE" 1 "TWO"} turn)))
@@ -46,7 +51,7 @@
     ((flatten positions) stone) "🤞"
     (str stone " ")))
 
-(function render-board another-turn?
+(function render-board again?
   (let segment (juxt (first 4) (crop 4 2) (last 2))
        reverses (pos-juxt reverse val reverse)
        prepare #(reverses (segment %))
@@ -59,13 +64,17 @@
        stones [(split "" "1234567") (split "" "ABCDEFG")]
        stones (map (map stone-indicator) stones)
        ;Build the dice string
-       dice-str (map {0 "⚪" 1 "⚫"} dice))
-  (.. .. str
-    (player-name) "'s turn"
-    (if another-turn? " again! 👀" ".") "\n"
-    a1 "      " a3 " " (0 stones) "\n"
-    middle "  " dice-str "\n"
-    b1 "      " b3 " " (1 stones)))
+       dice-str (map {0 "⚪" 1 "🔴"} dice)
+       p-0 (= turn 0))
+  (.. .. strn
+    "    " a1 "      " a3 "\n"
+    "    " middle "\n"
+    "    " b1 "      " b3 "\n"
+    "            " dice-str "\n"
+    (0 stones) (p-0 " 👈" "   ") (p-0 "   " "👉 ") (1 stones) "\n"
+    (if again? "👀 " "   ")
+    (player-name) " turn"
+    (when again? " again!")))
 
 
 (function move player which by
@@ -80,22 +89,25 @@
   (when at-new (return :illegal))
 
   ;Can only move off board with exact move
-  (if (< 14 new-pos) (return :next))
-
-  ;Remove stone from old position
-  (var! positions (set-at [player old-pos] false))
+  (when (< 14 new-pos)
+    (print "🚷 " which " cannot overshoot its exit")
+    (return :next))
 
   ;Move off board with exact move
   (when (= new-pos 14)
+    ;Remove stone from old position
+    (var! positions (set-at [player old-pos] false))
     (var! off-board (append which))
     (return :next))
 
   ;Knock off other stone if necessary
   (when (and (< 3 new-pos 12) at-other)
     (if (= new-pos 7) (return :illegal))
-    (print (-> positions other-p new-pos) " knocked off by " which " 😮")
+    (print "😮 [" which "] knocked off [" (-> positions other-p new-pos) "]")
     (var! positions (set-at [other-p new-pos] false)))
 
+  ;Remove stone from old position
+  (var! positions (set-at [player old-pos] false))
   ;Place stone in new position
   (var! positions (set-at [player new-pos] which))
 
@@ -120,7 +132,7 @@ You can remove your opponent's stones by landing on them.
 Removed stones must start from the beginning.
 If you land on ░░░ you get another turn.
 A stone on the central ░░░ cannot be knocked off.
-You must finally leave the board with exactly the correct move.
+You must finally leave the board with exactly the correct moves.
 First person to have all their stones leave the board wins!
 
 Learn more about the game at:
@@ -151,11 +163,13 @@ See the source code for this app:
     (return (render-board)))
 
   (let move-by   (.. + dice)
-       is-p0     (substr? cmd "1234567")
-       prev-turn turn)
+       is-p0     (substr? cmd "1234567"))
 
   (when (!= is-p0 (= turn 0))
+    (print "🙅‍♀️ It's not your turn")
     (return (render-board)))
+
+  (print (player-name) " moved [" cmd "] by " move-by)
 
   (let result (move (is-p0 0 1) cmd move-by))
 
@@ -163,14 +177,11 @@ See the source code for this app:
     (print "A stone was already there!"))
 
   ;Roll dice for next player
-  (var dice (roll))
+  (var dice (roll) prev-turn turn)
   (when (!= result :again)
     (next-turn))
 
   ;Keep rolling until non-zero
-  (while (no-dice?)
-    (print (player-name) " rolled zero! ⚪")
-    (var dice (roll))
-    (next-turn))
+  (keep-rolling)
 
   (render-board (= turn prev-turn)))
