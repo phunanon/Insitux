@@ -242,7 +242,8 @@ function parseForm(
       <ParserIns>{ typ: "err", value: m, errCtx: eCtx },
     ];
 
-    if (has(["if", "if!", "when", "unless", "match"], op) && !len(nodes)) {
+    const needsCond = ["if", "if!", "when", "unless", "match", "satisfy"];
+    if (has(needsCond, op) && !len(nodes)) {
       return err("provide a condition");
     } else if (has(["if", "if!"], op)) {
       if (len(nodes) === 1) {
@@ -288,7 +289,8 @@ function parseForm(
         { typ: "jmp", value: 1, errCtx },
         { typ: "val", value: nullVal, errCtx },
       ];
-    } else if (op === "match") {
+    } else if (op === "match" || op == "satisfy") {
+      const opIns: Ins["typ"] = op === "match" ? "mat" : "sat";
       const parsed = nodes.map(nodeParser);
       const [cond, args] = [parsed[0], slice(parsed, 1)];
       const otherwise: ParserIns[] = len(args) % 2 ? args.pop()! : [];
@@ -304,7 +306,7 @@ function parseForm(
       while (len(args) > 1) {
         const [a, when] = [args.shift()!, args.shift()!];
         push(ins, a);
-        ins.push({ typ: "mat", value: len(when) + 1, errCtx });
+        ins.push({ typ: opIns, value: len(when) + 1, errCtx: a[0].errCtx });
         push(ins, when);
         insCount -= len(a) + len(when) + 2;
         ins.push({ typ: "jmp", value: insCount, errCtx });
@@ -683,7 +685,7 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   for (let t = 0, lastWasL = false; t < len(tokens); ++t) {
     const token = tokens[t];
     //To catch (#) and (@)
-    if (token.typ === "sym" && token.text === "#" || token.text === "@") {
+    if (token.typ === "sym" && (token.text === "#" || token.text === "@")) {
       continue;
     }
     if (lastWasL && token.typ === ")") {
@@ -800,7 +802,8 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
         i += ins.value - 1;
         break;
       }
-      case "mat": {
+      case "mat":
+      case "sat": {
         stack.pop(); //first match
         stack.pop(); //cond
         i += ins.value;

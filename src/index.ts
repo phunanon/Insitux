@@ -1,4 +1,4 @@
-export const insituxVersion = 220416;
+export const insituxVersion = 220417;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -1178,8 +1178,18 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         }
         break;
       case "mat": {
-        const a = stack[len(stack) - 2];
-        if (!isEqual(a, stack.pop()!)) {
+        const cond = stack[len(stack) - 2];
+        if (!isEqual(cond, stack.pop()!)) {
+          i += ins.value;
+        } else {
+          stack.pop();
+        }
+        break;
+      }
+      case "sat": {
+        const cond = stack[len(stack) - 2];
+        const closure = getExe(ctx, stack.pop()!, errCtx);
+        if (!asBoo(closure([cond]))) {
           i += ins.value;
         } else {
           stack.pop();

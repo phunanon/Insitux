@@ -4834,6 +4834,7 @@ const syntaxes = [
   "while",
   "loop",
   "match",
+  "satisfy",
   "catch"
 ];
 const typeNames = {
@@ -5190,7 +5191,8 @@ function parseForm(nodes, params, doArityCheck = true) {
     const err = (m, eCtx = errCtx2) => [
       { typ: "err", value: m, errCtx: eCtx }
     ];
-    if (parse_has(["if", "if!", "when", "unless", "match"], op) && !parse_len(nodes)) {
+    const needsCond = ["if", "if!", "when", "unless", "match", "satisfy"];
+    if (parse_has(needsCond, op) && !parse_len(nodes)) {
       return err("provide a condition");
     } else if (parse_has(["if", "if!"], op)) {
       if (parse_len(nodes) === 1) {
@@ -5234,7 +5236,8 @@ function parseForm(nodes, params, doArityCheck = true) {
         { typ: "jmp", value: 1, errCtx: errCtx2 },
         { typ: "val", value: nullVal, errCtx: errCtx2 }
       ];
-    } else if (op === "match") {
+    } else if (op === "match" || op == "satisfy") {
+      const opIns = op === "match" ? "mat" : "sat";
       const parsed = nodes.map(nodeParser);
       const [cond, args2] = [parsed[0], parse_slice(parsed, 1)];
       const otherwise = parse_len(args2) % 2 ? args2.pop() : [];
@@ -5247,7 +5250,7 @@ function parseForm(nodes, params, doArityCheck = true) {
       while (parse_len(args2) > 1) {
         const [a, when] = [args2.shift(), args2.shift()];
         parse_push(ins2, a);
-        ins2.push({ typ: "mat", value: parse_len(when) + 1, errCtx: errCtx2 });
+        ins2.push({ typ: opIns, value: parse_len(when) + 1, errCtx: a[0].errCtx });
         parse_push(ins2, when);
         insCount -= parse_len(a) + parse_len(when) + 2;
         ins2.push({ typ: "jmp", value: insCount, errCtx: errCtx2 });
@@ -5567,7 +5570,7 @@ function tokenErrorDetect(stringError, tokens) {
   let emptyHead;
   for (let t = 0, lastWasL = false; t < parse_len(tokens); ++t) {
     const token = tokens[t];
-    if (token.typ === "sym" && token.text === "#" || token.text === "@") {
+    if (token.typ === "sym" && (token.text === "#" || token.text === "@")) {
       continue;
     }
     if (lastWasL && token.typ === ")") {
@@ -5662,7 +5665,8 @@ function insErrorDetect(fins) {
         i += ins.value - 1;
         break;
       }
-      case "mat": {
+      case "mat":
+      case "sat": {
         stack.pop();
         stack.pop();
         i += ins.value;
@@ -6351,7 +6355,7 @@ function pathSet(path, replacer, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220416;
+const insituxVersion = 220417;
 
 
 
@@ -7422,8 +7426,18 @@ function exeFunc(ctx, func, args, closureDeref = false) {
         }
         break;
       case "mat": {
-        const a = stack[src_len(stack) - 2];
-        if (!isEqual(a, stack.pop())) {
+        const cond = stack[src_len(stack) - 2];
+        if (!isEqual(cond, stack.pop())) {
+          i += ins.value;
+        } else {
+          stack.pop();
+        }
+        break;
+      }
+      case "sat": {
+        const cond = stack[src_len(stack) - 2];
+        const closure = getExe(ctx, stack.pop(), errCtx);
+        if (!asBoo(closure([cond]))) {
           i += ins.value;
         } else {
           stack.pop();

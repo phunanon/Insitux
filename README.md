@@ -169,8 +169,8 @@ built-in operations each within an example, with results after a `→`.
 (if! true 1 2) → 2
 etc
 
-;Executes and returns argument[x+2] where argument[x+1] is equal to argument[0]
-; else the last argument if an even number of arguments else false
+;Executes and returns arg[2x+2] where arg[2x+1] is equal to arg[0], else the
+;  last argument if an even number of arguments else false
 ;Note: doesn't evaluate any argument[x+2] unless upon return
 ;Note: commas for readability not syntactic requirement
 (match 1, 1 2)     → 2
@@ -189,6 +189,15 @@ etc
   [0 2] "bye"
   [1 _] "hey")
 → "hey"
+
+;Like match, but instead matches on if passing the value to each argument[x+1]
+;  function returns truthy
+(satisfy 10
+  (< 100) "Greater than 100"
+  (< 10) "Greater than 10"
+  pos? "Greater than 0"
+  "0 or below")
+→ "Greater than 0"
 
 ;Tests each argument and returns true or false if all arguments are truthy
 ;Note: short-circuits evaluation after falsy argument

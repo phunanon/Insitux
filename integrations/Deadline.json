@@ -51,6 +51,14 @@
 				]
 			},
 			{
+				"directory": "satisfy",
+				"description": [
+					"(satisfy 0, pos? true, neg? false 0)",
+					"syntax",
+					"Matches a value with each case function and executes and returns the corresponding value, else a default final value or false."
+				]
+			},
+			{
 				"directory": "->",
 				"description": [
 					"(-> \"hello\" 1 upper-case)",

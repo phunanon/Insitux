@@ -84,13 +84,16 @@ export type Closure = {
 };
 
 export type Ins = { errCtx: ErrCtx } & (
-  | { typ: "npa" | "upa"; value: number; text: string } //Named and Unnamed parameters
-  | { typ: "dpa"; value: number[] } //Destructuring parameters
   | { typ: "var" | "let" | "ref"; value: string }
+  //Named and Unnamed parameters
+  | { typ: "npa" | "upa"; value: number; text: string }
+  | { typ: "dpa"; value: number[] } //Destructuring parameters
   | { typ: "dva" | "dle"; value: ParamsShape } //Destructuring var/let
   | { typ: "exe"; value: number } //Execute last stack value, number of args
-  | { typ: "exa"; value: number } //Execute last stack value, number of args, with arity check
-  | { typ: "or" | "if" | "jmp" | "loo" | "cat" | "mat"; value: number } //Number of instructions
+  //Execute last stack value, number of args, with arity check
+  | { typ: "exa"; value: number }
+  //Number of instructions
+  | { typ: "or" | "if" | "jmp" | "loo" | "cat" | "mat" | "sat"; value: number }
   | { typ: "ret"; value: boolean } //Return, with value?
   | { typ: "pop"; value: number } //Truncate stack, by number of values
   | { typ: "clo"; value: Closure } //Closure/partial
@@ -427,6 +430,7 @@ export const syntaxes = [
   "while",
   "loop",
   "match",
+  "satisfy",
   "catch",
 ];
 

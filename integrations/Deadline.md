@@ -172,6 +172,14 @@ to define variables, use `var`:
 ;; syntax
 ;; Matches a value with each case and executes and returns the corresponding value, else a default final value or false.
 
+(satisfy 0, pos? true, neg? false 0)
+;; syntax
+;; Matches a value with each case function and executes and returns the corresponding value, else a default final value or false.
+
+(-> "hello" 1 upper-case)
+;; syntax
+;; "Thread" return values into the next function, seeded with first argument.
+
 (and null (print "hi"))
 ;; syntax and function
 ;; Tests each argument and returns true or false if all arguments are truthy.
@@ -406,6 +414,22 @@ to define variables, use `var`:
 ;; function
 ;; Returns a section of a vector or string.
 
+(skip 7 "Hello, world!")
+;; function
+;; Returns a section of a vector or string, skipping N elements.
+
+(first 5 "Hello, world!")
+;; function
+;; Returns a section of a vector or string, up to N elements.
+
+(last "Hello, world!")
+;; function
+;; Returns a section of a vector or string, of the last N elements.
+
+(crop 2 2 "Hello, world!")
+;; function
+;; Returns a section of a vector or string, after X elements, less Y elements.
+
 (substr? "ll" "Hello")
 ;; function
 ;; Tests if a sub-string is in a string.
@@ -465,10 +489,6 @@ to define variables, use `var`:
 (repeat 1 10)
 ;; function
 ;; Returns a vector of either a function called N times with the incrementation, or a value repeated N times.
-
-(-> "hello" 1 upper-case)
-;; function
-;; "Thread" return values into the next function, seeded with first argument.
 
 (reverse [0 1 2 3])
 ;; function
