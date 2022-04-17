@@ -520,6 +520,10 @@ to define variables, use `var`:
 ;; Partitions by a function return into a vector of [when-true when-false] vectors for vector items or string characters;
 ;; or a vector of two dictionaries for dictionary entries.
 
+(partition 2 (range 10))
+;; function
+;; Returns a vector partitioned into vectors or strings with N items/chars at most
+
 (freqs [0 0 1 2 3])
 ;; function
 ;; Returns dictionary with keys as distinct vector items, string characters, with values as number of occurrences.

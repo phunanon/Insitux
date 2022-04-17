@@ -568,6 +568,10 @@ etc
 (part-by (= (upper-case %)) "Hello!")
 → [["H" "!"] ["e" "l" "l" "o"]]
 
+;Returns a vector partitioned into vectors or strings with N items/chars at most
+(partition 2 (range 8))       → [[0 1] [2 3] [4 5] [6 7]]
+(partition 3 "Hello, world!") → ["Hel" "lo," " wo" "rld" "!"]
+
 ;Returns dictionary with keys as distinct vector items, string characters,
 ;  with values as number of occurrences
 (freqs [0 0 1 2 3]) → {0 2, 1 1, 2 1, 3 1}

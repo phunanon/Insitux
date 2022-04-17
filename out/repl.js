@@ -4765,6 +4765,11 @@ const types_ops = {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["vec"]
   },
+  "partition": {
+    exactArity: 2,
+    params: ["num", ["vec", "str"]],
+    returns: ["vec"]
+  },
   freqs: {
     exactArity: 1,
     params: [["vec", "str"]],
@@ -6355,7 +6360,7 @@ function pathSet(path, replacer, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220417;
+const insituxVersion = 220418;
 
 
 
@@ -6985,6 +6990,21 @@ function exeOp(op, args, ctx, errCtx) {
         }
         return _vec(parted.map(_vec));
       }
+    }
+    case "partition": {
+      const n = num(args[0]);
+      const src = args[1];
+      const parted = [];
+      if (src.t === "str") {
+        for (let i = 0, lim = src_slen(src.v); i < lim; i += n) {
+          parted.push(_str(src_substr(src.v, i, n)));
+        }
+      } else if (src.t === "vec") {
+        for (let i = 0, lim = src_len(src.v); i < lim; i += n) {
+          parted.push(_vec(src_slice(src.v, i, i + n)));
+        }
+      }
+      return _vec(parted);
     }
     case "freqs": {
       const src = asArray(args[0]);

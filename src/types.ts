@@ -360,6 +360,11 @@ export const ops: {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["vec"],
   },
+  "partition": {
+    exactArity: 2,
+    params: ["num", ["vec", "str"]],
+    returns: ["vec"],
+  },
   freqs: {
     exactArity: 1,
     params: [["vec", "str"]],

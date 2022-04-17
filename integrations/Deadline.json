@@ -567,6 +567,14 @@
 				]
 			},
 			{
+				"directory": "partition",
+				"description": [
+					"(partition 2 (range 10))",
+					"function",
+					"Returns a vector partitioned into vectors or strings with N items/chars at most"
+				]
+			},
+			{
 				"directory": "freqs",
 				"description": [
 					"(freqs [0 0 1 2 3])",

@@ -1,4 +1,4 @@
-export const insituxVersion = 220417;
+export const insituxVersion = 220418;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -697,6 +697,21 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         }
         return _vec(parted.map(_vec));
       }
+    }
+    case "partition": {
+      const n = num(args[0]);
+      const src = args[1];
+      const parted: Val[] = [];
+      if (src.t === "str") {
+        for (let i = 0, lim = slen(src.v); i < lim; i += n) {
+          parted.push(_str(substr(src.v, i, n)));
+        }
+      } else if (src.t === "vec") {
+        for (let i = 0, lim = len(src.v); i < lim; i += n) {
+          parted.push(_vec(slice(src.v, i, i + n)));
+        }
+      }
+      return _vec(parted);
     }
     case "freqs": {
       const src = asArray(args[0]);
