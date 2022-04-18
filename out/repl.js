@@ -4530,6 +4530,7 @@ const types_ops = {
   "print-str": { returns: ["null"] },
   "!": { exactArity: 1, returns: ["bool"] },
   "=": { minArity: 2, returns: ["bool"] },
+  "==": { minArity: 2 },
   "!=": { minArity: 2, returns: ["bool"] },
   "+": { minArity: 2, numeric: true },
   "-": { minArity: 2, numeric: true },
@@ -6426,6 +6427,13 @@ function exeOp(op, args, ctx, errCtx) {
         }
       }
       return _boo(true);
+    case "==":
+      for (let i = 1, lim = src_len(args); i < lim; ++i) {
+        if (isEqual(args[i - 1], args[i])) {
+          return args[0];
+        }
+      }
+      return _nul();
     case "-":
       return _num(args.map(num).reduce((sum, n) => sum - n));
     case "**":

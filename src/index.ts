@@ -75,6 +75,13 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         }
       }
       return _boo(true);
+    case "==":
+      for (let i = 1, lim = len(args); i < lim; ++i) {
+        if (isEqual(args[i - 1], args[i])) {
+          return args[0];
+        }
+      }
+      return _nul();
     case "-":
       return _num(args.map(num).reduce((sum, n) => sum - n));
     case "**":

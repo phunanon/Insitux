@@ -125,6 +125,7 @@ export const ops: {
   "print-str": { returns: ["null"] },
   "!": { exactArity: 1, returns: ["bool"] },
   "=": { minArity: 2, returns: ["bool"] },
+  "==": { minArity: 2 },
   "!=": { minArity: 2, returns: ["bool"] },
   "+": { minArity: 2, numeric: true },
   "-": { minArity: 2, numeric: true },

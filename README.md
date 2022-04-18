@@ -278,6 +278,8 @@ etc
 ;  arguments only
 (= 10 10)     → true
 (= :a :b)     → false
+(== 10 10)    → 10
+(== 10 11)    → null
 (!= 1 2 4 3)  → true
 (!= 1 1 2)    → false
 (< 1 2 3)     → true
@@ -1071,6 +1073,14 @@ vector item or string character is "destructured" into.
 
 (@(.. map vec) M)
 → [[0 3] [1 4] [2 5]]
+
+
+; Find first repeated letter
+(function find-two-in-row text
+  (-> (map (.. ==) text (skip 1 text))
+      (find val)))
+
+(find-two-in-row "Hello") → "l"
 
 
 ; Clojure's comp
