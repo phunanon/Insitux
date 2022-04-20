@@ -1,4 +1,4 @@
-export const insituxVersion = 220418;
+export const insituxVersion = 220420;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -443,6 +443,15 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         reduction = closure([reduction, array[i]]);
       }
       return reduction;
+    }
+    case "xmap": {
+      const closure = getExe(ctx, args[0], errCtx);
+      const src = asArray(args[1]);
+      const mapped: Val[] = [];
+      for (let i = 0, lim = len(src); i < lim; ++i) {
+        mapped.push(closure([_num(i), src[i]]));
+      }
+      return _vec(mapped);
     }
     case "repeat":
     case "times": {

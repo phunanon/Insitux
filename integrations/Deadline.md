@@ -358,6 +358,10 @@ to define variables, use `var`:
 ;; function
 ;; Returns a vector of calling a function with each of all the items or characters of one or more vectors or strings as arguments.
 
+(xmap str [:a :b :c])
+;; function
+;; Same as map, but only (f i item), where i is an increasing index from 0.
+
 (for str [0 1 2] "abc")
 ;; function
 ;; Returns a vector of calling a function with every combination of vector item or string characters as arguments.

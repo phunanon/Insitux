@@ -230,6 +230,11 @@ export const ops: {
   juxt: { returns: ["clo"] },
   "pos-juxt": { returns: ["clo"] },
   map: { minArity: 2, returns: ["vec"] },
+  xmap: {
+    minArity: 2,
+    params: ["any", ["vec", "str", "dict"]],
+    returns: ["vec"],
+  },
   for: { minArity: 2, returns: ["vec"] },
   reduce: { minArity: 2, maxArity: 3 },
   reductions: { minArity: 2, maxArity: 3 },
@@ -361,7 +366,7 @@ export const ops: {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["vec"],
   },
-  "partition": {
+  partition: {
     exactArity: 2,
     params: ["num", ["vec", "str"]],
     returns: ["vec"],

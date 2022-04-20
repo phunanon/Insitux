@@ -313,6 +313,14 @@
 				]
 			},
 			{
+				"directory": "xmap",
+				"description": [
+					"(xmap str [:a :b :c])",
+					"function",
+					"Same as map, but only (f i item), where i is an increasing index from 0."
+				]
+			},
+			{
 				"directory": "for",
 				"description": [
 					"(for str [0 1 2] \"abc\")",

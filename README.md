@@ -384,11 +384,19 @@ etc
 (rand 100)               any decimal between 0 and 100
 (rand -10 10)            any decimal between -10 and 10
 
-;"Maps" a function over one or more vectors
+;"Maps" a function over one or more vectors, strings, and dictionaries
 ;Note that it only iterates by the minimum number of vector items
 (map double [0 1 2 3])    → [0 2 4 6]
 (map + [0 1 2 3] [4 5 6]) → [4 5 8]
 (map str "abc" "xyz")     → ["ax" "by" "cz"]
+
+;Same as map, but only (f i item), where i is an increasing index from 0
+(xmap vec "hello")
+→ [[0 "h"] [1 "e"] [2 "l"] [3 "l"] [4 "o"]]
+(xmap skip ["hi" "hey" "hello"])
+→ ["hi" "ey" "llo"]
+(xmap #(str (str* " " %) %1) ["hi" "hey" "hello"])
+→ ["hi" " hey" "  hello"]
 
 ;Iterates a function over one or more vectors
 (for * [0 1 2] [1 10 100])

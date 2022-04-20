@@ -4635,6 +4635,11 @@ const types_ops = {
   juxt: { returns: ["clo"] },
   "pos-juxt": { returns: ["clo"] },
   map: { minArity: 2, returns: ["vec"] },
+  xmap: {
+    minArity: 2,
+    params: ["any", ["vec", "str", "dict"]],
+    returns: ["vec"]
+  },
   for: { minArity: 2, returns: ["vec"] },
   reduce: { minArity: 2, maxArity: 3 },
   reductions: { minArity: 2, maxArity: 3 },
@@ -4766,7 +4771,7 @@ const types_ops = {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["vec"]
   },
-  "partition": {
+  partition: {
     exactArity: 2,
     params: ["num", ["vec", "str"]],
     returns: ["vec"]
@@ -6361,7 +6366,7 @@ function pathSet(path, replacer, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220418;
+const insituxVersion = 220420;
 
 
 
@@ -6749,6 +6754,15 @@ function exeOp(op, args, ctx, errCtx) {
         reduction = closure([reduction, array[i]]);
       }
       return reduction;
+    }
+    case "xmap": {
+      const closure = getExe(ctx, args[0], errCtx);
+      const src = asArray(args[1]);
+      const mapped = [];
+      for (let i = 0, lim = src_len(src); i < lim; ++i) {
+        mapped.push(closure([_num(i), src[i]]));
+      }
+      return _vec(mapped);
     }
     case "repeat":
     case "times": {
