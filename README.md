@@ -715,8 +715,10 @@ etc
 ;Returns Insitux version as number
 (version) → 22****
 
-;Returns symbol name strings vector by definition order in the Insitux session
-(symbols) → ["print" "print-str" "!" "=" …]
+;Returns symbol name strings vector by definition order in the Insitux session,
+;  alternatively without built-in operations which cause side-effects
+(symbols)      → ["print" "print-str" "!" "=" …]
+(symbols true) → ["!" "!=" "&" "*" "**" "+" …]
 
 ;Evaluates a string as code, returning any values returned or null
 (eval "(+ 2 2)") → 4

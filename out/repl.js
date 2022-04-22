@@ -4526,8 +4526,8 @@ const defaultCtx = {
   recurBudget: 1e4
 };
 const types_ops = {
-  print: { returns: ["null"] },
-  "print-str": { returns: ["null"] },
+  print: { returns: ["null"], hasEffects: true },
+  "print-str": { returns: ["null"], hasEffects: true },
   "!": { exactArity: 1, returns: ["bool"] },
   "=": { minArity: 2, returns: ["bool"] },
   "==": { minArity: 2 },
@@ -4824,7 +4824,7 @@ const types_ops = {
   time: { exactArity: 0, returns: ["num"] },
   version: { exactArity: 0, returns: ["num"] },
   tests: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["str"] },
-  symbols: { exactArity: 0, returns: ["vec"] },
+  symbols: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["vec"] },
   eval: { exactArity: 1, params: ["str"] },
   about: { exactArity: 1, params: [["str", "func"]], returns: ["dict"] },
   reset: { exactArity: 0 },
@@ -6366,7 +6366,7 @@ function pathSet(path, replacer, coll) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-const insituxVersion = 220420;
+const insituxVersion = 220422;
 
 
 
@@ -7115,8 +7115,13 @@ function exeOp(op, args, ctx, errCtx) {
       return _num(insituxVersion);
     case "tests":
       return _str(doTests(invoke, !(src_len(args) && asBoo(args[0]))).join("\n"));
-    case "symbols":
-      return _vec(symbols(ctx.env, false).map((s) => (types_ops[s] ? _fun : _str)(s)));
+    case "symbols": {
+      let syms = symbols(ctx.env, false);
+      if (src_len(args) && asBoo(args[0])) {
+        syms = syms.filter((s) => !types_ops[s]?.hasEffects);
+      }
+      return _vec(syms.map(_str));
+    }
     case "eval": {
       delete ctx.env.funcs["entry"];
       const invokeId = `${errCtx.invokeId} eval`;
@@ -7712,16 +7717,27 @@ function writeOrAppend(path, content, isAppend = false) {
 const writingOpDef = {
   exactArity: 2,
   params: ["str", "str"],
-  returns: ["str"]
+  returns: ["str"],
+  hasEffects: true
 };
 function makeFunctions(workingDirectory = process.cwd()) {
   return {
     read: {
-      definition: { exactArity: 1, params: ["str"], returns: ["str"] },
+      definition: {
+        exactArity: 1,
+        params: ["str"],
+        returns: ["str"],
+        hasEffects: true
+      },
       handler: ([path]) => read(str(path), false)
     },
     "read-lines": {
-      definition: { exactArity: 1, params: ["str"], returns: ["vec"] },
+      definition: {
+        exactArity: 1,
+        params: ["str"],
+        returns: ["vec"],
+        hasEffects: true
+      },
       handler: ([path]) => read(str(path), true)
     },
     write: {
@@ -7736,7 +7752,8 @@ function makeFunctions(workingDirectory = process.cwd()) {
       definition: {
         exactArity: 1,
         params: ["str"],
-        returns: ["str"]
+        returns: ["str"],
+        hasEffects: true
       },
       handler: (params) => ({
         kind: "val",
@@ -7746,7 +7763,8 @@ function makeFunctions(workingDirectory = process.cwd()) {
     import: {
       definition: {
         exactArity: 1,
-        params: ["str"]
+        params: ["str"],
+        hasEffects: true
       },
       handler: (params) => {
         const p0 = str(params[0]);

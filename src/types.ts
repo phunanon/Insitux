@@ -107,6 +107,8 @@ export type Operation = {
   minArity?: number;
   maxArity?: number;
   exactArity?: number;
+  /** Does the function cause side-effects when used? */
+  hasEffects?: boolean;
   numeric?: true | "in only";
   params?: ("any" | Val["t"] | Val["t"][])[];
   returns?: Val["t"][];
@@ -121,8 +123,8 @@ export type ExternalFunctions = { [name: string]: ExternalFunction };
 export const ops: {
   [name: string]: Operation & { external?: boolean };
 } = {
-  print: { returns: ["null"] },
-  "print-str": { returns: ["null"] },
+  print: { returns: ["null"], hasEffects: true },
+  "print-str": { returns: ["null"], hasEffects: true },
   "!": { exactArity: 1, returns: ["bool"] },
   "=": { minArity: 2, returns: ["bool"] },
   "==": { minArity: 2 },
@@ -419,7 +421,7 @@ export const ops: {
   time: { exactArity: 0, returns: ["num"] },
   version: { exactArity: 0, returns: ["num"] },
   tests: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["str"] },
-  symbols: { exactArity: 0, returns: ["vec"] },
+  symbols: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["vec"] },
   eval: { exactArity: 1, params: ["str"] },
   about: { exactArity: 1, params: [["str", "func"]], returns: ["dict"] },
   reset: { exactArity: 0 },

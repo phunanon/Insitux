@@ -38,16 +38,27 @@ const writingOpDef: Operation = {
   exactArity: 2,
   params: ["str", "str"],
   returns: ["str"],
+  hasEffects: true,
 };
 
 function makeFunctions(workingDirectory = process.cwd()) {
   return <ExternalFunctions>{
     read: {
-      definition: { exactArity: 1, params: ["str"], returns: ["str"] },
+      definition: {
+        exactArity: 1,
+        params: ["str"],
+        returns: ["str"],
+        hasEffects: true,
+      },
       handler: ([path]) => read(str(path), false),
     },
     "read-lines": {
-      definition: { exactArity: 1, params: ["str"], returns: ["vec"] },
+      definition: {
+        exactArity: 1,
+        params: ["str"],
+        returns: ["vec"],
+        hasEffects: true,
+      },
       handler: ([path]) => read(str(path), true),
     },
     write: {
@@ -64,6 +75,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
         exactArity: 1,
         params: ["str"],
         returns: ["str"],
+        hasEffects: true,
       },
       handler: params => ({
         kind: "val",
@@ -74,6 +86,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
       definition: {
         exactArity: 1,
         params: ["str"],
+        hasEffects: true,
       },
       handler: params => {
         const p0 = str(params[0]);

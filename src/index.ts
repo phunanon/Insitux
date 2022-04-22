@@ -1,4 +1,4 @@
-export const insituxVersion = 220420;
+export const insituxVersion = 220422;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -833,8 +833,13 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _num(insituxVersion);
     case "tests":
       return _str(doTests(invoke, !(len(args) && asBoo(args[0]))).join("\n"));
-    case "symbols":
-      return _vec(symbols(ctx.env, false).map(s => (ops[s] ? _fun : _str)(s)));
+    case "symbols": {
+      let syms = symbols(ctx.env, false);
+      if (len(args) && asBoo(args[0])) {
+        syms = syms.filter(s => !ops[s]?.hasEffects ?? false);
+      }
+      return _vec(syms.map(_str));
+    }
     case "eval": {
       delete ctx.env.funcs["entry"];
       const invokeId = `${errCtx.invokeId} eval`;
