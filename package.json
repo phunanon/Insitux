@@ -22,8 +22,8 @@
     "webpack-cli": "^4.8.0"
   },
   "scripts": {
-    "build": "webpack --mode=production",
-    "watch": "webpack --mode=production --watch",
+    "build": "webpack",
+    "watch": "webpack --watch",
     "build-npm": "tsc -p tsconfig.npm.json"
   },
   "repository": {

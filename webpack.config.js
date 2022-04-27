@@ -1,5 +1,5 @@
 const path = require("path");
-const webpack = require('webpack');
+const webpack = require("webpack");
 
 const standard = {
   module: {
@@ -19,6 +19,7 @@ const standard = {
     extensions: [".ts", ".js"],
   },
   devtool: "source-map",
+  mode: "production",
 };
 
 module.exports = [
