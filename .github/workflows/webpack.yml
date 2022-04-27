@@ -35,4 +35,5 @@ jobs:
         prerelease: false
         files: |
           LICENSE
-          *.js
+          out/*.js
+          out/*.map
