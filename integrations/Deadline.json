@@ -819,6 +819,24 @@
 				]
 			},
 			{
+				"directory": "$dl.players.${any}.spawn_dummy",
+				"description": [
+					"(dl.players.${any}.spawn_dummy)",
+					"function",
+					"spawns a damage tester dummy near \"${any}\"",
+					"make sure the debug overlay is enabled to see what the damage"
+				]
+			},
+			{
+				"directory": "$dl.players.${any}.set_anchored",
+				"description": [
+					"(dl.players.${any}.set_anchored)",
+					"(dl.players.${any}.set_anchored true)",
+					"function",
+					"prevents the player from moving"
+				]
+			},
+			{
 				"directory": "$dl.players.${any}.fill_ammo",
 				"description": ["(dl.players.${any}.fill_ammo)", "function", "refills ammo of player \"${any}\""]
 			},
@@ -902,7 +920,14 @@
 					"returns whether \"${any}\" is alive"
 				]
 			},
-
+			{
+				"directory": "$dl.globals.is_chat_disabled",
+				"description": [
+					"($dl.globals.is_chat_disabled false)",
+					"bool value",
+					"controls whether players can type in the chat"
+				]
+			},
 			{
 				"directory": "$dl.globals.version",
 				"description": ["(print $dl.globals.version)", "readonly string value", "game version"]
