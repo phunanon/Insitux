@@ -7,7 +7,7 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "rootDir": "./src",
-    "outDir": "dist",
+    "outDir": "node",
     "strict": true,
     "noImplicitAny": true,
     "sourceMap": true,
