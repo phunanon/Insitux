@@ -6,7 +6,7 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "rootDir": "./src",
-    "outDir": "out",
+    "outDir": "dist",
     "strict": true,
     "noImplicitAny": true,
     "sourceMap": true,

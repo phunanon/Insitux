@@ -1,5 +1,6 @@
-const path = require("path");
+const fsPath = require("path");
 const webpack = require("webpack");
+const path = fsPath.resolve(__dirname, "dist");
 
 const standard = {
   module: {
@@ -15,9 +16,7 @@ const standard = {
       },
     ],
   },
-  resolve: {
-    extensions: [".ts", ".js"],
-  },
+  resolve: { extensions: [".ts", ".js"] },
   devtool: "source-map",
   mode: "production",
 };
@@ -30,7 +29,7 @@ module.exports = [
     target: ["web"],
     output: {
       filename: "insitux.lib.min.js",
-      path: path.resolve(__dirname, "out"),
+      path,
       library: "insitux",
       libraryTarget: "window",
       libraryExport: "invoker",
@@ -42,10 +41,7 @@ module.exports = [
     ...standard,
     entry: `./src/web.ts`,
     target: ["web"],
-    output: {
-      filename: "insitux.min.js",
-      path: path.resolve(__dirname, "out"),
-    },
+    output: { filename: "insitux.min.js", path },
     optimization: { minimize: true },
   },
   //NodeJS
@@ -53,10 +49,7 @@ module.exports = [
     ...standard,
     entry: `./src/repl.ts`,
     target: ["node"],
-    output: {
-      filename: "repl.js",
-      path: path.resolve(__dirname, "out"),
-    },
+    output: { filename: "repl.js", path },
     plugins: [
       new webpack.BannerPlugin({ banner: "#!/usr/bin/env node", raw: true }),
     ],
@@ -69,7 +62,7 @@ module.exports = [
     target: ["web"],
     output: {
       filename: "insitux-tokenise.js",
-      path: path.resolve(__dirname, "out"),
+      path,
       library: "insituxTokenise",
       libraryTarget: "window",
       libraryExport: "tokenise",

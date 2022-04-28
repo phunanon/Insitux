@@ -26,14 +26,9 @@ jobs:
       run: |
         npm install
         npx webpack
+        npx tsc -p tsconfig.npm.json
 
-    - name: "Release build artefact"
-      uses: "marvinpinto/action-automatic-releases@latest"
+    - uses: JS-DevTools/npm-publish@v1
       with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "latest"
-        prerelease: false
-        files: |
-          LICENSE
-          out/*.js
-          out/*.map
+        token: ${{ secrets.NPM_TOKEN }}
+        dry-run: true
