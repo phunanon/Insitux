@@ -1,11 +1,11 @@
 {
   "name": "insitux",
-  "version": "22.4.281",
+  "version": "22.4.29",
   "description": "Extensible scripting language written in portable TypeScript.",
   "main": "node/invoker.js",
   "types": "node/invoker.d.ts",
   "bin": {
-    "ix": "./node/repl.js"
+    "ix": "./dist/repl.js"
   },
   "dependencies": {
     "cross-fetch": "^3.1.5",
