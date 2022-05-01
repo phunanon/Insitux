@@ -103,6 +103,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
         //Execute and return
         const code = readFileSync(path).toString();
         const oldFuncs = ctx.functions;
+        delete ctx.env.funcs["entry"];
         ctx.functions = makeFunctions(dirname(path));
         const { result, output } = invoker(ctx, code, path, false);
         ctx.functions = oldFuncs;

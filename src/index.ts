@@ -1,4 +1,4 @@
-export const insituxVersion = 220422;
+export const insituxVersion = 220501;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -891,7 +891,6 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "reset":
       ctx.env.vars = {};
       ctx.env.funcs = {};
-      letsStack = [];
       return _nul();
   }
 
