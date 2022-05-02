@@ -1,4 +1,4 @@
-export const insituxVersion = 220501;
+export const insituxVersion = 220502;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -934,7 +934,9 @@ function getExe(
           if (violations) {
             _throw(violations);
           }
+          const oldLetsStack = slice(letsStack);
           const valOrErr = ctx.functions[name].handler(params);
+          letsStack = oldLetsStack; //In case invoker was called externally
           if (valOrErr.kind === "err") {
             return _throw([{ e: "External", m: valOrErr.err, errCtx }]);
           }
