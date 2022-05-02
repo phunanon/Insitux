@@ -71,6 +71,9 @@ $ code --install-extension insitux.insitux-syntax
 
 ;Prompt user for input
 (prompt "Prompt message")
+
+;Execute system call
+(exec "curl -s icanhazip.com")
 ```
 
 ## Coding in Insitux
@@ -1197,6 +1200,6 @@ vector item or string character is "destructured" into.
 **and to shame myself that they still exist.**
 ⚠️ (= {:a 1 :b 2} {:b 2 :a 1}) -> false  
 ⚠️ don't capture #(var x x) - write test for it  
-⚠️ (prompt) breaking on the web REPL  
 ⚠️ (loop 3 i (print (+ 1 i)))  
 ⚠️ syntax highlighter omits commas
+⚠️ ((let x) 1) x - doesn't work

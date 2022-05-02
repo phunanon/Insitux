@@ -9,9 +9,10 @@ import { InvokeOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
 import prompt = require("prompt-sync");
 import { exit } from "process";
-import { str, _nul, _str, _vec } from "./val";
+import { jsToIx, str, _nul, _str, _vec } from "./val";
 import fetch from "cross-fetch";
 import clone = require("git-clone/promise");
+const execSync = require("child_process").execSync;
 
 const _val = (value: Val) => <ValOrErr>{ kind: "val", value };
 const githubRegex = /^(?!https*:)[^\/]+?\/[^\/]+$/;
@@ -23,10 +24,7 @@ function read(path: string, asLines: boolean) {
     return _val(_nul());
   }
   const content = readFileSync(path).toString();
-  return <ValOrErr>{
-    kind: "val",
-    value: asLines ? _vec(content.split(/\r?\n/).map(_str)) : _str(content),
-  };
+  return _val(asLines ? _vec(content.split(/\r?\n/).map(_str)) : _str(content));
 }
 
 function writeOrAppend(path: string, content: string, isAppend = false) {
@@ -77,10 +75,19 @@ function makeFunctions(workingDirectory = process.cwd()) {
         returns: ["str"],
         hasEffects: true,
       },
-      handler: params => ({
-        kind: "val",
-        value: { t: "str", v: prompt()(<string>params[0].v) },
-      }),
+      handler: params => _val(jsToIx(prompt()(<string>params[0].v))),
+    },
+    exec: {
+      definition: { params: ["str"], hasEffects: true },
+      handler: params => {
+        try {
+          return _val(jsToIx(execSync(str(params[0])).toString()));
+        } catch (e) {
+          let err = `${e}`;
+          if (e instanceof Error) err = e.message;
+          return { kind: "err", err };
+        }
+      },
     },
     import: {
       definition: {
@@ -111,10 +118,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
           printErrorOutput({ output });
           return { kind: "err", err: `errors in importing ${path}` };
         }
-        return {
-          kind: "val",
-          value: result.kind === "val" ? result.value : _nul(),
-        };
+        return _val(result.kind === "val" ? result.value : _nul());
       },
     },
   };
@@ -126,7 +130,7 @@ const env = new Map<string, Val>();
 
 function get(key: string): ValOrErr {
   return env.has(key)
-    ? { kind: "val", value: env.get(key)! }
+    ? _val(env.get(key)!)
     : { kind: "err", err: `key ${key} not found` };
 }
 

@@ -15,16 +15,16 @@
 
 (while true
   (let grid  (times (* H W) " ")
-       _grid (times (* H W) 0)
+       _grid (times (* 4 H W) 0)
        j 0)
   (while (< j PI2)
-    (let j (+ j speed-I) i 0)
+    (let j (+ j speed-J) i 0)
     (while (< i PI2)
       (let i (+ i speed-I)
            [sa sb sc sd] (map sin [a b i j])
            [ca cb cc cd] (map cos [a b i j])
-           cd+2 (+ cd 2)
-           e (/ 1 (+ (* sc cd+2 sa) (* sd ca) 5))
+           cd+2 (+ cd 2) sd*ca (* sd ca)
+           e (/ 1 (+ (* sc cd+2 sa) sd*ca 5))
            f (- (* sc cd+2 ca) (* sd sa))
            x (floor (+ (/ W 2) (* 30 e (- (* cc cd+2 cb) (* f sb)))))
            y (floor (+ (/ H 2) (* 15 e (+ (* cc cd+2 sb) (* f cb)))))
@@ -32,10 +32,9 @@
       (when (and (< 0 y H) (< 0 x W) (< (index _grid) e))
         (let z (floor (* 8 (- (* (- (* sd sa) (* sc cd ca)) cb)
                               (* sc cd sa)
-                              (* sd ca)
+                              sd*ca
                               (* cc cd sb)))))
         (var _grid (set-at [index] e _grid)
              grid  (set-at [index] ((max z 0) chars) grid)))))
   (print (calculate-screen grid))
   (var a (+ a speed-A) b (+ b speed-B)))
-

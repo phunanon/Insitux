@@ -193,3 +193,11 @@ export function pathSet(
     ),
   };
 }
+
+/** Incomplete. */
+export function jsToIx(v: unknown): Val {
+  if (typeof v === "string") {
+    return { t: "str", v };
+  }
+  return { t: "str", v: `${v}` };
+}
