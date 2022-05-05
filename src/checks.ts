@@ -1,6 +1,16 @@
 import { has, isArray, len } from "./poly-fills";
 import { ErrCtx, InvokeError, ops, typeNames, Val } from "./types";
 
+export type _Exception = { errors: InvokeError[] };
+export function _throw(errors: InvokeError[]): Val {
+  throw <_Exception>{ errors };
+}
+export function isThrown(e: unknown): e is _Exception {
+  return !!e && typeof e === "object" && "errors" in e!;
+}
+export const throwTypeErr = (msg: string, errCtx: ErrCtx) =>
+  _throw([typeErr(msg, errCtx)]);
+
 export const asBoo = (val: Val) =>
   val.t === "bool" ? val.v : val.t !== "null";
 
