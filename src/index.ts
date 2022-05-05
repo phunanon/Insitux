@@ -1,7 +1,8 @@
-export const insituxVersion = 220502;
-import { asBoo } from "./checks";
+export const insituxVersion = 220503;
+import { asBoo, isThrown, throwTypeErr, _throw } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
+import { fastOps } from "./ops";
 import { parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, sign, sqrt, floor, ceil, round, max, min, logn, log2, log10 } = pf;
@@ -22,16 +23,6 @@ import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun } from "./val";
 let letsStack: { [key: string]: Val }[] = [];
 let lets: typeof letsStack[0] = {};
 let recurArgs: undefined | Val[];
-
-type _Exception = { errors: InvokeError[] };
-function _throw(errors: InvokeError[]): Val {
-  throw <_Exception>{ errors };
-}
-function isThrown(e: unknown): e is _Exception {
-  return !!e && typeof e === "object" && "errors" in e!;
-}
-const throwTypeErr = (msg: string, errCtx: ErrCtx) =>
-  _throw([typeErr(msg, errCtx)]);
 
 function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
   switch (op) {
@@ -97,18 +88,10 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "fast=":
     case "fast!=":
       return _boo(isEqual(args[0], args[1]) === (op === "fast="));
-    case "fast-":
-      return _num(<number>args[0].v - <number>args[1].v);
-    case "fast+":
-      return _num(<number>args[0].v + <number>args[1].v);
     case "fast*":
       return _num(<number>args[0].v * <number>args[1].v);
-    case "fast/":
-      return _num(<number>args[0].v / <number>args[1].v);
     case "fast//":
       return _num(floor(<number>args[0].v / <number>args[1].v));
-    case "fast<":
-      return _boo(<number>args[0].v < <number>args[1].v);
     case "fast>":
       return _boo(<number>args[0].v > <number>args[1].v);
     case "fast<=":
@@ -158,10 +141,6 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         }
       }
       return _boo(true);
-    case "inc":
-      return _num(<number>args[0].v + 1);
-    case "dec":
-      return _num(<number>args[0].v - 1);
     case "abs":
       return _num(abs(<number>args[0].v));
     case "round":
@@ -927,6 +906,9 @@ function getExe(
 ): (params: Val[]) => Val {
   if (op.t === "str" || op.t === "func") {
     const name = op.v;
+    if (fastOps[name]) {
+      return fastOps[name](errCtx);
+    }
     if (ops[name]) {
       if (ops[name].external) {
         return (params: Val[]) => {
