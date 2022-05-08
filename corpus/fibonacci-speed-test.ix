@@ -8,7 +8,7 @@
 (function best-avg
   (when (< (len results) 2)
     (return (0 results)))
-  (let tops (sect (sort results) 0 top))
+  (let tops (first top (sort results)))
   (floor (/ (.. + tops) (len tops))))
 
 (function measure n
@@ -18,6 +18,6 @@
   (print n " " (version) ": " (1 report) " took " diff "ms"
     "   " (best-avg) "ms best avg"))
 
-(map measure (range 50))
+(map measure (range 64))
 
 (str "Average of top " top " results: " (best-avg) "ms")

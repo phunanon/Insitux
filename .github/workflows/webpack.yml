@@ -30,5 +30,6 @@ jobs:
         npx tsc -p tsconfig.npm.json
 
     - uses: JS-DevTools/npm-publish@v1
+      if: contains(github.ref, 'master')
       with:
         token: ${{ secrets.NPM_TOKEN }}
