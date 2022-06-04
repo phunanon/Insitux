@@ -929,6 +929,38 @@
 				]
 			},
 			{
+				"directory": "$dl.globals.enable_objective_markers",
+				"description": ["($dl.globals.enable_objective_markers false)", "bool value"]
+			},
+			{
+				"directory": "$dl.globals.enable_player_markers",
+				"description": ["($dl.globals.enable_player_markers false)", "bool value"]
+			},
+			{
+				"directory": "$dl.globals.replication_frequency",
+				"description": [
+					"($dl.globals.replication_frequency false)",
+					"number value",
+					"controls character replication frequency"
+				]
+			},
+			{
+				"directory": "$dl.globals.debug_offsets_runtime_regen",
+				"description": ["($dl.globals.debug_offsets_runtime_regen true)", "bool value"]
+			},
+			{
+				"directory": "$dl.globals.enable_logservice_display",
+				"description": ["($dl.globals.enable_logservice_display true)", "bool value"]
+			},
+			{
+				"directory": "$dl.globals.enable_debug_display",
+				"description": ["($dl.globals.enable_debug_display true)", "bool value"]
+			},
+			{
+				"directory": "dl.util.kill_all_lights",
+				"description": ["(dl.util.kill_all_lights)", "function", "kills all lights on the map"]
+			},
+			{
 				"directory": "$dl.globals.version",
 				"description": ["(print $dl.globals.version)", "readonly string value", "game version"]
 			},
@@ -1217,6 +1249,26 @@
 
 					"function",
 					"creates a new sound under handle"
+				]
+			},
+			{
+				"directory": "dl.sound.set_looped",
+				"description": [
+					"(dl.sound.new handle)",
+					"(dl.sound.set_looped handle id)",
+					"(dl.sound.set_looped \"handle\" true)",
+					"function",
+					"sets sound loop"
+				]
+			},
+			{
+				"directory": "dl.sound.get_looped",
+				"description": [
+					"(dl.sound.new handle)",
+					"(dl.sound.get_looped handle)",
+					"(print (dl.sound.get_looped true))",
+					"function",
+					"gets sound loop"
 				]
 			},
 			{
