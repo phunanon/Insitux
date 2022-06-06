@@ -203,6 +203,7 @@ export const ops: {
   sinh: { exactArity: 1, numeric: true },
   cosh: { exactArity: 1, numeric: true },
   tanh: { exactArity: 1, numeric: true },
+  average: { exactArity: 1, params: ["vec"], returns: ["num"] },
   vec: { returns: ["vec"] },
   dict: { returns: ["dict"] },
   len: { exactArity: 1, params: [["str", "vec", "dict"]], returns: ["num"] },

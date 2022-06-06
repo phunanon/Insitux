@@ -327,6 +327,12 @@ etc
 ;Same as str, but ignores null arguments
 (strn "Hello" null ", world!") → "Hello, world!"
 
+;Returns the average of numbers in a provided vector
+(average [1 2 -3])   → 0
+(average [1 2 4])    → 2.33333
+(average [:a 1 2.5]) → 1.75
+(average [])         → NaN
+
 ;Returns a string parsed into a number, or null
 (to-num "123") → 123
 (to-num "abc") → null
@@ -1205,3 +1211,4 @@ vector item or string character is "destructured" into.
 ⚠️ ((let x) 1) x - doesn't work
 ⚠️ ((tests true)) crashes
 ⚠️ ((null)) crashes
+⚠️ (->) crashes

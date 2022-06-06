@@ -1,4 +1,4 @@
-export const insituxVersion = 220502;
+export const insituxVersion = 220606;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -191,6 +191,17 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "tanh": {
       const f = { asin, acos, atan, sinh, cosh, tanh }[op];
       return _num(f(num(args[0])));
+    }
+    case "average": {
+      const src = vec(args[0]);
+      let sum = 0, count = 0;
+      for (let i = 0, lim = len(src); i < lim; ++i) {
+        if (src[i].t === "num") {
+          sum += num(src[i]);
+          ++count;
+        }
+      }
+      return _num(sum / count);
     }
     case "and":
       return _boo(args.every(asBoo));
