@@ -1,6 +1,7 @@
 import { arityCheck, keyOpErr, numOpErr, typeCheck } from "./checks";
 import { makeClosure } from "./closure";
 import * as pf from "./poly-fills";
+import { transpileNamedNodes } from "./transpile";
 const { has, flat, push, slice, splice } = pf;
 const { slen, starts, sub, substr, strIdx, subIdx } = pf;
 const { isNum, len, toNum } = pf;
@@ -12,15 +13,15 @@ export type Token = {
   text: string;
   errCtx: ErrCtx;
 };
-type Node = Token | Node[];
+export type Node = Token | Node[];
 type ParserIns = Ins | { typ: "err"; value: string; errCtx: ErrCtx };
 const nullVal: Val = { t: "null", v: undefined };
 const falseVal = <Val>{ t: "bool", v: false };
-type NamedNodes = {
+export type NamedNodes = {
   name: string;
   nodes: Node[];
 };
-const isToken = (node: Node | undefined): node is Token =>
+export const isToken = (node: Node | undefined): node is Token =>
   !!node && "errCtx" in node;
 const symAt = (node: Node, pos = 0) => {
   if (isToken(node)) {
@@ -595,7 +596,7 @@ function parseArg(node: Node, params: ParamsShape): ParserIns[] {
  * "(fn "
  * "(function "
  * */
-function parseParams(
+export function parseParams(
   nodes: Node[],
   consumeLast: boolean,
   position: number[] = [],
@@ -857,6 +858,17 @@ export function parse(
       namedNodes.push({ name: nodeOrErr.name, nodes: nodeOrErr.nodes });
     }
   });
+  const bundle = transpileNamedNodes(
+    namedNodes.map(x => ({ nodes: x.nodes.slice(), name: x.name })),
+  );
+  const transpiled =
+    bundle.global +
+    Object.keys(bundle)
+      .filter(x => x !== "global")
+      .map(x => `//${x}\n${bundle[x]}`)
+      .join("\n") +
+    "\n\nops.entry();";
+  console.log(transpiled);
   namedNodes.map(compileFunc).forEach(fae => {
     if ("e" in fae) {
       errors.push(fae);
@@ -869,124 +881,4 @@ export function parse(
   okFuncs.forEach(func => (funcs[func.name ?? ""] = func));
 
   return { errors, funcs };
-  return {
-    errors,
-    funcs: {
-      entry: {
-        name: "entry",
-        ins: [
-          {
-            typ: "val",
-            value: { t: "str", v: "testing.js" },
-            errCtx: { invokeId: "", line: 0, col: 0 },
-          },
-          {
-            typ: "val",
-            value: { t: "str", v: transpile(funcs) },
-            errCtx: { invokeId: "", line: 0, col: 0 },
-          },
-          {
-            typ: "val",
-            value: { t: "func", v: "write" },
-            errCtx: { invokeId: "", line: 0, col: 0 },
-          },
-          { typ: "exe", value: 2, errCtx: { invokeId: "", line: 0, col: 0 } },
-        ],
-      },
-    },
-  };
-}
-
-function transpileIns(instructions: Ins[]): string[] {
-  const transpiled: string[] = [];
-  for (let i = 0; i < len(instructions); i++) {
-    const ins = instructions[i];
-    switch (ins.typ) {
-      case "val":
-        switch (ins.value.t) {
-          case "str":
-          case "func":
-            transpiled.push(`stack.push("${ins.value.v}");`);
-            break;
-          case "num":
-            transpiled.push(`stack.push(${ins.value.v});`);
-            break;
-          default:
-            transpiled.push(JSON.stringify(ins.value) + "?");
-            break;
-        }
-        break;
-      case "exe":
-        transpiled.push(`var op = stack.pop();`)
-        transpiled.push(
-          `var params = stack.splice(stack.length - (1 + ${ins.value - 1}), ${ins.value});`,
-        );
-        transpiled.push(`stack.push(ops[op](...params));`);
-        break;
-      case "npa":
-        transpiled.push(`stack.push(args[${ins.value}]);`);
-        break;
-      case "if":
-        transpiled.push(`if (stack.pop()) {`);
-        transpiled.push(
-          ...transpileIns(slice(instructions, i + 1, i + ins.value)).map(
-            s => "  " + s,
-          ),
-        );
-        transpiled.push(`}`);
-        i += ins.value - 1;
-        break;
-      case "jmp":
-        transpiled.push(`else {`);
-        transpiled.push(
-          ...transpileIns(slice(instructions, i + 1, i + ins.value + 1)).map(
-            s => "  " + s,
-          ),
-        );
-        transpiled.push(`}`);
-        i += ins.value;
-        break;
-      default:
-        transpiled.push(JSON.stringify(ins) + "?");
-    }
-  }
-  return transpiled;
-}
-
-function transpileFunc({ name, ins }: Func): string {
-  const transpiled = transpileIns(ins);
-  return `ops["${name}"] = function(...args) {
-  var stack = [];
-  ${transpiled.join("\n  ")}
-  return stack.pop();
-}`;
-}
-
-function transpile(funcs: Funcs): string {
-  return `
-var ops = {
-  dec(x) { return x - 1; },
-  str(...args) {
-    return args.join("");
-  },
-  version() {
-    return "22.5.8";
-  },
-  print(...args) {
-    console.log(args.join(""));
-  },
-  "fast+": (...args) => {
-    return args[0] + args[1];
-  },
-  "fast-": (...args) => {
-    return args[0] - args[1];
-  },
-  "fast<": (...args) => {
-    return args[0] < args[1];
-  }
-}
-
-${Object.values(funcs).map(transpileFunc).join("\n")}
-
-console.log(ops.entry());`;
 }
