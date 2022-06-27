@@ -692,6 +692,12 @@ etc
 ((pos-juxt inc dec (+ 10)) [1 1 1]) → [2 0 11]
 ((pos-juxt inc dec) [0 1 2])        → [1 0]
 
+;Compose multiple functions to be executed one after the other, with the result
+;  of the previous function being fed into the next function
+((comp + inc) 8 8 8) → 25
+((comp * floor) PI PI) → 9
+((comp (* 2) str reverse) 10) → "02"
+
 ;Treats its arguments as an expression, first argument as the expression head
 (. + 2 2) → 4
 (map . [+ -] [10 12] [13 6])
@@ -1102,6 +1108,10 @@ vector item or string character is "destructured" into.
 (find-two-in-row "Hello") → "l"
 
 
+; Add thousands separator
+(var thousands #(-> % str reverse (partition 3) reverse (join ",")))
+(thousands 1234567890) → "1,432,765,098"
+
 ; Clojure's comp
 (function comp f
   (let funcs (sect args))
@@ -1170,7 +1180,7 @@ vector item or string character is "destructured" into.
 
 
 ; Neural network for genetic algorithms with two hidden layers
-(function sigmoid (/ 1 (inc (** E (- %)))))
+(function sigmoid (/ 1 (inc (** E (neg %)))))
 (function m (< .8 (rand)))
 
 (function make-brain  num-in num-out num-hid
@@ -1187,8 +1197,8 @@ vector item or string character is "destructured" into.
 
 (function neuron-think  inputs neuron
   (let weighted (map * (:weights neuron) inputs)
-       average  (/ (.. + weighted) (len inputs)))
-  (sigmoid (+ average (:bias neuron))))
+       avg      (average weighted))
+  (sigmoid (+ avg (:bias neuron))))
 
 (function think  brain inputs
   (reduce (fn in layer (map @(neuron-think in) layer))

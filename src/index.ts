@@ -1,4 +1,4 @@
-export const insituxVersion = 220606;
+export const insituxVersion = 220627;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -194,7 +194,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     }
     case "average": {
       const src = vec(args[0]);
-      let sum = 0, count = 0;
+      let sum = 0;
+      let count = 0;
       for (let i = 0, lim = len(src); i < lim; ++i) {
         if (src[i].t === "num") {
           sum += num(src[i]);
@@ -327,6 +328,27 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         t: "clo",
         v: <Func>{
           name: `(pos-juxt ${args.map(val2str).join(" ")})`,
+          ins,
+        },
+      };
+    }
+    case "comp": {
+      const ins: Ins[] = [
+        { typ: "val", value: args[0], errCtx },
+        { typ: "upa", value: -1, text: "args", errCtx },
+        { typ: "val", value: _fun("..."), errCtx },
+        { typ: "exe", value: 2, errCtx },
+        ...flat(
+          slice(args, 1).map(value => [
+            <Ins>{ typ: "val", value, errCtx },
+            <Ins>{ typ: "exe", value: 1, errCtx },
+          ]),
+        ),
+      ];
+      return {
+        t: "clo",
+        v: <Func>{
+          name: `(comp ${args.map(val2str).join(" ")})`,
           ins,
         },
       };

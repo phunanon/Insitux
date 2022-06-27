@@ -232,6 +232,7 @@ export const ops: {
   },
   juxt: { returns: ["clo"] },
   "pos-juxt": { returns: ["clo"] },
+  comp: { minArity: 2, returns: ["clo"] },
   map: { minArity: 2, returns: ["vec"] },
   xmap: {
     minArity: 2,
