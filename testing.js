@@ -69,4 +69,13 @@ ops["entry"] = function(...args) {
   return stack.pop();
 }
 
-console.log(ops.entry());
+let deltas = [];
+for (let i = 0; i < 100; ++i) {
+  const start = Date.now();
+  ops.entry();
+  let delta = Date.now() - start;
+  deltas.push(delta);
+  console.log(`${delta}ms`);
+}
+deltas.sort();
+console.log(`Median: ${deltas[deltas.length / 2]}ms`);
