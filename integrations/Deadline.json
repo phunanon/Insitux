@@ -868,12 +868,21 @@
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.set_player_weapon",
+				"directory": "dl.players.${any}.set_player_weapon",
 				"description": [
-					"(print $dl.players.${any}.set_player_weapon slot name setup)",
+					"(dl.players.${any}.set_player_weapon slot name setup)",
 					"function",
 					"replaces the weapon of player in slot with another weapon with setup, if they are alive",
 					"best used with dl.events.on_player_spawned"
+				]
+			},
+            {
+				"directory": "dl.util.read_setup",
+				"description": [
+					"(print $dl.util.read_setup setup_code)",
+					"(print $dl.util.read_setup \"nrel-some-code-idk\")",
+					"function",
+					"reads the gun code for setup_code"
 				]
 			},
 			{
