@@ -858,12 +858,22 @@
 					"returns -1 if they are not"
 				]
 			},
-			{
-				"directory": "$dl.players.${any}.direction",
+            {
+				"directory": "$dl.players.${any}.health",
 				"description": [
-					"(print $dl.players.${any}.direction)",
-					"readonly vector3 value",
-					"facing direction of \"${any}\", if they are alive"
+					"(print $dl.players.${any}.health)",
+					"number value",
+					"health of \"${any}\", if they are alive",
+					"returns -1 if they are not"
+				]
+			},
+			{
+				"directory": "$dl.players.${any}.set_player_weapon",
+				"description": [
+					"(print $dl.players.${any}.set_player_weapon slot name setup)",
+					"function",
+					"replaces the weapon of player in slot with another weapon with setup, if they are alive",
+                    "best used with dl.events.on_player_spawned"
 				]
 			},
 			{
@@ -926,6 +936,38 @@
 					"($dl.globals.is_chat_disabled false)",
 					"bool value",
 					"controls whether players can type in the chat"
+				]
+			},
+            {
+				"directory": "$dl.globals.gamemode_time_to_capture",
+				"description": [
+					"($dl.globals.gamemode_time_to_capture 5)",
+					"number value",
+					"controls how long points in non-push take to capture"
+				]
+			},
+            {
+				"directory": "$dl.globals.airkill",
+				"description": [
+					"($dl.globals.airkill false)",
+					"bool value",
+					"controls whether players who spend too long in the air will die"
+				]
+			},
+            {
+				"directory": "$dl.globals.gamemode_points_per_second",
+				"description": [
+					"($dl.globals.gamemode_points_per_second 5)",
+					"number value",
+					"controls how many points per second captured capture points earn in gamemodes"
+				]
+			},
+            {
+				"directory": "$dl.globals.debug_player_speed",
+				"description": [
+					"($dl.globals.debug_player_speed 5)",
+					"number value",
+					"global player speed multiplier"
 				]
 			},
 			{
@@ -1367,7 +1409,7 @@
 			},
 
 			{
-				"directory": "$dl.util.explosion",
+				"directory": "dl.util.explosion",
 				"description": [
 					"(dl.util.explosion [x y z] grenade)",
 					"(dl.util.explosion [0 0 0])",
@@ -1377,7 +1419,7 @@
 				]
 			},
 			{
-				"directory": "$dl.util.fmessage",
+				"directory": "dl.util.fmessage",
 				"description": [
 					"(dl.util.fmessage message)",
 					"admin-restricted function",
@@ -1385,16 +1427,16 @@
 				]
 			},
 			{
-				"directory": "$dl.util.set_map",
+				"directory": "dl.util.set_map",
 				"description": ["(dl.util.set_map target_map)", "function", "sets current map to target_map"]
 			},
 			{
-				"directory": "$dl.util.set_preset",
+				"directory": "dl.util.set_preset",
 				"description": ["(dl.util.set_preset lighting)", "function", "sets map lighting to lighting"]
 			},
 			{
-				"directory": "$dl.util.set_gamemode",
-				"description": ["(dl.util.set_gamemode)", "function", "resets gamemode to push"]
+				"directory": "dl.util.set_gamemode",
+				"description": ["(dl.util.set_gamemode \"tdm\")", "function", "resets gamemode to the chosen gamemode"]
 			},
 			{
 				"directory": "$dl.util.fire",
