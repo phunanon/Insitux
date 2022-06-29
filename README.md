@@ -764,6 +764,9 @@ etc
 - Write `\"` inside of a string to represent `"`, `\n` to represent a newline,
   `\t` to represent a tab character.
 
+- `'` can be alternatively used to start and end strings, freely containing `"`.
+  Use `\'` inside one of these strings to represent `'`.
+
 - Write decimal numbers either `0.123` or `.123`.
 
 - Hexadecimal can be written as, for example `0xFFF`

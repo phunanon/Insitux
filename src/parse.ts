@@ -65,7 +65,8 @@ export function tokenise(
 ) {
   const tokens: Token[] = [];
   const isDigit = (ch: string) => sub("0123456789", ch);
-  let [inString, line, col, inStringAt] = [false, 1, 0, [1, 0]];
+  let inString = false as false | "'" | '"';
+  let [line, col, inStringAt] = [1, 0, [1, 0]];
   let [inSymbol, inNumber, inHex] = [false, false, false];
   for (let i = 0, l = slen(code); i < l; ++i) {
     const c = strIdx(code, i),
@@ -73,7 +74,7 @@ export function tokenise(
     ++col;
     if (c === "\\" && inString) {
       tokens[len(tokens) - 1].text += doTransforms
-        ? { n: "\n", t: "\t", r: "\r", '"': '"' }[nextCh] ||
+        ? { n: "\n", t: "\t", r: "\r", '"': '"', "'": "'" }[nextCh] ||
           (nextCh === "\\" ? "\\" : `\\${nextCh}`)
         : `\\${nextCh}`;
       ++col;
@@ -81,8 +82,9 @@ export function tokenise(
       continue;
     }
     const errCtx: ErrCtx = { invokeId, line, col };
-    if (c === '"') {
-      if ((inString = !inString)) {
+    if ((c === '"' || c === "'") && (!inString || inString === c)) {
+      inString = inString ? false : c;
+      if (inString) {
         inStringAt = [line, col];
         tokens.push({ typ: "str", text: "", errCtx });
       }
@@ -665,7 +667,7 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   //Check for double-quote imbalance
   if (stringError) {
     const [line, col] = stringError;
-    err("unmatched double quotation marks", { invokeId, line, col });
+    err("unmatched quotation mark", { invokeId, line, col });
     return errors;
   }
 
