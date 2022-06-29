@@ -858,7 +858,7 @@
 					"returns -1 if they are not"
 				]
 			},
-            {
+			{
 				"directory": "$dl.players.${any}.health",
 				"description": [
 					"(print $dl.players.${any}.health)",
@@ -873,7 +873,7 @@
 					"(print $dl.players.${any}.set_player_weapon slot name setup)",
 					"function",
 					"replaces the weapon of player in slot with another weapon with setup, if they are alive",
-                    "best used with dl.events.on_player_spawned"
+					"best used with dl.events.on_player_spawned"
 				]
 			},
 			{
@@ -938,7 +938,7 @@
 					"controls whether players can type in the chat"
 				]
 			},
-            {
+			{
 				"directory": "$dl.globals.gamemode_time_to_capture",
 				"description": [
 					"($dl.globals.gamemode_time_to_capture 5)",
@@ -946,7 +946,7 @@
 					"controls how long points in non-push take to capture"
 				]
 			},
-            {
+			{
 				"directory": "$dl.globals.airkill",
 				"description": [
 					"($dl.globals.airkill false)",
@@ -954,7 +954,7 @@
 					"controls whether players who spend too long in the air will die"
 				]
 			},
-            {
+			{
 				"directory": "$dl.globals.gamemode_points_per_second",
 				"description": [
 					"($dl.globals.gamemode_points_per_second 5)",
@@ -962,12 +962,16 @@
 					"controls how many points per second captured capture points earn in gamemodes"
 				]
 			},
-            {
+			{
 				"directory": "$dl.globals.debug_player_speed",
+				"description": ["($dl.globals.debug_player_speed 5)", "number value", "global player speed multiplier"]
+			},
+			{
+				"directory": "$dl.globals.debug_player_jump_force",
 				"description": [
-					"($dl.globals.debug_player_speed 5)",
+					"($dl.globals.debug_player_jump_force 5)",
 					"number value",
-					"global player speed multiplier"
+					"global player jump force multiplier"
 				]
 			},
 			{
