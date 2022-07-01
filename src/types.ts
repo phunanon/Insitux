@@ -1,3 +1,5 @@
+export const insituxVersion = 220502;
+
 export type Val =
   | { t: "vec"; v: Val[] }
   | { t: "str" | "func" | "key" | "ref"; v: string }
