@@ -1,4 +1,3 @@
-export const insituxVersion = 220502;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -13,7 +12,7 @@ const { charCode, codeChar, getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum, isArray } = pf;
 import { doTests } from "./test";
 import { assertUnreachable, Env, InvokeError, InvokeResult } from "./types";
-import { ExternalFunctions, syntaxes } from "./types";
+import { ExternalFunctions, syntaxes, insituxVersion } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
 import { dic, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
