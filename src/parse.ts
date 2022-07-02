@@ -858,6 +858,7 @@ export function parse(
       namedNodes.push({ name: nodeOrErr.name, nodes: nodeOrErr.nodes });
     }
   });
+  ////
   const bundle = transpileNamedNodes(
     namedNodes.map(x => ({ nodes: x.nodes.slice(), name: x.name })),
   );
@@ -866,9 +867,10 @@ export function parse(
     Object.keys(bundle)
       .filter(x => x !== "global")
       .map(x => `//${x}\n${bundle[x]}`)
-      .join("\n") +
-    "\n\nops.entry();";
+      .join("\n");
   console.log(transpiled);
+  eval(transpiled);
+  ////
   namedNodes.map(compileFunc).forEach(fae => {
     if ("e" in fae) {
       errors.push(fae);

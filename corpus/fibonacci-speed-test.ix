@@ -18,6 +18,6 @@
   (print n " " (version) ": " (1 report) " took " diff "ms"
     "   " (best-avg) "ms best avg"))
 
-(map measure (range 64))
+(times 64 measure)
 
 (str "Average of top " top " results: " (best-avg) "ms")

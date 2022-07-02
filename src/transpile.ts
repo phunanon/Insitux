@@ -23,10 +23,16 @@ export function transpileNamedNodes(funcs: NamedNodes[]): JsBundle {
       bundle = { ...bundle, ...expression.bundle };
     }
     const params = shape.map(x => x.name).join(", ");
-    const noReturnExpressions = resolved.slice(0, -1);
-    if (noReturnExpressions.length) {
+    const sansReturn = resolved.slice(0, -1);
+    if (name === "entry") {
+      const a = joinJs(sansReturn, ";\n") + (sansReturn.length ? ';\n' : '');
+      const b = resolved[resolved.length - 1].js;
+      bundle[name] = `${a}console.log(${b});`;
+      return;
+    }
+    if (sansReturn.length) {
       bundle[name] = `ops["${name}"] = function(${params}) {
-  ${joinJs(noReturnExpressions, ";\n")};
+  ${joinJs(sansReturn, ";\n")};
   return ${resolved[resolved.length - 1].js};
 }`;
     } else {
@@ -106,6 +112,9 @@ function resolveArg(arg: Node): Resolved {
 
 type ResolvedOperation = { inline?: Transformer; standalone: JsBundle };
 
+const asBool =
+  "const asBool = x => !(x === false || x === undefined || x === null);";
+
 const transOps: { [name: string]: ResolvedOperation } = {
   inc: {
     inline: ([n]) => ({ js: `${n.js} + 1` }),
@@ -165,10 +174,15 @@ const transOps: { [name: string]: ResolvedOperation } = {
     inline: ([a, b, c]) => ({
       js: `(asBool(${a.js}) ? ${b.js} : ${c.js})`,
       as: ["any"],
-      bundle: {
-        asBool:
-          "const asBool = x => !(x === false || x === undefined || x === null);",
-      },
+      bundle: { asBool },
+    }),
+    standalone: {},
+  },
+  when: {
+    inline: ([a, b]) => ({
+      js: `(asBool(${a.js}) ? ${b.js} : null)`,
+      as: ["any"],
+      bundle: { asBool },
     }),
     standalone: {},
   },
