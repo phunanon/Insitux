@@ -1215,13 +1215,12 @@ vector item or string character is "destructured" into.
 ```
 
 
-**Known bugs I put here to make sure I can't lose them,**  
-**and to shame myself that they still exist.**
-⚠️ (= {:a 1 :b 2} {:b 2 :a 1}) -> false  
-⚠️ don't capture #(var x x) - write test for it  
-⚠️ (loop 3 i (print (+ 1 i)))  
-⚠️ syntax highlighter omits commas
-⚠️ ((let x) 1) x - doesn't work
-⚠️ ((tests true)) crashes
-⚠️ ((null)) crashes
-⚠️ (->) crashes
+# **Known bugs I put here to make sure I can't lose them, and to utterly put myself to shame over the fact that they still exist.**
+- ⚠️ (= {:a 1 :b 2} {:b 2 :a 1}) -> false  
+- ⚠️ don't capture #(var x x) - write test for it  
+- ⚠️ (loop 3 i (print (+ 1 i)))  
+- ⚠️ syntax highlighter omits commas
+- ⚠️ ((let x) 1) x - doesn't work
+- ⚠️ ((tests true)) crashes
+- ⚠️ ((null)) crashes
+- ⚠️ (->) crashes (oh dear)
