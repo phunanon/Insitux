@@ -496,10 +496,13 @@ etc
 etc
 
 ;Returns particular sections of a string or vector
-(skip 1 "hello")   → "ello"
-(first 2 "hello")  → "he"
-(last 2 "hello")   → "lo"
-(crop 1 1 "hello") → "ell"
+(skip 1 "hello")      → "ello"
+(first 2 "hello")     → "he"
+(last 2 "hello")      → "lo"
+(crop 1 1 "hello")    → "ell"
+(crop 0 -3 "abcdef")  → "abc"
+(crop -3 0 "abcdef")  → "def"
+(crop -4 -4 "abcdef") → "cd"
 
 ;Filter a vector or string by a function, optionally passing extra arguments.
 ;Return value is the same type as the second argument.
