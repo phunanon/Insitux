@@ -495,6 +495,9 @@ function parseForm(
       const value = makeClosure(name, outerParams, cloParams, cins);
       return [{ typ: "clo", value, errCtx }, ...cins];
     } else if (op === "->") {
+      if (!len(nodes)) {
+        return err(`missing body`, errCtx);
+      }
       const newNodes = nodes.reduce((acc, node) => [node, acc]) as Node[];
       const parsed = parseForm(newNodes, params);
       return parsed;
@@ -727,10 +730,9 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
           args.findIndex(
             ({ types }) => types && !okTypes.find(t => has(types, t)),
           );
-        const headIs = (t: Val["t"]) =>
-          head.val
-            ? head.val.t === t
-            : head.types && len(head.types) === 1 && head.types[0] === t;
+        const headType = head.val
+          ? head.val.t
+          : head.types && len(head.types) === 1 && head.types[0];
         if (head.val && head.val.t === "func") {
           if (head.val.v === "recur") {
             splice(stack, len(stack) - ins.value, ins.value);
@@ -751,19 +753,19 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
               ? { types: ["num"] }
               : { types: returns },
           );
-        } else if (headIs("num")) {
+        } else if (headType === "num") {
           const badArg = badMatch(["str", "dict", "vec"]);
           if (badArg !== -1) {
             return numOpErr(ins.errCtx, args[badArg].types!);
           }
           stack.push({});
-        } else if (headIs("key")) {
+        } else if (headType === "key") {
           const badArg = badMatch(["dict", "vec"]);
           if (badArg !== -1) {
             return keyOpErr(ins.errCtx, args[badArg].types!);
           }
           stack.push({});
-        } else if (headIs("str") || headIs("bool")) {
+        } else if (headType && has(["str", "bool", "null"], headType)) {
           stack.push({});
         } else if (!head.types && !head.val) {
           stack.push({});

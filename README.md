@@ -1225,6 +1225,3 @@ vector item or string character is "destructured" into.
 ⚠️ (loop 3 i (print (+ 1 i)))  
 ⚠️ syntax highlighter omits commas
 ⚠️ ((let x) 1) x - doesn't work
-⚠️ ((tests true)) crashes
-⚠️ ((null)) crashes
-⚠️ (->) crashes

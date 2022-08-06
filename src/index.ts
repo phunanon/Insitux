@@ -867,8 +867,12 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _num(getTimeMs());
     case "version":
       return _num(insituxVersion);
-    case "tests":
-      return _str(doTests(invoke, !(len(args) && asBoo(args[0]))).join("\n"));
+    case "tests": {
+      const letsTemp = lets;
+      const summary = doTests(invoke, !(len(args) && asBoo(args[0])));
+      lets = letsTemp;
+      return _str(summary.join("\n"));
+    }
     case "symbols": {
       let syms = symbols(ctx.env, false);
       if (len(args) && asBoo(args[0])) {
