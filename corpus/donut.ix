@@ -6,6 +6,7 @@
      a 0 b 0)
 
 (var last-ms (time))
+;(var num 0)
 
 (function calculate-screen screen
   (let prev-ms last-ms)
@@ -29,6 +30,8 @@
            x (floor (+ (/ W 2) (* 30 e (- (* cc cd+2 cb) (* f sb)))))
            y (floor (+ (/ H 2) (* 15 e (+ (* cc cd+2 sb) (* f cb)))))
            index (+ x (* W y)))
+      ;(print num " " (round 3 i) ", " (round 3 j))
+      ;(var! num inc)
       (when (and (< 0 y H) (< 0 x W) (< (index _grid) e))
         (let z (floor (* 8 (- (* (- (* sd sa) (* sc cd ca)) cb)
                               (* sc cd sa)
