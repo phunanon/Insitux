@@ -161,7 +161,10 @@ function treeise(tokens: Token[]): Node[] {
     if (tokens[0].typ === "sym" && sub("@#", tokens[0].text)) {
       prefix = tokens.shift()!;
     }
-    const token = tokens.shift()!;
+    const token = tokens.shift();
+    if (!token) {
+      return [];
+    }
     if (token.typ !== "(" && token.typ !== ")") {
       return token;
     }
@@ -839,6 +842,9 @@ export function parse(
   const okFuncs: Func[] = [],
     errors: InvokeError[] = [];
   const tree = treeise(slice(tokens));
+  if (!len(tree)) {
+    return { funcs: {}, errors };
+  }
   const collected = collectFuncs(tree);
   const namedNodes: NamedNodes[] = [];
   collected.forEach(nodeOrErr => {
