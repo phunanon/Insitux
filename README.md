@@ -524,6 +524,13 @@ etc
 (count odd? (range 10)) → 5
 (count = [1 1 2 3 3] 1) → 2
 
+;Returns a boolean on whether all vector items, dictionary entries, or string
+;  characters satisfy a predicate 
+(all? odd? (range 10))      → false
+(all? even? (range 0 10 2)) → true
+(all? ["a" "b"] "ababaaba") → true
+(all? #(% 1) {:a 1 :b 1})   → true
+
 ;Returns a vector of either a function called N times with the incrementation,
 ; or a value repeated N times
 (repeat 1 5)   → [1 1 1 1 1]

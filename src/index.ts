@@ -1,4 +1,4 @@
-export const insituxVersion = 220806;
+export const insituxVersion = 220807;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { makeEnclosure } from "./closure";
@@ -360,7 +360,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "filter":
     case "remove":
     case "find":
-    case "count": {
+    case "count":
+    case "all?": {
       const closure = getExe(ctx, args.shift()!, errCtx);
       if (op === "map" || op === "for") {
         const badArg = args.findIndex(
@@ -411,12 +412,17 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         const array = asArray(arrArg);
         const isRemove = op === "remove",
           isFind = op === "find",
-          isCount = op === "count";
+          isCount = op === "count",
+          isAll = op === "all?";
         const filtered: Val[] = [];
         let count = 0;
         for (let i = 0, lim = len(array); i < lim; ++i) {
           const b = asBoo(closure([array[i], ...args]));
-          if (isCount) {
+          if (isAll) {
+            if (!b) {
+              return _boo(false);
+            }
+          } else if (isCount) {
             count += b ? 1 : 0;
           } else if (isFind) {
             if (b) {
@@ -431,6 +437,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
             return _num(count);
           case "find":
             return _nul();
+          case "all?":
+            return _boo(true);
         }
         if (arrArg.t === "str") {
           return _str(filtered.map(v => val2str(v)).join(""));

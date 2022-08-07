@@ -258,6 +258,11 @@ export const ops: {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["num"],
   },
+  "all?": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["bool"],
+  },
   repeat: { minArity: 2, params: ["any", "num"] },
   times: { minArity: 2, params: ["num", "any"] },
   str: { returns: ["str"] },
