@@ -399,6 +399,11 @@ etc
 (map + [0 1 2 3] [4 5 6]) → [4 5 8]
 (map str "abc" "xyz")     → ["ax" "by" "cz"]
 
+;Works the same as map, but concatenates the returned vectors and items
+(flat-map (juxt dec inc) (range 3)) → [-1 1 0 2 1 3]
+(flat-map (times 2) (range 3))      → [0 0 1 1 2 2]
+(flat-map val [0 1 [2 3] 4 5])      → [0 1 2 3 4 5]
+
 ;Same as map, but only (f i item), where i is an increasing index from 0
 (xmap vec "hello")
 → [[0 "h"] [1 "e"] [2 "l"] [3 "l"] [4 "o"]]

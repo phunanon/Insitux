@@ -234,6 +234,7 @@ export const ops: {
   "pos-juxt": { returns: ["clo"] },
   comp: { minArity: 2, returns: ["clo"] },
   map: { minArity: 2, returns: ["vec"] },
+  "flat-map": { minArity: 2, returns: ["vec"] },
   xmap: {
     minArity: 2,
     params: ["any", ["vec", "str", "dict"]],

@@ -354,6 +354,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       };
     }
     case "map":
+    case "flat-map":
     case "for":
     case "reduce":
     case "reductions":
@@ -397,14 +398,25 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         return _vec(array);
       }
 
-      if (op === "map") {
+      if (op === "map" || op === "flat-map") {
         const arrays = args.map(asArray);
         const shortest = min(...arrays.map(len));
         const array: Val[] = [];
         for (let i = 0; i < shortest; ++i) {
           array.push(closure(arrays.map(a => a[i])));
         }
-        return _vec(array);
+        if (op === "map") {
+          return _vec(array);
+        }
+        const flatArray: Val[] = [];
+        for (const v of array) {
+          if (v.t === "vec") {
+            push(flatArray, v.v);
+          } else {
+            flatArray.push(v);
+          }
+        }
+        return _vec(flatArray);
       }
 
       if (op !== "reduce" && op != "reductions") {
