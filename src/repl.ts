@@ -2,10 +2,10 @@
 import readline = require("readline");
 import { appendFileSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { unlinkSync, existsSync, mkdirSync } from "fs";
-import { insituxVersion, symbols } from ".";
+import { symbols } from ".";
 import { join as pathJoin, dirname } from "path";
-import { Ctx, defaultCtx, ExternalFunctions, Val, ValOrErr } from "./types";
-import { Operation } from "./types";
+import { Ctx, defaultCtx, insituxVersion, Val, ValOrErr } from "./types";
+import { Operation, ExternalFunctions } from "./types";
 import { InvokeOutput, invoker, parensRx } from "./invoker";
 import { tokenise } from "./parse";
 import prompt = require("prompt-sync");

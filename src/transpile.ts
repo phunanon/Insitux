@@ -1,15 +1,17 @@
 import { isToken, NamedNodes, parseParams, Node, Token } from "./parse";
-import { insituxVersion, Operation, ops } from "./types";
+import { insituxVersion, ops } from "./types";
+const { floor } = Math;
 
-type JsBlob = string;
+type JsBlob = string | ((...args: any[]) => any);
 type JsBundle = { [name: string]: JsBlob };
 type Resolved = {
   js: string;
-  as?: Operation["params"];
+  sym?: true;
+  key?: string;
   bundle?: JsBundle;
 };
 
-const joinJs = (list: Resolved[], text: string) =>
+const joinJs = (list: Resolved[], text = ", ") =>
   list.map(x => x.js).join(text);
 
 export function transpileNamedNodes(funcs: NamedNodes[]): JsBundle {
@@ -25,7 +27,7 @@ export function transpileNamedNodes(funcs: NamedNodes[]): JsBundle {
     const params = shape.map(x => x.name).join(", ");
     const sansReturn = resolved.slice(0, -1);
     if (name === "entry") {
-      const a = joinJs(sansReturn, ";\n") + (sansReturn.length ? ';\n' : '');
+      const a = joinJs(sansReturn, ";\n") + (sansReturn.length ? ";\n" : "");
       const b = resolved[resolved.length - 1].js;
       bundle[name] = `${a}console.log(${b});`;
       return;
@@ -48,9 +50,9 @@ const resolveNode = (n: Node) =>
 function resolveToken(node: Token): Resolved {
   switch (node.typ) {
     case "num":
-      return { js: node.text, as: ["num"] };
+      return { js: node.text };
     case "str":
-      return { js: `"${node.text}"`, as: ["str"] };
+      return { js: `"${node.text}"` };
     case "sym": {
       if (ops[node.text]) {
         return {
@@ -58,10 +60,13 @@ function resolveToken(node: Token): Resolved {
           bundle: transOps[node.text].standalone,
         };
       }
-      return { js: node.text, as: ["any"] };
+      if (node.text.startsWith(":")) {
+        return { js: `"${node.text}"`, key: node.text.slice(1) };
+      }
+      return { js: node.text, sym: true };
     }
   }
-  return { js: "?", as: ["null"] };
+  return { js: "?", sym: true };
 }
 
 const resolveExpression = ([head, ...body]: Node[]): Resolved => {
@@ -86,7 +91,7 @@ function getOp(node: Node): Transformer {
     if (op) {
       const { inline, standalone } = op;
       return inline
-        ? args => ({ ...inline(args), as: ops[node.text]?.returns ?? ["any"] })
+        ? args => inline(args)
         : args => ({
             js: `ops[${node.text}](${joinJs(args, ", ")})`,
             bundle: standalone,
@@ -94,13 +99,12 @@ function getOp(node: Node): Transformer {
     }
     return (args: Resolved[]) => ({
       js: `ops["${node.text}"](${joinJs(args, ", ")})`,
-      as: ["any"],
     });
   } else {
     const { js, bundle } = resolveExpression(node);
     return args => ({
       js: `${js}(${joinJs(args, ", ")})`,
-      as: ["any"],
+
       bundle,
     });
   }
@@ -112,12 +116,20 @@ function resolveArg(arg: Node): Resolved {
 
 type ResolvedOperation = { inline?: Transformer; standalone: JsBundle };
 
-const asBool =
-  "const asBool = x => !(x === false || x === undefined || x === null);";
+const asBool = (x: unknown) => !(x === false || x === undefined || x === null);
+
+const partition = <T>(n: number, arr: T[]) => {
+  const result = [];
+  for (let i = 0; i < arr.length; i += n) {
+    result.push(arr.slice(i, i + n));
+  }
+  return result;
+};
+const evenArgs = <T>(args: T[]) => args.slice(0, floor(args.length / 2) * 2);
 
 const transOps: { [name: string]: ResolvedOperation } = {
   inc: {
-    inline: ([n]) => ({ js: `${n.js} + 1` }),
+    inline: ([n]) => ({ js: `${n.js} + 1`, as: ["num"] }),
     standalone: { inc: "ops['inc'] = ([n]) => n + 1;" },
   },
   dec: {
@@ -125,19 +137,27 @@ const transOps: { [name: string]: ResolvedOperation } = {
     standalone: { dec: "ops['dec'] = ([n]) => n + 1;" },
   },
   "+": {
-    inline: args => ({
-      js: joinJs(args, " + "),
-    }),
+    inline: args => ({ js: joinJs(args, " + ") }),
     standalone: {
       "+": `ops['+'] = (...args) => args.reduce((a, b) => a + b);`,
     },
   },
   "-": {
-    inline: args => ({
-      js: joinJs(args, " - "),
-    }),
+    inline: args => ({ js: joinJs(args, " - ") }),
     standalone: {
       "-": `ops['-'] = (...args) => args.reduce((a, b) => a - b);`,
+    },
+  },
+  "*": {
+    inline: args => ({ js: joinJs(args, " * ") }),
+    standalone: {
+      "*": `ops['*'] = (...args) => args.reduce((a, b) => a * b);`,
+    },
+  },
+  "/": {
+    inline: args => ({ js: joinJs(args, " / ") }),
+    standalone: {
+      "/": `ops['/'] = (...args) => args.reduce((a, b) => a / b);`,
     },
   },
   "<": {
@@ -151,15 +171,30 @@ const transOps: { [name: string]: ResolvedOperation } = {
       "<": `ops['<'] = (...args) => { while (args.length) { const n = args.shift(); if (n >= args[0]) return false; } return true; };`,
     },
   },
+  sin: {
+    inline: args => ({ js: `Math.sin(${args[0].js})` }),
+    standalone: { sin: `ops['sin'] = ([n]) => Math.sin(n);` },
+  },
   str: {
-    inline: args => ({
-      js: joinJs(args, " + "),
-    }),
+    inline: args => ({ js: joinJs(args, " + ") }),
     standalone: { str: `ops['str'] = (...args) => args.join('');` },
   },
   vec: {
     inline: args => ({ js: `[${joinJs(args, ", ")}]` }),
     standalone: { vec: `ops['vec'] = (...args) => args;` },
+  },
+  dict: {
+    inline: args => ({
+      js: `new Map([${partition(2, evenArgs(args))
+        .map(x => joinJs(x))
+        .map(x => `[${x}]`)
+        .join(", ")}])`,
+    }),
+    standalone: {
+      dict: `ops['dict'] = (...args) => new Map([partition(2, evenArgs(args))]);`,
+      evenArgs,
+      partition,
+    },
   },
   neg: { inline: ([n]) => ({ js: `-${n.js}` }), standalone: {} },
   print: {
@@ -193,5 +228,11 @@ const transOps: { [name: string]: ResolvedOperation } = {
   version: {
     inline: () => ({ js: `${insituxVersion}` }),
     standalone: { version: `ops['version'] = () => ${insituxVersion};` },
+  },
+  var: {
+    inline: ([name, value]) => ({
+      js: `globalThis[${name.sym ? `"${name.js}"` : name.js}] = ${value.js}`,
+    }),
+    standalone: {},
   },
 };
