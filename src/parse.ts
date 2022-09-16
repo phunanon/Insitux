@@ -866,7 +866,7 @@ export function parse(
     bundle.global +
     Object.keys(bundle)
       .filter(x => x !== "global")
-      .map(x => `//${x}\n${bundle[x]}`)
+      .map(x => `// ${x}\n${bundle[x]}`)
       .join("\n");
   console.log(transpiled);
   eval(transpiled);

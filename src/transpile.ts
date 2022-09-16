@@ -1,5 +1,5 @@
 import { isToken, NamedNodes, parseParams, Node, Token } from "./parse";
-import { insituxVersion, ops } from "./types";
+import { insituxVersion, ops, ParamsShape } from "./types";
 const { floor } = Math;
 
 type JsBlob = string | ((...args: any[]) => any);
@@ -16,7 +16,7 @@ const joinJs = (list: Resolved[], text = ", ") =>
 
 export function transpileNamedNodes(funcs: NamedNodes[]): JsBundle {
   let bundle: JsBundle = {
-    global: `const ops = {};\n`,
+    global: `const ops = {};\nconst para = {};\nconst lets = {};\n`,
   };
   funcs.forEach(({ name, nodes }) => {
     const { shape, errors } = parseParams(nodes, false);
@@ -24,24 +24,41 @@ export function transpileNamedNodes(funcs: NamedNodes[]): JsBundle {
     for (const expression of resolved) {
       bundle = { ...bundle, ...expression.bundle };
     }
-    const params = shape.map(x => x.name).join(", ");
-    const sansReturn = resolved.slice(0, -1);
+    const allButReturn = resolved.slice(0, -1);
     if (name === "entry") {
-      const a = joinJs(sansReturn, ";\n") + (sansReturn.length ? ";\n" : "");
+      const a =
+        joinJs(allButReturn, ";\n") + (allButReturn.length ? ";\n" : "");
       const b = resolved[resolved.length - 1].js;
       bundle[name] = `${a}console.log(${b});`;
       return;
     }
-    if (sansReturn.length) {
-      bundle[name] = `ops["${name}"] = function(${params}) {
-  ${joinJs(sansReturn, ";\n")};
-  return ${resolved[resolved.length - 1].js};
-}`;
-    } else {
-      bundle[name] = `ops["${name}"] = (${params}) => ${resolved[0].js};`;
-    }
+    const inner = allButReturn.length
+      ? `${joinJs(allButReturn, ";\n")};
+  return ${resolved[resolved.length - 1].js};`
+      : `return ${resolved[0].js};`;
+    const outer = `ops["${name}"] = function(...params) {
+  const para = {};
+  const lets = {};
+${destructureParams(shape)}
+  ${inner}
+};`;
+    bundle[name] = outer;
   });
   return bundle;
+}
+
+function destructureParams(shape: ParamsShape): string {
+  const destructurings = shape
+    .flat(Infinity)
+    .map(
+      ({ position, name }) =>
+        `  para["${name}"] = params${safeDestructure(position)};`,
+    );
+  return destructurings.join("\n");
+}
+
+function safeDestructure(position: number[]): string {
+  return `${position.map(x => `?.[${x}]`).join("")} ?? null`;
 }
 
 const resolveNode = (n: Node) =>
@@ -52,7 +69,7 @@ function resolveToken(node: Token): Resolved {
     case "num":
       return { js: node.text };
     case "str":
-      return { js: `"${node.text}"` };
+      return { js: `\`${node.text}\`` };
     case "sym": {
       if (ops[node.text]) {
         return {
@@ -63,7 +80,10 @@ function resolveToken(node: Token): Resolved {
       if (node.text.startsWith(":")) {
         return { js: `"${node.text}"`, key: node.text.slice(1) };
       }
-      return { js: node.text, sym: true };
+      return {
+        js: `(para["${node.text}"] ?? lets["${node.text}"] ?? globalThis["${node.text}"] ?? null)`,
+        sym: true,
+      };
     }
   }
   return { js: "?", sym: true };
@@ -104,7 +124,6 @@ function getOp(node: Node): Transformer {
     const { js, bundle } = resolveExpression(node);
     return args => ({
       js: `${js}(${joinJs(args, ", ")})`,
-
       bundle,
     });
   }
@@ -129,7 +148,7 @@ const evenArgs = <T>(args: T[]) => args.slice(0, floor(args.length / 2) * 2);
 
 const transOps: { [name: string]: ResolvedOperation } = {
   inc: {
-    inline: ([n]) => ({ js: `${n.js} + 1`, as: ["num"] }),
+    inline: ([n]) => ({ js: `${n.js} + 1` }),
     standalone: { inc: "ops['inc'] = ([n]) => n + 1;" },
   },
   dec: {
@@ -208,7 +227,6 @@ const transOps: { [name: string]: ResolvedOperation } = {
   if: {
     inline: ([a, b, c]) => ({
       js: `(asBool(${a.js}) ? ${b.js} : ${c.js})`,
-      as: ["any"],
       bundle: { asBool },
     }),
     standalone: {},
@@ -216,13 +234,12 @@ const transOps: { [name: string]: ResolvedOperation } = {
   when: {
     inline: ([a, b]) => ({
       js: `(asBool(${a.js}) ? ${b.js} : null)`,
-      as: ["any"],
       bundle: { asBool },
     }),
     standalone: {},
   },
   time: {
-    inline: () => ({ js: "new Date().getTime()", as: ["num"] }),
+    inline: () => ({ js: "new Date().getTime()" }),
     standalone: { time: "ops['time'] = () => new Date().getTime();" },
   },
   version: {
