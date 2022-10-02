@@ -1,6 +1,7 @@
-export const insituxVersion = 220807;
+export const insituxVersion = 221002;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
+import { isLetter, isDigit, isSpace, isPunc } from "./checks";
 import { makeEnclosure } from "./closure";
 import { parse } from "./parse";
 import * as pf from "./poly-fills";
@@ -497,6 +498,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       return reduction;
     }
+    case "sieve":
+      return _vec(vec(args[0]).filter(asBoo));
     case "xmap": {
       const closure = getExe(ctx, args[0], errCtx);
       const src = asArray(args[1]);
@@ -862,6 +865,27 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
           ? trimStart
           : trimEnd)(str(args[0])),
       );
+    case "upper?":
+    case "lower?": {
+      const s = str(args[0]);
+      const f = op === "upper?" ? upperCase : lowerCase;
+      return _boo(s === f(s));
+    }
+    case "letter?":
+    case "digit?":
+    case "space?":
+    case "punc?": {
+      const s = str(args[0]);
+      const f =
+        op === "digit?"
+          ? isDigit
+          : op === "punc?"
+          ? isPunc
+          : op === "space?"
+          ? isSpace
+          : isLetter;
+      return _boo(f(charCode(s)));
+    }
     case "str*": {
       const text = str(args[0]);
       return _str(

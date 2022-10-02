@@ -518,6 +518,10 @@ etc
 (remove = [1 1 2 2 3 3] 3) → [1 1 2 2]
 (remove = "hello!" "e")    → "hllo!"
 
+;Filter a vector for truthy values
+(sieve [0 1 2 null 3]) → [0 1 2 3]
+(sieve [0 1 2 false 3]) → [0 1 2 3]
+
 ;Returns the first item or character in a vector or string matching a predicate,
 ;  optionally passing extra arguments
 (find odd? [0 1 2 3])   → 1
@@ -654,6 +658,17 @@ etc
 ;Returns a string made entirely upper- or lower-case
 (upper-case "hEllo") → "HELLO"
 (lower-case "HeLlO") → "hello"
+
+;Checks if a string is entirely upper- or lower-case
+(upper? "HELLO123") → true
+(lower? "hello123") → true
+
+;Checks if the first character of a string is a letter, digit,
+;  whitespace (space, tab), or other (punctation)
+(letter? "Hi")  → true
+(digit? "1abc") → true
+(space? " ")    → true
+(punc? "+")     → true
 
 ;Returns a string repeated a specified number of times
 (str* "x" 6) → "xxxxxx"

@@ -112,3 +112,13 @@ export function keyOpErr(errCtx: ErrCtx, types: Val["t"][]): InvokeError[] {
     ),
   ];
 }
+
+export const isLetter = (code: number) =>
+  (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+
+export const isDigit = (code: number) => code >= 48 && code <= 57;
+
+export const isSpace = (code: number) => code === 32 || code === 9;
+
+export const isPunc = (code: number) =>
+  !isLetter(code) && !isDigit(code) && !isSpace(code);
