@@ -231,19 +231,28 @@ etc
 
 ;Various arithmetic operators which take one or more arguments
 ;Note: fast+ fast- fast* fast/ fast// are also available for two arguments only
-(+ 1 1 1)    → 3
-(- 10 5 1)   → 4
-(* 10 10 10) → 1000
-(/ 10 3)     → 3.333333
-(// 10 3)    → 3
-(& 10 13)    → 8
-(| 10 12)    → 14
-(^ 10 12)    → 6
-(<< 10 1)    → 20 ;Zero-fill
-(>> -5 1)    → -3 ;Signed
-(>>> 5 1)    → 2  ;Zero-fill
+(+ 1 1 1)      → 3
+(- 10 5 1)     → 4
+(* 10 10 10)   → 1000
+(/ 10 3)       → 3.333333
+(// 10 3)      → 3
+(& 10 13)      → 8
+(| 10 12)      → 14
+(^ 10 12)      → 6
+(<< 10 1)      → 20 ;Zero-fill
+(>> -5 1)      → -3 ;Signed
+(>>> 5 1)      → 2  ;Zero-fill
+(rem 100 40)   → 20
+(rem 100 40 3) → 2
+(min 1 2)      → 1
+(min 4 3 2 5)  → 2
+(max 4 3 2 5)  → 5
+(** 10)        → 100
+(** 2 3)       → 8
+(round 3.5)    → 4
+(round 2 PI)   → 3.14
 
-;Various arithmetic and test functions which take one argument only
+;Various arithmetic and test functions which take fixed arguments
 (neg 10)     → -10
 (inc 100)    → 101
 (dec 50)     → 49
@@ -254,25 +263,16 @@ etc
 (sqrt 25)    → 5
 (floor 2.7)  → 2
 (ceil 2.1)   → 3
+(clamp 0 10 11) → 10 ;Clamps a value between two bounds (here, 0 and 10)
 (logn 1)     → 0
 (log2 8)     → 3
 (log10 1000) → 3
 (~ 10)       → -11 ;Bitwise NOT
+(div? 10 2)  → true
 (asin 1) (acos 1) (atan 1) (sinh 1) (cosh 1) (tanh 1)
 (odd? 5) (even? 6) (pos? 5) (neg? -5) (zero? 0)
 (null? null) (num? 123) (bool? true) (str? "hi")
 (dict? {}) (vec? []) (key? :abc) (func? +) (wild? _)
-
-;Various arithmetic functions which take one or more arguments
-(rem 100 40)   → 20
-(rem 100 40 3) → 2
-(min 1 2)      → 1
-(min 4 3 2 5)  → 2
-(max 4 3 2 5)  → 5
-(** 10)        → 100
-(** 2 3)       → 8
-(round 3.5)    → 4
-(round 2 PI)   → 3.14
 
 ;Various equality operators, which all accept two or more arguments
 ;Note: < > <= >= only compare numbers
@@ -718,15 +718,21 @@ etc
 
 ;Takes functions and returns a function that takes a vector and returns a vector
 ;  of the result of applying each function positionally to the vector items
-;E.g. (pos-juxt inc dec) is equivalent to #[(inc (0 %)) (dec (1 %))]
-((pos-juxt inc dec (+ 10)) [1 1 1]) → [2 0 11]
-((pos-juxt inc dec) [0 1 2])        → [1 0]
+((adj inc dec (+ 10)) [1 1 1]) → [2 0 11]
+((adj inc dec) [0 1 2])        → [1 0 2]
+((adj inc) [0 1 2])            → [1 1 2]
+((adj _ _ inc) [0 1 2])        → [0 1 3]
 
 ;Compose multiple functions to be executed one after the other, with the result
 ;  of the previous function being fed into the next function
 ((comp + inc) 8 8 8) → 25
 ((comp * floor) PI PI) → 9
 ((comp (* 2) str reverse) 10) → "02"
+
+;Returns a closure which returns its non-matching argument, or the identity
+((toggle :cozy :compact) :cozy)    → :compact
+((toggle :cozy :compact) :compact) → :cozy
+((toggle :cozy :compact) :hello)   → :hello
 
 ;Treats its arguments as an expression, first argument as the expression head
 (. + 2 2) → 4
@@ -820,6 +826,8 @@ etc
 ; Can also be used to discard values
 (let [_ _ c] [0 1 2])  → c is 2
 ```
+
+It can also be used as an identity function (i.e. `val`).
 
 - Parameters take precedence over lets and defines.
 

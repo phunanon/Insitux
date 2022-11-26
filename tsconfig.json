@@ -10,6 +10,7 @@
     "strict": true,
     "noImplicitAny": true,
     "sourceMap": true,
+    "declaration": true,
     "types": ["node"],
   }
 }

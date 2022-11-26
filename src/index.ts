@@ -1,4 +1,4 @@
-export const insituxVersion = 221002;
+export const insituxVersion = 221126;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -193,6 +193,12 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const f = { asin, acos, atan, sinh, cosh, tanh }[op];
       return _num(f(num(args[0])));
     }
+    case "clamp": {
+      const [a, b, x] = args.map(num);
+      return _num(min(max(a, x), b));
+    }
+    case "div?":
+      return _boo(num(args[0]) % num(args[1]) === 0);
     case "average": {
       const src = vec(args[0]);
       let sum = 0;
@@ -314,23 +320,25 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         },
       };
     }
-    case "pos-juxt": {
+    case "adj": {
       const makeArg = (value: Val, n: number): Ins[] => [
         { typ: "dpa", value: [0, n], errCtx },
         { typ: "val", value, errCtx },
         { typ: "exe", value: 1, errCtx },
       ];
       const ins: Ins[] = [
-        ...flat(args.map(makeArg)),
         { typ: "val", value: _fun("vec"), errCtx },
-        { typ: "exe", value: len(args), errCtx },
+        ...flat(args.map(makeArg)),
+        { typ: "val", value: _num(len(args)), errCtx },
+        { typ: "upa", value: 0, text: "x", errCtx },
+        { typ: "val", value: _fun("skip"), errCtx },
+        { typ: "exe", value: 2, errCtx },
+        { typ: "val", value: _fun("..."), errCtx },
+        { typ: "exe", value: len(args) + 2, errCtx },
       ];
       return {
         t: "clo",
-        v: <Func>{
-          name: `(pos-juxt ${args.map(val2str).join(" ")})`,
-          ins,
-        },
+        v: <Func>{ name: `(adj ${args.map(val2str).join(" ")})`, ins },
       };
     }
     case "comp": {
@@ -353,6 +361,23 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
           ins,
         },
       };
+    }
+    case "toggle": {
+      const [a, b] = args;
+      const name = `(toggle ${val2str(a)} ${val2str(b)})`;
+      const ins: Ins[] = [
+        { typ: "upa", value: 0, text: "x", errCtx },
+        { typ: "val", value: a, errCtx },
+        { typ: "mat", value: 2, errCtx },
+        { typ: "val", value: b, errCtx },
+        { typ: "jmp", value: 5, errCtx },
+        { typ: "val", value: b, errCtx },
+        { typ: "mat", value: 2, errCtx },
+        { typ: "val", value: a, errCtx },
+        { typ: "jmp", value: 1, errCtx },
+        { typ: "upa", value: 0, text: "x", errCtx },
+      ];
+      return { t: "clo", v: <Func>{ name, ins } };
     }
     case "map":
     case "flat-map":
@@ -1136,6 +1161,13 @@ function getExe(
         ]);
       }
       return cond ? params[0] : len(params) > 1 ? params[1] : _nul();
+    };
+  } else if (op.t === "wild") {
+    return (params: Val[]) => {
+      if (!len(params)) {
+        _throw(monoArityError(op.t, errCtx));
+      }
+      return params[0];
     };
   }
   return _ =>
