@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import readline = require("readline");
 import { appendFileSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { unlinkSync, existsSync, mkdirSync } from "fs";

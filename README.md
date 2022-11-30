@@ -1150,7 +1150,7 @@ vector item or string character is "destructured" into.
 
 
 ; Add thousands separator
-(var thousands #(-> % str reverse (partition 3) reverse (join ",")))
+(var thousands (comp str reverse (partition 3) reverse (join ",")))
 (thousands 1234567890) → "1,432,765,098"
 
 ; Clojure's comp
