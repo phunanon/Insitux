@@ -27,7 +27,7 @@ jobs:
       run: |
         npm install
         npx webpack
-        npx tsc -p tsconfig.npm.json
+        npx tsc -p tsconfig.json
 
     - uses: JS-DevTools/npm-publish@v1
       if: contains(github.ref, 'master')

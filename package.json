@@ -1,6 +1,6 @@
 {
   "name": "insitux",
-  "version": "22.11.30",
+  "version": "22.11.301",
   "description": "Extensible scripting language written in portable TypeScript.",
   "main": "node/invoker.js",
   "types": "node/invoker.d.ts",
@@ -24,7 +24,7 @@
   "scripts": {
     "build": "webpack",
     "watch": "webpack --watch",
-    "build-npm": "tsc -p tsconfig.json"
+    "build-npm": "webpack && tsc -p tsconfig.json"
   },
   "repository": {
     "type": "git",
