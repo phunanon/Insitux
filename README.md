@@ -563,9 +563,12 @@ etc
 ;Randomly rearranges a vector's items
 (shuffle (range 10)) → [7 1 0 3 4 2 6 5 8 9]
 
-;Returns a random distinct sample of a vector's items
+;Returns a random sample of a vector's items
 (sample 5 (range 10)) → [5 1 0 7 8]
 (-> 100 range (sample 50) distinct len) → 50
+
+;Returns a random item from a vector
+(sample-1 [0 1 2 3 4 5]) → 3
 
 ;Returns a vector of vector items or string characters sorted
 ;Note: will only sort all number or all string

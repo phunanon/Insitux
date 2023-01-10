@@ -346,34 +346,17 @@ export const ops: {
     returns: ["vec", "str"],
   },
   reverse: { exactArity: 1, params: [["vec", "str"]], returns: ["vec", "str"] },
-  flatten: {
-    exactArity: 1,
-    params: ["vec"],
-    returns: ["vec"],
-  },
-  shuffle: {
-    exactArity: 1,
-    params: ["vec"],
-    returns: ["vec"],
-  },
-  sample: {
-    exactArity: 2,
-    params: ["num", "vec"],
-    returns: ["vec"],
-  },
-  sort: {
-    exactArity: 1,
-    params: [["vec", "str"]],
-    returns: ["vec"],
-  },
+  flatten: { exactArity: 1, params: ["vec"], returns: ["vec"] },
+  shuffle: { exactArity: 1, params: ["vec"], returns: ["vec"] },
+  sample: { exactArity: 2, params: ["num", "vec"], returns: ["vec"] },
+  "sample-1": { exactArity: 1, params: ["vec"] },
+  sort: { exactArity: 1, params: [["vec", "str"]], returns: ["vec"] },
   "sort-by": {
     exactArity: 2,
     params: ["any", ["vec", "dict", "str"]],
     returns: ["vec"],
   },
-  distinct: {
-    returns: ["vec"],
-  },
+  distinct: { returns: ["vec"] },
   "group-by": {
     exactArity: 2,
     params: ["any", ["vec", "dict", "str"]],
@@ -389,11 +372,7 @@ export const ops: {
     params: ["num", ["vec", "str"]],
     returns: ["vec"],
   },
-  freqs: {
-    exactArity: 1,
-    params: [["vec", "str"]],
-    returns: ["dict"],
-  },
+  freqs: { exactArity: 1, params: [["vec", "str"]], returns: ["dict"] },
   keys: { exactArity: 1, params: ["dict"] },
   vals: { exactArity: 1, params: ["dict"] },
   do: { minArity: 1 },

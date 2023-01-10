@@ -1,4 +1,4 @@
-export const insituxVersion = 221126;
+export const insituxVersion = 230110;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -705,11 +705,15 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const shuffled = slice(vec(args[1]));
       const size = max(0, min(len(shuffled), num(args[0])));
       const minimum = len(shuffled) - size;
-      for (let i = len(shuffled) - 1; i > minimum; --i) {
+      for (let i = len(shuffled) - 1; i >= minimum; --i) {
         const index = floor(randInt(0, i + 1));
         [shuffled[i], shuffled[index]] = [shuffled[index], shuffled[i]];
       }
       return _vec(slice(shuffled, minimum));
+    }
+    case "sample-1": {
+      const arr = vec(args[0]);
+      return arr[randInt(0, len(arr))];
     }
     case "sort":
     case "sort-by": {
