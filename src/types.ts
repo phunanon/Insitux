@@ -216,6 +216,7 @@ export const ops: {
   },
   "to-key": { exactArity: 1, params: [["str", "num"]], returns: ["key"] },
   "to-vec": { exactArity: 1, params: [["str", "dict"]], returns: ["vec"] },
+  "bool": { exactArity: 1, returns: ["bool"] },
   "substr?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
   idx: {
     exactArity: 2,

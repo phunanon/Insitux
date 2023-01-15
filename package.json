@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@types/git-clone": "^0.2.0",
-    "@types/node": "^16.9.1",
+    "@types/node": "^16.18.11",
     "@types/prompt-sync": "^4.1.1",
     "esbuild-loader": "^2.15.1",
     "typescript": "^4.3.5",

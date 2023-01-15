@@ -345,6 +345,10 @@ etc
 (to-vec "hello")     → ["h" "e" "l" "l" "o"]
 (to-vec {:a 1 :b 2}) → [[:a 1] [:b 2]]
 
+;Returns truthiness of value
+(bool 1)    → true
+(bool null) → false
+
 ;Returns type string of argument
 (type-of 123)     → "num"
 (type-of "hello") → "str"
@@ -1257,9 +1261,9 @@ vector item or string character is "destructured" into.
 
 
 **Known bugs I put here to make sure I can't lose them,**  
-**and to shame myself that they still exist.**
+**and to shame myself that they still exist.**  
 ⚠️ (= {:a 1 :b 2} {:b 2 :a 1}) -> false  
 ⚠️ don't capture #(var x x) - write test for it  
 ⚠️ (loop 3 i (print (+ 1 i)))  
-⚠️ syntax highlighter omits commas
+⚠️ syntax highlighter omits commas  
 ⚠️ ((let x) 1) x - doesn't work
