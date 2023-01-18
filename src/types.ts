@@ -216,7 +216,7 @@ export const ops: {
   },
   "to-key": { exactArity: 1, params: [["str", "num"]], returns: ["key"] },
   "to-vec": { exactArity: 1, params: [["str", "dict"]], returns: ["vec"] },
-  "bool": { exactArity: 1, returns: ["bool"] },
+  bool: { exactArity: 1, returns: ["bool"] },
   "substr?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
   idx: {
     exactArity: 2,
@@ -350,7 +350,7 @@ export const ops: {
   flatten: { exactArity: 1, params: ["vec"], returns: ["vec"] },
   shuffle: { exactArity: 1, params: ["vec"], returns: ["vec"] },
   sample: { exactArity: 2, params: ["num", "vec"], returns: ["vec"] },
-  "sample-1": { exactArity: 1, params: ["vec"] },
+  "rand-pick": { exactArity: 1, params: ["vec"] },
   sort: { exactArity: 1, params: [["vec", "str"]], returns: ["vec"] },
   "sort-by": {
     exactArity: 2,

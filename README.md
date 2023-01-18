@@ -572,7 +572,7 @@ etc
 (-> 100 range (sample 50) distinct len) → 50
 
 ;Returns a random item from a vector
-(sample-1 [0 1 2 3 4 5]) → 3
+(rand-pick [0 1 2 3 4 5]) → 3
 
 ;Returns a vector of vector items or string characters sorted
 ;Note: will only sort all number or all string

@@ -1,4 +1,4 @@
-export const insituxVersion = 230114;
+export const insituxVersion = 230118;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -713,7 +713,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       return _vec(slice(shuffled, minimum));
     }
-    case "sample-1": {
+    case "rand-pick": {
       const arr = vec(args[0]);
       return arr[randInt(0, len(arr))];
     }

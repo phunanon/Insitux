@@ -306,7 +306,8 @@ function parseForm(
       let insCount =
         args.reduce((acc, a) => acc + len(a), 0) +
         (elseLen ? elseLen : 2) +
-        len(args);
+        len(args) +
+        1; //cond pop
       const ins: ParserIns[] = cond;
       while (len(args) > 1) {
         const [a, when] = [args.shift()!, args.shift()!];
@@ -316,10 +317,10 @@ function parseForm(
         insCount -= len(a) + len(when) + 2;
         ins.push({ typ: "jmp", value: insCount, errCtx });
       }
+      ins.push({ typ: "pop", value: 1, errCtx });
       if (len(otherwise)) {
         push(ins, otherwise);
       } else {
-        ins.push({ typ: "pop", value: 1, errCtx });
         ins.push({ typ: "val", value: falseVal, errCtx });
       }
       return ins;
