@@ -1,4 +1,4 @@
-import { len, slice, splice } from "./poly-fills";
+import { flat, len, slice, splice } from "./poly-fills";
 import { assertUnreachable, Dict, Func, InvokeError, Val } from "./types";
 
 export const num = ({ v }: Val) => v as number;
@@ -93,6 +93,10 @@ export const asArray = (val: Val): Val[] =>
     : [];
 
 export const toDict = (args: Val[]): Val => {
+  if (len(args) === 1 && args[0].t === "vec") {
+    const [{ v }] = args;
+    args = flat(v.map(a => (a.t === "vec" ? a.v : [a])));
+  }
   if (len(args) % 2 === 1) {
     args.pop();
   }

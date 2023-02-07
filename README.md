@@ -306,9 +306,10 @@ etc
 [1 "hello" :c]
 (vec 1 "hello" :c)
 
-;Creates a dictionary of values in two different ways
-{:a 123 "hello" "world"}
+;Creates a dictionary of keys and values
+{:a 123, "hello" "world"}           ;commas are optional
 (dict :a 123 "hello" "world")
+(dict [[:a 123] ["hello" "world"]])
 
 ;The length of a string of text or a vector, or number of dictionary entries
 (len "Hello!")  → 6
@@ -697,9 +698,16 @@ etc
 (substr? "x" "abcd")   → false
 
 ;Returns index of an item or sub-string in a vector or string, or null
-(idx 3 [1 2 3 4])  → 2
-(idx 5 [1 2 3 4])  → null
-(idx "ll" "Hello") → 2
+(idx [1 2 3 4] 3)         → 2
+(idx [1 2 3 4] 5)         → null
+(idx "Hello" "ll")        → 2
+(idx-of 3 [1 2 3 4])      → 2
+(idx-of 5 [1 2 3 4])      → null
+(idx-of "ll" "Hello")     → 2
+(last-idx [3 2 3 4] 3)    → 2
+(last-idx "Hello" "l")    → 3
+(last-idx-of 3 [3 2 3 4]) → 2
+(last-idx-of "l" "Hello") → 3
 
 ;Returns vector or dictionary with specified index or key/value set or replaced
 ;  with another value

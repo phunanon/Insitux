@@ -220,6 +220,21 @@ export const ops: {
   "substr?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
   idx: {
     exactArity: 2,
+    params: [["str", "vec"], "any"],
+    returns: ["num"],
+  },
+  "idx-of": {
+    exactArity: 2,
+    params: ["any", ["str", "vec"]],
+    returns: ["num"],
+  },
+  "last-idx": {
+    exactArity: 2,
+    params: [["str", "vec"], "any"],
+    returns: ["num"],
+  },
+  "last-idx-of": {
+    exactArity: 2,
     params: ["any", ["str", "vec"]],
     returns: ["num"],
   },

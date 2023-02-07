@@ -1,4 +1,4 @@
-export const insituxVersion = 230118;
+export const insituxVersion = 230206;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -276,21 +276,25 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _str(args[0].t);
     case "substr?":
       return _boo(!!slen(str(args[0])) && sub(str(args[1]), str(args[0])));
-    case "idx": {
-      let i = -1;
-      if (args[1].t === "str") {
-        if (args[0].t !== "str") {
+    case "idx":
+    case "idx-of":
+    case "last-idx":
+    case "last-idx-of": {
+      const isLast = op === "last-idx" || op === "last-idx-of";
+      const [subject, find] =
+        op === "idx" || op === "last-idx" ? args : [args[1], args[0]];
+      if (subject.t === "str") {
+        if (find.t !== "str") {
           throwTypeErr("strings can only contain strings", errCtx);
         } else {
-          i = subIdx(args[0].v, args[1].v);
+          const s = isLast ? stringify(reverse(asArray(subject))) : subject.v;
+          const i = subIdx(s, find.v);
+          return i === -1 ? _nul() : _num(isLast ? slen(subject.v) - 1 - i : i);
         }
-      } else if (args[1].t === "vec") {
-        i = args[1].v.findIndex(a => isEqual(a, args[0]));
-      }
-      if (i === -1) {
-        return _nul();
-      } else {
-        return _num(i);
+      } else if (subject.t === "vec") {
+        const s = isLast ? reverse(slice(subject.v)) : subject.v;
+        const i = s.findIndex(a => isEqual(a, find));
+        return i === -1 ? _nul() : _num(isLast ? len(subject.v) - 1 - i : i);
       }
     }
     case "set-at": {
