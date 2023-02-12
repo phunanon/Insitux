@@ -1,4 +1,4 @@
-export const insituxVersion = 230206;
+export const insituxVersion = 230212;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -1073,11 +1073,11 @@ function getExe(
     if (name in ctx.env.funcs && name !== "entry") {
       return (params: Val[]) => exeFunc(ctx, ctx.env.funcs[name], params);
     }
-    if (name in ctx.env.vars) {
-      return getExe(ctx, ctx.env.vars[name], errCtx);
-    }
     if (name in lets) {
       return getExe(ctx, lets[name], errCtx);
+    }
+    if (name in ctx.env.vars) {
+      return getExe(ctx, ctx.env.vars[name], errCtx);
     }
     if (starts(name, "$")) {
       return (params: Val[]) => {
@@ -1288,10 +1288,10 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
             return _throw([{ e: "External", m: valAndErr.err, errCtx }]);
           }
           stack.push(valAndErr.value);
-        } else if (name in ctx.env.vars) {
-          stack.push(ctx.env.vars[name]);
         } else if (name in lets) {
           stack.push(lets[name]);
+        } else if (name in ctx.env.vars) {
+          stack.push(ctx.env.vars[name]);
         } else if (name in ctx.env.funcs) {
           stack.push(_fun(name));
         } else {

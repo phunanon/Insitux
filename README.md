@@ -844,7 +844,11 @@ etc
 
 It can also be used as an identity function (i.e. `val`).
 
-- Parameters take precedence over lets and defines.
+- Function definitions take precedence over vars and lets.
+
+- Lets take precedence over vars.
+
+- Parameters take precedence over lets, vars, and functions.
 
 - Insitux implementations are advised to support this behaviour:
 

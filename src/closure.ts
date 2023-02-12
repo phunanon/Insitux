@@ -1,4 +1,4 @@
-import { has, len, push, slice } from "./poly-fills";
+import { has, len } from "./poly-fills";
 import { Closure, Func, Ins, Val } from "./types";
 
 /** Declare a closure from instructions and other info, calculating its
