@@ -1,4 +1,4 @@
-export const insituxVersion = 230212;
+export const insituxVersion = 230213;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -528,6 +528,21 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         reduction = closure([reduction, array[i]]);
       }
       return reduction;
+    }
+    case "take-while":
+    case "take-until":
+    case "skip-while":
+    case "skip-until": {
+      const until = op === "take-until" || op === "skip-until";
+      const closure = getExe(ctx, args[0], errCtx);
+      const array = asArray(args[1]);
+      let i = 0;
+      for (let lim = len(array); i < lim; ++i)
+        if (asBoo(closure([array[i]])) === until) break;
+      const sliced = op === "take-while" ? slice(array, 0, i) : slice(array, i);
+      return args[1].t === "str"
+        ? _str(sliced.map(str).join(""))
+        : _vec(sliced);
     }
     case "sieve":
       return _vec(vec(args[0]).filter(asBoo));

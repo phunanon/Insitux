@@ -278,6 +278,26 @@ export const ops: {
     returns: ["vec", "str", "dict"],
   },
   find: { minArity: 2, params: ["any", ["vec", "dict", "str"]] },
+  "take-while": {
+    exactArity: 2,
+    params: ["any", ["vec", "str"]],
+    returns: ["vec", "str"],
+  },
+  "take-until": {
+    exactArity: 2,
+    params: ["any", ["vec", "str"]],
+    returns: ["vec", "str"],
+  },
+  "skip-while": {
+    exactArity: 2,
+    params: ["any", ["vec", "str"]],
+    returns: ["vec", "str"],
+  },
+  "skip-until": {
+    exactArity: 2,
+    params: ["any", ["vec", "str"]],
+    returns: ["vec", "str"],
+  },
   count: {
     minArity: 2,
     params: ["any", ["vec", "dict", "str"]],

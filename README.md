@@ -514,6 +514,12 @@ etc
 (crop -3 0 "abcdef")  → "def"
 (crop -4 -4 "abcdef") → "cd"
 
+;Take or skip vector items or string characters until condition is no longer met
+(take-while odd? [1 3 5 2 4 6]) → [1 3 5]
+(take-until odd? [2 4 6 1 3 5]) → [2 4 6]
+(skip-while odd? [1 3 5 2 4 6]) → [2 4 6]
+(skip-until odd? [2 4 6 1 3 5]) → [1 3 5]
+
 ;Filter a vector or string by a function, optionally passing extra arguments.
 ;Return value is the same type as the second argument.
 (filter odd? [0 1 2 3])    → [1 3]
