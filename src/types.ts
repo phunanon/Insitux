@@ -303,6 +303,11 @@ export const ops: {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["num"],
   },
+  "empty?": {
+    exactArity: 1,
+    params: [["str", "vec", "dict"]],
+    returns: ["bool"],
+  },
   "all?": {
     exactArity: 2,
     params: ["any", ["vec", "dict", "str"]],
@@ -414,11 +419,6 @@ export const ops: {
   do: { minArity: 1 },
   val: { minArity: 1 },
   range: { minArity: 1, maxArity: 3, numeric: "in only", returns: ["vec"] },
-  "empty?": {
-    exactArity: 1,
-    params: [["str", "vec", "dict"]],
-    returns: ["bool"],
-  },
   split: { exactArity: 2, params: ["str", "str"], returns: ["vec"] },
   join: {
     exactArity: 2,

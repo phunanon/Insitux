@@ -529,6 +529,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       return reduction;
     }
+    case "empty?":
+      return _boo(!len(asArray(args[0])));
     case "take-while":
     case "take-until":
     case "skip-while":
@@ -880,8 +882,6 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const nums = range(count).map(n => n * step + x);
       return _vec(nums.map(_num));
     }
-    case "empty?":
-      return _boo(!len(asArray(args[0])));
     case "keys":
     case "vals":
       return _vec(dic(args[0])[op === "keys" ? "keys" : "vals"]);

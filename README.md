@@ -515,10 +515,10 @@ etc
 (crop -4 -4 "abcdef") → "cd"
 
 ;Take or skip vector items or string characters until condition is no longer met
-(take-while odd? [1 3 5 2 4 6]) → [1 3 5]
-(take-until odd? [2 4 6 1 3 5]) → [2 4 6]
-(skip-while odd? [1 3 5 2 4 6]) → [2 4 6]
-(skip-until odd? [2 4 6 1 3 5]) → [1 3 5]
+(take-while odd? [1 3 2 4 5 7]) → [1 3]
+(take-until odd? [2 4 1 3 6 8]) → [2 4]
+(skip-while odd? [1 3 2 4 5 7]) → [2 4 5 7]
+(skip-until odd? [2 4 1 3 6 8]) → [1 3 6 8]
 
 ;Filter a vector or string by a function, optionally passing extra arguments.
 ;Return value is the same type as the second argument.
@@ -543,6 +543,11 @@ etc
 ;  predicate, optionally passing extra arguments
 (count odd? (range 10)) → 5
 (count = [1 1 2 3 3] 1) → 2
+
+;Returns a boolean on whether the vector, string, or dictionary is empty
+(empty? []) → true
+(empty? {}) → true
+(empty? "") → true
 
 ;Returns a boolean on whether all vector items, dictionary entries, or string
 ;  characters satisfy a predicate 
