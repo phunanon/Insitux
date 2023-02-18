@@ -1,5 +1,5 @@
 import { isToken, NamedNodes, parseParams, Node, Token } from "./parse";
-import { insituxVersion, ops, ParamsShape } from "./types";
+import { insituxVersion, ops, ParamsShape, syntaxes } from "./types";
 const { floor } = Math;
 
 type JsBlob = string | ((...args: any[]) => any);
@@ -72,7 +72,7 @@ function resolveToken(node: Token): Resolved {
       return { js: `\`${node.text}\`` };
     case "sym": {
       if (ops[node.text]) {
-        const bundle = transOps[node.text]?.standalone;
+        const bundle = definitions[node.text]?.standalone;
         if (!bundle) {
           console.warn(node.text, "not implemented");
           return { js: `ops['${node.text}']` };
@@ -109,7 +109,7 @@ type Transformer = (args: Resolved[]) => Resolved;
 
 function getOp(node: Node): Transformer {
   if (isToken(node)) {
-    const op = transOps[node.text];
+    const op = definitions[node.text];
     if (op) {
       const { inline, standalone } = op;
       return inline
@@ -148,15 +148,7 @@ const partition = <T>(n: number, arr: T[]) => {
 };
 const evenArgs = <T>(args: T[]) => args.slice(0, floor(args.length / 2) * 2);
 
-const transOps: { [name: string]: ResolvedOperation } = {
-  inc: {
-    inline: ([n]) => ({ js: `${n.js} + 1` }),
-    standalone: { inc: "ops['inc'] = ([n]) => n + 1;" },
-  },
-  dec: {
-    inline: ([n]) => ({ js: `${n.js} - 1` }),
-    standalone: { dec: "ops['dec'] = ([n]) => n + 1;" },
-  },
+const definitions: { [name: string]: ResolvedOperation } = {
   "+": {
     inline: args => ({ js: joinJs(args, " + ") }),
     standalone: {
@@ -192,6 +184,19 @@ const transOps: { [name: string]: ResolvedOperation } = {
       "<": `ops['<'] = (...args) => { while (args.length) { const n = args.shift(); if (n >= args[0]) return false; } return true; };`,
     },
   },
+  neg: { inline: ([n]) => ({ js: `-${n.js}` }), standalone: {} },
+  inc: {
+    inline: ([n]) => ({ js: `${n.js} + 1` }),
+    standalone: { inc: "ops['inc'] = ([n]) => n + 1;" },
+  },
+  dec: {
+    inline: ([n]) => ({ js: `${n.js} - 1` }),
+    standalone: { dec: "ops['dec'] = ([n]) => n + 1;" },
+  },
+  floor: {
+    inline: ([n]) => ({ js: `Math.floor(${n.js})` }),
+    standalone: { floor: "ops['floor'] = ([n]) => Math.floor(n);" },
+  },
   sin: {
     inline: args => ({ js: `Math.sin(${args[0].js})` }),
     standalone: { sin: `ops['sin'] = ([n]) => Math.sin(n);` },
@@ -217,7 +222,22 @@ const transOps: { [name: string]: ResolvedOperation } = {
       partition,
     },
   },
-  neg: { inline: ([n]) => ({ js: `-${n.js}` }), standalone: {} },
+  "to-vec": {
+    inline: ([x]) => ({ js: `Array.from(${x.js})` }),
+    standalone: { "to-vec": `ops['to-vec'] = ([x]) => Array.from(x);` },
+  },
+  freqs: {
+    inline: ([x]) => ({ js: `freqs(${x.js})` }),
+    standalone: {
+      freqs: `ops['freqs'] = ([...x]) => {
+  const result = new Map();
+  for (const item of x) {
+    result.set(item, (result.get(item) || 0) + 1);
+  }
+  return result;
+}`,
+    },
+  },
   print: {
     inline: args => ({
       js: `console.log(${joinJs(args, " + ")})`,
@@ -255,3 +275,10 @@ const transOps: { [name: string]: ResolvedOperation } = {
     standalone: {},
   },
 };
+
+const opNames = [...Object.keys(ops), ...syntaxes];
+const transpilable = Object.keys(definitions).filter(t => opNames.includes(t));
+const [numOp, numTran] = [opNames.length, transpilable.length];
+console.log(
+  `Transpilable: ${numTran}/${numOp} ${((numTran / numOp) * 100).toFixed(2)}%`,
+);

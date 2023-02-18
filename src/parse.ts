@@ -869,7 +869,6 @@ export function parse(
       .filter(x => x !== "global")
       .map(x => `// ${x}\n${bundle[x]}`)
       .join("\n");
-  console.log(transpiled);
   writeFileSync("transpiled.js", transpiled);
   //eval(transpiled);
   ////
