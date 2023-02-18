@@ -72,10 +72,12 @@ function resolveToken(node: Token): Resolved {
       return { js: `\`${node.text}\`` };
     case "sym": {
       if (ops[node.text]) {
-        return {
-          js: `ops['${node.text}']`,
-          bundle: transOps[node.text].standalone,
-        };
+        const bundle = transOps[node.text]?.standalone;
+        if (!bundle) {
+          console.warn(node.text, "not implemented");
+          return { js: `ops['${node.text}']` };
+        }
+        return { js: `ops['${node.text}']`, bundle };
       }
       if (node.text.startsWith(":")) {
         return { js: `"${node.text}"`, key: node.text.slice(1) };

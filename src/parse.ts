@@ -1,3 +1,4 @@
+import { writeFileSync } from "fs";
 import { arityCheck, keyOpErr, numOpErr, typeCheck } from "./checks";
 import { makeClosure } from "./closure";
 import * as pf from "./poly-fills";
@@ -869,7 +870,8 @@ export function parse(
       .map(x => `// ${x}\n${bundle[x]}`)
       .join("\n");
   console.log(transpiled);
-  eval(transpiled);
+  writeFileSync("transpiled.js", transpiled);
+  //eval(transpiled);
   ////
   namedNodes.map(compileFunc).forEach(fae => {
     if ("e" in fae) {
