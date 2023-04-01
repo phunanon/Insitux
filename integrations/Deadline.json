@@ -799,80 +799,95 @@
 		]
 	},
 	"dl.ts": {
-		"description": ["deadline environment definitions to do things like set the time, change the map or gamemode"],
+		"description": ["deadline environment definitions to do things like set the time, change the map or gamemode, remember to change \"any\" with the target roblox name."],
 		"list": [
 			{
-				"directory": "$dl.players.${any}.name",
+				"directory": "$dl.players.any.name",
 				"description": [
-					"(print $dl.players.${any}.name)",
+					"Example:",
+					"(print $dl.players.any.name)",
 					"readonly string value",
-					"name of \"${any}\", if a player named ${any} is ingame"
+					"name of \"any\", if a player named \"any\" is ingame"
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.get_loadout",
+				"directory": "$dl.players.any.get_loadout",
 				"description": [
-					"(dl.players.${any}.get_loadout weapon index)",
-					"(dl.players.${any}.get_loadout \"AK74N\" 0)",
+					"(dl.players.any.get_loadout weapon index)",
+					"Example:",
+					"(dl.players.any.get_loadout \"AK74N\" 0)",
 					"function",
-					"gets the JSON loadout for weapon under index (0-39) of player \"${any}\""
+					"gets the JSON loadout for weapon under index (0-39) of player \"any\""
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.spawn_dummy",
+				"directory": "$dl.players.any.spawn_dummy",
 				"description": [
-					"(dl.players.${any}.spawn_dummy)",
+					"Example:",
+					"(dl.players.any.spawn_dummy)",
 					"function",
-					"spawns a damage tester dummy near \"${any}\"",
-					"make sure the debug overlay is enabled to see what the damage"
+					"spawns a damage tester dummy near \"any\"",
+					"make sure the debug overlay is enabled to see the damage inflicted"
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.set_anchored",
+				"directory": "$dl.players.any.set_anchored",
 				"description": [
-					"(dl.players.${any}.set_anchored)",
-					"(dl.players.${any}.set_anchored true)",
+					"To anchor:",
+					"(dl.players.any.set_anchored true)",
+					"To free:",
+					"(dl.players.any.set_anchored false)",
 					"function",
 					"prevents the player from moving"
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.fill_ammo",
-				"description": ["(dl.players.${any}.fill_ammo)", "function", "refills ammo of player \"${any}\""]
+				"directory": "$dl.players.any.fill_ammo",
+				"description": [
+					"(dl.players.any.fill_ammo slot)", 
+					"Example:",
+					"(dl.players.any.fill_ammo \"primary\")", 
+					"function", 
+					"refills ammo of player \"any\""]
 			},
 			{
-				"directory": "$dl.players.${any}.set_camera_mode",
+				"directory": "$dl.players.any.set_camera_mode",
 				"description": [
-					"(dl.players.${any}.set_camera_mode mode)",
-					"(dl.players.${any}.set_camera_mode \"Freecam\")",
+					"(dl.players.any.set_camera_mode mode)",
+					"Example:",
+					"(dl.players.any.set_camera_mode \"Freecam\")",
 					"function",
-					"sets local camera mode of player \"${any}\""
+					"sets local camera mode of player \"any\""
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.health",
+				"directory": "$dl.players.any.health",
 				"description": [
-					"(print $dl.players.${any}.health)",
+					"(print $dl.players.any.health)",
 					"number value",
-					"health of \"${any}\", if they are alive",
+					"health of \"any\", if they are alive",
 					"returns -1 if they are not"
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.health",
+				"directory": "$dl.players.any.health",
 				"description": [
-					"(print $dl.players.${any}.health)",
-					"number value",
-					"health of \"${any}\", if they are alive",
-					"returns -1 if they are not"
+					"($dl.players.any.health number)",
+					"Example:",
+					"($dl.players.any.health 20)",
+					"function",
+					"set health of \"any\", if they are alive"
 				]
 			},
 			{
-				"directory": "dl.players.${any}.set_player_weapon",
+				"directory": "dl.players.any.set_player_weapon",
 				"description": [
-					"(dl.players.${any}.set_player_weapon slot name setup)",
+					"(dl.players.any.set_player_weapon slot name setup)",
+					"Example:",
+					"(dl.players.any.set_player_weapon \"primary\" \"M4A1\" (dl.util.read_setup \"nrel-c85fcab7-f205-4fd7-a0eb-acc9c7a43a6f\"))",
 					"function",
 					"replaces the weapon of player in slot with another weapon with setup, if they are alive",
+					"\"setup\" needs to be the readed nrel code",
 					"best used with dl.events.on_player_spawned"
 				]
 			},
@@ -886,57 +901,57 @@
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.velocity",
+				"directory": "$dl.players.any.velocity",
 				"description": [
-					"(print $dl.players.${any}.velocity)",
+					"(print $dl.players.any.velocity)",
 					"number value",
-					"velocity of \"${any}\", if they are alive"
+					"velocity of \"any\", if they are alive"
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.kick",
-				"description": ["(dl.players.${any}.kick)", "function", "kicks \"${any}\""]
+				"directory": "$dl.players.any.kick",
+				"description": ["(dl.players.any.kick)", "function", "kicks \"any\""]
 			},
 			{
-				"directory": "$dl.players.${any}.serverban",
+				"directory": "$dl.players.any.serverban",
 				"description": [
-					"(dl.players.${any}.serverban)",
+					"(dl.players.any.serverban)",
 					"function",
-					"serverbans \"${any}\", preventing them from joining the server they got kicked from"
+					"serverbans \"any\", preventing them from joining the server they got kicked from"
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.explode",
-				"description": ["(dl.players.${any}.explode)", "function", "blows up ${any}"]
+				"directory": "$dl.players.any.explode",
+				"description": ["(dl.players.any.explode)", "function", "blows up \"any\""]
 			},
 			{
-				"directory": "$dl.players.${any}.kill",
-				"description": ["(dl.players.${any}.kill)", "function", "kills ${any}"]
+				"directory": "$dl.players.any.kill",
+				"description": ["(dl.players.any.kill)", "function", "kills \"any\""]
 			},
 			{
-				"directory": "$dl.players.${any}.team",
+				"directory": "$dl.players.any.team",
 				"description": [
-					"(print $dl.players.${any}.team)",
-					"($dl.players.${any}.team team)",
+					"(print $dl.players.any.team)",
+					"($dl.players.any.team team)",
 					"string value",
-					"team of \"${any}\", can be set to either security or insurgent"
+					"team of \"any\", can be set to either security or insurgent"
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.position",
+				"directory": "$dl.players.any.position",
 				"description": [
-					"(print $dl.players.${any}.position)",
-					"($dl.players.${any}.position [x y z])",
+					"(print $dl.players.any.position)",
+					"($dl.players.any.position [x y z])",
 					"vector3 value",
-					"the position of \"${any}\", can be set with a vector as shown above"
+					"the position of \"any\", can be set with a vector as shown above"
 				]
 			},
 			{
-				"directory": "$dl.players.${any}.is_alive",
+				"directory": "$dl.players.any.is_alive",
 				"description": [
-					"(print (dl.players.${any}.is_alive))",
+					"(print (dl.players.any.is_alive))",
 					"function",
-					"returns whether \"${any}\" is alive"
+					"returns whether \"any\" is alive"
 				]
 			},
 			{
@@ -1390,10 +1405,9 @@
 			{
 				"directory": "dl.events.on_chat_message",
 				"description": [
-					"(function sent sender channel contents (print sender \" \" channel \" \" contents))",
-					"(dl.events.on_chat_message.connect sent)",
-					"(wait 5)",
-					"(dl.events.on_chat_message.kill sent)",
+					"Example:",
+					"(function sent sender channel contents (print sender \" \" channel \" \" contents)) ; function to connect",
+					"(dl.events.on_chat_message.connect sent) ; connect function",
 					"shobfix event",
 					"fires whenever a player uses the chat"
 				]
@@ -1401,10 +1415,8 @@
 			{
 				"directory": "dl.events.on_player_spawned",
 				"description": [
-					"(function spawned player (print player))",
-					"(dl.events.on_player_spawned.connect sent)",
-					"(wait 5)",
-					"(dl.events.on_player_spawned.kill sent)",
+					"(function spawned player (print player)) ; function to connect",
+					"(dl.events.on_player_spawned.connect spawned)",
 					"shobfix event",
 					"fires whenever a player spawns in"
 				]
@@ -1412,10 +1424,8 @@
 			{
 				"directory": "dl.events.on_player_died",
 				"description": [
-					"(function spawned killer victim (print killer victim))",
-					"(dl.events.on_player_died.connect sent)",
-					"(wait 5)",
-					"(dl.events.on_player_died.kill sent)",
+					"(function kill killer victim (print killer victim)) ; function to connect",
+					"(dl.events.on_player_died.connect kill)",
 					"shobfix event",
 					"fires whenever a player dies"
 				]
