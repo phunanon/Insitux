@@ -381,6 +381,11 @@ export const ops: {
     params: ["num", ["vec", "str"]],
     returns: ["vec", "str"],
   },
+  trunc: {
+    exactArity: 2,
+    params: ["num", ["vec", "str"]],
+    returns: ["vec", "str"],
+  },
   crop: {
     exactArity: 3,
     params: ["num", "num", ["vec", "str"]],
@@ -479,6 +484,7 @@ export const syntaxes = [
   "unless",
   "while",
   "loop",
+  "loop-over",
   "match",
   "satisfy",
   "catch",

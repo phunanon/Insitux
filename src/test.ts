@@ -162,6 +162,11 @@ const tests: {
     out: `012null`,
   },
   {
+    name: "Loop over",
+    code: `(let v [0 1 2]) (loop-over v i (print-str i))`,
+    out: `012null`,
+  },
+  {
     name: "Catch error",
     code: `(catch
              (:e (catch (let a :a) (+ 1 a) (0 errors)))

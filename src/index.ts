@@ -1,4 +1,4 @@
-export const insituxVersion = 230213;
+export const insituxVersion = 230406;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -535,13 +535,14 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "take-until":
     case "skip-while":
     case "skip-until": {
+      const take = op === "take-while" || op === "take-until";
       const until = op === "take-until" || op === "skip-until";
       const closure = getExe(ctx, args[0], errCtx);
       const array = asArray(args[1]);
       let i = 0;
       for (let lim = len(array); i < lim; ++i)
         if (asBoo(closure([array[i]])) === until) break;
-      const sliced = op === "take-while" ? slice(array, 0, i) : slice(array, i);
+      const sliced = take ? slice(array, 0, i) : slice(array, i);
       return args[1].t === "str"
         ? _str(sliced.map(str).join(""))
         : _vec(sliced);
@@ -687,6 +688,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "skip":
     case "first":
     case "last":
+    case "trunc":
     case "crop": {
       let a = num(args[0]);
       const b = op === "crop" ? num(args[1]) : 0;
@@ -695,8 +697,17 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       if (a < 0) {
         a = op === "crop" ? a + l : 0;
       }
-      let x = op === "first" ? 0 : op === "last" ? l - a : a;
-      const y = op === "first" ? a : op === "crop" ? (b < 0 ? -b : l - b) : l;
+      let x =
+        op === "first" ? 0 : op === "trunc" ? 0 : op === "last" ? l - a : a;
+      const yIfCrop = b < 0 ? -b : l - b;
+      const y =
+        op === "first"
+          ? a
+          : op === "trunc"
+          ? l - a
+          : op === "crop"
+          ? yIfCrop
+          : l;
       x = x > y ? y : x;
       return t === "str"
         ? _str(substr(<string>v, x, y - x))

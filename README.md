@@ -459,6 +459,12 @@ etc
 (loop 3 i (print-str i) i-limit) → 0123
 (loop (rand 10) i i) ;Loops up to ten times
 
+;Loops its body over a vector, string, or dictionary
+;Note: the provided item and index is available as e.g. i-item i-index
+(loop-over [0 1 2 3] i (print-str i)) → 0123null
+(loop-over "hello" i (print-str i))   → hellonull
+(loop-over {:a 1 :b 2} i (print-str i)) → [:a 1][:b 2]null
+
 ;Returns the first argument; returns the last argument
 (val 3 2 1 (print-str "hello"))
 → hello3
@@ -509,10 +515,12 @@ etc
 (skip 1 "hello")      → "ello"
 (first 2 "hello")     → "he"
 (last 2 "hello")      → "lo"
+(trunc 2 "hello")     → "hel"
 (crop 1 1 "hello")    → "ell"
-(crop 0 -3 "abcdef")  → "abc"
-(crop -3 0 "abcdef")  → "def"
-(crop -4 -4 "abcdef") → "cd"
+;edge-case examples
+(crop 0 -3 "abcdefghi")  → "abc"
+(crop -3 0 "abcdefghi")  → "ghi"
+(crop -4 -7 "abcdefghi") → "fg"
 
 ;Take or skip vector items or string characters until condition is no longer met
 (take-while odd? [1 3 2 4 5 7]) → [1 3]
@@ -1287,6 +1295,5 @@ vector item or string character is "destructured" into.
 **and to shame myself that they still exist.**  
 ⚠️ (= {:a 1 :b 2} {:b 2 :a 1}) -> false  
 ⚠️ don't capture #(var x x) - write test for it  
-⚠️ (loop 3 i (print (+ 1 i)))  
 ⚠️ syntax highlighter omits commas  
 ⚠️ ((let x) 1) x - doesn't work
