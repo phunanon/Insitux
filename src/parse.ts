@@ -294,7 +294,7 @@ function parseForm(
         { typ: "jmp", value: 1, errCtx },
         { typ: "val", value: nullVal, errCtx },
       ];
-    } else if (op === "match" || op == "satisfy") {
+    } else if (op === "match" || op === "satisfy") {
       const opIns: Ins["typ"] = op === "match" ? "mat" : "sat";
       const parsed = nodes.map(nodeParser);
       const [cond, args] = [parsed[0], slice(parsed, 1)];

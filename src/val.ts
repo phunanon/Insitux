@@ -1,4 +1,4 @@
-import { flat, len, slice, splice } from "./poly-fills";
+import { flat, isStr, len, slice, splice } from "./poly-fills";
 import { assertUnreachable, Dict, Func, InvokeError, Val } from "./types";
 
 export const num = ({ v }: Val) => v as number;
@@ -200,7 +200,7 @@ export function pathSet(
 
 /** Incomplete. */
 export function jsToIx(v: unknown): Val {
-  if (typeof v === "string") {
+  if (isStr(v)) {
     return { t: "str", v };
   }
   return { t: "str", v: `${v}` };

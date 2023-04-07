@@ -1,3 +1,5 @@
+export const isObj = (x: unknown): x is object => typeof x === "object";
+export const isStr = (x: unknown): x is string => typeof x === "string";
 export const toNum = (x: unknown): number => Number(x); //Should also support 0b and 0x
 export const slice = <T>(arr: T[], start?: number, end?: number): T[] =>
   arr.slice(start, end);

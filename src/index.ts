@@ -11,7 +11,7 @@ const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
 const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
 const { trim, trimStart, trimEnd, strIdx, replace, rreplace } = pf;
 const { charCode, codeChar, getTimeMs, randInt, randNum } = pf;
-const { isNum, len, objKeys, range, toNum, isArray } = pf;
+const { isNum, len, objKeys, range, toNum, isArray, isObj } = pf;
 import { doTests } from "./test";
 import { assertUnreachable, Env, InvokeError, InvokeResult } from "./types";
 import { ExternalFunctions, syntaxes } from "./types";
@@ -29,7 +29,7 @@ function _throw(errors: InvokeError[]): Val {
   throw <_Exception>{ errors };
 }
 function isThrown(e: unknown): e is _Exception {
-  return !!e && typeof e === "object" && "errors" in e!;
+  return !!e && isObj(e) && "errors" in e;
 }
 const throwTypeErr = (msg: string, errCtx: ErrCtx) =>
   _throw([typeErr(msg, errCtx)]);
@@ -451,7 +451,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         return _vec(flatArray);
       }
 
-      if (op !== "reduce" && op != "reductions") {
+      if (op !== "reduce" && op !== "reductions") {
         const arrArg = args.shift()!;
         const array = asArray(arrArg);
         const isRemove = op === "remove",
@@ -535,14 +535,14 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "take-until":
     case "skip-while":
     case "skip-until": {
-      const take = op === "take-while" || op === "take-until";
-      const until = op === "take-until" || op === "skip-until";
+      const isTake = op === "take-while" || op === "take-until";
+      const isUntil = op === "take-until" || op === "skip-until";
       const closure = getExe(ctx, args[0], errCtx);
       const array = asArray(args[1]);
       let i = 0;
       for (let lim = len(array); i < lim; ++i)
-        if (asBoo(closure([array[i]])) === until) break;
-      const sliced = take ? slice(array, 0, i) : slice(array, i);
+        if (asBoo(closure([array[i]])) === isUntil) break;
+      const sliced = isTake ? slice(array, 0, i) : slice(array, i);
       return args[1].t === "str"
         ? _str(sliced.map(str).join(""))
         : _vec(sliced);
@@ -1459,7 +1459,7 @@ function parseAndExe(
 }
 
 function ingestExternalOperations(functions: ExternalFunctions) {
-  Object.keys(functions).forEach(name => {
+  objKeys(functions).forEach(name => {
     if (ops[name] && !ops[name].external) {
       throw "Redefining internal operations is disallowed.";
     }
