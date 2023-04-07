@@ -41,7 +41,7 @@ export function functionInvoker(
 }
 
 function invokeResultToOutput(result: InvokeResult) {
-  if (result.kind !== "errors") {
+  if (!("kind" in result) || result.kind !== "errors") {
     return [];
   }
   let out: InvokeOutput = [];

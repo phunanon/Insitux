@@ -15,22 +15,21 @@ import fetch from "cross-fetch";
 import clone = require("git-clone/promise");
 const execSync = require("child_process").execSync;
 
-const _val = (value: Val) => <ValOrErr>{ kind: "val", value };
 const githubRegex = /^(?!https*:)[^\/]+?\/[^\/]+$/;
 let colourMode = true;
 
 //#region External operations
 function read(path: string, asLines: boolean) {
   if (!existsSync(path)) {
-    return _val(_nul());
+    return _nul();
   }
   const content = readFileSync(path).toString();
-  return _val(asLines ? _vec(content.split(/\r?\n/).map(_str)) : _str(content));
+  return asLines ? _vec(content.split(/\r?\n/).map(_str)) : _str(content);
 }
 
 function writeOrAppend(path: string, content: string, isAppend = false) {
   (isAppend ? appendFileSync : writeFileSync)(path, content);
-  return _val(_nul());
+  return _nul();
 }
 
 const writingOpDef: Operation = {
@@ -76,13 +75,13 @@ function makeFunctions(workingDirectory = process.cwd()) {
         returns: ["str"],
         hasEffects: true,
       },
-      handler: params => _val(jsToIx(prompt()(<string>params[0].v))),
+      handler: params => jsToIx(prompt()(<string>params[0].v)),
     },
     exec: {
       definition: { params: ["str"], hasEffects: true },
       handler: params => {
         try {
-          return _val(jsToIx(execSync(str(params[0])).toString()));
+          return jsToIx(execSync(str(params[0])).toString());
         } catch (e) {
           let err = `${e}`;
           if (e instanceof Error) err = e.message;
@@ -115,11 +114,11 @@ function makeFunctions(workingDirectory = process.cwd()) {
         ctx.functions = makeFunctions(dirname(path));
         const { result, output } = invoker(ctx, code, path, false);
         ctx.functions = oldFuncs;
-        if (result.kind === "errors") {
+        if ("kind" in result && result.kind === "errors") {
           printErrorOutput({ output });
           return { kind: "err", err: `errors in importing ${path}` };
         }
-        return _val(result.kind === "val" ? result.value : _nul());
+        return !("kind" in result) ? result : _nul();
       },
     },
   };
@@ -130,9 +129,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
 const env = new Map<string, Val>();
 
 function get(key: string): ValOrErr {
-  return env.has(key)
-    ? _val(env.get(key)!)
-    : { kind: "err", err: `key ${key} not found` };
+  return env.has(key) ? env.get(key)! : { err: `key ${key} not found` };
 }
 
 function set(key: string, val: Val) {
@@ -159,11 +156,11 @@ function exe(name: string, args: Val[]): ValOrErr {
         return get(`${a.v.substring(1)}.${name}`);
       } else {
         set(`${a.v.substring(1)}.${name}`, args[1]);
-        return _val(args[1]);
+        return args[1];
       }
     }
   }
-  return { kind: "err", err: `operation "${name}" does not exist` };
+  return { err: `operation "${name}" does not exist` };
 }
 //#endregion
 

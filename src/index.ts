@@ -1,4 +1,4 @@
-export const insituxVersion = 230406;
+export const insituxVersion = 230407;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -628,7 +628,9 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return dictDrop(dic(args[1]), args[0]);
     case "drop": {
       const [n, v] = [num(args[0]), vec(args[1])];
-      return _vec(concat(slice(v, 0, n), slice(v, n + 1)));
+      const l = len(v);
+      const x = min(max(n < 0 ? l + n : n, 0), l);
+      return _vec(concat(slice(v, 0, x), slice(v, x + 1)));
     }
     case "assoc":
       return _dic(dictSet(dic(args[2]), args[0], args[1]));
@@ -1080,12 +1082,12 @@ function getExe(
             _throw(violations);
           }
           const oldLetsStack = slice(letsStack);
-          const valOrErr = ctx.functions[name].handler(params);
+          const valOrErr = ctx.functions[name].handler(params) || _nul();
           letsStack = oldLetsStack; //In case invoker was called externally
-          if (valOrErr.kind === "err") {
+          if ("err" in valOrErr) {
             return _throw([{ e: "External", m: valOrErr.err, errCtx }]);
           }
-          return valOrErr.value;
+          return valOrErr;
         };
       }
       return (params: Val[]) => {
@@ -1127,10 +1129,10 @@ function getExe(
         return _throw([{ e: "External", m, errCtx }]);
       }
       const valAndErr = ctx.exe(name, params);
-      if (valAndErr.kind === "val") {
-        return valAndErr.value;
+      if ("err" in valAndErr) {
+        return _throw([{ e: "External", m: valAndErr.err, errCtx }]);
       }
-      return _throw([{ e: "External", m: valAndErr.err, errCtx }]);
+      return valAndErr;
     };
   } else if (op.t === "clo") {
     return (params: Val[]) => exeFunc(ctx, op.v, params);
@@ -1310,10 +1312,10 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
             return _throw([{ e: "External", m, errCtx }]);
           }
           const valAndErr = ctx.get(substr(name, 1));
-          if (valAndErr.kind === "err") {
+          if ("err" in valAndErr) {
             return _throw([{ e: "External", m: valAndErr.err, errCtx }]);
           }
-          stack.push(valAndErr.value);
+          stack.push(valAndErr);
         } else if (name in lets) {
           stack.push(lets[name]);
         } else if (name in ctx.env.vars) {
@@ -1503,7 +1505,7 @@ function innerInvoke(
   if (printResult && value) {
     ctx.print(val2str(value), true);
   }
-  return value ? { kind: "val", value } : { kind: "empty" };
+  return value ? value : { kind: "empty" };
 }
 
 /**

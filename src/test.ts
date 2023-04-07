@@ -5,9 +5,9 @@ type State = { dict: Map<string, Val>; output: string };
 
 function get(state: State, key: string): ValOrErr {
   if (!state.dict.has(key)) {
-    return { kind: "err", err: `"${key}" not found.` };
+    return { err: `"${key}" not found.` };
   }
-  return { kind: "val", value: state.dict.get(key)! };
+  return state.dict.get(key)!;
 }
 
 function set(state: State, key: string, val: Val): string | undefined {
@@ -22,9 +22,9 @@ function exe(state: State, name: string, args: Val[]): ValOrErr {
       state.output += args[0].v + "\n";
       break;
     default:
-      return { kind: "err", err: `operation "${name}" does not exist` };
+      return { err: `operation "${name}" does not exist` };
   }
-  return { kind: "val", value: nullVal };
+  return nullVal;
 }
 
 const tests: {
@@ -496,7 +496,7 @@ export function doTests(
       code,
       true,
     );
-    const errors = valOrErrs.kind === "errors" ? valOrErrs.errors : [];
+    const errors = "errors" in valOrErrs ? valOrErrs.errors : [];
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
     const okOut = !out || trim(state.output) === out;
     const elapsedMs = getTimeMs() - startTime;

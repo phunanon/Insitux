@@ -6,7 +6,7 @@ const e = (el: string) => document.querySelector(el);
 let state = new Map<string, Val>();
 
 const get = (key: string): ValOrErr =>
-  state.has(key) ? { kind: "val", value: state.get(key)! } : nullValOrErr;
+  state.has(key) ? state.get(key)! : _nul();
 const set = (key: string, val: Val) => {
   state.set(key, val);
   localStorage.setItem("insitux-state", JSON.stringify([...state.entries()]));
@@ -19,10 +19,10 @@ function exe(name: string, args: Val[]): ValOrErr {
       return get(`${args[0].v.substring(1)}.${name}`);
     } else {
       set(`${args[0].v.substring(1)}.${name}`, args[1]);
-      return { kind: "val", value: args[1] };
+      return args[1];
     }
   }
-  return { kind: "err", err: `operation ${name} does not exist` };
+  return { err: `operation ${name} does not exist` };
 }
 
 function fetchOp(url: string, method: string, callback: string, body?: string) {
@@ -44,7 +44,6 @@ function htmlToElement(html: string) {
   return temp.content.firstChild;
 }
 
-const nullValOrErr: ValOrErr = { kind: "val", value: _nul() };
 const v2e = (val: Val) => (val.t === "str" ? e(val.v) : <HTMLElement>val.v);
 const functions: ExternalFunctions = {
   js: {
@@ -58,9 +57,9 @@ const functions: ExternalFunctions = {
             : evaluated;
         let value: Val = { t: "ext", v };
         if (typeof v === "string") value = _str(v);
-        return { kind: "val", value };
+        return value;
       } catch (e) {
-        return { kind: "err", err: `${e}` };
+        return { err: `${e}` };
       }
     },
   },
@@ -71,7 +70,6 @@ const functions: ExternalFunctions = {
       if (element) {
         element.innerHTML = val2str(html);
       }
-      return nullValOrErr;
     },
   },
   "html-el": {
@@ -80,10 +78,7 @@ const functions: ExternalFunctions = {
       returns: ["ext"],
     },
     handler: ([html]) => {
-      return {
-        kind: "val",
-        value: { t: "ext", v: htmlToElement(val2str(html)) },
-      };
+      return { t: "ext", v: htmlToElement(val2str(html)) };
     },
   },
   "child-at": {
@@ -94,7 +89,7 @@ const functions: ExternalFunctions = {
     },
     handler: ([parent, index]) => {
       const el = v2e(parent)?.childNodes[num(index)];
-      return { kind: "val", value: el ? { t: "ext", v: el } : _nul() };
+      return el ? { t: "ext", v: el } : _nul();
     },
   },
   "append-child": {
@@ -106,7 +101,6 @@ const functions: ExternalFunctions = {
     handler: ([parent, child]) => {
       const parentEl = v2e(parent);
       parentEl?.appendChild(<HTMLElement>child.v);
-      return nullValOrErr;
     },
   },
   "remove-child": {
@@ -120,7 +114,6 @@ const functions: ExternalFunctions = {
         const parentEl = v2e(parent);
         parentEl?.removeChild(parentEl.childNodes[num(index)]);
       }
-      return nullValOrErr;
     },
   },
   "replace-child": {
@@ -135,35 +128,31 @@ const functions: ExternalFunctions = {
       if (parentEl && childEl && replacedEl) {
         parentEl.replaceChild(childEl, replacedEl);
       }
-      return nullValOrErr;
     },
   },
   prompt: {
     definition: { exactArity: 1, returns: ["str", "null"] },
     handler: params => {
       const reply = prompt(val2str(params[0]));
-      return { kind: "val", value: reply ? _str(reply) : _nul() };
+      return reply ? _str(reply) : _nul();
     },
   },
   alert: {
     definition: { exactArity: 1, returns: ["null"] },
     handler: params => {
       alert(val2str(params[0]));
-      return nullValOrErr;
     },
   },
   interval: {
     definition: { exactArity: 2, params: ["func", "num"], returns: ["null"] },
     handler: ([func, interval]) => {
       setInterval(() => invoker(ctx, `(${func.v})`), num(interval));
-      return nullValOrErr;
     },
   },
   timeout: {
     definition: { exactArity: 2, params: ["func", "num"], returns: ["null"] },
     handler: ([func, interval]) => {
       setTimeout(() => invoker(ctx, `(${func.v})`), num(interval));
-      return nullValOrErr;
     },
   },
   "GET-str": {
@@ -174,7 +163,6 @@ const functions: ExternalFunctions = {
     },
     handler: ([callback, url]) => {
       fetchOp(str(url), "GET", str(callback));
-      return nullValOrErr;
     },
   },
   "POST-str": {
@@ -185,7 +173,6 @@ const functions: ExternalFunctions = {
     },
     handler: ([callback, url, body]) => {
       fetchOp(str(url), "POST", str(callback), str(body));
-      return nullValOrErr;
     },
   },
 };

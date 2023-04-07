@@ -11,9 +11,7 @@ export type Val =
 
 export type ErrCtx = { invokeId: string; line: number; col: number };
 export type InvokeError = { e: string; m: string; errCtx: ErrCtx };
-export type ValOrErr =
-  | { kind: "val"; value: Val }
-  | { kind: "err"; err: string };
+export type ValOrErr = Val | { err: string };
 /**
  * @summary "empty" occurs when there was only function declaration;
  *          "val" occurs when there were no errors and there is a final value;
@@ -21,7 +19,7 @@ export type ValOrErr =
  */
 export type InvokeResult =
   | { kind: "empty" }
-  | { kind: "val"; value: Val }
+  | Val
   | { kind: "errors"; errors: InvokeError[] };
 
 export type Dict = {
@@ -111,9 +109,9 @@ export type Operation = {
   hasEffects?: boolean;
   numeric?: true | "in only";
   params?: ("any" | Val["t"] | Val["t"][])[];
-  returns?: Val["t"][];
+  returns?: [Val["t"], ...Val["t"][]];
 };
-export type ExternalHandler = (params: Val[]) => ValOrErr;
+export type ExternalHandler = (params: Val[]) => ValOrErr | void;
 export type ExternalFunction = {
   definition: Operation;
   handler: ExternalHandler;

@@ -27,7 +27,7 @@ Inspired by [Chika](https://github.com/phunanon/Chika),
 [Kuan](https://github.com/phunanon/Kuan).
 
 - [**Main Github repository**](https://github.com/phunanon/Insitux)
-- [**Roblox-ts NPM package**](https://www.npmjs.com/package/@rbxts/insitux) and its [Github repository](https://github.com/insitux/rbxts-Insitux)
+- [**Roblox-TS NPM package**](https://www.npmjs.com/package/@rbxts/insitux) and its [Github repository](https://github.com/insitux/rbxts-Insitux)
 - [YouTube tutorials and demonstrations playlist](https://www.youtube.com/watch?v=iKOuzXhs14A&list=PLOKSmPXGYmewQI3dNBubTNljRD2C4Dg0z)
 
 Works in Node, the web, and Roblox.
@@ -482,7 +482,8 @@ etc
 (omit [1] {[1] 1 :b 2}) → {:b 2}
 
 ;Removes value with index from a vector
-(drop 1 [:a :b :c]) → [:a :c]
+(drop 1 [:a :b :c])  → [:a :c]
+(drop -1 [:a :b :c]) → [:a :b]
 
 ;Associates a value to a key in a dictionary
 (assoc :a 2 {:a 1 :b 2}) → {:a 2, :b 2}
