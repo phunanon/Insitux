@@ -1,4 +1,4 @@
-export const insituxVersion = 230407;
+export const insituxVersion = 230408;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -1013,6 +1013,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         infos.push(_key(`:${what}`), val);
       const toStrVec = (v: (string | string[])[]): Val =>
         _vec(v.map(typ => (isArray(typ) ? _vec(typ.map(_str)) : _str(typ))));
+      info("name", _str(func));
       info("external?", _boo(!!entry.external));
       if (entry.exactArity) {
         info("exact-arity", _num(entry.exactArity));

@@ -399,8 +399,8 @@ const tests: {
              (if (< n 2) n
                (+ (fib (dec n))
                   (fib (- n 2)))))
-           (fib 13)`,
-    out: `233`,
+           (fib 6)`,
+    out: `8`,
   },
   {
     name: "dedupe (recur)",
@@ -487,10 +487,10 @@ export function doTests(
         exe: (name: string, args: Val[]) => exe(state, name, args),
         functions: {},
         env,
-        loopBudget: 10000,
-        rangeBudget: 1000,
-        callBudget: 1000,
-        recurBudget: 10000,
+        loopBudget: 1000,
+        rangeBudget: 100,
+        callBudget: 100,
+        recurBudget: 100,
       },
       code,
       code,

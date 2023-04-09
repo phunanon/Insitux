@@ -469,23 +469,9 @@ export const ops: {
 };
 
 export const syntaxes = [
-  "function",
-  "fn",
-  "var",
-  "let",
-  "var!",
-  "let!",
-  "return",
-  "if",
-  "if!",
-  "when",
-  "unless",
-  "while",
-  "loop",
-  "loop-over",
-  "match",
-  "satisfy",
-  "catch",
+  ...["function", "fn", "var", "let", "var!", "let!", "return", "if", "if!"],
+  ...["when", "unless", "while", "loop", "loop-over", "match", "satisfy"],
+  ...["catch", "args", "E", "PI"],
 ];
 
 export const typeNames = {

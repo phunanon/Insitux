@@ -811,9 +811,10 @@ etc
 
 ;Returns arity, type, and other information about specified function
 (about +)
-→ {:external? false, :minimum-arity 2, :in-types ["num"], :out-types ["num"]}
+→ {:name "+", :external? false, :minimum-arity 2, :in-types ["num"],
+   :out-types ["num"]}
 (about "about")
-→ {:external? false, :exact-arity 1, :in-types [["str" "func"]],
+→ {:name "about", :external? false, :exact-arity 1, :in-types [["str" "func"]],
    :out-types ["dict"]}
 
 ;Resets an Insitux session back to how it started
