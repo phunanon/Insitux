@@ -1,4 +1,4 @@
-export const insituxVersion = 230412;
+export const insituxVersion = 230413;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -382,6 +382,24 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         { typ: "val", value: a, errCtx },
         { typ: "jmp", value: 1, errCtx },
         { typ: "upa", value: 0, text: "x", errCtx },
+      ];
+      return { t: "clo", v: <Func>{ name, ins } };
+    }
+    case "criteria": {
+      const name = `(criteria ${args.map(val2str).join(" ")})`;
+      const ins: Ins[] = [
+        ...args.flatMap((value, i) => {
+          const jmp = (len(args) - 1 - i) * 4 + 2;
+          return [
+            { typ: "upa", value: 0, text: "x", errCtx },
+            { typ: "val", value, errCtx },
+            { typ: "exe", value: 1, errCtx },
+            { typ: "if", value: jmp, errCtx },
+          ] as Ins[];
+        }),
+        { typ: "val", value: _boo(true), errCtx },
+        { typ: "jmp", value: 1, errCtx },
+        { typ: "val", value: _boo(false), errCtx },
       ];
       return { t: "clo", v: <Func>{ name, ins } };
     }
@@ -852,6 +870,15 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         }
       }
       return _vec(parted);
+    }
+    case "skip-each": {
+      const n = num(args[0]);
+      const src = asArray(args[1]);
+      const skipped: Val[] = [];
+      for (let i = 0, lim = len(src); i < lim; i += n + 1) {
+        skipped.push(src[i]);
+      }
+      return args[1].t === "str" ? _str(skipped.join("")) : _vec(skipped);
     }
     case "freqs": {
       const src = asArray(args[0]);

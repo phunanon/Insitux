@@ -57,7 +57,7 @@ function invokeResultToOutput(result: InvokeResult) {
     const sym = substr(lineText, col - 1).split(parensRx)[0];
     const half1 = trimStart(substr(lineText, 0, col - 1));
     const path = starts(invokeId, "-") ? `In ${substr(invokeId, 1)}\n` : "";
-    msg(`\n${padEnd(`${line}`, 4)} ${half1}`);
+    msg(`\n${padEnd(`${line}:${col}`, 7)} ${half1}`);
     if (!sym) {
       const half2 = substr(lineText, col);
       err(lineText[col - 1]);

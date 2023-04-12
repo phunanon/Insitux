@@ -250,6 +250,7 @@ export const ops: {
   adj: { returns: ["clo"] },
   comp: { minArity: 2, returns: ["clo"] },
   toggle: { exactArity: 2, returns: ["clo"] },
+  criteria: { minArity: 2, returns: ["clo"] },
   map: { minArity: 2, returns: ["vec"] },
   "flat-map": { minArity: 2, returns: ["vec"] },
   xmap: {
@@ -415,6 +416,11 @@ export const ops: {
     exactArity: 2,
     params: ["num", ["vec", "str"]],
     returns: ["vec"],
+  },
+  "skip-each": {
+    exactArity: 2,
+    params: ["num", ["vec", "str"]],
+    returns: ["vec", "str"],
   },
   freqs: { exactArity: 1, params: [["vec", "str"]], returns: ["dict"] },
   keys: { exactArity: 1, params: ["dict"] },

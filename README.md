@@ -145,11 +145,11 @@ built-in operations each within an example, with results after a `→`.
 → ["Patrick" 1 2 3]
 
 ;Redefines a var or let by applying a function and arguments to it
-;Note: internally rewrites the expression e.g. (var! a + 10) → (var a (+ a 10))
+;Note: internally rewrites the expression e.g. (var! a + 10) → (var a (+ 10 a))
 (var a 10)
 (let b [:a :b :c])
 (var! a inc)  → 11
-(var! a + 10) → 21
+(var! a - 15) → 5
 (let! b 1) → :b
 [a b] → [21 :b]
 
@@ -639,6 +639,12 @@ etc
 (partition 2 (range 8))       → [[0 1] [2 3] [4 5] [6 7]]
 (partition 3 "Hello, world!") → ["Hel" "lo," " wo" "rld" "!"]
 
+;Returns a vector or string with each Nth item/char
+(skip-each 1 (range 8))  → [0 2 4 6]
+(skip-each 2 "Insitux")  → "Iix"
+(skip-each 0 [0 1 2 3])  → [0 1 2 3]
+(skip-each 9 (range 50)) → [0 10 20 30 40]
+
 ;Returns dictionary with keys as distinct vector items, string characters,
 ;  with values as number of occurrences
 (freqs [0 0 1 2 3]) → {0 2, 1 1, 2 1, 3 1}
@@ -736,16 +742,20 @@ etc
 (set-at [0 1] :a [[0 1] [0 1]]) → [[0 :a] [0 1]]
 (set-at [0 :a] :c [{:a :b}])    → [{:a :c}]
 (set-at [:b] :c {:a [:b]})      → {:a [:b], :b :c}
-(set-at [5 0] 1 [0 1 2])        → [0 1 2]
+(set-at [-1] :a [0 1 2])        → [0 1 :a]
+;Does nothing
+(set-at [5] 1 [0 1 2])          → [0 1 2]
 (set-at [0 0] 1 [:a])           → [:a]
 
 ;Returns vector or dictionary with specified index or key/value set or replaced
 ;  with another value, as returned from a specified function
-(update-at [0] inc [0])       → [1]
-(update-at [5 0] inc [0 1 2]) → [0 1 2]
+(update-at [0] inc [0 1])     → [1 1]
+(update-at [-1] inc [0 1 2])  → [0 1 3]
 (update-at [0 1] upper-case
   [["hi" "hello"] ["hi" "hello"]])
 → [["hi" "HELLO"] ["hi" "hello"]]
+;Does nothing
+(update-at [5 0] inc [0 1 2]) → [0 1 2]
 
 ;Takes functions and returns a function that returns a vector of the result of
 ;  applying each function to those arguments
@@ -769,6 +779,12 @@ etc
 ((toggle :cozy :compact) :cozy)    → :compact
 ((toggle :cozy :compact) :compact) → :cozy
 ((toggle :cozy :compact) :hello)   → :hello
+
+;Returns a closure which returns true or false based on multiple criteria
+;Note: the evalution short-circuits on falsey values
+((criteria num? (< 5) odd?) 11) → true
+((criteria [0 1 2] [1 2 3]) 2)  → true
+((criteria [0 1 2] [3 4 5]) 10) → false
 
 ;Treats its arguments as an expression, first argument as the expression head
 (. + 2 2) → 4

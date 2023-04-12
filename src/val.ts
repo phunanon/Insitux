@@ -1,4 +1,4 @@
-import { flat, isStr, len, slice, splice } from "./poly-fills";
+import { flat, isStr, len, max, slice, splice } from "./poly-fills";
 import { assertUnreachable, Dict, Func, InvokeError, Val } from "./types";
 
 export const num = ({ v }: Val) => v as number;
@@ -169,14 +169,14 @@ export function pathSet(
   if (
     !len(path) ||
     (coll.t !== "vec" && coll.t !== "dict") ||
-    (coll.t === "vec" &&
-      (path[0].t !== "num" || path[0].v < 0 || path[0].v > len(coll.v)))
+    (coll.t === "vec" && (path[0].t !== "num" || path[0].v > len(coll.v)))
   ) {
     return coll;
   }
   if (coll.t === "vec") {
     const vecCopy = slice(coll.v);
-    const idx = num(path[0]);
+    let idx = num(path[0]);
+    if (idx < 0) idx = max(len(vecCopy) + idx, 0);
     if (len(path) === 1) {
       vecCopy[idx] = replacer(vecCopy[idx]);
       return { t: "vec", v: vecCopy };
@@ -202,6 +202,9 @@ export function pathSet(
 export function jsToIx(v: unknown): Val {
   if (isStr(v)) {
     return { t: "str", v };
+  }
+  if (v === null) {
+    return { t: "null", v: undefined };
   }
   return { t: "str", v: `${v}` };
 }

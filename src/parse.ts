@@ -477,7 +477,7 @@ function parseForm(
       }
       return ins;
     } else if (op === "var!" || op === "let!") {
-      //Rewrite e.g. (var! a + 1) -> (var a (+ a 1))
+      //Rewrite e.g. (var! a + 1) -> (var a (+ 1 a))
       if (len(nodes) < 2) {
         return err("provide 1 declaration name and 1 function");
       }
@@ -486,11 +486,14 @@ function parseForm(
       if (def.typ !== "ref") {
         return err("declaration name must be symbol", def.errCtx);
       }
-      const ins: Ins[] = [{ typ: "ref", value: def.value, errCtx }];
-      push(ins, [...flat(args), ...func]);
-      ins.push({ typ: "exe", value: len(args) + 1, errCtx });
       const typ = op === "var!" ? "var" : "let";
-      ins.push({ typ, value: def.value, errCtx });
+      const ins: ParserIns[] = [
+        ...flat(args),
+        { typ: "ref", value: def.value, errCtx },
+        ...func,
+        { typ: "exe", value: len(args) + 1, errCtx },
+        { typ, value: def.value, errCtx },
+      ];
       return ins;
     } else if (op === "#" || op === "@" || op === "fn") {
       const pins: ParserIns[] = [];

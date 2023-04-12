@@ -1,0 +1,64 @@
+(var words {} stack [])
+
+(function split-parts parts
+  (let reducer (fn x y
+    (if ([":" ";"] y)
+        (append [] x)
+        (update-at [-1] (append y) x))))
+  (reduce reducer [[]] parts))
+
+(function 4th code
+  (when (empty? code) (return stack))
+
+  (let parts (if (vec? code) code (-> code (replace "\n" " ") (split " ")))
+       parts (map @(or (to-num %)) parts))
+
+  ;Extract word definitions
+  (let groups   (split-parts parts)
+       defs     (skip-each 1 (skip 1 groups))
+       sentence (flatten (skip-each 1 groups)))
+  (loop-over defs def
+    (var! words assoc (0 def) (skip 1 def)))
+
+  ;Print new word definitions
+  (let names (join " " (map 0 defs)))
+  (if (empty? sentence)
+    (return names)
+    (unless (empty? defs) (print names)))
+
+  (let if-depth 0)
+  (loop-over sentence word
+    (if (< 0 if-depth)
+      (do (let! if-depth (match word "if" inc "else" dec "then" dec val)) stack)
+      (var stack
+        (satisfy word
+          ["true" "false"]
+            (append (= word "true") stack)
+          ["+" "-" "*" "/" "=" "<" ">" "and" "or" "not"]
+            (append (word (-2 stack) (-1 stack)) (crop 0 2 stack))
+          (= "pop")
+            (trunc 1 stack)
+          (= "pick")
+            (append ((-1 stack) stack) (trunc 1 stack))
+          (= "call")
+            (4th (into ["pop"] (words (-1 stack))))
+          (= "if")
+            (do (unless (-1 stack) (let if-depth 1)) (trunc 1 stack))
+          (= "else")
+            (do (let if-depth 1) stack)
+          (= "then")
+            stack
+          words
+            (4th (words word))
+          (criteria str? (starts? '"') (ends? '"'))
+            (append (crop 1 -1 word) stack)
+          (criteria str? (starts? "'"))
+            (append (skip 1 word) stack)
+          (append word stack))))))
+
+(print "pick pop")
+(while (let input (prompt "> "))
+  (print (4th input)))
+"Goodbye."
+
+;(4th ": dup 0 pick ; : double dup + ; 2 double")

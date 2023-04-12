@@ -104,7 +104,7 @@ const tests: {
     code: `(var f 1) (f [:a :b :c])`,
     out: `:b`,
   },
-  { name: "Apply op to var", code: `(var a 10) (var! a + 10)`, out: `20` },
+  { name: "Apply op to var", code: `(var a 5) (var! a - 10)`, out: `5` },
   {
     name: "Apply op to let",
     code: `(let a 10) (let! a (if true + -) (+ 2 3) 5)`,
