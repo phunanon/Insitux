@@ -461,9 +461,10 @@ etc
 
 ;Loops its body over a vector, string, or dictionary
 ;Note: the provided item and index is available as e.g. i-item i-index
-(loop-over [0 1 2 3] i (print-str i)) → 0123null
-(loop-over "hello" i (print-str i))   → hellonull
+(loop-over [0 1 2 3] i (print-str i))   → 0123null
+(loop-over "hello" i (print-str i))     → hellonull
 (loop-over {:a 1 :b 2} i (print-str i)) → [:a 1][:b 2]null
+(loop-over [] x x)                      → null
 
 ;Returns the first argument; returns the last argument
 (val 3 2 1 (print-str "hello"))

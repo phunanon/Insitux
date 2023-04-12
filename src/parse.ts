@@ -409,9 +409,16 @@ function parseForm(
       if (!isToken(symNode)) {
         return err("argument 2 must be symbol");
       }
+      //(when (empty? <item>) null <exit>)
       //(let sym-item <item> sym-index 0 sym (sym-index sym-item)) ... body ...
       //(if (< (let sym-index (inc sym-index)) (len sym-item)) <exit> <loo>)
       const ins: ParserIns[] = [
+        ...parsed[0],
+        { typ: "val", value: { t: "func", v: "empty?" }, errCtx },
+        { typ: "exe", value: 1, errCtx },
+        { typ: "if", value: 2, errCtx },
+        { typ: "val", value: nullVal, errCtx },
+        { typ: "jmp", value: parsed[0].length + 9 + body.length + 12, errCtx },
         ...parsed[0],
         { typ: "let", value: symNode.text + "-item", errCtx },
         { typ: "val", value: { t: "num", v: 0 }, errCtx },

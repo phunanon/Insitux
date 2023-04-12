@@ -163,8 +163,13 @@ const tests: {
   },
   {
     name: "Loop over",
-    code: `(let v [0 1 2]) (loop-over v i (print-str i))`,
+    code: `(let v [0 1 2]) (loop-over v x (print-str x))`,
     out: `012null`,
+  },
+  {
+    name: "Loop over empty",
+    code: `(loop-over [] x (print x))`,
+    out: `null`,
   },
   {
     name: "Catch error",
