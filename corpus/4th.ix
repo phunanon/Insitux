@@ -37,7 +37,7 @@
           ["+" "-" "*" "/" "=" "<" ">" "and" "or" "not"]
             (append (word (-2 stack) (-1 stack)) (crop 0 2 stack))
           (= "pop")
-            (trunc 1 stack)
+            (drop (-> stack -1 inc neg) (trunc 1 stack))
           (= "pick")
             (append ((-1 stack) stack) (trunc 1 stack))
           (= "call")
@@ -61,4 +61,14 @@
   (print (4th input)))
 "Goodbye."
 
-;(4th ": dup 0 pick ; : double dup + ; 2 double")
+; : dup 0 pick ;
+; : drop 0 pop ;
+; : over 1 pick ;
+; : swap 1 pick 2 pop ;
+; : nip 1 pop ;
+; : tuck swap over ;
+; : rot 2 pick 3 pop ;
+; : -rot 2 pick 2 pick 3 pop 3 pop ;
+; : 2drop drop drop ;
+; : 2dup over over ;
+; : ?dup dup if dup then ;

@@ -1,4 +1,4 @@
-export const insituxVersion = 230413;
+export const insituxVersion = 230416;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -872,13 +872,15 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _vec(parted);
     }
     case "skip-each": {
-      const n = num(args[0]);
+      const n = max(num(args[0]), 0);
       const src = asArray(args[1]);
       const skipped: Val[] = [];
       for (let i = 0, lim = len(src); i < lim; i += n + 1) {
         skipped.push(src[i]);
       }
-      return args[1].t === "str" ? _str(skipped.join("")) : _vec(skipped);
+      return args[1].t === "str"
+        ? _str(skipped.map(x => `${x.v}`).join(""))
+        : _vec(skipped);
     }
     case "freqs": {
       const src = asArray(args[0]);
