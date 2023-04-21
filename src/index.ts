@@ -1,4 +1,4 @@
-export const insituxVersion = 230416;
+export const insituxVersion = 230421;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -21,7 +21,7 @@ import { dic, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
 import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun } from "./val";
 
 let letsStack: { [key: string]: Val }[] = [];
-let lets: typeof letsStack[0] = {};
+let lets: (typeof letsStack)[0] = {};
 let recurArgs: undefined | Val[];
 
 type _Exception = { errors: InvokeError[] };
@@ -1259,7 +1259,9 @@ function destruct(args: Val[], shape: number[]): Val {
   let arr: Val[] = args;
   for (let a = 0, b = len(shape) - 1; a < b; ++a) {
     const val = arr[shape[a]];
-    if (val.t === "vec") {
+    if (!val) {
+      return _nul();
+    } else if (val.t === "vec") {
       arr = val.v;
     } else if (val.t === "str" && a + 1 === b && shape[a + 1] < slen(val.v)) {
       return _str(strIdx(val.v, shape[a + 1]));

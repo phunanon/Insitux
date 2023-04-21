@@ -347,6 +347,11 @@ const tests: {
     out: `[2 1]`,
   },
   {
+    name: "Destructure bad structure",
+    code: `(var [a b [c d]] [0 1]) [a b c d]`,
+    out: `[0 1 null null]`,
+  },
+  {
     name: "Destructure string",
     code: `(let [a b c] "hello") [a b c]`,
     out: `["h" "e" "l"]`,

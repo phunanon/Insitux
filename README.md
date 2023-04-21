@@ -1078,6 +1078,10 @@ vector item or string character is "destructured" into.
 [x y]
 → ["h" null]
 
+(var [a b [d c]] [0 1])
+[a b c d]
+→ [0 1 null null]
+
 ; also null if there aren't enough items
 (var [x y z] [0 1])
 [x y z]

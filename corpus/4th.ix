@@ -1,3 +1,18 @@
+"
+: dup 0 pick ;
+: drop 0 pop ;
+: over 1 pick ;
+: swap 1 pick 2 pop ;
+: nip 1 pop ;
+: tuck swap over ;
+: rot 2 pick 3 pop ;
+: -rot 2 pick 2 pick 3 pop 3 pop ;
+: 2drop drop drop ;
+: 2dup over over ;
+: ?dup dup if dup then ;
+: fib dup 1 > if dup 1 - fib swap 2 - fib + then ;
+"
+
 (var words {} stack [])
 
 (function split-parts parts
@@ -29,17 +44,18 @@
   (let if-depth 0)
   (loop-over sentence word
     (if (< 0 if-depth)
-      (do (let! if-depth (match word "if" inc "else" dec "then" dec val)) stack)
+      (do (let! if-depth (match word "if" inc "else" dec "then" dec val))
+          stack)
       (var stack
         (satisfy word
           ["true" "false"]
             (append (= word "true") stack)
-          ["+" "-" "*" "/" "=" "<" ">" "and" "or" "not"]
+          ["+" "-" "*" "/" "=" "<" ">"]
             (append (word (-2 stack) (-1 stack)) (crop 0 2 stack))
           (= "pop")
             (drop (-> stack -1 inc neg) (trunc 1 stack))
           (= "pick")
-            (append ((-1 stack) stack) (trunc 1 stack))
+            (append (-> stack -1 inc inc neg #(% stack)) (trunc 1 stack))
           (= "call")
             (4th (into ["pop"] (words (-1 stack))))
           (= "if")
@@ -51,7 +67,7 @@
           words
             (4th (words word))
           (criteria str? (starts? '"') (ends? '"'))
-            (append (crop 1 -1 word) stack)
+            (append (crop 1 1 word) stack)
           (criteria str? (starts? "'"))
             (append (skip 1 word) stack)
           (append word stack))))))
@@ -60,15 +76,3 @@
 (while (let input (prompt "> "))
   (print (4th input)))
 "Goodbye."
-
-; : dup 0 pick ;
-; : drop 0 pop ;
-; : over 1 pick ;
-; : swap 1 pick 2 pop ;
-; : nip 1 pop ;
-; : tuck swap over ;
-; : rot 2 pick 3 pop ;
-; : -rot 2 pick 2 pick 3 pop 3 pop ;
-; : 2drop drop drop ;
-; : 2dup over over ;
-; : ?dup dup if dup then ;
