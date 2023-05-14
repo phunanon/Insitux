@@ -1,4 +1,4 @@
-export const insituxVersion = 230421;
+export const insituxVersion = 230514;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -48,6 +48,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _vec(args);
     case "dict":
       return toDict(args);
+    case "kv-dict":
+      return _dic({ keys: vec(args[0]), vals: vec(args[1]) });
     case "len":
       return _num(
         args[0].t === "str"

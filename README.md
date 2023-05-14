@@ -310,6 +310,7 @@ etc
 {:a 123, "hello" "world"}           ;commas are optional
 (dict :a 123 "hello" "world")
 (dict [[:a 123] ["hello" "world"]])
+(kv-dict [:a "hello"] [123 "world"])
 
 ;The length of a string of text or a vector, or number of dictionary entries
 (len "Hello!")  → 6

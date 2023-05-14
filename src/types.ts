@@ -206,6 +206,7 @@ export const ops: {
   average: { exactArity: 1, params: ["vec"], returns: ["num"] },
   vec: { returns: ["vec"] },
   dict: { returns: ["dict"] },
+  "kv-dict": { exactArity: 2, params: ["vec", "vec"], returns: ["dict"] },
   len: { exactArity: 1, params: [["str", "vec", "dict"]], returns: ["num"] },
   "to-num": {
     exactArity: 1,
