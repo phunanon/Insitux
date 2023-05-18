@@ -1,0 +1,16 @@
+(function deg->rad degrees
+  (* (/ degrees 180.0) PI))
+
+(function rad->deg radians
+  (* (/ radians PI) 180.0))
+
+(function snells-law n1 n2 theta1
+  (-> theta1 deg->rad sin (* (/ n1 n2)) asin rad->deg))
+
+(let prompts ["Refraction index of medium 1: "
+              "Refraction index of medium 2: "
+              "Angle of incidence (degrees): "])
+(let [n1 n2 theta1] (map (comp prompt to-num) prompts))
+(str "Angle of refraction (degrees): " (snells-law n1 n2 theta1))
+
+;Example: n1 = 1.000293 (air), n2 = 1.333 (water at 20C), theta1 = 45

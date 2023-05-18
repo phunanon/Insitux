@@ -1150,6 +1150,10 @@ vector item or string character is "destructured" into.
 → [0 3 6 9 12]
 
 
+;Count vowels
+(function count-vowels input
+  (-> input lower-case (count (to-vec "aeiou"))))
+
 ; Primes calculator
 (reduce
   (fn primes num
@@ -1283,7 +1287,7 @@ vector item or string character is "destructured" into.
 
 
 ; Neural network for genetic algorithms with two hidden layers
-(function sigmoid (/ 1 (inc (** E (neg %)))))
+(var sigmoid (comp neg @(** E) inc (/ 1)))
 (function m (< .8 (rand)))
 
 (function make-brain  num-in num-out num-hid

@@ -1,0 +1,4 @@
+(function count-vowels input
+  (-> input lower-case (count (to-vec "aeiou"))))
+
+(map count-vowels ["Hello" "OpenAI" "Coding is fun"])
