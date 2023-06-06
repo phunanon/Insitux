@@ -263,7 +263,7 @@ export const ops: {
   reduce: { minArity: 2, maxArity: 3 },
   reductions: { minArity: 2, maxArity: 3 },
   filter: {
-    minArity: 2,
+    exactArity: 2,
     params: ["any", ["vec", "dict", "str"]],
     returns: ["vec", "str", "dict"],
   },
@@ -277,7 +277,7 @@ export const ops: {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["vec", "str", "dict"],
   },
-  find: { minArity: 2, params: ["any", ["vec", "dict", "str"]] },
+  find: { exactArity: 2, params: ["any", ["vec", "dict", "str"]] },
   "take-while": {
     exactArity: 2,
     params: ["any", ["vec", "str"]],
@@ -299,7 +299,7 @@ export const ops: {
     returns: ["vec", "str"],
   },
   count: {
-    minArity: 2,
+    exactArity: 2,
     params: ["any", ["vec", "dict", "str"]],
     returns: ["num"],
   },

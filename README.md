@@ -531,29 +531,32 @@ etc
 (skip-while odd? [1 3 2 4 5 7]) → [2 4 5 7]
 (skip-until odd? [2 4 1 3 6 8]) → [1 3 6 8]
 
-;Filter a vector or string by a function, optionally passing extra arguments.
+;Filter a vector, string, or dictionary by a function.
 ;Return value is the same type as the second argument.
 (filter odd? [0 1 2 3])    → [1 3]
 (filter ["e" "l"] "Hello") → "ell"
-(filter = [1 1 2 2 3 3] 3) → [3 3]
+(filter (comp 1 odd?) {:a 1 :b 2 :c 3})
+→ {:a 1, :c 3}
 (remove odd? [0 1 2 3])    → [0 2]
-(remove = [1 1 2 2 3 3] 3) → [1 1 2 2]
-(remove = "hello!" "e")    → "hllo!"
+(remove ["e" "l"] "Hello") → "Ho"
+(remove (comp 1 odd?) {:a 1 :b 2 :c 3})
+→ {:b 2}
 
 ;Filter a vector for truthy values
 (sieve [0 1 2 null 3]) → [0 1 2 3]
 (sieve [0 1 2 false 3]) → [0 1 2 3]
 
-;Returns the first item or character in a vector or string matching a predicate,
-;  optionally passing extra arguments
+;Returns the first item or character in a vector or string matching a predicate.
 (find odd? [0 1 2 3])   → 1
-(find > [4 5 6 7] 5)    → 6
+(find (< 5) [4 5 6 7])  → 6
 (find ["a" "b"] "Able") → "b"
 
-;Returns the number of items or characters in a vector or string matching a
-;  predicate, optionally passing extra arguments
-(count odd? (range 10)) → 5
-(count = [1 1 2 3 3] 1) → 2
+;Returns the number of vector items, string characters, or dictionary entries
+;  matching a predicate.
+(count odd? (range 10))   → 5
+(count (= 1) [1 1 2 3 3]) → 2
+(count (comp 1 odd?) {:a 1 :b 2 :c 3})
+→ 2
 
 ;Returns a boolean on whether the vector, string, or dictionary is empty
 (empty? []) → true

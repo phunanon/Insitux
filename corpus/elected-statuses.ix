@@ -1,0 +1,16 @@
+(function calculate-elected candidates num-positions
+  (let counts (freqs (map 1 candidates))
+       unique (-> counts keys sort reverse)
+       wins   (first num-positions unique)
+       ties   (-> counts (filter (fn [_ v] (< 1 v))) keys))
+  (-> (adj _ #(satisfy % ties :tie wins :win :lose))
+     #(map % candidates)
+     dict))
+
+(map (... calculate-elected) [
+  [{"bob" 200 "sam" 100} 1]
+  [{"bob" 200 "sam" 100} 2]
+  [{"bob" 300 "sam" 200 "ned" 100} 2]
+  [{"bob" 100 "sam" 100 "ned" 100} 2]
+  [{"bob" 200 "sam" 200 "ned" 100} 1]
+])

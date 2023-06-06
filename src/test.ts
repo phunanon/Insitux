@@ -245,11 +245,16 @@ const tests: {
   },
   {
     name: "Closure 2",
-    code: `(filter #(or (.. = args) (even? %)) (range 10) 5)`,
+    code: `(filter #(or (= % 5) (even? %)) (range 10))`,
     out: `[0 2 4 5 6 8]`,
   },
   {
     name: "Closure 3",
+    code: `(map #(len args) (range 3) (range 3))`,
+    out: `[2 2 2]`,
+  },
+  {
+    name: "Closure 4",
     code: `(function f #(+ x x))
            (var x 10) (let c20 (f))
            (var x 20) (let c40 (f))

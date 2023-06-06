@@ -1,4 +1,4 @@
-export const insituxVersion = 230514;
+export const insituxVersion = 230606;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -472,8 +472,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
 
       if (op !== "reduce" && op !== "reductions") {
-        const arrArg = args.shift()!;
-        const array = asArray(arrArg);
+        const array = asArray(args[0]);
         const isRemove = op === "remove",
           isFind = op === "find",
           isCount = op === "count",
@@ -481,7 +480,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         const filtered: Val[] = [];
         let count = 0;
         for (let i = 0, lim = len(array); i < lim; ++i) {
-          const b = asBoo(closure([array[i], ...args]));
+          const b = asBoo(closure([array[i]]));
           if (isAll) {
             if (!b) {
               return _boo(false);
@@ -504,9 +503,9 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
           case "all?":
             return _boo(true);
         }
-        if (arrArg.t === "str") {
+        if (args[0].t === "str") {
           return _str(filtered.map(v => val2str(v)).join(""));
-        } else if (arrArg.t === "dict") {
+        } else if (args[0].t === "dict") {
           return toDict(flat(filtered.map(v => <Val[]>v.v)));
         } else {
           return _vec(filtered);
