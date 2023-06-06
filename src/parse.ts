@@ -867,9 +867,12 @@ export function parse(
     bundle.global +
     Object.keys(bundle)
       .filter(x => x !== "global")
-      .map(x => `// ${x}\n${bundle[x]}`)
+      .map(x => `// ${x}\nconst ${x} = ${bundle[x]}`)
       .join("\n");
-  writeFileSync("transpiled.js", transpiled);
+  writeFileSync(
+    `transpiled/${[...invokeId.matchAll(/[a-zA-Z0-9]/g)].join("")}.js`,
+    transpiled,
+  );
   //eval(transpiled);
   ////
   namedNodes.map(compileFunc).forEach(fae => {

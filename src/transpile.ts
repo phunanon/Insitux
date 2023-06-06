@@ -6,6 +6,7 @@ type JsBlob = string | ((...args: any[]) => any);
 type JsBundle = { [name: string]: JsBlob };
 type Resolved = {
   js: string;
+  text?: string;
   sym?: true;
   key?: string;
   bundle?: JsBundle;
@@ -62,14 +63,14 @@ function safeDestructure(position: number[]): string {
 }
 
 const resolveNode = (n: Node) =>
-  isToken(n) ? resolveToken(n) : resolveExpression(n);
+  isToken(n) ? { ...resolveToken(n), text: n.text } : resolveExpression(n);
 
 function resolveToken(node: Token): Resolved {
   switch (node.typ) {
     case "num":
       return { js: node.text };
     case "str":
-      return { js: `\`${node.text}\`` };
+      return { js: `"${node.text}"` };
     case "sym": {
       if (ops[node.text]) {
         const bundle = definitions[node.text]?.standalone;
@@ -82,8 +83,11 @@ function resolveToken(node: Token): Resolved {
       if (node.text.startsWith(":")) {
         return { js: `"${node.text}"`, key: node.text.slice(1) };
       }
+      if (["true", "false"].includes(node.text)) {
+        return { js: node.text };
+      }
       return {
-        js: `(para["${node.text}"] ?? lets["${node.text}"] ?? globalThis["${node.text}"] ?? null)`,
+        js: `(ops["${node.text}"] ?? para["${node.text}"] ?? lets["${node.text}"] ?? globalThis["${node.text}"] ?? null)`,
         sym: true,
       };
     }
@@ -92,7 +96,7 @@ function resolveToken(node: Token): Resolved {
 }
 
 const resolveExpression = ([head, ...body]: Node[]): Resolved => {
-  const resolvedArgs = body.map(resolveArg);
+  const resolvedArgs = body.map(resolveNode);
   const resolved = getOp(head)(resolvedArgs);
   resolved.bundle = {
     ...resolved.bundle,
@@ -131,13 +135,24 @@ function getOp(node: Node): Transformer {
   }
 }
 
-function resolveArg(arg: Node): Resolved {
-  return isToken(arg) ? resolveToken(arg) : resolveExpression(arg);
-}
-
 type ResolvedOperation = { inline?: Transformer; standalone: JsBundle };
 
 const asBool = (x: unknown) => !(x === false || x === undefined || x === null);
+
+const letVar = (type: "lets" | "globalThis") => (namesValues: Resolved[]) => {
+  const js: string[] = [];
+  for (let i = 0; i + 1 < namesValues.length; i += 2) {
+    const name = namesValues[i];
+    const value = namesValues[i + 1];
+    js.push(`${type}["${name?.text}"] = ${value.js}`);
+  }
+  if (js.length === 1) {
+    return { js: js[0] };
+  }
+  return {
+    js: `(() => {${js.slice(0, -1).join("; ")}; return ${js.at(-1)};})()`,
+  };
+};
 
 const partition = <T>(n: number, arr: T[]) => {
   const result = [];
@@ -201,6 +216,10 @@ const definitions: { [name: string]: ResolvedOperation } = {
     inline: args => ({ js: `Math.sin(${args[0].js})` }),
     standalone: { sin: `ops['sin'] = ([n]) => Math.sin(n);` },
   },
+  "zero?": {
+    inline: ([n]) => ({ js: `${n.js} === 0` }),
+    standalone: {},
+  },
   str: {
     inline: args => ({ js: joinJs(args, " + ") }),
     standalone: { str: `ops['str'] = (...args) => args.join('');` },
@@ -253,11 +272,33 @@ const definitions: { [name: string]: ResolvedOperation } = {
     }),
     standalone: {},
   },
+  or: {
+    inline: args => {
+      return {
+        js: `(() => {\nlet x;\nx = ${joinJs(
+          args,
+          "; if (asBool(x)) return x; x = ",
+        )}})()`,
+        bundle: { asBool },
+      };
+    },
+    standalone: {},
+  },
+  let: { inline: letVar("lets"), standalone: {} },
+  var: { inline: letVar("globalThis"), standalone: {} },
   when: {
     inline: ([a, b]) => ({
       js: `(asBool(${a.js}) ? ${b.js} : null)`,
       bundle: { asBool },
     }),
+    standalone: {},
+  },
+  val: {
+    inline: args => ({ js: `[${joinJs(args, ", ")}][0]` }),
+    standalone: {},
+  },
+  do: {
+    inline: args => ({ js: `[${joinJs(args, ", ")}].at(-1)` }),
     standalone: {},
   },
   time: {
@@ -267,12 +308,6 @@ const definitions: { [name: string]: ResolvedOperation } = {
   version: {
     inline: () => ({ js: `${insituxVersion}` }),
     standalone: { version: `ops['version'] = () => ${insituxVersion};` },
-  },
-  var: {
-    inline: ([name, value]) => ({
-      js: `globalThis[${name.sym ? `"${name.js}"` : name.js}] = ${value.js}`,
-    }),
-    standalone: {},
   },
 };
 
