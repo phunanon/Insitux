@@ -1,4 +1,4 @@
-export const insituxVersion = 230606;
+export const insituxVersion = 230628;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -16,8 +16,16 @@ import { doTests } from "./test";
 import { assertUnreachable, Env, InvokeError, InvokeResult } from "./types";
 import { ExternalFunctions, syntaxes } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
-import { asArray, isEqual, num, str, stringify, val2str, vec } from "./val";
-import { dic, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
+import {
+  asArray,
+  dictDrops,
+  isEqual,
+  num,
+  str,
+  stringify,
+  val2str,
+} from "./val";
+import { dic, vec, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
 import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun } from "./val";
 
 let letsStack: { [key: string]: Val }[] = [];
@@ -644,7 +652,9 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
     }
     case "omit":
-      return dictDrop(dic(args[1]), args[0]);
+      return <Val>{ t: "dict", v: dictDrop(dic(args[1]), args[0]) };
+    case "omits":
+      return <Val>{ t: "dict", v: dictDrops(dic(args[1]), vec(args[0])) };
     case "drop": {
       const [n, v] = [num(args[0]), vec(args[1])];
       const l = len(v);
@@ -853,6 +863,35 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         const parted: Val[][] = [[], []];
         for (let i = 0, lim = len(src); i < lim; ++i) {
           parted[asBoo(closure([src[i]])) ? 0 : 1].push(src[i]);
+        }
+        return _vec(parted.map(_vec));
+      }
+    }
+    case "part-when": {
+      const closure = getExe(ctx, args[0], errCtx);
+      const src = asArray(args[1]);
+      const isStr = args[1].t === "str";
+      let wasTrue = false;
+      if (isStr) {
+        const parted: string[] = ["", ""];
+        for (let i = 0, lim = len(src); i < lim; ++i) {
+          const p = asBoo(closure([src[i]]));
+          if (p && !wasTrue) {
+            wasTrue = true;
+            continue;
+          }
+          parted[wasTrue ? 1 : 0] += str(src[i]);
+        }
+        return _vec(parted.map(_str));
+      } else {
+        const parted: Val[][] = [[], []];
+        for (let i = 0, lim = len(src); i < lim; ++i) {
+          const p = asBoo(closure([src[i]]));
+          if (p && !wasTrue) {
+            wasTrue = true;
+            continue;
+          }
+          parted[wasTrue ? 1 : 0].push(src[i]);
         }
         return _vec(parted.map(_vec));
       }
@@ -1113,7 +1152,8 @@ function getExe(
             _throw(violations);
           }
           const oldLetsStack = slice(letsStack);
-          const valOrErr = ctx.functions[name].handler(params) || _nul();
+          const valOrErr =
+            ctx.functions[name].handler(params, errCtx) || _nul();
           letsStack = oldLetsStack; //In case invoker was called externally
           if ("err" in valOrErr) {
             return _throw([{ e: "External", m: valOrErr.err, errCtx }]);
@@ -1588,6 +1628,34 @@ export function invokeFunction(
     () => exeFunc(ctx, ctx.env.funcs[funcName], params),
     printResult,
   );
+}
+
+/**
+ * Executes a value
+ * @param ctx An environment context you retain.
+ * @param value The value to execute.
+ * @returns Invocation errors caused during the execution of the function,
+ * or the final value of the invocation.
+ */
+export function invokeVal(
+  ctx: Ctx,
+  errCtx: ErrCtx,
+  val: Val,
+  params: Val[],
+): InvokeResult {
+  const ins: Ins[] = [
+    ...params.map(value => <Ins>{ typ: "val", value, errCtx }),
+    { typ: "val", value: val, errCtx },
+    { typ: "exe", value: len(params), errCtx },
+  ];
+  try {
+    return exeFunc(ctx, { ins }, params);
+  } catch (e) {
+    if (!isThrown(e)) {
+      throw e;
+    }
+    return { kind: "errors", errors: e.errors };
+  }
 }
 
 /**

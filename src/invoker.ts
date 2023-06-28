@@ -1,7 +1,7 @@
-import { invoke, invokeFunction } from ".";
+import { invoke, invokeFunction, invokeVal } from ".";
 import { padEnd, slen, starts, substr, trimStart } from "./poly-fills";
 import { getTimeMs } from "./poly-fills";
-import { Ctx, InvokeResult, Val } from "./types";
+import { Ctx, ErrCtx, InvokeResult, Val } from "./types";
 
 export type InvokeOutput = {
   type: "message" | "error";
@@ -40,6 +40,16 @@ export function functionInvoker(
   return { output: invokeResultToOutput(result), result };
 }
 
+export function valueInvoker(
+  ctx: Ctx,
+  errCtx: ErrCtx,
+  val: Val,
+  params: Val[],
+): { output: InvokeOutput; result: InvokeResult } {
+  const result = invokeVal(ctx, errCtx, val, params);
+  return { output: invokeResultToOutput(result), result };
+}
+
 function invokeResultToOutput(result: InvokeResult) {
   if (!("kind" in result) || result.kind !== "errors") {
     return [];
@@ -60,7 +70,7 @@ function invokeResultToOutput(result: InvokeResult) {
     msg(`\n${padEnd(`${line}:${col}`, 7)} ${half1}`);
     if (!sym) {
       const half2 = substr(lineText, col);
-      err(lineText[col - 1]);
+      err(lineText[col - 1] ?? "");
       msg(`${half2}\n`);
     } else {
       const half2 = substr(lineText, col - 1 + slen(sym));

@@ -4,13 +4,14 @@ import { appendFileSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { unlinkSync, existsSync, mkdirSync } from "fs";
 import { insituxVersion, symbols } from ".";
 import { join as pathJoin, dirname } from "path";
-import { Ctx, defaultCtx, ExternalFunctions, Val, ValOrErr } from "./types";
-import { Operation } from "./types";
-import { InvokeOutput, invoker, parensRx } from "./invoker";
+import { Ctx, defaultCtx, ErrCtx, Val, ValOrErr } from "./types";
+import { Operation, ExternalFunctions } from "./types";
+import { InvokeOutput, invoker, parensRx, valueInvoker } from "./invoker";
 import { tokenise } from "./parse";
 import prompt = require("prompt-sync");
 import { exit } from "process";
-import { jsToIx, str, _nul, _str, _vec } from "./val";
+import { str, _nul, _str, _vec, num, _num, _key } from "./val";
+import { jsToIx, val2str, ixToJs } from "./val";
 import fetch from "cross-fetch";
 import clone = require("git-clone/promise");
 const execSync = require("child_process").execSync;
@@ -19,9 +20,25 @@ const githubRegex = /^(?!https*:)[^\/]+?\/[^\/]+$/;
 let colourMode = true;
 
 //#region External operations
-function read(path: string, asLines: boolean) {
+function invokeVal(
+  ctx: Ctx,
+  errCtx: ErrCtx,
+  val: Val,
+  params: Val[] = [],
+): void {
+  const result = valueInvoker(ctx, errCtx, val, params);
+  if ("errors" in result.result) {
+    printErrorOutput(result.output);
+  }
+}
+
+function read(path: string, asLines: boolean, asBlob = false): Val {
   if (!existsSync(path)) {
     return _nul();
+  }
+  if (asBlob) {
+    const v = new Blob([readFileSync(path)]);
+    return { t: "ext", v };
   }
   const content = readFileSync(path).toString();
   return asLines ? _vec(content.split(/\r?\n/).map(_str)) : _str(content);
@@ -39,6 +56,68 @@ const writingOpDef: Operation = {
   hasEffects: true,
 };
 
+const dicToRecord = (dic: Val) => {
+  const obj: { [key: string]: string } = {};
+  if (dic.t !== "dict") {
+    return obj;
+  }
+  const { keys, vals } = dic.v;
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    if (key.t !== "str") {
+      continue;
+    }
+    obj[key.v] = val2str(vals[i]);
+  }
+  return obj;
+};
+
+function fetchOp(
+  url: string,
+  method: string,
+  ctx: Ctx,
+  errCtx: ErrCtx,
+  headersVal?: Val,
+  callback?: Val,
+  bodyVal?: Val,
+  deserialise = false,
+) {
+  const headers = headersVal ? dicToRecord(headersVal) : undefined;
+  setTimeout(async () => {
+    let response: Response | null;
+    try {
+      const bodyObj =
+        bodyVal && (bodyVal.v instanceof Blob ? bodyVal.v : ixToJs(bodyVal));
+      const body =
+        bodyVal && typeof bodyObj === "string"
+          ? bodyObj
+          : bodyObj instanceof Blob
+          ? await bodyObj.arrayBuffer()
+          : JSON.stringify(bodyObj);
+      response = await fetch(url, { method, body, headers });
+    } catch (e) {
+      console.log(e);
+      response = null;
+    }
+    if (!callback) return;
+    const fetched = await response?.text();
+    let obj: Val;
+    try {
+      obj = fetched
+        ? deserialise
+          ? jsToIx(JSON.parse(fetched))
+          : _str(fetched)
+        : _nul();
+    } catch (e) {
+      obj = _str(fetched);
+    }
+    const result = valueInvoker(ctx, errCtx, callback, [obj]);
+    if ("errors" in result) {
+      printErrorOutput(result.output);
+    }
+  });
+}
+
 function makeFunctions(workingDirectory = process.cwd()) {
   return <ExternalFunctions>{
     read: {
@@ -49,6 +128,15 @@ function makeFunctions(workingDirectory = process.cwd()) {
         hasEffects: true,
       },
       handler: ([path]) => read(str(path), false),
+    },
+    "read-blob": {
+      definition: {
+        exactArity: 1,
+        params: ["str"],
+        returns: ["str"],
+        hasEffects: true,
+      },
+      handler: ([path]) => read(str(path), false, true),
     },
     "read-lines": {
       definition: {
@@ -115,10 +203,137 @@ function makeFunctions(workingDirectory = process.cwd()) {
         const { result, output } = invoker(ctx, code, path, false);
         ctx.functions = oldFuncs;
         if ("kind" in result && result.kind === "errors") {
-          printErrorOutput({ output });
+          printErrorOutput(output);
           return { kind: "err", err: `errors in importing ${path}` };
         }
         return !("kind" in result) ? result : _nul();
+      },
+    },
+    "set-interval": {
+      definition: {
+        exactArity: 2,
+        params: [["func", "clo"], "num"],
+        returns: ["ext"],
+      },
+      handler: ([func, interval], errCtx) => {
+        return {
+          t: "ext",
+          v: setInterval(() => invokeVal(ctx, errCtx, func), num(interval)),
+        };
+      },
+    },
+    "set-timeout": {
+      definition: { minArity: 2, params: ["func", "num"], returns: ["ext"] },
+      handler: ([func, interval, ...args], errCtx) => {
+        return {
+          t: "ext",
+          v: setTimeout(
+            () => invokeVal(ctx, errCtx, func, args),
+            num(interval),
+          ),
+        };
+      },
+    },
+    "clear-interval": {
+      definition: { exactArity: 1, params: ["ext"], returns: ["null"] },
+      handler: ([timer]) => {
+        clearInterval(timer.v as NodeJS.Timer);
+      },
+    },
+    "clear-timeout": {
+      definition: { exactArity: 1, params: ["ext"], returns: ["null"] },
+      handler: ([timer]) => {
+        clearTimeout(timer.v as NodeJS.Timeout);
+      },
+    },
+    "GET-str": {
+      definition: {
+        minArity: 2,
+        maxArity: 3,
+        params: [["func", "clo"], "dict", "str"],
+        returns: ["str"],
+      },
+      handler: ([callback, headers, url], errCtx) => {
+        fetchOp(str(url), "GET", ctx, errCtx, headers, callback);
+      },
+    },
+    "POST-str": {
+      definition: {
+        minArity: 2,
+        maxArity: 4,
+        params: ["str", "any", "dict", "func"],
+        returns: ["str"],
+      },
+      handler: ([url, body, headers, callback], errCtx) => {
+        fetchOp(str(url), "POST", ctx, errCtx, headers, callback, body);
+      },
+    },
+    GET: {
+      definition: {
+        minArity: 2,
+        maxArity: 3,
+        params: [["func", "clo"], "dict", "str"],
+      },
+      handler: ([callback, headers, url], errCtx) => {
+        fetchOp(
+          str(url),
+          "GET",
+          ctx,
+          errCtx,
+          headers,
+          callback,
+          undefined,
+          true,
+        );
+      },
+    },
+    POST: {
+      definition: {
+        minArity: 2,
+        maxArity: 4,
+        params: ["str", "any", "dict", "func"],
+      },
+      handler: ([url, body, headers, callback], errCtx) => {
+        fetchOp(str(url), "POST", ctx, errCtx, headers, callback, body, true);
+      },
+    },
+    blob: {
+      definition: {
+        minArity: 1,
+        returns: ["ext"],
+      },
+      handler: params => {
+        let blob = new Blob();
+        params.forEach(param => {
+          if (param.t === "ext" && param.v instanceof Blob) {
+            blob = new Blob([blob, param.v], {
+              type: "application/octet-stream",
+            });
+          } else if (param.t === "str") {
+            blob = new Blob([blob, param.v], {
+              type: "application/octet-stream",
+            });
+          } else if (param.t === "num") {
+            const byteUint8Array = new Uint8Array(1);
+            byteUint8Array[0] = param.v;
+            blob = new Blob([blob, byteUint8Array], {
+              type: "application/octet-stream",
+            });
+          }
+        });
+        return { t: "ext", v: blob };
+      },
+    },
+    "blob-len": {
+      definition: {
+        exactArity: 1,
+        params: ["ext"],
+        returns: ["num"],
+      },
+      handler: ([blob]) => {
+        if (blob.v instanceof Blob) {
+          return { t: "num", v: blob.v.size };
+        }
       },
     },
   };
@@ -167,7 +382,7 @@ function exe(name: string, args: Val[]): ValOrErr {
 //#region REPL IO
 
 function printErrorAndExit(message: string) {
-  printErrorOutput({ output: [{ type: "error", text: message + "\n" }] });
+  printErrorOutput([{ type: "error", text: message + "\n" }]);
   exit();
 }
 
@@ -214,7 +429,8 @@ async function dependencyResolve(dependency: DependencyResolution) {
         : `${err}`;
     printErrorAndExit(message);
   }
-  console.log(`${dependency.kind} succeeded.`);
+  const name = "alias" in dependency ? dependency.alias : dependency.repo;
+  console.log(`${dependency.kind} of ${name} succeeded.`);
 }
 
 async function depsFileAction(action: "install" | "remove") {
@@ -289,7 +505,7 @@ async function processCliArguments(args: string[]) {
       console.log("entry.ix does not exist in this directory.");
     } else {
       const code = readFileSync(path).toString();
-      printErrorOutput(invoker(ctx, code, path));
+      printErrorOutput(invoker(ctx, code, path).output);
     }
   } else if (matchParts([/^i$/, githubRegex])) {
     //Install dependency via Github
@@ -318,7 +534,7 @@ async function processCliArguments(args: string[]) {
         console.log(`${path} not found - ignored.`);
       } else {
         const code = readFileSync(path).toString();
-        printErrorOutput(invoker(ctx, code, path));
+        printErrorOutput(invoker(ctx, code, path).output);
       }
     }
   }
@@ -330,10 +546,10 @@ async function processCliArguments(args: string[]) {
 }
 
 function startRepl() {
-  printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`));
+  printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`).output);
 
   if (existsSync(".repl.ix")) {
-    printErrorOutput(invoker(ctx, readFileSync(".repl.ix").toString()));
+    printErrorOutput(invoker(ctx, readFileSync(".repl.ix").toString()).output);
   }
 
   const rl = readline.createInterface({
@@ -359,7 +575,7 @@ function startRepl() {
         return;
       }
       if (input.trim()) {
-        printErrorOutput(invoker(ctx, input));
+        printErrorOutput(invoker(ctx, input).output);
       }
       rl.setPrompt("❯ ");
     } else {
@@ -396,7 +612,7 @@ function haveFinishedEntry(code: string): boolean {
   return numL <= numR;
 }
 
-function printErrorOutput({ output: lines }: { output: InvokeOutput }) {
+function printErrorOutput(lines: InvokeOutput) {
   const colours = { error: 31, message: 35 };
   lines.forEach(({ type, text }) => {
     if (colourMode) {

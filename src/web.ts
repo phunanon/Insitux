@@ -1,8 +1,7 @@
 import { functionInvoker, InvokeOutput, invoker } from "./invoker";
 import { Ctx, defaultCtx, ExternalFunctions, Val, ValOrErr } from "./types";
-import { num, str, val2str, _nul, _str } from "./val";
+import { num, str, val2str, _nul, _str, _num, _boo, jsToIx } from "./val";
 
-const e = (el: string) => document.querySelector(el);
 let state = new Map<string, Val>();
 
 const get = (key: string): ValOrErr =>
@@ -25,7 +24,16 @@ function exe(name: string, args: Val[]): ValOrErr {
   return { err: `operation ${name} does not exist` };
 }
 
-function fetchOp(url: string, method: string, callback: string, body?: string) {
+const invokeFunction = (ctx: Ctx, name: string, args: Val[]) => {
+  alertErrors(functionInvoker(ctx, name, args, false));
+};
+
+function fetchOp(
+  url: string,
+  method: string,
+  callback?: string,
+  body?: string,
+) {
   setTimeout(async () => {
     let v: Val;
     try {
@@ -33,7 +41,9 @@ function fetchOp(url: string, method: string, callback: string, body?: string) {
     } catch (e) {
       v = { t: "null", v: undefined };
     }
-    alertErrors(functionInvoker(ctx, callback, [v]));
+    if (callback) {
+      invokeFunction(ctx, callback, [v]);
+    }
   });
 }
 
@@ -44,7 +54,8 @@ function htmlToElement(html: string) {
   return temp.content.firstChild;
 }
 
-const v2e = (val: Val) => (val.t === "str" ? e(val.v) : <HTMLElement>val.v);
+const v2e = (val: Val) =>
+  val.t === "str" ? document.querySelector(val.v) : <HTMLElement>val.v;
 const functions: ExternalFunctions = {
   js: {
     definition: { minArity: 1, params: ["str"] },
@@ -55,12 +66,50 @@ const functions: ExternalFunctions = {
           typeof evaluated === "function"
             ? evaluated(params.slice(1).map(a => a.v))
             : evaluated;
-        let value: Val = { t: "ext", v };
-        if (typeof v === "string") value = _str(v);
-        return value;
+        return jsToIx(v, v => ({ t: "ext", v }));
       } catch (e) {
         return { err: `${e}` };
       }
+    },
+  },
+  call: {
+    definition: { minArity: 1, params: ["key", "ext"] },
+    handler: ([method, object, ...rest]) => {
+      const methodName = str(method).slice(1);
+      const obj = object.v;
+      try {
+        console.log("obj", obj);
+        const args = rest.map(a => a.v);
+        const x = eval(`obj.${methodName}(...args)`);
+        eval("window.obj = obj");
+        return jsToIx(x, v => ({ t: "ext", v }));
+      } catch (e) {
+        return { err: `${e}` };
+      }
+    },
+  },
+  prop: {
+    definition: { exactArity: 2, params: ["str", "ext"] },
+    handler: ([prop, object]) => {
+      const propName = str(prop);
+      const obj = object.v;
+      try {
+        const x = eval(`obj["${propName}"]`);
+        return jsToIx(x, v => ({ t: "ext", v }));
+      } catch (e) {
+        return { err: `${e}` };
+      }
+    },
+  },
+  "query-selector-all": {
+    definition: { exactArity: 1, params: ["str"], returns: ["vec"] },
+    handler: ([selector]) => {
+      return {
+        t: "vec",
+        v: Array.from(document.querySelectorAll(str(selector))).map(el => {
+          return { t: "ext", v: el };
+        }),
+      };
     },
   },
   "inner-html": {
@@ -143,16 +192,19 @@ const functions: ExternalFunctions = {
       alert(val2str(params[0]));
     },
   },
-  interval: {
+  "set-interval": {
     definition: { exactArity: 2, params: ["func", "num"], returns: ["null"] },
     handler: ([func, interval]) => {
       setInterval(() => invoker(ctx, `(${func.v})`), num(interval));
     },
   },
-  timeout: {
-    definition: { exactArity: 2, params: ["func", "num"], returns: ["null"] },
-    handler: ([func, interval]) => {
-      setTimeout(() => invoker(ctx, `(${func.v})`), num(interval));
+  "set-timeout": {
+    definition: { minArity: 2, params: ["func", "num"], returns: ["null"] },
+    handler: ([func, interval, ...args]) => {
+      setTimeout(
+        () => invokeFunction(ctx, str(func), args),
+        num(interval),
+      );
     },
   },
   "GET-str": {
@@ -167,12 +219,18 @@ const functions: ExternalFunctions = {
   },
   "POST-str": {
     definition: {
-      exactArity: 3,
-      params: ["func", "str", "str"],
+      minArity: 2,
+      maxArity: 3,
+      params: ["str", "str", "func"],
       returns: ["str"],
     },
-    handler: ([callback, url, body]) => {
-      fetchOp(str(url), "POST", str(callback), str(body));
+    handler: ([url, body, callback]) => {
+      fetchOp(
+        str(url),
+        "POST",
+        callback ? str(callback) : undefined,
+        str(body),
+      );
     },
   },
 };
@@ -196,7 +254,6 @@ const loadScript = async (scriptEl: HTMLScriptElement) => {
 window.onload = async () => {
   const savedState = localStorage.getItem("insitux-state");
   state = new Map<string, Val>(savedState ? JSON.parse(savedState) : []);
-  console.log(state);
   const scripts = Array.from(document.querySelectorAll("script")).filter(
     el => el.type === "text/insitux",
   );

@@ -841,6 +841,8 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
           return errors;
         }
         stack.push({});
+        i += ins.value.length;
+        break;
       }
       case "ref":
       case "npa":

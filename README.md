@@ -55,6 +55,9 @@ If you have Visual Studio Code, install the syntax highlighter!
 $ code --install-extension insitux.insitux-syntax
 ```
 ### `ix` environment operations
+
+The Node Insitux REPL/environment has operations in addition to pure Insitux.
+
 ```clj
 ;Execute the entry.ix file of a cloned repository from the .ix directory
 ;Or execute the [alias].ix file from the .ix directory
@@ -74,6 +77,22 @@ $ code --install-extension insitux.insitux-syntax
 
 ;Execute system call
 (exec "curl -s icanhazip.com")
+
+;Yet to be documented, but implemented:
+;- Make a HTTP call (GET POST)
+;- create and append blobs
+;- set and clear intervals and timeouts
+```
+
+## Web usage
+
+Insitux can be used as a web library, though this is underdeveloped.
+
+```clj
+;Yet to be documented, but implemented:
+js call prop query-selector-all query-selector inner-html html-el child-at
+append-child remove-child replace-child POST-str GET-str prompt alert
+set-timeout set-interval 
 ```
 
 ## Coding in Insitux
@@ -483,6 +502,10 @@ etc
 (omit :a {:a 1 :b 2})   → {:b 2}
 (omit [1] {[1] 1 :b 2}) → {:b 2}
 
+;Removes multiple keys from a dictionary
+(omits [:a :c] {:a 1 :b 2 :c 3}) → {:b 2}
+(omits [[1]] {[1] 1 :b 2})       → {:b 2}
+
 ;Removes value with index from a vector
 (drop 1 [:a :b :c])  → [:a :c]
 (drop -1 [:a :b :c]) → [:a :b]
@@ -638,6 +661,11 @@ etc
 → [{:a 1, :c 3} {"b" 2}]
 (part-by (= (upper-case %)) "Hello!")
 → [["H" "!"] ["e" "l" "l" "o"]]
+
+;Partitions by a function return into a vector of [before-true after-true]
+;  vectors for vector items or substrings.
+;Calls are (f i) for vector items or characters
+(part-when odd? [0 2 4 5 6 8 9 0]) → [[0 2 4] [6 8 9 0]]
 
 ;Returns a vector partitioned into vectors or strings with N items/chars at most
 (partition 2 (range 8))       → [[0 1] [2 3] [4 5] [6 7]]
@@ -1248,17 +1276,17 @@ vector item or string character is "destructured" into.
 
 ; Display the Mandelbrot fractal as ASCII
 (function mandelbrot width height depth
-  (.. str (for #(do
-    (let c_re (/ (* (- % (/ width 2)) 4) width)
-         c_im (/ (* (- %1 (/ height 2)) 4) width))
-    (let x 0 y 0 i 0)
+  (.. str (for (fn xx yy
+    (let c_re (/ (* (- xx (/ width 2)) 4) width)
+         c_im (/ (* (- yy (/ height 2)) 4) width)
+         x 0 y 0 i 0)
     (while (and (<= (+ (** x) (** y)) 4)
                 (< i depth))
       (let x2 (+ c_re (- (** x) (** y)))
            y  (+ c_im (* 2 x y))
            x  x2
            i  (inc i)))
-    (str ((zero? %) "\n" "") (i "ABCDEFGHIJ ")))
+    (str ((zero? xx) "\n" "") (i "ABCDEFGHIJ ")))
     (range width) (range height))))
 
 (mandelbrot 56 32 10)

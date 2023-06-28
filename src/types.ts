@@ -111,7 +111,10 @@ export type Operation = {
   params?: ("any" | Val["t"] | Val["t"][])[];
   returns?: [Val["t"], ...Val["t"][]];
 };
-export type ExternalHandler = (params: Val[]) => ValOrErr | void;
+export type ExternalHandler = (
+  params: Val[],
+  errCtx: ErrCtx,
+) => ValOrErr | void;
 export type ExternalFunction = {
   definition: Operation;
   handler: ExternalHandler;
@@ -340,6 +343,11 @@ export const ops: {
     params: ["any", "dict"],
     returns: ["dict"],
   },
+  omits: {
+    exactArity: 2,
+    params: ["vec", "dict"],
+    returns: ["dict"],
+  },
   drop: {
     exactArity: 2,
     params: ["num", "vec"],
@@ -409,6 +417,11 @@ export const ops: {
     returns: ["dict"],
   },
   "part-by": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["vec"],
+  },
+  "part-when": {
     exactArity: 2,
     params: ["any", ["vec", "dict", "str"]],
     returns: ["vec"],

@@ -40,6 +40,7 @@ export const randNum = (a: number, b: number) => a + Math.random() * (b - a);
 export const randInt = (a: number, b: number) => Math.floor(randNum(a, b));
 export const range = (len: number) => [...Array(len).keys()];
 export const objKeys = (x: object) => Object.keys(x);
+export const objVals = (x: object) => Object.values(x);
 export const getTimeMs = () => new Date().getTime();
 export const abs = Math.abs;
 export const min = Math.min;

@@ -1,4 +1,5 @@
 import { flat, isStr, len, max, slice, splice } from "./poly-fills";
+import { isArray, isNum, isObj, objKeys, objVals } from "./poly-fills";
 import { assertUnreachable, Dict, Func, InvokeError, Val } from "./types";
 
 export const num = ({ v }: Val) => v as number;
@@ -136,14 +137,26 @@ export const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
   return <Dict>{ keys: nKeys, vals: nVals };
 };
 
-export const dictDrop = ({ keys, vals }: Dict, key: Val) => {
+export const dictDrop = ({ keys, vals }: Dict, key: Val): Dict => {
   const [nKeys, nVals] = [slice(keys), slice(vals)];
   const idx = keys.findIndex(k => isEqual(k, key));
   if (idx !== -1) {
     splice(nKeys, idx, 1);
     splice(nVals, idx, 1);
   }
-  return <Val>{ t: "dict", v: <Dict>{ keys: nKeys, vals: nVals } };
+  return { keys: nKeys, vals: nVals };
+};
+
+export const dictDrops = ({ keys, vals }: Dict, drop: Val[]): Dict => {
+  const [nKeys, nVals] = [slice(keys), slice(vals)];
+  drop.forEach(key => {
+    const idx = nKeys.findIndex(k => isEqual(k, key));
+    if (idx !== -1) {
+      splice(nKeys, idx, 1);
+      splice(nVals, idx, 1);
+    }
+  });
+  return { keys: nKeys, vals: nVals };
 };
 
 export function errorsToDict(errors: InvokeError[]) {
@@ -199,12 +212,67 @@ export function pathSet(
 }
 
 /** Incomplete. */
-export function jsToIx(v: unknown): Val {
+export function jsToIx(
+  v: unknown,
+  ifUndetermined = (x: unknown) => <Val>{ t: "str", v: `${x}` },
+): Val {
   if (isStr(v)) {
     return { t: "str", v };
+  }
+  if (isNum(v)) {
+    return { t: "num", v };
+  }
+  if (v === true || v === false) {
+    return { t: "bool", v };
   }
   if (v === null) {
     return { t: "null", v: undefined };
   }
-  return { t: "str", v: `${v}` };
+  const mapper = (v: unknown[]) => v.map(x => jsToIx(x, ifUndetermined));
+  if (isArray(v)) {
+    return { t: "vec", v: mapper(v) };
+  }
+  if (isObj(v)) {
+    return {
+      t: "dict",
+      v: { keys: mapper(objKeys(v)), vals: mapper(objVals(v)) },
+    };
+  }
+  return ifUndetermined(v);
+}
+
+/** Incomplete. */
+export function ixToJs(
+  v: Val,
+  ifUndetermined = (x: Val) => x.v,
+):
+  | string
+  | number
+  | boolean
+  | null
+  | Record<string, unknown>
+  | unknown[]
+  | unknown {
+  if (v.t === "str" || v.t === "num" || v.t === "bool" || v.t === "key") {
+    return v.v;
+  }
+  if (v.t === "vec") {
+    return v.v.map(x => ixToJs(x, ifUndetermined));
+  }
+  if (v.t === "null") {
+    return null;
+  }
+  if (v.t === "dict") {
+    const keys = v.v.keys.map(x => val2str(x));
+    const vals = v.v.vals.map(x => ixToJs(x, ifUndetermined));
+    const obj: Record<string, unknown> = {};
+    keys.forEach((k, i) => {
+      obj[k] = vals[i];
+    });
+    return obj;
+  }
+  if (v.t === 'ext') {
+    return v.v;
+  }
+  return ifUndetermined(v);
 }
