@@ -176,7 +176,14 @@ built-in operations each within an example, with results after a `→`.
 (function f (return 123) (print "hello"))
 (f) → 123
 (function f (return) (print "hi"))
-(f) → null
+(f) → null ;and prints "hi"
+
+;Returns its last argument early from a function without a value, or null,
+;  when its condition is truthy
+(function f (return-when true 123) (print "hello"))
+(f) → 123
+(function f (return-when false) (print "hi"))
+(f) → null ;and prints "hi"
 
 ;Tests a condition and executes and returns either the second or third argument
 ;Note: doesn't evaluate the other conditional branch

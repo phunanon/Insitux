@@ -570,8 +570,24 @@ function parseForm(
   }
 
   const args = nodes.map(nodeParser);
+  const firstSym = symAt([firstNode]);
+  if (firstSym === "return-when") {
+    if (len(args) < 1) {
+      return [
+        { typ: "err", value: "provide a condition", errCtx },
+      ];
+    }
+    const [cond, ...params] = args;
+    const flatParams = flat(params);
+    return [
+      ...cond,
+      <ParserIns>{ typ: "if", value: len(flatParams) + 1, errCtx },
+      ...flatParams,
+      <ParserIns>{ typ: "ret", value: !!(len(args) - 1), errCtx },
+    ];
+  }
   const ins: ParserIns[] = flat(args);
-  if (symAt([firstNode]) === "return") {
+  if (firstSym === "return") {
     return [...ins, { typ: "ret", value: !!len(args), errCtx }];
   } else if (len(head) === 1 && head[0].typ === "ref") {
     //Transform potential external function into string
@@ -678,6 +694,16 @@ function parseParams(
 function compileFunc({ name, nodes }: NamedNodes): Func | InvokeError {
   const { shape: params, errors } = parseParams(nodes, false);
   const ins = [...errors, ...flat(nodes.map(node => parseArg(node, params)))];
+  //Check for useless tail return
+  const lastIns = ins[len(ins) - 1];
+  if (lastIns && lastIns.typ === "ret") {
+    ins.push({
+      typ: "err",
+      value: "useless tail return - put the value itself",
+      errCtx: lastIns.errCtx,
+    });
+  }
+  //Check for parse errors
   for (let i = 0, lim = len(ins); i < lim; i++) {
     const { typ, value, errCtx } = ins[i];
     if (typ === "err") {
