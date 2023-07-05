@@ -1,6 +1,7 @@
-import { flat, isStr, len, max, slice, splice } from "./poly-fills";
-import { isArray, isNum, isObj, objKeys, objVals } from "./poly-fills";
 import { assertUnreachable, Dict, Func, InvokeError, Val } from "./types";
+
+export const isNum = (x: unknown): x is number =>
+   x !== "" && !Number.isNaN(Number(x));
 
 export const num = ({ v }: Val) => v as number;
 export const str = ({ v }: Val) => v as string;
@@ -17,7 +18,7 @@ export const _nul = () => <Val>{ t: "null", v: undefined };
 export const _fun = (v: string) => <Val>{ t: "func", v };
 
 export const isVecEqual = (a: Val[], b: Val[]): boolean =>
-  len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
+  a.length === b.length && !a.some((x, i) => !isEqual(x, b[i]));
 
 export const isEqual = (a: Val, b: Val) => {
   if (a.t === "wild" || b.t === "wild") {
@@ -37,7 +38,9 @@ export const isEqual = (a: Val, b: Val) => {
       return isVecEqual(a.v, vec(b));
     case "dict": {
       const bd = dic(b);
-      return len(a.v.keys) === len(bd.keys) && isVecEqual(a.v.keys, bd.keys);
+      return (
+        a.v.keys.length === bd.keys.length && isVecEqual(a.v.keys, bd.keys)
+      );
     }
     case "str":
     case "ref":
@@ -83,7 +86,7 @@ export const val2str = (val: Val): string => {
 
 export const asArray = (val: Val): Val[] =>
   val.t === "vec"
-    ? slice(val.v)
+    ? [...val.v]
     : val.t === "str"
     ? [...val.v].map(s => ({ t: "str", v: s }))
     : val.t === "dict"
@@ -94,11 +97,11 @@ export const asArray = (val: Val): Val[] =>
     : [];
 
 export const toDict = (args: Val[]): Val => {
-  if (len(args) === 1 && args[0].t === "vec") {
+  if (args.length === 1 && args[0].t === "vec") {
     const [{ v }] = args;
-    args = flat(v.map(a => (a.t === "vec" ? a.v : [a])));
+    args = v.flatMap(a => (a.t === "vec" ? a.v : [a]));
   }
-  if (len(args) % 2 === 1) {
+  if (args.length % 2 === 1) {
     args.pop();
   }
   const keys = args.filter((_, i) => i % 2 === 0);
@@ -126,7 +129,7 @@ export const dictGet = ({ keys, vals }: Dict, key: Val) => {
 };
 
 export const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
-  const [nKeys, nVals] = [slice(keys), slice(vals)];
+  const [nKeys, nVals] = [[...keys], [...vals]];
   const idx = keys.findIndex(k => isEqual(k, key));
   if (idx !== -1) {
     nVals[idx] = val;
@@ -138,22 +141,22 @@ export const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
 };
 
 export const dictDrop = ({ keys, vals }: Dict, key: Val): Dict => {
-  const [nKeys, nVals] = [slice(keys), slice(vals)];
+  const [nKeys, nVals] = [[...keys], [...vals]];
   const idx = keys.findIndex(k => isEqual(k, key));
   if (idx !== -1) {
-    splice(nKeys, idx, 1);
-    splice(nVals, idx, 1);
+    nKeys.splice(idx, 1);
+    nVals.splice(idx, 1);
   }
   return { keys: nKeys, vals: nVals };
 };
 
 export const dictDrops = ({ keys, vals }: Dict, drop: Val[]): Dict => {
-  const [nKeys, nVals] = [slice(keys), slice(vals)];
+  const [nKeys, nVals] = [[...keys], [...vals]];
   drop.forEach(key => {
     const idx = nKeys.findIndex(k => isEqual(k, key));
     if (idx !== -1) {
-      splice(nKeys, idx, 1);
-      splice(nVals, idx, 1);
+      nKeys.splice(idx, 1);
+      nVals.splice(idx, 1);
     }
   });
   return { keys: nKeys, vals: nVals };
@@ -180,24 +183,24 @@ export function pathSet(
 ): Val {
   //If we're at the end of the path or it's a non-number index for non-dict
   if (
-    !len(path) ||
+    !path.length ||
     (coll.t !== "vec" && coll.t !== "dict") ||
-    (coll.t === "vec" && (path[0].t !== "num" || path[0].v > len(coll.v)))
+    (coll.t === "vec" && (path[0].t !== "num" || path[0].v > coll.v.length))
   ) {
     return coll;
   }
   if (coll.t === "vec") {
-    const vecCopy = slice(coll.v);
+    const vecCopy = [...coll.v];
     let idx = num(path[0]);
-    if (idx < 0) idx = max(len(vecCopy) + idx, 0);
-    if (len(path) === 1) {
+    if (idx < 0) idx = Math.max(vecCopy.length + idx, 0);
+    if (path.length === 1) {
       vecCopy[idx] = replacer(vecCopy[idx]);
       return { t: "vec", v: vecCopy };
     }
-    vecCopy[idx] = pathSet(slice(path, 1), replacer, vecCopy[idx]);
+    vecCopy[idx] = pathSet(path.slice(1), replacer, vecCopy[idx]);
     return { t: "vec", v: vecCopy };
   }
-  if (len(path) === 1) {
+  if (path.length === 1) {
     const existing = dictGet(coll.v, path[0]);
     return { t: "dict", v: dictSet(coll.v, path[0], replacer(existing)) };
   }
@@ -206,7 +209,7 @@ export function pathSet(
     v: dictSet(
       coll.v,
       path[0],
-      pathSet(slice(path, 1), replacer, dictGet(coll.v, path[0])),
+      pathSet(path.slice(1), replacer, dictGet(coll.v, path[0])),
     ),
   };
 }
@@ -216,7 +219,7 @@ export function jsToIx(
   v: unknown,
   ifUndetermined = (x: unknown) => <Val>{ t: "str", v: `${x}` },
 ): Val {
-  if (isStr(v)) {
+  if (typeof v === "string") {
     return { t: "str", v };
   }
   if (isNum(v)) {
@@ -229,13 +232,13 @@ export function jsToIx(
     return { t: "null", v: undefined };
   }
   const mapper = (v: unknown[]) => v.map(x => jsToIx(x, ifUndetermined));
-  if (isArray(v)) {
+  if (Array.isArray(v)) {
     return { t: "vec", v: mapper(v) };
   }
-  if (isObj(v)) {
+  if (typeof v === "object") {
     return {
       t: "dict",
-      v: { keys: mapper(objKeys(v)), vals: mapper(objVals(v)) },
+      v: { keys: mapper(Object.keys(v)), vals: mapper(Object.values(v)) },
     };
   }
   return ifUndetermined(v);
@@ -271,7 +274,7 @@ export function ixToJs(
     });
     return obj;
   }
-  if (v.t === 'ext') {
+  if (v.t === "ext") {
     return v.v;
   }
   return ifUndetermined(v);

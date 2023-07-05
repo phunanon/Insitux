@@ -4,29 +4,17 @@ import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
 import { makeEnclosure } from "./closure";
 import { parse } from "./parse";
-import * as pf from "./poly-fills";
-const { abs, sign, sqrt, floor, ceil, round, max, min, logn, log2, log10 } = pf;
-const { cos, sin, tan, acos, asin, atan, sinh, cosh, tanh } = pf;
-const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
-const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
-const { trim, trimStart, trimEnd, strIdx, replace, rreplace } = pf;
-const { charCode, codeChar, getTimeMs, randInt, randNum } = pf;
-const { isNum, len, objKeys, range, toNum, isArray, isObj } = pf;
 import { doTests } from "./test";
 import { assertUnreachable, Env, InvokeError, InvokeResult } from "./types";
 import { ExternalFunctions, syntaxes } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
-import {
-  asArray,
-  dictDrops,
-  isEqual,
-  num,
-  str,
-  stringify,
-  val2str,
-} from "./val";
-import { dic, vec, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
+import { isNum, dic, vec, num, str } from "./val";
+import { asArray, dictDrops, isEqual, stringify, val2str } from "./val";
+import { dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
 import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun } from "./val";
+
+const { sin, cos, tan, sqrt, floor, ceil, log: logn, log2, log10 } = Math;
+const { min, max, abs, round, asin, acos, atan, sinh, cosh, tanh, sign } = Math;
 
 let letsStack: { [key: string]: Val }[] = [];
 let lets: (typeof letsStack)[0] = {};
@@ -37,10 +25,14 @@ function _throw(errors: InvokeError[]): Val {
   throw <_Exception>{ errors };
 }
 function isThrown(e: unknown): e is _Exception {
-  return !!e && isObj(e) && "errors" in e;
+  return !!e && typeof e === "object" && "errors" in e;
 }
 const throwTypeErr = (msg: string, errCtx: ErrCtx) =>
   _throw([typeErr(msg, errCtx)]);
+
+const randNum = (a: number, b: number) => a + Math.random() * (b - a);
+const randInt = (a: number, b: number) => Math.floor(randNum(a, b));
+export const range = (len: number) => [...Array(len).keys()];
 
 function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
   switch (op) {
@@ -60,15 +52,14 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _dic({ keys: vec(args[0]), vals: vec(args[1]) });
     case "len":
       return _num(
-        args[0].t === "str"
-          ? slen(args[0].v)
-          : args[0].t === "vec"
-          ? len(args[0].v)
-          : len(dic(args[0]).keys),
+        (args[0].t === "str" || args[0].t === "vec"
+          ? args[0].v
+          : dic(args[0]).keys
+        ).length,
       );
     case "to-num":
       if (isNum(args[0].v)) {
-        return _num(toNum(args[0].v));
+        return _num(Number(args[0].v));
       } else {
         return _nul();
       }
@@ -82,14 +73,14 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _boo(!asBoo(args[0]));
     case "=":
     case "!=":
-      for (let i = 1, lim = len(args); i < lim; ++i) {
+      for (let i = 1, lim = args.length; i < lim; ++i) {
         if (isEqual(args[i - 1], args[i]) !== (op === "=")) {
           return _boo(false);
         }
       }
       return _boo(true);
     case "==":
-      for (let i = 1, lim = len(args); i < lim; ++i) {
+      for (let i = 1, lim = args.length; i < lim; ++i) {
         if (isEqual(args[i - 1], args[i])) {
           return args[0];
         }
@@ -98,7 +89,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "-":
       return _num(args.map(num).reduce((sum, n) => sum - n));
     case "**":
-      return _num(num(args[0]) ** (len(args) === 1 ? 2 : num(args[1])));
+      return _num(num(args[0]) ** (args.length === 1 ? 2 : num(args[1])));
     case "+":
       return _num(args.map(num).reduce((sum, n) => sum + n));
     case "*":
@@ -140,7 +131,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case ">":
     case "<=":
     case ">=":
-      for (let i = 1, lim = len(args); i < lim; ++i) {
+      for (let i = 1, lim = args.length; i < lim; ++i) {
         const [a, b] = [<number>args[i - 1].v, <number>args[i].v];
         if (
           (op === "<" && a >= b) ||
@@ -159,7 +150,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       if (args.some(({ t }) => t !== "str")) {
         throwTypeErr("can only compare all string", errCtx);
       }
-      for (let i = 1, lim = len(args); i < lim; ++i) {
+      for (let i = 1, lim = args.length; i < lim; ++i) {
         const [a, b] = [<string>args[i - 1].v, <string>args[i].v];
         if (
           (op === "str<" && a >= b) ||
@@ -178,7 +169,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "abs":
       return _num(abs(<number>args[0].v));
     case "round":
-      if (len(args) === 2) {
+      if (args.length === 2) {
         const x = 10 ** <number>args[0].v;
         return _num(round(<number>args[1].v * x) / x);
       } else {
@@ -215,7 +206,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const src = vec(args[0]);
       let sum = 0;
       let count = 0;
-      for (let i = 0, lim = len(src); i < lim; ++i) {
+      for (let i = 0, lim = src.length; i < lim; ++i) {
         if (src[i].t === "num") {
           sum += num(src[i]);
           ++count;
@@ -279,13 +270,13 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const { t } = args[0];
       return _boo(
         (op === "func?" && (t === "func" || t === "clo")) ||
-          substr(op, 0, slen(op) - 1) === t,
+          op.substring(0, op.length - 1) === t,
       );
     }
     case "type-of":
       return _str(args[0].t);
     case "substr?":
-      return _boo(!!slen(str(args[0])) && sub(str(args[1]), str(args[0])));
+      return _boo(!!str(args[0]).length && str(args[1]).includes(str(args[0])));
     case "idx":
     case "idx-of":
     case "last-idx":
@@ -297,14 +288,16 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         if (find.t !== "str") {
           throwTypeErr("strings can only contain strings", errCtx);
         } else {
-          const s = isLast ? stringify(reverse(asArray(subject))) : subject.v;
-          const i = subIdx(s, find.v);
-          return i === -1 ? _nul() : _num(isLast ? slen(subject.v) - 1 - i : i);
+          const s = isLast ? stringify(asArray(subject).reverse()) : subject.v;
+          const i = s.indexOf(find.v);
+          return i === -1
+            ? _nul()
+            : _num(isLast ? subject.v.length - 1 - i : i);
         }
       } else if (subject.t === "vec") {
-        const s = isLast ? reverse(slice(subject.v)) : subject.v;
+        const s = isLast ? [...subject.v].reverse() : subject.v;
         const i = s.findIndex(a => isEqual(a, find));
-        return i === -1 ? _nul() : _num(isLast ? len(subject.v) - 1 - i : i);
+        return i === -1 ? _nul() : _num(isLast ? subject.v.length - 1 - i : i);
       }
     }
     case "set-at": {
@@ -324,9 +317,9 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         { typ: "exe", value: 2, errCtx },
       ];
       const ins: Ins[] = [
-        ...flat(args.map(makeArg)),
+        ...args.flatMap(makeArg),
         { typ: "val", value: _fun("vec"), errCtx },
-        { typ: "exe", value: len(args), errCtx },
+        { typ: "exe", value: args.length, errCtx },
       ];
       return {
         t: "clo",
@@ -344,13 +337,13 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       ];
       const ins: Ins[] = [
         { typ: "val", value: _fun("vec"), errCtx },
-        ...flat(args.map(makeArg)),
-        { typ: "val", value: _num(len(args)), errCtx },
+        ...args.flatMap(makeArg),
+        { typ: "val", value: _num(args.length), errCtx },
         { typ: "upa", value: 0, text: "x", errCtx },
         { typ: "val", value: _fun("skip"), errCtx },
         { typ: "exe", value: 2, errCtx },
         { typ: "val", value: _fun("..."), errCtx },
-        { typ: "exe", value: len(args) + 2, errCtx },
+        { typ: "exe", value: args.length + 2, errCtx },
       ];
       return {
         t: "clo",
@@ -363,11 +356,12 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         { typ: "upa", value: -1, text: "args", errCtx },
         { typ: "val", value: _fun("..."), errCtx },
         { typ: "exe", value: 2, errCtx },
-        ...flat(
-          slice(args, 1).map(value => [
-            <Ins>{ typ: "val", value, errCtx },
-            <Ins>{ typ: "exe", value: 1, errCtx },
-          ]),
+        ...args.slice(1).flatMap(
+          value =>
+            <Ins[]>[
+              { typ: "val", value, errCtx },
+              { typ: "exe", value: 1, errCtx },
+            ],
         ),
       ];
       return {
@@ -399,7 +393,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const name = `(criteria ${args.map(val2str).join(" ")})`;
       const ins: Ins[] = [
         ...args.flatMap((value, i) => {
-          const jmp = (len(args) - 1 - i) * 4 + 2;
+          const jmp = (args.length - 1 - i) * 4 + 2;
           return [
             { typ: "upa", value: 0, text: "x", errCtx },
             { typ: "val", value, errCtx },
@@ -441,9 +435,9 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
 
       if (op === "for") {
         const arrays = args.map(asArray);
-        const lims = arrays.map(len);
+        const lims = arrays.map(x => x.length);
         const divisors = lims.map((_, i) =>
-          slice(lims, 0, i + 1).reduce((sum, l) => sum * l),
+          lims.slice(0, i + 1).reduce((sum, l) => sum * l),
         );
         divisors.unshift(1);
         const lim = divisors.pop()!;
@@ -460,7 +454,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
 
       if (op === "map" || op === "flat-map") {
         const arrays = args.map(asArray);
-        const shortest = min(...arrays.map(len));
+        const shortest = min(...arrays.map(x => x.length));
         const array: Val[] = [];
         for (let i = 0; i < shortest; ++i) {
           array.push(closure(arrays.map(a => a[i])));
@@ -471,7 +465,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         const flatArray: Val[] = [];
         for (const v of array) {
           if (v.t === "vec") {
-            push(flatArray, v.v);
+            flatArray.push(...v.v);
           } else {
             flatArray.push(v);
           }
@@ -487,7 +481,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
           isAll = op === "all?";
         const filtered: Val[] = [];
         let count = 0;
-        for (let i = 0, lim = len(array); i < lim; ++i) {
+        for (let i = 0, lim = array.length; i < lim; ++i) {
           const b = asBoo(closure([array[i]]));
           if (isAll) {
             if (!b) {
@@ -514,13 +508,13 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         if (args[0].t === "str") {
           return _str(filtered.map(v => val2str(v)).join(""));
         } else if (args[0].t === "dict") {
-          return toDict(flat(filtered.map(v => <Val[]>v.v)));
+          return toDict(filtered.flatMap(v => <Val[]>v.v));
         } else {
           return _vec(filtered);
         }
       }
       const arrayVal = args.pop()!;
-      if (!has(["vec", "dict", "str"], arrayVal.t)) {
+      if (!["vec", "dict", "str"].includes(arrayVal.t)) {
         throwTypeErr(
           `must reduce either: string, vector, dictionary, not ${
             typeNames[arrayVal.t]
@@ -530,34 +524,34 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       const array = asArray(arrayVal);
 
-      if (!len(array)) {
-        if (len(args)) {
+      if (!array.length) {
+        if (args.length) {
           return args[0];
         } else {
           return _vec();
         }
       }
-      if (len(array) < 2 && !len(args)) {
+      if (array.length < 2 && !args.length) {
         return array[0];
       }
 
-      let reduction: Val = (len(args) ? args : array).shift()!;
+      let reduction: Val = (args.length ? args : array).shift()!;
       if (op === "reductions") {
         const reductions: Val[] = [];
-        for (let i = 0, lim = len(array); i < lim; ++i) {
+        for (let i = 0, lim = array.length; i < lim; ++i) {
           reductions.push(reduction);
           reduction = closure([reduction, array[i]]);
         }
         reductions.push(reduction);
         return _vec(reductions);
       }
-      for (let i = 0, lim = len(array); i < lim; ++i) {
+      for (let i = 0, lim = array.length; i < lim; ++i) {
         reduction = closure([reduction, array[i]]);
       }
       return reduction;
     }
     case "empty?":
-      return _boo(!len(asArray(args[0])));
+      return _boo(!asArray(args[0]).length);
     case "take-while":
     case "take-until":
     case "skip-while":
@@ -567,9 +561,9 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const closure = getExe(ctx, args[0], errCtx);
       const array = asArray(args[1]);
       let i = 0;
-      for (let lim = len(array); i < lim; ++i)
+      for (let lim = array.length; i < lim; ++i)
         if (asBoo(closure([array[i]])) === isUntil) break;
-      const sliced = isTake ? slice(array, 0, i) : slice(array, i);
+      const sliced = isTake ? array.slice(0, i) : array.slice(i);
       return args[1].t === "str"
         ? _str(sliced.map(str).join(""))
         : _vec(sliced);
@@ -580,7 +574,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const closure = getExe(ctx, args[0], errCtx);
       const src = asArray(args[1]);
       const mapped: Val[] = [];
-      for (let i = 0, lim = len(src); i < lim; ++i) {
+      for (let i = 0, lim = src.length; i < lim; ++i) {
         mapped.push(closure([_num(i), src[i]]));
       }
       return _vec(mapped);
@@ -608,11 +602,11 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     }
     case "rand-int":
     case "rand": {
-      const nArgs = len(args);
+      const nArgs = args.length;
       const [a, b] = [
         nArgs < 2 ? 0 : num(args[0]),
         nArgs === 0
-          ? 1 + toNum(op === "rand-int")
+          ? 1 + Number(op === "rand-int")
           : nArgs === 1
           ? num(args[0])
           : num(args[1]),
@@ -631,23 +625,23 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       let flatArgs: Val[] = args;
       if (op === "..") {
-        flatArgs = flat(args.map(a => (a.t === "vec" ? a.v : [a])));
+        flatArgs = args.flatMap(a => (a.t === "vec" ? a.v : [a]));
       } else {
         const a = flatArgs.pop()!;
-        push(flatArgs, flat([a.t === "vec" ? a.v : [a]]));
+        flatArgs.push(...(a.t === "vec" ? a.v : [a]));
       }
       return closure(flatArgs);
     }
     case "into": {
       if (args[0].t === "vec") {
-        return _vec(concat(args[0].v, asArray(args[1])));
+        return _vec([...args[0].v, ...asArray(args[1])]);
       } else {
         if (args[1].t === "vec") {
-          return toDict(concat(flat(asArray(args[0]).map(vec)), args[1].v));
+          return toDict([...asArray(args[0]).flatMap(vec), ...args[1].v]);
         } else {
           const { keys: ks1, vals: vs1 } = dic(args[0]);
           const { keys: ks2, vals: vs2 } = dic(args[1]);
-          return _dic({ keys: concat(ks1, ks2), vals: concat(vs1, vs2) });
+          return _dic({ keys: [...ks1, ...ks2], vals: [...vs1, ...vs2] });
         }
       }
     }
@@ -657,34 +651,34 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return <Val>{ t: "dict", v: dictDrops(dic(args[1]), vec(args[0])) };
     case "drop": {
       const [n, v] = [num(args[0]), vec(args[1])];
-      const l = len(v);
+      const l = v.length;
       const x = min(max(n < 0 ? l + n : n, 0), l);
-      return _vec(concat(slice(v, 0, x), slice(v, x + 1)));
+      return _vec([...v.slice(0, x), ...v.slice(x + 1)]);
     }
     case "assoc":
       return _dic(dictSet(dic(args[2]), args[0], args[1]));
     case "append":
-      return _vec(concat(vec(args[1]), [args[0]]));
+      return _vec([...vec(args[1]), args[0]]);
     case "prepend":
-      return _vec(concat([args[0]], vec(args[1])));
+      return _vec([args[0], ...vec(args[1])]);
     case "insert": {
       const v = vec(args[2]);
       let n = num(args[1]);
       if (n === 0) {
-        return _vec(concat([args[0]], v));
+        return _vec([args[0], ...v]);
       } else if (n === -1) {
-        return _vec(concat(v, [args[0]]));
+        return _vec([...v, args[0]]);
       } else {
-        n = n > 0 ? min(n, len(v)) : max(len(v) + 1 + n, 0);
-        return _vec(concat(concat(slice(v, 0, n), [args[0]]), slice(v, n)));
+        n = n > 0 ? min(n, v.length) : max(v.length + 1 + n, 0);
+        return _vec([...v.slice(0, n), args[0], ...v.slice(n)]);
       }
     }
     case "sect": {
       const v = args[0];
-      const vlen = v.t === "vec" ? len(v.v) : slen(str(v));
+      const vlen = v.t === "vec" ? v.v.length : str(v).length;
       let a = 0,
         b = vlen;
-      switch (len(args)) {
+      switch (args.length) {
         case 1:
           a = 1;
           break;
@@ -711,9 +705,9 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         return (v.t === "vec" ? _vec : _str)();
       }
       if (v.t === "vec") {
-        return _vec(slice(v.v, a, b));
+        return _vec(v.v.slice(a, b));
       } else {
-        return _str(substr(str(args[0]), a, b - a));
+        return _str(str(args[0]).substring(a, b));
       }
     }
     case "skip":
@@ -724,7 +718,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       let a = num(args[0]);
       const b = op === "crop" ? num(args[1]) : 0;
       const { t, v } = args[op === "crop" ? 2 : 1];
-      const l = t === "str" ? slen(<string>v) : len(<Val[]>v);
+      const l = t === "str" ? v.length : (<Val[]>v).length;
       if (a < 0) {
         a = op === "crop" ? a + l : 0;
       }
@@ -741,14 +735,14 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
           : l;
       x = x > y ? y : x;
       return t === "str"
-        ? _str(substr(<string>v, x, y - x))
-        : _vec(slice(<Val[]>v, x, y));
+        ? _str((<string>v).substring(x, y))
+        : _vec((<Val[]>v).slice(x, y));
     }
     case "reverse":
       if (args[0].t === "str") {
-        return _str(stringify(reverse(asArray(args[0]))));
+        return _str(stringify(asArray(args[0]).reverse()));
       } else {
-        return _vec(reverse(asArray(args[0])));
+        return _vec(asArray(args[0]).reverse());
       }
     case "flatten": {
       const src = vec(args[0]);
@@ -759,53 +753,52 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _vec(flattened);
     }
     case "shuffle": {
-      const arr = slice(vec(args[0]));
-      for (let i = len(arr) - 1; i; --i) {
+      const arr = [...vec(args[0])];
+      for (let i = arr.length - 1; i; --i) {
         const j = floor(randInt(0, i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
       }
       return _vec(arr);
     }
     case "sample": {
-      const shuffled = slice(vec(args[1]));
-      const size = max(0, min(len(shuffled), num(args[0])));
-      const minimum = len(shuffled) - size;
-      for (let i = len(shuffled) - 1; i >= minimum; --i) {
+      const shuffled = [...vec(args[1])];
+      const size = max(0, min(shuffled.length, num(args[0])));
+      const minimum = shuffled.length - size;
+      for (let i = shuffled.length - 1; i >= minimum; --i) {
         const index = floor(randInt(0, i + 1));
         [shuffled[i], shuffled[index]] = [shuffled[index], shuffled[i]];
       }
-      return _vec(slice(shuffled, minimum));
+      return _vec(shuffled.slice(minimum));
     }
     case "rand-pick": {
       const arr = vec(args[0]);
-      return arr[randInt(0, len(arr))];
+      return arr[randInt(0, arr.length)];
     }
     case "sort":
     case "sort-by": {
       const src = asArray(args[op === "sort" ? 0 : 1]);
-      if (!len(src)) {
+      if (!src.length) {
         return _vec();
       }
       const mapped: Val[][] = [];
       if (op === "sort") {
-        push(
-          mapped,
-          src.map(v => [v, v]),
-        );
+        mapped.push(...src.map(v => [v, v]));
       } else {
         const closure = getExe(ctx, args[0], errCtx);
-        for (let i = 0, lim = len(src); i < lim; ++i) {
+        for (let i = 0, lim = src.length; i < lim; ++i) {
           mapped.push([src[i], closure([src[i]])]);
         }
       }
       const okT = mapped[0][1].t;
-      if (mapped.some(([_, { t }]) => t !== okT || !has(["num", "str"], t))) {
+      if (
+        mapped.some(([_, { t }]) => t !== okT || !(t === "num" || t === "str"))
+      ) {
         throwTypeErr("can only sort by all number or all string", errCtx);
       }
       if (okT === "num") {
-        sortBy(mapped, ([x, a], [y, b]) => (num(a) > num(b) ? 1 : -1));
+        mapped.sort(([x, a], [y, b]) => (num(a) > num(b) ? 1 : -1));
       } else {
-        sortBy(mapped, ([x, a], [y, b]) => (str(a) > str(b) ? 1 : -1));
+        mapped.sort(([x, a], [y, b]) => (str(a) > str(b) ? 1 : -1));
       }
       return _vec(mapped.map(([v]) => v));
     }
@@ -815,7 +808,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const isDic = args[1].t === "dict";
       if (isDic) {
         const { keys, vals } = dic(args[1]);
-        for (let i = 0, lim = len(keys); i < lim; ++i) {
+        for (let i = 0, lim = keys.length; i < lim; ++i) {
           const v = closure([keys[i], vals[i]]);
           const existingKey = groups.keys.findIndex(k => isEqual(k, v));
           if (existingKey === -1) {
@@ -829,7 +822,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         }
       } else {
         const src = asArray(args[1]);
-        for (let i = 0, lim = len(src); i < lim; ++i) {
+        for (let i = 0, lim = src.length; i < lim; ++i) {
           const v = closure([src[i]]);
           const existingKey = groups.keys.findIndex(k => isEqual(k, v));
           if (existingKey === -1) {
@@ -852,7 +845,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
           { keys: [], vals: [] },
           { keys: [], vals: [] },
         ];
-        for (let i = 0, lim = len(keys); i < lim; ++i) {
+        for (let i = 0, lim = keys.length; i < lim; ++i) {
           const p = asBoo(closure([keys[i], vals[i]])) ? 0 : 1;
           parted[p].keys.push(keys[i]);
           parted[p].vals.push(vals[i]);
@@ -861,7 +854,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       } else {
         const src = asArray(args[1]);
         const parted: Val[][] = [[], []];
-        for (let i = 0, lim = len(src); i < lim; ++i) {
+        for (let i = 0, lim = src.length; i < lim; ++i) {
           parted[asBoo(closure([src[i]])) ? 0 : 1].push(src[i]);
         }
         return _vec(parted.map(_vec));
@@ -874,7 +867,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       let wasTrue = false;
       if (isStr) {
         const parted: string[] = ["", ""];
-        for (let i = 0, lim = len(src); i < lim; ++i) {
+        for (let i = 0, lim = src.length; i < lim; ++i) {
           const p = asBoo(closure([src[i]]));
           if (p && !wasTrue) {
             wasTrue = true;
@@ -885,7 +878,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         return _vec(parted.map(_str));
       } else {
         const parted: Val[][] = [[], []];
-        for (let i = 0, lim = len(src); i < lim; ++i) {
+        for (let i = 0, lim = src.length; i < lim; ++i) {
           const p = asBoo(closure([src[i]]));
           if (p && !wasTrue) {
             wasTrue = true;
@@ -901,12 +894,12 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const src = args[1];
       const parted: Val[] = [];
       if (src.t === "str") {
-        for (let i = 0, lim = slen(src.v); i < lim; i += n) {
-          parted.push(_str(substr(src.v, i, n)));
+        for (let i = 0, lim = src.v.length; i < lim; i += n) {
+          parted.push(_str(src.v.substring(i, i + n)));
         }
       } else if (src.t === "vec") {
-        for (let i = 0, lim = len(src.v); i < lim; i += n) {
-          parted.push(_vec(slice(src.v, i, i + n)));
+        for (let i = 0, lim = src.v.length; i < lim; i += n) {
+          parted.push(_vec(src.v.slice(i, i + n)));
         }
       }
       return _vec(parted);
@@ -915,7 +908,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const n = max(num(args[0]), 0);
       const src = asArray(args[1]);
       const skipped: Val[] = [];
-      for (let i = 0, lim = len(src); i < lim; i += n + 1) {
+      for (let i = 0, lim = src.length; i < lim; i += n + 1) {
         skipped.push(src[i]);
       }
       return args[1].t === "str"
@@ -938,7 +931,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _dic({ keys: distinct, vals: counts.map(_num) });
     }
     case "distinct": {
-      const arr = len(args) === 1 && args[0].t === "vec" ? vec(args[0]) : args;
+      const arr =
+        args.length === 1 && args[0].t === "vec" ? vec(args[0]) : args;
       const distinct: Val[] = [];
       arr.forEach(a => {
         if (!distinct.some(v => isEqual(a, v))) {
@@ -951,7 +945,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const [a, b, s] = args.map(num);
       const edgeCase = s && s < 0 && a < b; //e.g. 1 4 -1
       const [x, y] =
-        len(args) > 1 ? (edgeCase ? [b - 1, a - 1] : [a, b]) : [0, a];
+        args.length > 1 ? (edgeCase ? [b - 1, a - 1] : [a, b]) : [0, a];
       const step = sign((y - x) * (s || 1)) * (s || 1);
       const count = ceil(abs((y - x) / step));
       if (!count) {
@@ -973,35 +967,37 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _str(asArray(args[1]).map(val2str).join(str(args[0])));
     case "replace":
     case "rreplace": {
-      const rop = op === "replace" ? replace : rreplace;
-      return _str(rop(str(args[2]), str(args[0]), str(args[1])));
+      const a = str(args[0]);
+      const b = str(args[1]);
+      const c = str(args[2]);
+      return _str(
+        op === 'replace' ? c.replaceAll(a, b) : c.replace(new RegExp(a, 'g'), b)
+      );
     }
     case "starts?":
-    case "ends?":
+    case "ends?": {
+      const a = str(args[0]);
+      const b = str(args[1]);
       return _boo(
-        (op === "starts?" ? starts : ends)(str(args[1]), str(args[0])),
+        (op === "starts?" ? a.startsWith(b) : a.endsWith(b)) ||
+          (a === "" && b === ""),
       );
+    }
     case "upper-case":
+      return _str(str(args[0]).toUpperCase());
     case "lower-case":
+      return _str(str(args[0]).toLowerCase());
     case "trim":
+      return _str(str(args[0]).trim());
     case "trim-start":
+      return _str(str(args[0]).trimStart());
     case "trim-end":
-      return _str(
-        (op === "upper-case"
-          ? upperCase
-          : op === "lower-case"
-          ? lowerCase
-          : op === "trim"
-          ? trim
-          : op === "trim-start"
-          ? trimStart
-          : trimEnd)(str(args[0])),
-      );
+      return _str(str(args[0]).trimEnd());
     case "upper?":
     case "lower?": {
       const s = str(args[0]);
-      const f = op === "upper?" ? upperCase : lowerCase;
-      return _boo(s === f(s));
+      const x = op === "upper?" ? s.toUpperCase() : s.toLowerCase();
+      return _boo(s === x);
     }
     case "letter?":
     case "digit?":
@@ -1016,7 +1012,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
           : op === "space?"
           ? isSpace
           : isLetter;
-      return _boo(f(charCode(s)));
+      return _boo(f(s.charCodeAt(0)));
     }
     case "str*": {
       const text = str(args[0]);
@@ -1028,30 +1024,30 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     }
     case "char-code": {
       if (args[0].t === "str") {
-        const n = len(args) > 1 ? num(args[1]) : 0;
+        const n = args.length > 1 ? num(args[1]) : 0;
         const s = str(args[0]);
-        if (slen(s) <= n || n < 0) {
+        if (s.length <= n || n < 0) {
           return _nul();
         } else {
-          return _num(charCode(strIdx(s, n)));
+          return _num(s.charCodeAt(n));
         }
       } else {
-        return _str(codeChar(num(args[0])));
+        return _str(String.fromCharCode(num(args[0])));
       }
     }
     case "time":
-      return _num(getTimeMs());
+      return _num(new Date().getTime());
     case "version":
       return _num(insituxVersion);
     case "tests": {
       const letsTemp = lets;
-      const summary = doTests(invoke, !(len(args) && asBoo(args[0])));
+      const summary = doTests(invoke, !(args.length && asBoo(args[0])));
       lets = letsTemp;
       return _str(summary.join("\n"));
     }
     case "symbols": {
       let syms = symbols(ctx.env, false);
-      if (len(args) && asBoo(args[0])) {
+      if (args.length && asBoo(args[0])) {
         syms = syms.filter(s => !ops[s]?.hasEffects ?? false);
       }
       return _vec(syms.map(_str));
@@ -1081,7 +1077,9 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const info = (what: string, val: Val) =>
         infos.push(_key(`:${what}`), val);
       const toStrVec = (v: (string | string[])[]): Val =>
-        _vec(v.map(typ => (isArray(typ) ? _vec(typ.map(_str)) : _str(typ))));
+        _vec(
+          v.map(typ => (Array.isArray(typ) ? _vec(typ.map(_str)) : _str(typ))),
+        );
       info("name", _str(func));
       info("external?", _boo(!!entry.external));
       if (entry.exactArity) {
@@ -1125,7 +1123,7 @@ const monoArityError = (t: Val["t"], errCtx: ErrCtx) => [
 function checks(op: string, args: Val[], errCtx: ErrCtx, checkArity: boolean) {
   //Optional arity check
   if (checkArity) {
-    const violations = arityCheck(op, len(args), errCtx);
+    const violations = arityCheck(op, args.length, errCtx);
     if (violations) {
       return violations;
     }
@@ -1151,7 +1149,7 @@ function getExe(
           if (violations) {
             _throw(violations);
           }
-          const oldLetsStack = slice(letsStack);
+          const oldLetsStack = [...letsStack];
           const valOrErr =
             ctx.functions[name].handler(params, errCtx) || _nul();
           letsStack = oldLetsStack; //In case invoker was called externally
@@ -1178,16 +1176,16 @@ function getExe(
     if (name in ctx.env.vars) {
       return getExe(ctx, ctx.env.vars[name], errCtx);
     }
-    if (starts(name, "$")) {
+    if (name.startsWith("$")) {
       return (params: Val[]) => {
-        if (!len(params)) {
+        if (!params.length) {
           _throw(monoArityError(op.t, errCtx));
         }
         if (!ctx.set) {
           const m = `"set" feature not implemented on this platform`;
           return _throw([{ e: "External", m, errCtx }]);
         }
-        const err = ctx.set(substr(name, 1), params[0]);
+        const err = ctx.set(name.substring(1), params[0]);
         if (err) {
           _throw([{ e: "External", m: err, errCtx }]);
         }
@@ -1209,7 +1207,7 @@ function getExe(
     return (params: Val[]) => exeFunc(ctx, op.v, params);
   } else if (op.t === "key") {
     return (params: Val[]) => {
-      if (!len(params)) {
+      if (!params.length) {
         _throw(monoArityError(op.t, errCtx));
       }
       if (params[0].t === "dict") {
@@ -1224,7 +1222,7 @@ function getExe(
   } else if (op.t === "num") {
     const n = floor(op.v);
     return (params: Val[]) => {
-      if (!len(params)) {
+      if (!params.length) {
         _throw(monoArityError(op.t, errCtx));
       }
       const a = params[0];
@@ -1232,7 +1230,7 @@ function getExe(
         return _throw(numOpErr(errCtx, [a.t]));
       }
       const arr = asArray(a),
-        alen = len(arr);
+        alen = arr.length;
       if ((n >= 0 && n >= alen) || (n < 0 && -n > alen)) {
         return _nul();
       } else if (n < 0) {
@@ -1243,7 +1241,7 @@ function getExe(
   } else if (op.t === "vec") {
     const { v } = op;
     return (params: Val[]) => {
-      if (!len(params)) {
+      if (!params.length) {
         _throw(monoArityError(op.t, errCtx));
       }
       const found = v.find(val => isEqual(val, params[0]));
@@ -1252,9 +1250,9 @@ function getExe(
   } else if (op.t === "dict") {
     const dict = op.v;
     return (params: Val[]) => {
-      if (len(params) === 1) {
+      if (params.length === 1) {
         return dictGet(dict, params[0]);
-      } else if (len(params) === 2) {
+      } else if (params.length === 2) {
         return _dic(dictSet(dict, params[0], params[1]));
       }
       return _throw([
@@ -1264,16 +1262,16 @@ function getExe(
   } else if (op.t === "bool") {
     const cond = op.v;
     return (params: Val[]) => {
-      if (!len(params) || len(params) > 2) {
+      if (!params.length || params.length > 2) {
         return _throw([
           { e: "Arity", m: "provide 1 or 2 arguments for boolean", errCtx },
         ]);
       }
-      return cond ? params[0] : len(params) > 1 ? params[1] : _nul();
+      return cond ? params[0] : params.length > 1 ? params[1] : _nul();
     };
   } else if (op.t === "wild") {
     return (params: Val[]) => {
-      if (!len(params)) {
+      if (!params.length) {
         _throw(monoArityError(op.t, errCtx));
       }
       return params[0];
@@ -1298,30 +1296,30 @@ function errorsToDict(errors: InvokeError[]) {
 
 function destruct(args: Val[], shape: number[]): Val {
   let arr: Val[] = args;
-  for (let a = 0, b = len(shape) - 1; a < b; ++a) {
+  for (let a = 0, b = shape.length - 1; a < b; ++a) {
     const val = arr[shape[a]];
     if (!val) {
       return _nul();
     } else if (val.t === "vec") {
       arr = val.v;
-    } else if (val.t === "str" && a + 1 === b && shape[a + 1] < slen(val.v)) {
-      return _str(strIdx(val.v, shape[a + 1]));
+    } else if (val.t === "str" && a + 1 === b && shape[a + 1] < val.v.length) {
+      return _str(val.v[shape[a + 1]]);
     } else {
       return _nul();
     }
   }
-  const pos = shape[len(shape) - 1];
-  return pos >= len(arr) ? _nul() : arr[pos];
+  const pos = shape[shape.length - 1];
+  return pos >= arr.length ? _nul() : arr[pos];
 }
 
 function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
   --ctx.callBudget;
   if (!closureDeref) {
     letsStack.push({});
-    lets = letsStack[len(letsStack) - 1];
+    lets = letsStack[letsStack.length - 1];
   }
   const stack: Val[] = [];
-  for (let i = 0, lim = len(func.ins); i < lim; ++i) {
+  for (let i = 0, lim = func.ins.length; i < lim; ++i) {
     const ins = func.ins[i];
     const { errCtx } = func.ins[i];
 
@@ -1341,10 +1339,10 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         stack.push(ins.value);
         break;
       case "var":
-        ctx.env.vars[ins.value] = stack[len(stack) - 1];
+        ctx.env.vars[ins.value] = stack[stack.length - 1];
         break;
       case "let":
-        lets[ins.value] = stack[len(stack) - 1];
+        lets[ins.value] = stack[stack.length - 1];
         break;
       case "dle":
       case "dva": {
@@ -1365,7 +1363,7 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         const paramIdx = ins.value;
         if (paramIdx === -1) {
           stack.push(_vec(args));
-        } else if (len(args) <= paramIdx) {
+        } else if (args.length <= paramIdx) {
           stack.push(_nul());
         } else {
           stack.push(args[paramIdx]);
@@ -1379,12 +1377,12 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         const name = ins.value;
         if (ops[name]) {
           stack.push(_fun(name));
-        } else if (starts(name, "$")) {
+        } else if (name.startsWith("$")) {
           if (!ctx.get) {
             const m = `"get" feature not implemented on this platform`;
             return _throw([{ e: "External", m, errCtx }]);
           }
-          const valAndErr = ctx.get(substr(name, 1));
+          const valAndErr = ctx.get(name.substring(1));
           if ("err" in valAndErr) {
             return _throw([{ e: "External", m: valAndErr.err, errCtx }]);
           }
@@ -1405,15 +1403,15 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         const op = stack.pop()!;
         const closure = getExe(ctx, op, errCtx, ins.typ === "exa");
         const nArgs = ins.value;
-        const params = splice(stack, len(stack) - nArgs, nArgs);
+        const params = stack.splice(stack.length - nArgs, nArgs);
         try {
           stack.push(closure(params));
         } catch (e) {
           if (isThrown(e)) {
             //Find next catch statement
-            const nextCat = slice(func.ins, i).findIndex(
-              ins => ins.typ === "cat",
-            );
+            const nextCat = func.ins
+              .slice(i)
+              .findIndex(ins => ins.typ === "cat");
             if (nextCat !== -1) {
               i += nextCat;
               lets["errors"] = _vec(errorsToDict(e.errors));
@@ -1423,7 +1421,7 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
           throw e;
         }
         if (recurArgs) {
-          letsStack[len(letsStack) - 1] = {};
+          letsStack[letsStack.length - 1] = {};
           i = -1;
           args = recurArgs;
           recurArgs = undefined;
@@ -1435,14 +1433,14 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         break;
       }
       case "or":
-        if (asBoo(stack[len(stack) - 1])) {
+        if (asBoo(stack[stack.length - 1])) {
           i += ins.value;
         } else {
           stack.pop();
         }
         break;
       case "mat": {
-        const cond = stack[len(stack) - 2];
+        const cond = stack[stack.length - 2];
         if (!isEqual(cond, stack.pop()!)) {
           i += ins.value;
         } else {
@@ -1451,7 +1449,7 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         break;
       }
       case "sat": {
-        const cond = stack[len(stack) - 2];
+        const cond = stack[stack.length - 2];
         const closure = getExe(ctx, stack.pop()!, errCtx);
         if (!asBoo(closure([cond]))) {
           i += ins.value;
@@ -1477,7 +1475,7 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         if (ins.value === 1) {
           stack.pop();
         } else {
-          splice(stack, len(stack) - ins.value, ins.value);
+          stack.splice(stack.length - ins.value, ins.value);
         }
         break;
       case "ret":
@@ -1488,7 +1486,7 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         break;
       case "clo": {
         //Ensure any in-scope declarations are captured here
-        const derefIns = slice(ins.value.derefs).map(ins => {
+        const derefIns = ins.value.derefs.map(ins => {
           const decl =
             ins.typ === "val" &&
             ins.value.t === "str" &&
@@ -1498,7 +1496,7 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         //Dereference closure captures
         const captures = <Val[]>exeFunc(ctx, { ins: derefIns }, args, true).v;
         //Enclose the closure with dereferenced values
-        const cins = slice(func.ins, i + 1, i + 1 + ins.value.length);
+        const cins = func.ins.slice(i + 1, i + 1 + ins.value.length);
         stack.push({ t: "clo", v: makeEnclosure(ins.value, cins, captures) });
         i += ins.value.length;
         break;
@@ -1511,9 +1509,9 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
     return _vec(stack);
   } else {
     letsStack.pop();
-    lets = letsStack[len(letsStack) - 1];
+    lets = letsStack[letsStack.length - 1];
   }
-  return stack[len(stack) - 1];
+  return stack[stack.length - 1];
 }
 
 function parseAndExe(
@@ -1523,7 +1521,7 @@ function parseAndExe(
   params: Val[],
 ): Val | undefined {
   const parsed = parse(code, invokeId);
-  if (len(parsed.errors)) {
+  if (parsed.errors.length) {
     _throw(parsed.errors);
   }
   ctx.env.funcs = { ...ctx.env.funcs, ...parsed.funcs };
@@ -1534,7 +1532,7 @@ function parseAndExe(
 }
 
 function ingestExternalOperations(functions: ExternalFunctions) {
-  objKeys(functions).forEach(name => {
+  Object.keys(functions).forEach(name => {
     if (ops[name] && !ops[name].external) {
       throw "Redefining internal operations is disallowed.";
     }
@@ -1572,7 +1570,7 @@ function innerInvoke(
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
   letsStack = [];
-  if (len(errors)) {
+  if (errors.length) {
     return { kind: "errors", errors };
   }
   if (printResult && value) {
@@ -1646,7 +1644,7 @@ export function invokeVal(
   const ins: Ins[] = [
     ...params.map(value => <Ins>{ typ: "val", value, errCtx }),
     { typ: "val", value: val, errCtx },
-    { typ: "exe", value: len(params), errCtx },
+    { typ: "exe", value: params.length, errCtx },
   ];
   try {
     return exeFunc(ctx, { ins }, params);
@@ -1667,13 +1665,13 @@ export function invokeVal(
 export function symbols(env: Env, alsoSyntax = true): string[] {
   let syms: string[] = [];
   if (alsoSyntax) {
-    push(syms, syntaxes);
+    syms.push(...syntaxes);
   }
-  push(syms, ["args", "PI", "E"]);
-  syms = concat(syms, objKeys(ops));
-  syms = concat(syms, objKeys(env.funcs));
-  syms = concat(syms, objKeys(env.vars));
+  syms.push("args", "PI", "E");
+  syms = [...syms, ...Object.keys(ops)];
+  syms = [...syms, ...Object.keys(env.funcs)];
+  syms = [...syms, ...Object.keys(env.vars)];
   const hidden = ["entry"];
-  syms = syms.filter(o => !has(hidden, o));
-  return sortBy(syms, (a, b) => (a > b ? 1 : -1));
+  syms = syms.filter(o => !hidden.includes(o));
+  return syms.sort((a, b) => (a > b ? 1 : -1));
 }

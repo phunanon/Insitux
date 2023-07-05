@@ -1,4 +1,3 @@
-import { has, isArray, len } from "./poly-fills";
 import { ErrCtx, InvokeError, ops, typeNames, Val } from "./types";
 
 export const asBoo = (val: Val) =>
@@ -35,11 +34,11 @@ export function typeCheck(
   optimistic = false,
 ): InvokeError[] | undefined {
   const { params: types, numeric: onlyNum } = ops[op];
-  const nArg = len(args);
+  const nArg = args.length;
   if (onlyNum) {
     const nonNumArgIdx = args.findIndex(
       a =>
-        !!len(a) && (optimistic ? !a.find(t => t === "num") : a[0] !== "num"),
+        !!a.length && (optimistic ? !a.find(t => t === "num") : a[0] !== "num"),
     );
     if (nonNumArgIdx === -1) {
       return;
@@ -58,11 +57,11 @@ export function typeCheck(
         return false;
       }
       const argTypes = args[i]!;
-      if (isArray(need)) {
+      if (Array.isArray(need)) {
         if (
           optimistic
-            ? !len(argTypes) || argTypes.some(t => has(need, t))
-            : len(argTypes) === 1 && has(need, argTypes[0])
+            ? !argTypes.length || argTypes.some(t => need.includes(t))
+            : argTypes.length === 1 && need.includes(argTypes[0])
         ) {
           return false;
         }
@@ -72,8 +71,8 @@ export function typeCheck(
       } else {
         if (
           optimistic
-            ? !len(argTypes) || has(argTypes, need)
-            : len(argTypes) === 1 && need === argTypes[0]
+            ? !argTypes.length || argTypes.includes(need)
+            : argTypes.length === 1 && need === argTypes[0]
         ) {
           return false;
         }
@@ -82,7 +81,7 @@ export function typeCheck(
       }
     })
     .filter(r => !!r);
-  return len(typeViolations)
+  return typeViolations.length
     ? typeViolations.map(v => typeErr(<string>v, errCtx))
     : undefined;
 }

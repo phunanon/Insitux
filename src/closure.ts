@@ -1,4 +1,3 @@
-import { has, len } from "./poly-fills";
 import { Closure, Func, Ins, Val } from "./types";
 
 /** Declare a closure from instructions and other info, calculating its
@@ -12,7 +11,7 @@ export function makeClosure(
   const captures: boolean[] = [];
   const derefs: Ins[] = [];
   const exclusions: string[] = cloParams;
-  for (let i = 0, lim = len(cins); i < lim; ++i) {
+  for (let i = 0, lim = cins.length; i < lim; ++i) {
     const cin = cins[i];
     let capture = false;
     if (cin.typ === "clo") {
@@ -22,7 +21,7 @@ export function makeClosure(
       const newSubCaptures: boolean[] = [];
       for (let j = 0, d = 0; j < cin.value.length; ++j) {
         const ccin = cins[i + 1 + j];
-        const capture = ccin.typ === "npa" && has(outerParams, ccin.text);
+        const capture = ccin.typ === "npa" && outerParams.includes(ccin.text);
         captures.push(capture);
         newSubCaptures.push(!capture && cin.value.captures[j]);
         if (capture) {
@@ -45,7 +44,7 @@ export function makeClosure(
     }
     captures.push(capture);
   }
-  return { name, length: len(cins), captures, derefs };
+  return { name, length: cins.length, captures, derefs };
 }
 
 /** Create a function representing a parent closure, and its sub-closures with
@@ -55,7 +54,7 @@ export function makeEnclosure(
   cins: Ins[],
   derefed: Val[],
 ): Func {
-  if (!len(derefed)) {
+  if (!derefed.length) {
     return { name, ins: cins };
   }
   const ins: Ins[] = [];
@@ -82,7 +81,7 @@ function canCapture(exclusions: string[], ins0: Ins, ins1: false | Ins) {
     ins1 && ins0.typ === "val" && ins0.value.t === "str" && ins1.typ === "exe";
   return (
     isExeVal ||
-    (ins0.typ === "npa" && !has(exclusions, ins0.text)) ||
-    (ins0.typ === "ref" && !has(exclusions, ins0.value))
+    (ins0.typ === "npa" && !exclusions.includes(ins0.text)) ||
+    (ins0.typ === "ref" && !exclusions.includes(ins0.value))
   );
 }
