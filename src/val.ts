@@ -1,62 +1,87 @@
-import { assertUnreachable, Dict, Func, InvokeError, Val } from "./types";
+import { Dict, Func, InvokeError, isDic, tagged, Types, Val } from "./types";
+import { assertUnreachable } from "./types";
 
 export const isNum = (x: unknown): x is number =>
-   x !== "" && !Number.isNaN(Number(x));
+  x !== "" && !Number.isNaN(Number(x));
 
-export const num = ({ v }: Val) => v as number;
-export const str = ({ v }: Val) => v as string;
-export const vec = ({ v }: Val) => v as Val[];
-export const dic = ({ v }: Val) => v as Dict;
-
-export const _boo = (v: boolean) => <Val>{ t: "bool", v };
-export const _num = (v: number) => <Val>{ t: "num", v };
-export const _str = (v = "") => <Val>{ t: "str", v };
 export const _key = (v: string) => <Val>{ t: "key", v };
-export const _vec = (v: Val[] = []) => <Val>{ t: "vec", v };
-export const _dic = (v: Dict) => <Val>{ t: "dict", v };
 export const _nul = () => <Val>{ t: "null", v: undefined };
 export const _fun = (v: string) => <Val>{ t: "func", v };
+export const _clo = (f: Func) => {
+  (<Val & { t: Types }>f).t = "clo";
+  return <Val>f;
+};
+
+export const valType = (v: Val): Types => {
+  if (Array.isArray(v)) {
+    return "vec";
+  } else if (typeof v === "string") {
+    return "str";
+  } else if (typeof v === "boolean") {
+    return "bool";
+  } else if (typeof v === "number") {
+    return "num";
+  } else if (isDic(v)) {
+    return "dict";
+  } else if (tagged(v)) {
+    return v.t;
+  }
+  return assertUnreachable(v);
+};
 
 export const isVecEqual = (a: Val[], b: Val[]): boolean =>
   a.length === b.length && !a.some((x, i) => !isEqual(x, b[i]));
 
 export const isEqual = (a: Val, b: Val) => {
-  if (a.t === "wild" || b.t === "wild") {
-    return true;
-  }
-  if (a.t !== b.t) {
+  if (typeof a !== typeof b) {
     return false;
   }
-  switch (a.t) {
-    case "null":
-      return true;
-    case "bool":
-      return a.v === b.v;
-    case "num":
-      return a.v === b.v;
-    case "vec":
-      return isVecEqual(a.v, vec(b));
-    case "dict": {
-      const bd = dic(b);
-      return (
-        a.v.keys.length === bd.keys.length && isVecEqual(a.v.keys, bd.keys)
-      );
+  if (tagged(a) !== tagged(b)) {
+    return false;
+  }
+  if (tagged(a) && tagged(b) && a.t !== b.t) {
+    return false;
+  }
+  if (
+    typeof a === "boolean" ||
+    typeof a === "number" ||
+    typeof a === "string"
+  ) {
+    return a === b;
+  }
+  if (Array.isArray(a)) {
+    return isVecEqual(a, <Val[]>b);
+  }
+  if (isDic(a)) {
+    const bd = <Dict>b;
+    if (a.keys.length !== bd.keys.length) {
+      return false;
     }
-    case "str":
-    case "ref":
-    case "key":
-    case "func":
-      return str(a) === str(b);
-    case "clo":
-      return (<Func>a.v).name === (<Func>b.v).name;
-    case "ext":
-      return a.v === b.v;
+    //FIXME: needs to be proper equality, even though expensive
+    return a.keys.length === bd.keys.length && isVecEqual(a.keys, bd.keys);
+  }
+  if ("v" in a) {
+    if (a.t === "ext") {
+      return a === b;
+    }
+    return a.v === (<{ v: string }>b).v;
+  }
+  if (a.t === "null" || a.t === "wild") {
+    return true;
+  }
+  if (a.t === "clo") {
+    return a.name === (<Func>b).name;
   }
   return assertUnreachable(a);
 };
 
-export const stringify = (vals: Val[]) =>
-  vals.reduce((cat, v) => cat + val2str(v), "");
+export const stringify = (vals: Val[]) => {
+  let str = "";
+  vals.forEach(v => {
+    str += val2str(v);
+  });
+  return str;
+};
 
 const quoteStr = (str: string) =>
   str
@@ -66,40 +91,38 @@ const quoteStr = (str: string) =>
 
 export const val2str = (val: Val): string => {
   const quoted = (v: Val) =>
-    v.t === "str" ? `"${quoteStr(v.v)}"` : val2str(v);
-  if (val.t === "clo") {
-    return val.v.name ?? "";
-  } else if (val.t === "vec") {
-    return `[${val.v.map(quoted).join(" ")}]`;
-  } else if (val.t === "dict") {
-    const { keys, vals } = val.v;
+    typeof v === "string" ? `"${quoteStr(v)}"` : val2str(v);
+  if (tagged(val)) {
+    if (val.t === "null") {
+      return "null";
+    } else if (val.t === "wild") {
+      return "_";
+    } else if (val.t === "clo") {
+      return val.name ?? "";
+    }
+  } else if (Array.isArray(val)) {
+    return `[${val.map(quoted).join(" ")}]`;
+  } else if (isDic(val)) {
+    const { keys, vals } = val;
     const [ks, vs] = [keys.map(quoted), vals.map(quoted)];
     const entries = ks.map((k, i) => `${k} ${vs[i]}`);
     return `{${entries.join(", ")}}`;
-  } else if (val.t === "null") {
-    return "null";
-  } else if (val.t === "wild") {
-    return "_";
   }
-  return `${val.v}`;
+  return `${val}`;
 };
 
 export const asArray = (val: Val): Val[] =>
-  val.t === "vec"
+  Array.isArray(val) || typeof val === "string"
+    ? [...val]
+    : typeof val === "object" && "v" in val && typeof val.v === "string"
     ? [...val.v]
-    : val.t === "str"
-    ? [...val.v].map(s => ({ t: "str", v: s }))
-    : val.t === "dict"
-    ? val.v.keys.map((k, i) => ({
-        t: "vec",
-        v: [k, val.v.vals[i]],
-      }))
+    : isDic(val)
+    ? val.keys.map((k, i) => [k, val.vals[i]])
     : [];
 
 export const toDict = (args: Val[]): Val => {
-  if (args.length === 1 && args[0].t === "vec") {
-    const [{ v }] = args;
-    args = v.flatMap(a => (a.t === "vec" ? a.v : [a]));
+  if (args.length === 1 && Array.isArray(args[0])) {
+    args = args[0].flatMap(a => (Array.isArray(a) ? a : [a]));
   }
   if (args.length % 2 === 1) {
     args.pop();
@@ -117,10 +140,7 @@ export const toDict = (args: Val[]): Val => {
       ddVals[existingIdx] = vals[i];
     }
   });
-  return {
-    t: "dict",
-    v: { keys: ddKeys, vals: ddVals },
-  };
+  return { keys: ddKeys, vals: ddVals };
 };
 
 export const dictGet = ({ keys, vals }: Dict, key: Val) => {
@@ -163,14 +183,13 @@ export const dictDrops = ({ keys, vals }: Dict, drop: Val[]): Dict => {
 };
 
 export function errorsToDict(errors: InvokeError[]) {
-  const newKey = (d: Dict, k: string, v: Val) =>
-    dictSet(d, { t: "key", v: k }, v);
+  const newKey = (d: Dict, k: string, v: Val) => dictSet(d, _key(k), v);
   return errors.map(({ e, m, errCtx }) => {
-    let dict = newKey({ keys: [], vals: [] }, ":e", { t: "str", v: e });
-    dict = newKey(dict, ":m", { t: "str", v: m });
-    dict = newKey(dict, ":line", { t: "num", v: errCtx.line });
-    dict = newKey(dict, ":col", { t: "num", v: errCtx.col });
-    return <Val>{ t: "dict", v: dict };
+    let dict = newKey({ keys: [], vals: [] }, ":e", e);
+    dict = newKey(dict, ":m", m);
+    dict = newKey(dict, ":line", errCtx.line);
+    dict = newKey(dict, ":col", errCtx.col);
+    return dict;
   });
 }
 
@@ -182,63 +201,56 @@ export function pathSet(
   coll: Val,
 ): Val {
   //If we're at the end of the path or it's a non-number index for non-dict
-  if (
-    !path.length ||
-    (coll.t !== "vec" && coll.t !== "dict") ||
-    (coll.t === "vec" && (path[0].t !== "num" || path[0].v > coll.v.length))
-  ) {
+  if (!path.length || !isDic(coll)) {
     return coll;
   }
-  if (coll.t === "vec") {
-    const vecCopy = [...coll.v];
-    let idx = num(path[0]);
+  if (Array.isArray(coll)) {
+    if (typeof path[0] !== "number" || path[0] > coll.length) {
+      return coll;
+    }
+    const vecCopy = [...coll];
+    let idx = path[0];
     if (idx < 0) idx = Math.max(vecCopy.length + idx, 0);
     if (path.length === 1) {
       vecCopy[idx] = replacer(vecCopy[idx]);
-      return { t: "vec", v: vecCopy };
+      return vecCopy;
     }
     vecCopy[idx] = pathSet(path.slice(1), replacer, vecCopy[idx]);
-    return { t: "vec", v: vecCopy };
+    return vecCopy;
   }
   if (path.length === 1) {
-    const existing = dictGet(coll.v, path[0]);
-    return { t: "dict", v: dictSet(coll.v, path[0], replacer(existing)) };
+    const existing = dictGet(coll, path[0]);
+    return dictSet(coll, path[0], replacer(existing));
   }
-  return {
-    t: "dict",
-    v: dictSet(
-      coll.v,
-      path[0],
-      pathSet(path.slice(1), replacer, dictGet(coll.v, path[0])),
-    ),
-  };
+  return dictSet(
+    coll,
+    path[0],
+    pathSet(path.slice(1), replacer, dictGet(coll, path[0])),
+  );
 }
 
 /** Incomplete. */
 export function jsToIx(
   v: unknown,
-  ifUndetermined = (x: unknown) => <Val>{ t: "str", v: `${x}` },
+  ifUndetermined = (x: unknown) => `${x}`,
 ): Val {
   if (typeof v === "string") {
-    return { t: "str", v };
+    return v;
   }
-  if (isNum(v)) {
-    return { t: "num", v };
-  }
-  if (v === true || v === false) {
-    return { t: "bool", v };
+  if (typeof v === "number" || typeof v === "boolean") {
+    return v;
   }
   if (v === null) {
-    return { t: "null", v: undefined };
+    return { t: "null" };
   }
   const mapper = (v: unknown[]) => v.map(x => jsToIx(x, ifUndetermined));
   if (Array.isArray(v)) {
-    return { t: "vec", v: mapper(v) };
+    return mapper(v);
   }
   if (typeof v === "object") {
-    return {
-      t: "dict",
-      v: { keys: mapper(Object.keys(v)), vals: mapper(Object.values(v)) },
+    return <Dict>{
+      keys: mapper(Object.keys(v)),
+      vals: mapper(Object.values(v)),
     };
   }
   return ifUndetermined(v);
@@ -247,7 +259,7 @@ export function jsToIx(
 /** Incomplete. */
 export function ixToJs(
   v: Val,
-  ifUndetermined = (x: Val) => x.v,
+  ifUndetermined = (x: Val) => x,
 ):
   | string
   | number
@@ -256,23 +268,27 @@ export function ixToJs(
   | Record<string, unknown>
   | unknown[]
   | unknown {
-  if (v.t === "str" || v.t === "num" || v.t === "bool" || v.t === "key") {
-    return v.v;
+  if (
+    typeof v === "string" ||
+    typeof v === "number" ||
+    typeof v === "boolean"
+  ) {
+    return v;
   }
-  if (v.t === "vec") {
-    return v.v.map(x => ixToJs(x, ifUndetermined));
+  if (Array.isArray(v)) {
+    return v.map(x => ixToJs(x, ifUndetermined));
   }
-  if (v.t === "null") {
-    return null;
-  }
-  if (v.t === "dict") {
-    const keys = v.v.keys.map(x => val2str(x));
-    const vals = v.v.vals.map(x => ixToJs(x, ifUndetermined));
+  if (isDic(v)) {
+    const keys = v.keys.map(x => val2str(x));
+    const vals = v.vals.map(x => ixToJs(x, ifUndetermined));
     const obj: Record<string, unknown> = {};
     keys.forEach((k, i) => {
       obj[k] = vals[i];
     });
     return obj;
+  }
+  if (v.t === "null") {
+    return null;
   }
   if (v.t === "ext") {
     return v.v;

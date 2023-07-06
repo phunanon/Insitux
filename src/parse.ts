@@ -1,8 +1,8 @@
 import { arityCheck, keyOpErr, numOpErr, typeCheck } from "./checks";
 import { makeClosure } from "./closure";
-import { ParamsShape, Func, Funcs, Ins, ops, Val, syntaxes } from "./types";
-import { assertUnreachable, InvokeError, ErrCtx } from "./types";
-import { isNum } from "./val";
+import { ParamsShape, Func, Funcs, Ins, Val, syntaxes, tagged } from "./types";
+import { ops, Types, assertUnreachable, InvokeError, ErrCtx } from "./types";
+import { _fun, _key, isNum, valType } from "./val";
 
 export type Token = {
   typ: "str" | "num" | "sym" | "rem" | "(" | ")";
@@ -11,8 +11,7 @@ export type Token = {
 };
 type Node = Token | Node[];
 type ParserIns = Ins | { typ: "err"; value: string; errCtx: ErrCtx };
-const nullVal: Val = { t: "null", v: undefined };
-const falseVal = <Val>{ t: "bool", v: false };
+const nullVal: Val = { t: "null" };
 type NamedNodes = {
   name: string;
   nodes: Node[];
@@ -261,7 +260,7 @@ function parseForm(
       const [cond, branch1] = parsed;
       let branch2 = parsed[2];
       const ifN = op === "if!" && [
-        <Ins>{ typ: "val", value: { t: "func", v: "!" }, errCtx },
+        <Ins>{ typ: "val", value: _fun("!"), errCtx },
         <Ins>{ typ: "exe", value: 1, errCtx },
       ];
       if (!branch2) {
@@ -286,7 +285,7 @@ function parseForm(
         ...cond,
         ...(op === "unless"
           ? [
-              <Ins>{ typ: "val", value: { t: "func", v: "!" } },
+              <Ins>{ typ: "val", value: _fun("!") },
               <Ins>{ typ: "exe", value: 1 },
             ]
           : []),
@@ -322,7 +321,7 @@ function parseForm(
       if (otherwise.length) {
         ins.push(...otherwise);
       } else {
-        ins.push({ typ: "val", value: falseVal, errCtx });
+        ins.push({ typ: "val", value: false, errCtx });
       }
       return ins;
     } else if (op === "catch") {
@@ -363,11 +362,11 @@ function parseForm(
       }
       if (op === "and") {
         ins.push(
-          { typ: "val", value: <Val>{ t: "bool", v: true }, errCtx },
+          { typ: "val", value: true, errCtx },
           { typ: "jmp", value: 1, errCtx },
         );
       }
-      ins.push({ typ: "val", value: falseVal, errCtx });
+      ins.push({ typ: "val", value: false, errCtx });
       return ins;
     } else if (op === "loop") {
       if (nodes.length < 3) {
@@ -382,18 +381,18 @@ function parseForm(
       //(let sym 0 sym-limit n) ... body ...
       //(if (< (let sym (inc sym)) sym-limit) <exit> <loo>)
       const ins: ParserIns[] = [
-        { typ: "val", value: { t: "num", v: 0 }, errCtx },
+        { typ: "val", value: 0, errCtx },
         { typ: "let", value: symNode.text, errCtx },
         ...parsed[0],
         { typ: "let", value: symNode.text + "-limit", errCtx },
         { typ: "pop", value: 1, errCtx },
         ...body,
         { typ: "ref", value: symNode.text, errCtx },
-        { typ: "val", value: { t: "func", v: "inc" }, errCtx },
+        { typ: "val", value: _fun("inc"), errCtx },
         { typ: "exe", value: 1, errCtx },
         { typ: "let", value: symNode.text, errCtx },
         { typ: "ref", value: symNode.text + "-limit", errCtx },
-        { typ: "val", value: { t: "func", v: "<" }, errCtx },
+        { typ: "val", value: _fun("<"), errCtx },
         { typ: "exe", value: 2, errCtx },
         { typ: "if", value: 2, errCtx },
         { typ: "pop", value: 1, errCtx },
@@ -415,14 +414,14 @@ function parseForm(
       //(if (< (let sym-index (inc sym-index)) (len sym-item)) <exit> <loo>)
       const ins: ParserIns[] = [
         ...parsed[0],
-        { typ: "val", value: { t: "func", v: "empty?" }, errCtx },
+        { typ: "val", value: _fun("empty?"), errCtx },
         { typ: "exe", value: 1, errCtx },
         { typ: "if", value: 2, errCtx },
         { typ: "val", value: nullVal, errCtx },
         { typ: "jmp", value: parsed[0].length + 9 + body.length + 12, errCtx },
         ...parsed[0],
         { typ: "let", value: symNode.text + "-item", errCtx },
-        { typ: "val", value: { t: "num", v: 0 }, errCtx },
+        { typ: "val", value: 0, errCtx },
         { typ: "let", value: symNode.text + "-index", errCtx },
         { typ: "jmp", value: 2, errCtx },
         { typ: "ref", value: symNode.text + "-item", errCtx },
@@ -432,13 +431,13 @@ function parseForm(
         { typ: "pop", value: 1, errCtx },
         ...body,
         { typ: "ref", value: symNode.text + "-index", errCtx },
-        { typ: "val", value: { t: "func", v: "inc" }, errCtx },
+        { typ: "val", value: _fun("inc"), errCtx },
         { typ: "exe", value: 1, errCtx },
         { typ: "let", value: symNode.text + "-index", errCtx },
         { typ: "ref", value: symNode.text + "-item", errCtx },
-        { typ: "val", value: { t: "func", v: "len" }, errCtx },
+        { typ: "val", value: _fun("len"), errCtx },
         { typ: "exe", value: 1, errCtx },
-        { typ: "val", value: { t: "func", v: "<" }, errCtx },
+        { typ: "val", value: _fun("<"), errCtx },
         { typ: "exe", value: 2, errCtx },
         { typ: "if", value: 2, errCtx },
         { typ: "pop", value: 1, errCtx },
@@ -588,7 +587,7 @@ function parseForm(
   } else if (head.length === 1 && head[0].typ === "ref") {
     //Transform potential external function into string
     const { value: v, errCtx } = head[0];
-    head[0] = { typ: "val", value: { t: "str", v }, errCtx };
+    head[0] = { typ: "val", value: v, errCtx };
   }
   ins.push(...head);
   const typ =
@@ -600,24 +599,20 @@ function parseArg(node: Node, params: ParamsShape): ParserIns[] {
   if (isToken(node)) {
     const { errCtx } = node;
     if (node.typ === "str") {
-      return [{ typ: "val", value: { t: "str", v: node.text }, errCtx }];
+      return [{ typ: "val", value: node.text, errCtx }];
     } else if (node.typ === "num") {
-      return [
-        { typ: "val", value: { t: "num", v: Number(node.text) }, errCtx },
-      ];
+      return [{ typ: "val", value: Number(node.text), errCtx }];
     } else if (node.typ === "sym") {
       const { text } = node;
       const paramNames = params.map(({ name }) => name);
       if (text === "true" || text === "false") {
-        return [
-          { typ: "val", value: <Val>{ t: "bool", v: text === "true" }, errCtx },
-        ];
+        return [{ typ: "val", value: text === "true", errCtx }];
       } else if (text === "null") {
         return [{ typ: "val", value: nullVal, errCtx }];
       } else if (text === "_") {
-        return [{ typ: "val", value: { t: "wild", v: undefined }, errCtx }];
+        return [{ typ: "val", value: { t: "wild" }, errCtx }];
       } else if (text.startsWith(":")) {
-        return [{ typ: "val", value: <Val>{ t: "key", v: text }, errCtx }];
+        return [{ typ: "val", value: _key(text), errCtx }];
       } else if (
         text === "%" ||
         (text.startsWith("%") && isNum(text.substring(1)))
@@ -637,9 +632,9 @@ function parseArg(node: Node, params: ParamsShape): ParserIns[] {
         return [{ typ: "upa", value: -1, text: "args", errCtx }];
       } else if (text === "PI" || text === "E") {
         const v = text === "PI" ? 3.141592653589793 : 2.718281828459045;
-        return [{ typ: "val", value: { t: "num", v }, errCtx }];
+        return [{ typ: "val", value: v, errCtx }];
       } else if (ops[text]) {
-        return [{ typ: "val", value: <Val>{ t: "func", v: text }, errCtx }];
+        return [{ typ: "val", value: _fun(text), errCtx }];
       }
       return [{ typ: "ref", value: text, errCtx }];
     }
@@ -786,30 +781,27 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
 
 //TODO: investigate Node implementation replacement
 function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
-  type TypeInfo = {
-    types?: Val["t"][];
-    val?: Val;
-  };
+  type TypeInfo = { types?: Types[]; val?: Val };
   const stack: TypeInfo[] = [];
   for (let i = 0, lim = fins.length; i < lim; ++i) {
     const ins = fins[i];
     switch (ins.typ) {
       case "val":
-        stack.push({ types: [ins.value.t], val: ins.value });
+        stack.push({ types: [valType(ins.value)], val: ins.value });
         break;
       case "exa":
       case "exe": {
         const head = stack.pop()!;
         const args = stack.splice(stack.length - ins.value, ins.value);
-        const badMatch = (okTypes: Val["t"][]) =>
+        const badMatch = (okTypes: Types[]) =>
           args.findIndex(
             ({ types }) => types && !okTypes.find(t => types.includes(t)),
           );
         const headType = head.val
-          ? head.val.t
+          ? valType(head.val)
           : head.types && head.types.length === 1 && head.types[0];
-        if (head.val && head.val.t === "func") {
-          if (head.val.v === "recur") {
+        if (head.val && tagged(head.val) && head.val.t === "func") {
+          if (tagged(head.val) && head.val.v === "recur") {
             stack.splice(stack.length - ins.value, ins.value);
             break;
           }

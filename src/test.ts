@@ -15,10 +15,10 @@ function set(state: State, key: string, val: Val): string | undefined {
 }
 
 function exe(state: State, name: string, args: Val[]): ValOrErr {
-  const nullVal: Val = { t: "null", v: undefined };
+  const nullVal: Val = { t: "null" };
   switch (name) {
     case "test.function":
-      state.output += args[0].v + "\n";
+      state.output += args[0] + "\n";
       break;
     default:
       return { err: `operation "${name}" does not exist` };
@@ -510,7 +510,10 @@ export function doTests(
       code,
       true,
     );
-    const errors = "errors" in valOrErrs ? valOrErrs.errors : [];
+    const errors =
+      typeof valOrErrs === "object" && "errors" in valOrErrs
+        ? valOrErrs.errors
+        : [];
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
     const okOut = !out || state.output.trim() === out;
     const elapsedMs = new Date().getTime() - startTime;
@@ -518,7 +521,7 @@ export function doTests(
       `${t + 1}`.padEnd(3),
       name.padEnd(24),
       `${Math.round(elapsedMs)}ms`.padEnd(6),
-      okOut || out + "\t!=\t" + (state.output).trim(),
+      okOut || out + "\t!=\t" + state.output.trim(),
       okErr ||
         errors.map(
           ({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`,

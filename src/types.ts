@@ -1,13 +1,30 @@
-export type Val =
-  | { t: "vec"; v: Val[] }
-  | { t: "str" | "func" | "key" | "ref"; v: string }
-  | { t: "null"; v: undefined }
-  | { t: "wild"; v: undefined }
-  | { t: "bool"; v: boolean }
-  | { t: "num"; v: number }
-  | { t: "clo"; v: Func }
-  | { t: "dict"; v: Dict }
+export type TaggedVal =
+  | { t: "func" | "key" | "ref"; v: string }
+  //TODO: make it possible for this to just be null
+  | { t: "null" }
+  | { t: "wild" }
+  | (Func & { t: "clo" })
   | { t: "ext"; v: unknown };
+export type Val = string | Val[] | Dict | boolean | number | TaggedVal;
+
+export type Types =
+  | "str"
+  | "func"
+  | "key"
+  | "ref"
+  | "null"
+  | "wild"
+  | "clo"
+  | "ext"
+  | "vec"
+  | "dict"
+  | "bool"
+  | "num";
+
+export const tagged = (v: Val): v is TaggedVal =>
+  typeof v === "object" && "t" in v;
+export const isDic = (v: Val): v is Dict =>
+  typeof v === "object" && "vals" in v;
 
 export type ErrCtx = { invokeId: string; line: number; col: number };
 export type InvokeError = { e: string; m: string; errCtx: ErrCtx };
@@ -108,8 +125,8 @@ export type Operation = {
   /** Does the function cause side-effects when used? */
   hasEffects?: boolean;
   numeric?: true | "in only";
-  params?: ("any" | Val["t"] | Val["t"][])[];
-  returns?: [Val["t"], ...Val["t"][]];
+  params?: ("any" | Types | Types[])[];
+  returns?: [Types, ...Types[]];
 };
 export type ExternalHandler = (
   params: Val[],

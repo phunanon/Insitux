@@ -1,7 +1,8 @@
-import { ErrCtx, InvokeError, ops, typeNames, Val } from "./types";
+import { ErrCtx, InvokeError, ops, tagged, typeNames } from "./types";
+import { Types, Val } from "./types";
 
-export const asBoo = (val: Val) =>
-  val.t === "bool" ? val.v : val.t !== "null";
+export const asBoo = (v: Val) =>
+  typeof v === "boolean" ? v : tagged(v) && v.t !== "null";
 
 export function arityCheck(op: string, nArg: number, errCtx: ErrCtx) {
   const { exactArity, maxArity, minArity } = ops[op];
@@ -29,7 +30,7 @@ export function arityCheck(op: string, nArg: number, errCtx: ErrCtx) {
 
 export function typeCheck(
   op: string,
-  args: Val["t"][][],
+  args: Types[][],
   errCtx: ErrCtx,
   optimistic = false,
 ): InvokeError[] | undefined {
@@ -92,7 +93,7 @@ export const typeErr = (m: string, errCtx: ErrCtx): InvokeError => ({
   errCtx,
 });
 
-export function numOpErr(errCtx: ErrCtx, types: Val["t"][]): InvokeError[] {
+export function numOpErr(errCtx: ErrCtx, types: Types[]): InvokeError[] {
   const names = types.map(t => typeNames[t]).join(", ");
   return [
     typeErr(
@@ -102,7 +103,7 @@ export function numOpErr(errCtx: ErrCtx, types: Val["t"][]): InvokeError[] {
   ];
 }
 
-export function keyOpErr(errCtx: ErrCtx, types: Val["t"][]): InvokeError[] {
+export function keyOpErr(errCtx: ErrCtx, types: Types[]): InvokeError[] {
   const names = types.map(t => typeNames[t]).join(", ");
   return [
     typeErr(

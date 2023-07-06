@@ -49,7 +49,10 @@ export function valueInvoker(
 }
 
 function invokeResultToOutput(result: InvokeResult) {
-  if (!("kind" in result) || result.kind !== "errors") {
+  if (
+    !(typeof result === "object" && "kind" in result) ||
+    result.kind !== "errors"
+  ) {
     return [];
   }
   let out: InvokeOutput = [];

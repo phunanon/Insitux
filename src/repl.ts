@@ -4,13 +4,13 @@ import { appendFileSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { unlinkSync, existsSync, mkdirSync } from "fs";
 import { insituxVersion, symbols } from ".";
 import { join as pathJoin, dirname } from "path";
-import { Ctx, defaultCtx, ErrCtx, Val, ValOrErr } from "./types";
+import { Ctx, defaultCtx, ErrCtx, isDic, tagged, Val, ValOrErr } from "./types";
 import { Operation, ExternalFunctions } from "./types";
 import { InvokeOutput, invoker, parensRx, valueInvoker } from "./invoker";
 import { tokenise } from "./parse";
 import prompt = require("prompt-sync");
 import { exit } from "process";
-import { str, _nul, _str, _vec, num, _num, _key } from "./val";
+import { _nul, _key } from "./val";
 import { jsToIx, val2str, ixToJs } from "./val";
 import fetch from "cross-fetch";
 import clone = require("git-clone/promise");
@@ -27,7 +27,7 @@ function invokeVal(
   params: Val[] = [],
 ): void {
   const result = valueInvoker(ctx, errCtx, val, params);
-  if ("errors" in result.result) {
+  if (typeof result.result === "object" && "errors" in result.result) {
     printErrorOutput(result.output);
   }
 }
@@ -41,7 +41,7 @@ function read(path: string, asLines: boolean, asBlob = false): Val {
     return { t: "ext", v };
   }
   const content = readFileSync(path).toString();
-  return asLines ? _vec(content.split(/\r?\n/).map(_str)) : _str(content);
+  return asLines ? content.split(/\r?\n/) : content;
 }
 
 function writeOrAppend(path: string, content: string, isAppend = false) {
@@ -58,16 +58,16 @@ const writingOpDef: Operation = {
 
 const dicToRecord = (dic: Val) => {
   const obj: { [key: string]: string } = {};
-  if (dic.t !== "dict") {
+  if (!isDic(dic)) {
     return obj;
   }
-  const { keys, vals } = dic.v;
+  const { keys, vals } = dic;
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
-    if (key.t !== "str") {
+    if (typeof key !== "string") {
       continue;
     }
-    obj[key.v] = val2str(vals[i]);
+    obj[key] = val2str(vals[i]);
   }
   return obj;
 };
@@ -87,7 +87,10 @@ function fetchOp(
     let response: Response | null;
     try {
       const bodyObj =
-        bodyVal && (bodyVal.v instanceof Blob ? bodyVal.v : ixToJs(bodyVal));
+        bodyVal &&
+        (tagged(bodyVal) && bodyVal.t === "ext" && bodyVal.v instanceof Blob
+          ? bodyVal.v
+          : ixToJs(bodyVal));
       const body =
         bodyVal && typeof bodyObj === "string"
           ? bodyObj
@@ -106,10 +109,10 @@ function fetchOp(
       obj = fetched
         ? deserialise
           ? jsToIx(JSON.parse(fetched))
-          : _str(fetched)
+          : fetched
         : _nul();
     } catch (e) {
-      obj = _str(fetched);
+      obj = { t: "null" };
     }
     const result = valueInvoker(ctx, errCtx, callback, [obj]);
     if ("errors" in result) {
@@ -127,7 +130,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
         returns: ["str"],
         hasEffects: true,
       },
-      handler: ([path]) => read(str(path), false),
+      handler: ([path]) => read(<string>path, false),
     },
     "read-blob": {
       definition: {
@@ -136,7 +139,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
         returns: ["str"],
         hasEffects: true,
       },
-      handler: ([path]) => read(str(path), false, true),
+      handler: ([path]) => read(<string>path, false, true),
     },
     "read-lines": {
       definition: {
@@ -145,16 +148,17 @@ function makeFunctions(workingDirectory = process.cwd()) {
         returns: ["vec"],
         hasEffects: true,
       },
-      handler: ([path]) => read(str(path), true),
+      handler: ([path]) => read(<string>path, true),
     },
     write: {
       definition: writingOpDef,
-      handler: ([path, content]) => writeOrAppend(str(path), str(content)),
+      handler: ([path, content]) =>
+        writeOrAppend(<string>path, <string>content),
     },
     "file-append": {
       definition: writingOpDef,
       handler: params =>
-        writeOrAppend(<string>params[0].v, <string>params[1].v, true),
+        writeOrAppend(<string>params[0], <string>params[1], true),
     },
     prompt: {
       definition: {
@@ -163,13 +167,13 @@ function makeFunctions(workingDirectory = process.cwd()) {
         returns: ["str"],
         hasEffects: true,
       },
-      handler: params => jsToIx(prompt()(<string>params[0].v)),
+      handler: params => jsToIx(prompt()(<string>params[0])),
     },
     exec: {
       definition: { params: ["str"], hasEffects: true },
       handler: params => {
         try {
-          return jsToIx(execSync(str(params[0])).toString());
+          return jsToIx(execSync(<string>params[0]).toString());
         } catch (e) {
           let err = `${e}`;
           if (e instanceof Error) err = e.message;
@@ -184,7 +188,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
         hasEffects: true,
       },
       handler: params => {
-        const p0 = str(params[0]);
+        const p0 = <string>params[0];
         const isGithub = githubRegex.test(p0);
         const isAliased = !p0.endsWith(".ix");
         const path = pathJoin(
@@ -202,11 +206,17 @@ function makeFunctions(workingDirectory = process.cwd()) {
         ctx.functions = makeFunctions(dirname(path));
         const { result, output } = invoker(ctx, code, path, false);
         ctx.functions = oldFuncs;
-        if ("kind" in result && result.kind === "errors") {
+        if (
+          typeof result === "object" &&
+          "kind" in result &&
+          result.kind === "errors"
+        ) {
           printErrorOutput(output);
           return { kind: "err", err: `errors in importing ${path}` };
         }
-        return !("kind" in result) ? result : _nul();
+        return !(typeof result === "object" && "kind" in result)
+          ? result
+          : _nul();
       },
     },
     "set-interval": {
@@ -218,7 +228,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
       handler: ([func, interval], errCtx) => {
         return {
           t: "ext",
-          v: setInterval(() => invokeVal(ctx, errCtx, func), num(interval)),
+          v: setInterval(() => invokeVal(ctx, errCtx, func), <number>interval),
         };
       },
     },
@@ -229,7 +239,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
           t: "ext",
           v: setTimeout(
             () => invokeVal(ctx, errCtx, func, args),
-            num(interval),
+            <number>interval,
           ),
         };
       },
@@ -237,13 +247,13 @@ function makeFunctions(workingDirectory = process.cwd()) {
     "clear-interval": {
       definition: { exactArity: 1, params: ["ext"], returns: ["null"] },
       handler: ([timer]) => {
-        clearInterval(timer.v as NodeJS.Timer);
+        clearInterval((<{v: unknown}>timer).v as NodeJS.Timer);
       },
     },
     "clear-timeout": {
       definition: { exactArity: 1, params: ["ext"], returns: ["null"] },
       handler: ([timer]) => {
-        clearTimeout(timer.v as NodeJS.Timeout);
+        clearTimeout((<{v: unknown}>timer).v as NodeJS.Timeout);
       },
     },
     "GET-str": {
@@ -254,7 +264,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
         returns: ["str"],
       },
       handler: ([callback, headers, url], errCtx) => {
-        fetchOp(str(url), "GET", ctx, errCtx, headers, callback);
+        fetchOp(<string>url, "GET", ctx, errCtx, headers, callback);
       },
     },
     "POST-str": {
@@ -265,7 +275,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
         returns: ["str"],
       },
       handler: ([url, body, headers, callback], errCtx) => {
-        fetchOp(str(url), "POST", ctx, errCtx, headers, callback, body);
+        fetchOp(<string>url, "POST", ctx, errCtx, headers, callback, body);
       },
     },
     GET: {
@@ -276,7 +286,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
       },
       handler: ([callback, headers, url], errCtx) => {
         fetchOp(
-          str(url),
+          <string>url,
           "GET",
           ctx,
           errCtx,
@@ -294,7 +304,16 @@ function makeFunctions(workingDirectory = process.cwd()) {
         params: ["str", "any", "dict", "func"],
       },
       handler: ([url, body, headers, callback], errCtx) => {
-        fetchOp(str(url), "POST", ctx, errCtx, headers, callback, body, true);
+        fetchOp(
+          <string>url,
+          "POST",
+          ctx,
+          errCtx,
+          headers,
+          callback,
+          body,
+          true,
+        );
       },
     },
     blob: {
@@ -305,17 +324,17 @@ function makeFunctions(workingDirectory = process.cwd()) {
       handler: params => {
         let blob = new Blob();
         params.forEach(param => {
-          if (param.t === "ext" && param.v instanceof Blob) {
+          if (tagged(param) && param.t === "ext" && param.v instanceof Blob) {
             blob = new Blob([blob, param.v], {
               type: "application/octet-stream",
             });
-          } else if (param.t === "str") {
-            blob = new Blob([blob, param.v], {
+          } else if (typeof param === "string") {
+            blob = new Blob([blob, param], {
               type: "application/octet-stream",
             });
-          } else if (param.t === "num") {
+          } else if (typeof param === "number") {
             const byteUint8Array = new Uint8Array(1);
-            byteUint8Array[0] = param.v;
+            byteUint8Array[0] = param;
             blob = new Blob([blob, byteUint8Array], {
               type: "application/octet-stream",
             });
@@ -331,7 +350,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
         returns: ["num"],
       },
       handler: ([blob]) => {
-        if (blob.v instanceof Blob) {
+        if (tagged(blob) && blob.t === "ext" && blob.v instanceof Blob) {
           return { t: "num", v: blob.v.size };
         }
       },
@@ -366,11 +385,11 @@ const ctx: Ctx = {
 function exe(name: string, args: Val[]): ValOrErr {
   if (args.length) {
     const a = args[0];
-    if (a.t === "str" && a.v.startsWith("$")) {
+    if (typeof a === "string" && a.startsWith("$")) {
       if (args.length === 1) {
-        return get(`${a.v.substring(1)}.${name}`);
+        return get(`${a.substring(1)}.${name}`);
       } else {
-        set(`${a.v.substring(1)}.${name}`, args[1]);
+        set(`${a.substring(1)}.${name}`, args[1]);
         return args[1];
       }
     }
