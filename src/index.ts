@@ -1,4 +1,4 @@
-export const insituxVersion = 230720;
+export const insituxVersion = 230721;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";

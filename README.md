@@ -1178,7 +1178,7 @@ vector item or string character is "destructured" into.
 ; and iterative
 
 (function fib n
-  (when (zero? n) (return 0))
+  (return-when (zero? n) 0)
   (let a 1 b 0)
   (loop n i
     (let t (+ a b) a b b t)))
@@ -1219,6 +1219,7 @@ vector item or string character is "destructured" into.
 ;Count vowels
 (function count-vowels input
   (-> input lower-case (count (to-vec "aeiou"))))
+
 
 ; Primes calculator
 (reduce
@@ -1294,15 +1295,6 @@ vector item or string character is "destructured" into.
 ; Add thousands separator
 (var thousands (comp str reverse (partition 3) reverse (join ",")))
 (thousands 1234567890) → "1,432,765,098"
-
-; Clojure's comp
-(function comp f
-  (let funcs (sect args))
-  #(do (let 1st (... f args))
-       (reduce #(%1 %) 1st funcs)))
-
-(map (comp + inc) [0 1 2 3 4] [0 1 2 3 4])
-→ [1 3 5 7 9]
 
 
 ; Time a function call
@@ -1398,6 +1390,5 @@ vector item or string character is "destructured" into.
 **Known bugs I put here to make sure I can't lose them,**  
 **and to shame myself that they still exist.**  
 ⚠️ (= {:a 1 :b 2} {:b 2 :a 1}) -> false  
-⚠️ don't capture #(var x x) - write test for it  
 ⚠️ syntax highlighter omits commas  
 ⚠️ ((let x) 1) x - doesn't work

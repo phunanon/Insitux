@@ -12,6 +12,12 @@ export function makeClosure(
   const captures: boolean[] = [];
   const derefs: Ins[] = [];
   const exclusions: string[] = cloParams;
+  //First scan for any let/var declarations to be excluded throughout
+  for (const cin of cins) {
+    if (cin.typ === "let" || cin.typ === "var") {
+      exclusions.push(cin.value);
+    }
+  }
   for (let i = 0, lim = len(cins); i < lim; ++i) {
     const cin = cins[i];
     let capture = false;
@@ -38,7 +44,6 @@ export function makeClosure(
       i += cin.value.length;
       continue;
     } else if (cin.typ === "let" || cin.typ === "var") {
-      exclusions.push(cin.value);
     } else if (canCapture(exclusions, cin, i + 1 !== lim && cins[i + 1])) {
       derefs.push(cin);
       capture = true;

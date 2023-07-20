@@ -337,6 +337,11 @@ const tests: {
     out: `[2 1]`,
   },
   {
+    name: "Closure w/ var var",
+    code: `(var x 1) (let f (fn (var x (inc x)))) (f) (f)`,
+    out: `3`,
+  },
+  {
     name: "Closure with captured f",
     code: `[((fn x (@(val x))) 0) (var f val) ((fn y (@(f y))) 0)]`,
     out: `[0 val 0]`,
@@ -478,7 +483,7 @@ const tests: {
     name: "Unmocked",
     code: "(mock print do) ((unmocked print) 1)",
     out: `1\nnull`,
-  }
+  },
 ];
 
 export function doTests(
