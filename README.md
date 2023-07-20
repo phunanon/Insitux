@@ -29,6 +29,7 @@ Inspired by [Chika](https://github.com/phunanon/Chika),
 - [**Main Github repository**](https://github.com/phunanon/Insitux)
 - [**Roblox-TS NPM package**](https://www.npmjs.com/package/@rbxts/insitux) and its [Github repository](https://github.com/insitux/rbxts-Insitux)
 - [YouTube tutorials and demonstrations playlist](https://www.youtube.com/watch?v=iKOuzXhs14A&list=PLOKSmPXGYmewQI3dNBubTNljRD2C4Dg0z)
+- [Rosetta Code entries](https://rosettacode.org/wiki/Insitux)
 
 Works in Node, the web, and Roblox.
 
@@ -820,7 +821,7 @@ etc
 ((toggle :cozy :compact) :hello)   → :hello
 
 ;Returns a closure which returns true or false based on multiple criteria
-;Note: the evalution short-circuits on falsey values
+;Note: the evalution short-circuits on falsy values
 ((criteria num? (< 5) odd?) 11) → true
 ((criteria [0 1 2] [1 2 3]) 2)  → true
 ((criteria [0 1 2] [3 4 5]) 10) → false
@@ -871,11 +872,34 @@ etc
    :out-types ["num"]}
 (about "about")
 → {:name "about", :external? false, :exact-arity 1, :in-types [["str" "func"]],
-   :out-types ["dict"]}
+   :out-types ["dict"], :mocked? false}
 
 ;Resets an Insitux session back to how it started
 ;Note: safely position this in a program as it may cause Reference Errors
 (reset)
+
+;Asserts its arguments are all true and returns last argument, else errors
+(assert true false)   ; Assert Error: argument 2 was falsy.
+(assert (= 1 1) :hi)  → :hi
+
+;Has Insitux use the provided functions for each symbol rather than the built-in
+;  operation or user-defined function, restored with unmock
+;Note: this is syntax, not an operation
+(mock + * fast- fast/)
+(+ 2 2 2) → 8
+(- 10 5)  → 2
+
+;Restore mocked function to original implementation
+;Note: this is syntax, not an operation
+(mock + *)
+(+ 2 2 2) → 8
+(unmock +)
+(+ 2 2 2) → 6
+
+;Force Insitux to use original implementation of a mocked function or operation
+(mock + *)
+(+ 2 2 2)            → 8
+((unmocked +) 2 2 2) → 6
 ```
 
 ### Miscellaneous
@@ -979,6 +1003,10 @@ a function is overloaded the extra arguments are still accessible though the
 (function)
 
 (function name)
+
+(function f
+  (function g a b c
+    (+ a b c)))
 ```
 
 Calling a function itself again from within is called _recurring_. To
@@ -1225,6 +1253,16 @@ vector item or string character is "destructured" into.
 (palindrome? "abcd")      → false
 (palindrome? [0 1 2])     → false
 (palindrome? [2 1 2])     → true
+
+
+; Function mocking for unit tests
+(var calls [])
+(function mocked-print
+  (var calls (append args calls))
+  null)
+(mock print mocked-print)
+(print "Hello!")
+(assert (= calls [["Hello!"]]))
 
 
 ; Matrix addition, subtraction, transposition

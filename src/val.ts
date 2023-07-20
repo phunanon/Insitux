@@ -30,8 +30,8 @@ export const isEqual = (a: Val, b: Val) => {
     case "null":
       return true;
     case "bool":
-      return a.v === b.v;
     case "num":
+    case "unm":
       return a.v === b.v;
     case "vec":
       return isVecEqual(a.v, vec(b));
@@ -271,7 +271,7 @@ export function ixToJs(
     });
     return obj;
   }
-  if (v.t === 'ext') {
+  if (v.t === "ext") {
     return v.v;
   }
   return ifUndetermined(v);

@@ -1,6 +1,6 @@
 export type Val =
   | { t: "vec"; v: Val[] }
-  | { t: "str" | "func" | "key" | "ref"; v: string }
+  | { t: "str" | "func" | "key" | "ref" | "unm"; v: string }
   | { t: "null"; v: undefined }
   | { t: "wild"; v: undefined }
   | { t: "bool"; v: boolean }
@@ -35,6 +35,7 @@ export type Funcs = { [key: string]: Func };
 export type Env = {
   funcs: Funcs;
   vars: { [key: string]: Val };
+  mocks: { [key: string]: Val };
 };
 
 /** A context supplied with an Insitux invocation to provide its environment. */
@@ -66,7 +67,7 @@ export type Ctx = {
 };
 
 export const defaultCtx = {
-  env: { funcs: {}, vars: {} },
+  env: { funcs: {}, vars: {}, mocks: {} },
   loopBudget: 1e7,
   rangeBudget: 1e6,
   callBudget: 1e8,
@@ -95,6 +96,8 @@ export type Ins = { errCtx: ErrCtx } & (
   | { typ: "ret"; value: boolean } //Return, with value?
   | { typ: "pop"; value: number } //Truncate stack, by number of values
   | { typ: "clo"; value: Closure } //Closure/partial
+  | { typ: "mck"; value: string } //Mock
+  | { typ: "unm"; value: string } //Unmock
   | { typ: "val"; value: Val }
 );
 
@@ -483,9 +486,11 @@ export const ops: {
   tests: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["str"] },
   symbols: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["vec"] },
   eval: { exactArity: 1, params: ["str"] },
-  about: { exactArity: 1, params: [["str", "func"]], returns: ["dict"] },
+  about: { exactArity: 1, params: [["str", "func", "unm"]], returns: ["dict"] },
   reset: { exactArity: 0 },
   recur: {},
+  assert: { minArity: 1 },
+  unmocked: { exactArity: 1, params: [["str", "func"]], returns: ["unm"] },
 };
 
 export const syntaxes = [
@@ -507,6 +512,7 @@ export const typeNames = {
   clo: "closure",
   wild: "wildcard",
   ext: "external",
+  unm: "unmocked callable",
 };
 
 export const assertUnreachable = (_x: never): never => <never>0;

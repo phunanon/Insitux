@@ -1,4 +1,4 @@
-export const insituxVersion = 230702;
+export const insituxVersion = 230720;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -16,17 +16,9 @@ import { doTests } from "./test";
 import { assertUnreachable, Env, InvokeError, InvokeResult } from "./types";
 import { ExternalFunctions, syntaxes } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
-import {
-  asArray,
-  dictDrops,
-  isEqual,
-  num,
-  str,
-  stringify,
-  val2str,
-} from "./val";
+import { asArray, dictDrops, isEqual, num, stringify, val2str } from "./val";
 import { dic, vec, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
-import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun } from "./val";
+import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun, str } from "./val";
 
 let letsStack: { [key: string]: Val }[] = [];
 let lets: (typeof letsStack)[0] = {};
@@ -278,7 +270,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "ext?": {
       const { t } = args[0];
       return _boo(
-        (op === "func?" && (t === "func" || t === "clo")) ||
+        (op === "func?" && (t === "func" || t === "clo" || t === "unm")) ||
           substr(op, 0, slen(op) - 1) === t,
       );
     }
@@ -1100,6 +1092,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       if (entry.returns || entry.numeric === true) {
         info("out-types", toStrVec(entry.returns ? entry.returns : ["num"]));
       }
+      info("mocked?", _boo(!!ctx.env.mocks[func]));
       return toDict(infos);
     }
     case "recur":
@@ -1109,6 +1102,15 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       ctx.env.vars = {};
       ctx.env.funcs = {};
       return _nul();
+    case "assert":
+      for (let a = 0, alen = len(args); a < alen; ++a) {
+        if (!asBoo(args[a])) {
+          _throw([{ e: "Assert", m: `argument ${a + 1} was falsy`, errCtx }]);
+        }
+      }
+      return args[len(args) - 1];
+    case "unmocked":
+      return { t: "unm", v: str(args[0]) };
   }
 
   return _throw([{ e: "Unexpected", m: "operation doesn't exist", errCtx }]);
@@ -1142,8 +1144,11 @@ function getExe(
   errCtx: ErrCtx,
   checkArity = true,
 ): (params: Val[]) => Val {
-  if (op.t === "str" || op.t === "func") {
+  if (op.t === "str" || op.t === "func" || op.t === "unm") {
     const name = op.v;
+    if (op.t !== "unm" && name in ctx.env.mocks) {
+      return getExe(ctx, ctx.env.mocks[name], errCtx);
+    }
     if (ops[name]) {
       if (ops[name].external) {
         return (params: Val[]) => {
@@ -1503,6 +1508,12 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         i += ins.value.length;
         break;
       }
+      case "mck":
+        ctx.env.mocks[ins.value] = stack.pop()!;
+        break;
+      case "unm":
+        delete ctx.env.mocks[ins.value];
+        break;
       default:
         assertUnreachable(ins);
     }

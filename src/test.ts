@@ -352,7 +352,7 @@ const tests: {
     out: `[2 1]`,
   },
   {
-    name: "Destructure bad structure",
+    name: "Destructure bad",
     code: `(var [a b [c d]] [0 1]) [a b c d]`,
     out: `[0 1 null null]`,
   },
@@ -467,6 +467,18 @@ const tests: {
     err: ["Type"],
   },
   { name: "Parser arity error 1", code: `(abs)`, err: ["Parse"] },
+  //Testing
+  { name: "Assertion", code: `(assert "test" false)`, err: ["Assert"] },
+  {
+    name: "Mock & unmock",
+    code: `(mock print (var x)) (print 1) (unmock print) (print x)`,
+    out: `1\nnull`,
+  },
+  {
+    name: "Unmocked",
+    code: "(mock print do) ((unmocked print) 1)",
+    out: `1\nnull`,
+  }
 ];
 
 export function doTests(
@@ -490,7 +502,7 @@ export function doTests(
       dict: new Map<string, Val>(),
       output: "",
     };
-    const env: Env = { funcs: {}, vars: {} };
+    const env: Env = { funcs: {}, vars: {}, mocks: {} };
     const startTime = getTimeMs();
     const valOrErrs = invoke(
       {
