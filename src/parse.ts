@@ -551,35 +551,6 @@ function parseForm(
       const newNodes = nodes.reduce((acc, node) => [node, acc]) as Node[];
       const parsed = parseForm(newNodes, params);
       return parsed;
-    } else if (op === "mock" || op === "unmock") {
-      const ins: ParserIns[] = [];
-      if (op === "mock") {
-        const defs = nodes.filter((n, i) => !(i % 2));
-        const vals = nodes.filter((n, i) => !!(i % 2));
-        if (!len(defs)) {
-          return err("provide at least 1 function or operation and value");
-        } else if (len(defs) > len(vals)) {
-          return err("provide a value after each function or operation");
-        }
-        for (let d = 0, lim = len(defs); d < lim; ++d) {
-          push(ins, nodeParser(vals[d]));
-          const def = defs[d];
-          if (isToken(def) && (def.typ === "str" || def.typ === "sym")) {
-            ins.push({ typ: "mck", value: def.text, errCtx });
-          } else {
-            return err("can only mock functions and operations");
-          }
-        }
-      } else {
-        for (const node of nodes) {
-          if (isToken(node)) {
-            ins.push({ typ: "unm", value: node.text, errCtx });
-          } else {
-            return err("can only unmock functions and operations");
-          }
-        }
-      }
-      return [...ins, { typ: "val", value: nullVal, errCtx }];
     }
 
     //Operation arity check, optionally disabled for partial closures
@@ -930,10 +901,6 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
         if (ins.value) {
           stack.pop();
         }
-        break;
-      case "mck":
-      case "unm":
-        stack.push({ types: ["null"] });
         break;
       default:
         assertUnreachable(ins);

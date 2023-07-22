@@ -96,8 +96,6 @@ export type Ins = { errCtx: ErrCtx } & (
   | { typ: "ret"; value: boolean } //Return, with value?
   | { typ: "pop"; value: number } //Truncate stack, by number of values
   | { typ: "clo"; value: Closure } //Closure/partial
-  | { typ: "mck"; value: string } //Mock
-  | { typ: "unm"; value: string } //Unmock
   | { typ: "val"; value: Val }
 );
 
@@ -490,6 +488,8 @@ export const ops: {
   reset: { exactArity: 0 },
   recur: {},
   assert: { minArity: 1 },
+  mock: { minArity: 2, returns: ["null"] },
+  unmock: { returns: ["null"] },
   unmocked: { exactArity: 1, params: [["str", "func"]], returns: ["unm"] },
 };
 

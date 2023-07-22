@@ -1,4 +1,4 @@
-export const insituxVersion = 230721;
+export const insituxVersion = 230722;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -1101,6 +1101,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "reset":
       ctx.env.vars = {};
       ctx.env.funcs = {};
+      ctx.env.mocks = {};
       return _nul();
     case "assert":
       for (let a = 0, alen = len(args); a < alen; ++a) {
@@ -1109,6 +1110,46 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         }
       }
       return args[len(args) - 1];
+    case "mock": {
+      const defs = args.filter((n, i) => !(i % 2));
+      const vals = args.filter((n, i) => !!(i % 2));
+      if (len(defs) !== len(vals)) {
+        const m = "provide a value after each definition to mock";
+        _throw([{ e: "Arity", m, errCtx }]);
+      }
+      const badDef = defs.find(d => d.t !== "str" && d.t !== "func");
+      if (badDef) {
+        const m = `can only mock string or function types, not ${
+          typeNames[badDef.t]
+        }`;
+        _throw([{ e: "Type", m, errCtx }]);
+      }
+      for (let i = 0, lim = len(defs); i < lim; ++i) {
+        const def = str(defs[i]);
+        if (has(['mock', 'unmock', 'unmocked', 'reset'], def)) {
+          const m = "you can't mock the mock, unmock, unmocked, reset functions";
+          _throw([{ e: "Mock", m, errCtx }]);
+        }
+        ctx.env.mocks[str(defs[i])] = vals[i];
+      }
+      return _nul();
+    }
+    case "unmock": {
+      if (!len(args)) {
+        ctx.env.mocks = {};
+      }
+      const badDef = args.find(d => d.t !== "str" && d.t !== "func");
+      if (badDef) {
+        const m = `definitions must be string or function types, not ${
+          typeNames[badDef.t]
+        }`;
+        _throw([{ e: "Type", m, errCtx }]);
+      }
+      for (const def of args) {
+        delete ctx.env.mocks[str(def)];
+      }
+      return _nul();
+    }
     case "unmocked":
       return { t: "unm", v: str(args[0]) };
   }
@@ -1508,12 +1549,6 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         i += ins.value.length;
         break;
       }
-      case "mck":
-        ctx.env.mocks[ins.value] = stack.pop()!;
-        break;
-      case "unm":
-        delete ctx.env.mocks[ins.value];
-        break;
       default:
         assertUnreachable(ins);
     }

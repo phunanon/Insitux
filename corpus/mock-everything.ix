@@ -1,0 +1,6 @@
+(loop-over (remove ["print" "mock" "unmock" "unmocked" "do" "reset"] (symbols)) s
+  (print "mocking " s)
+  (mock s (fn (let result ((unmocked ...) (unmocked s) args))
+              (print "(" s " " ((unmocked join) " " args) ") => " result)
+              result)))
+

@@ -480,6 +480,11 @@ const tests: {
     out: `1\nnull`,
   },
   {
+    name: "Mock variable value",
+    code: `(let x do) (mock x *) (do 2 2)`,
+    out: `4`,
+  },
+  {
     name: "Unmocked",
     code: "(mock print do) ((unmocked print) 1)",
     out: `1\nnull`,

@@ -889,12 +889,13 @@ etc
 (+ 2 2 2) → 8
 (- 10 5)  → 2
 
-;Restore mocked function to original implementation
+;Restore mocked function to original implementation, or all functions at once
 ;Note: this is syntax, not an operation
 (mock + *)
 (+ 2 2 2) → 8
 (unmock +)
 (+ 2 2 2) → 6
+(unmock) ;All mocks restored to originals
 
 ;Force Insitux to use original implementation of a mocked function or operation
 (mock + *)
