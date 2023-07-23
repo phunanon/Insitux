@@ -326,6 +326,7 @@ export const ops: {
   ".": { minArity: 1 },
   "..": { minArity: 2 },
   "...": { minArity: 2 },
+  proj: { minArity: 2, returns: ["vec"] },
   into: {
     exactArity: 2,
     params: [

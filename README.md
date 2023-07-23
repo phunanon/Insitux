@@ -836,6 +836,11 @@ etc
 ((criteria [0 1 2] [1 2 3]) 2)  → true
 ((criteria [0 1 2] [3 4 5]) 10) → false
 
+;Calls its first argument with each of its subsequent arguments, returning
+;  results as a vector
+(proj char-code "a" "b" "c") → [97 98 99]
+(proj len [1] [1 2] [1 2 3]) → [1 2 3]
+
 ;Treats its arguments as an expression, first argument as the expression head
 (. + 2 2) → 4
 (map . [+ -] [10 12] [13 6])
@@ -1101,7 +1106,7 @@ Some examples:
 (join ", ")         → @(join ", ")
 (var hello)         → #(var hello %)
 (let a 1 b)         → #(let a 1 b %)
-(map (+ 5) [1 2 3]) → [6 7 8]
+(proj (+ 5) 1 2 3)  → [6 7 8]
 ```
 
 If Insitux notices you modify a let or var inside of the closure it will not be
@@ -1199,7 +1204,7 @@ vector item or string character is "destructured" into.
 
 ; FizzBuzz with match syntax
 (function fizzbuzz n
-  (match (map (rem n) [3 5])
+  (match (proj (rem n) 3 5)
     [0 0] "FizzBuzz"
     [0 _] "Fizz"
     [_ 0] "Buzz"

@@ -629,6 +629,11 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       return closure(flatArgs);
     }
+    case "proj": {
+      const closure = getExe(ctx, args[0], errCtx);
+      const results = slice(args, 1).map(x => closure([x]));
+      return _vec(results);
+    }
     case "into": {
       if (args[0].t === "vec") {
         return _vec(concat(args[0].v, asArray(args[1])));
