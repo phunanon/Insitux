@@ -858,34 +858,43 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         return _vec(parted.map(_vec));
       }
     }
-    case "part-when": {
+    case "part-when":
+    case "part-before":
+    case "part-after": {
       const closure = getExe(ctx, args[0], errCtx);
       const src = asArray(args[1]);
       const isStr = args[1].t === "str";
       let wasTrue = false;
-      if (isStr) {
+      const forStr = () => {
         const parted: string[] = ["", ""];
-        for (let i = 0, lim = len(src); i < lim; ++i) {
-          const p = asBoo(closure([src[i]]));
-          if (p && !wasTrue) {
-            wasTrue = true;
-            continue;
-          }
-          parted[wasTrue ? 1 : 0] += str(src[i]);
-        }
-        return _vec(parted.map(_str));
-      } else {
+        return {
+          append: (s: Val) => (parted[wasTrue ? 1 : 0] += str(s)),
+          pack: () => _vec(parted.map(_str)),
+        };
+      };
+      const forVec = () => {
         const parted: Val[][] = [[], []];
-        for (let i = 0, lim = len(src); i < lim; ++i) {
-          const p = asBoo(closure([src[i]]));
-          if (p && !wasTrue) {
-            wasTrue = true;
+        return {
+          append: (v: Val) => parted[wasTrue ? 1 : 0].push(v),
+          pack: () => _vec(parted.map(_vec)),
+        };
+      };
+      const { append, pack } = (isStr ? forStr : forVec)();
+      for (let i = 0, lim = len(src); i < lim; ++i) {
+        const p = asBoo(closure([src[i]]));
+        const now = p && !wasTrue;
+        if (now && op !== "part-after") {
+          wasTrue = true;
+          if (op === "part-when") {
             continue;
           }
-          parted[wasTrue ? 1 : 0].push(src[i]);
         }
-        return _vec(parted.map(_vec));
+        append(src[i]);
+        if (now && op === "part-after") {
+          wasTrue = true;
+        }
       }
+      return pack();
     }
     case "partition": {
       const n = num(args[0]);

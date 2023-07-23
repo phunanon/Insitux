@@ -675,6 +675,16 @@ etc
 ;Calls are (f i) for vector items or characters
 (part-when odd? [0 2 4 5 6 8 9 0]) → [[0 2 4] [6 8 9 0]]
 
+;Partitions by a function return into a vector of [before-true true-and-after]
+;  vectors for vector items or substrings.
+;Calls are (f i) for vector items or characters
+(part-before odd? [0 2 4 5 6 8 9 0]) → [[0 2 4] [5 6 8 9 0]]
+
+;Partitions by a function return into a vector of [true-and-before after-true]
+;  vectors for vector items or substrings.
+;Calls are (f i) for vector items or characters
+(part-after odd? [0 2 4 5 6 8 9 0]) → [[0 2 4 5] [6 8 9 0]]
+
 ;Returns a vector partitioned into vectors or strings with N items/chars at most
 (partition 2 (range 8))       → [[0 1] [2 3] [4 5] [6 7]]
 (partition 3 "Hello, world!") → ["Hel" "lo," " wo" "rld" "!"]

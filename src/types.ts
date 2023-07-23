@@ -427,6 +427,16 @@ export const ops: {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["vec"],
   },
+  "part-before": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["vec"],
+  },
+  "part-after": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["vec"],
+  },
   partition: {
     exactArity: 2,
     params: ["num", ["vec", "str"]],
