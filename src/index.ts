@@ -1,4 +1,4 @@
-export const insituxVersion = 230722;
+export const insituxVersion = 230723;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -20,8 +20,7 @@ import { asArray, dictDrops, isEqual, num, stringify, val2str } from "./val";
 import { dic, vec, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
 import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun, str } from "./val";
 
-let letsStack: { [key: string]: Val }[] = [];
-let lets: (typeof letsStack)[0] = {};
+let lets: { [key: string]: Val } = {};
 let recurArgs: undefined | Val[];
 
 type _Exception = { errors: InvokeError[] };
@@ -1036,9 +1035,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "version":
       return _num(insituxVersion);
     case "tests": {
-      const letsTemp = lets;
       const summary = doTests(invoke, !(len(args) && asBoo(args[0])));
-      lets = letsTemp;
       return _str(summary.join("\n"));
     }
     case "symbols": {
@@ -1126,8 +1123,9 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       for (let i = 0, lim = len(defs); i < lim; ++i) {
         const def = str(defs[i]);
-        if (has(['mock', 'unmock', 'unmocked', 'reset'], def)) {
-          const m = "you can't mock the mock, unmock, unmocked, reset functions";
+        if (has(["mock", "unmock", "unmocked", "reset"], def)) {
+          const m =
+            "you can't mock the mock, unmock, unmocked, reset functions";
           _throw([{ e: "Mock", m, errCtx }]);
         }
         ctx.env.mocks[str(defs[i])] = vals[i];
@@ -1197,10 +1195,8 @@ function getExe(
           if (violations) {
             _throw(violations);
           }
-          const oldLetsStack = slice(letsStack);
           const valOrErr =
             ctx.functions[name].handler(params, errCtx) || _nul();
-          letsStack = oldLetsStack; //In case invoker was called externally
           if ("err" in valOrErr) {
             return _throw([{ e: "External", m: valOrErr.err, errCtx }]);
           }
@@ -1362,9 +1358,10 @@ function destruct(args: Val[], shape: number[]): Val {
 
 function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
   --ctx.callBudget;
+  const prevLets = lets;
+  let myLets: { [key: string]: Val } = {};
   if (!closureDeref) {
-    letsStack.push({});
-    lets = letsStack[len(letsStack) - 1];
+    lets = myLets;
   }
   const stack: Val[] = [];
   for (let i = 0, lim = len(func.ins); i < lim; ++i) {
@@ -1373,13 +1370,8 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
 
     const tooManyLoops = ctx.loopBudget < 1;
     if (tooManyLoops || ctx.callBudget < 1) {
-      _throw([
-        {
-          e: "Budget",
-          m: `${tooManyLoops ? "looped" : "called"} too many times`,
-          errCtx,
-        },
-      ]);
+      const m = `${tooManyLoops ? "looped" : "called"} too many times`;
+      _throw([{ e: "Budget", m, errCtx }]);
     }
 
     switch (ins.typ) {
@@ -1469,7 +1461,7 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
           throw e;
         }
         if (recurArgs) {
-          letsStack[len(letsStack) - 1] = {};
+          lets = myLets = {};
           i = -1;
           args = recurArgs;
           recurArgs = undefined;
@@ -1553,11 +1545,9 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
         assertUnreachable(ins);
     }
   }
+  lets = prevLets;
   if (closureDeref) {
     return _vec(stack);
-  } else {
-    letsStack.pop();
-    lets = letsStack[len(letsStack) - 1];
   }
   return stack[len(stack) - 1];
 }
@@ -1606,6 +1596,7 @@ function innerInvoke(
   ingestExternalOperations(ctx.functions);
   let errors: InvokeError[] = [];
   let value: Val | undefined;
+  const oldLets = lets;
   try {
     value = closure();
   } catch (e) {
@@ -1613,11 +1604,12 @@ function innerInvoke(
       throw e;
     }
     errors = e.errors;
+  } finally {
+    lets = oldLets;
   }
   [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
   [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   delete ctx.env.funcs["entry"];
-  letsStack = [];
   if (len(errors)) {
     return { kind: "errors", errors };
   }

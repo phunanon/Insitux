@@ -1,6 +1,6 @@
 {
   "name": "insitux",
-  "version": "23.7.22",
+  "version": "23.7.23",
   "description": "Extensible scripting language written in portable TypeScript.",
   "main": "dist/invoker.js",
   "types": "dist/invoker.d.ts",

@@ -1,6 +1,9 @@
-(loop-over (remove ["print" "mock" "unmock" "unmocked" "do" "reset"] (symbols)) s
+(let syms (-> (symbols)
+              (filter about)
+              (remove ["print" "mock" "unmock" "unmocked" "do" "reset"])))
+
+(loop-over syms s
   (print "mocking " s)
   (mock s (fn (let result ((unmocked ...) (unmocked s) args))
               (print "(" s " " ((unmocked join) " " args) ") => " result)
               result)))
-
