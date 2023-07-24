@@ -1,20 +1,21 @@
 #!/usr/bin/env node
-import readline = require("readline");
-import { appendFileSync, readFileSync, rmSync, writeFileSync } from "fs";
-import { unlinkSync, existsSync, mkdirSync } from "fs";
 import { insituxVersion, symbols } from ".";
-import { join as pathJoin, dirname } from "path";
 import { Ctx, defaultCtx, ErrCtx, Val, ValOrErr } from "./types";
 import { Operation, ExternalFunctions } from "./types";
 import { InvokeOutput, invoker, parensRx, valueInvoker } from "./invoker";
 import { tokenise } from "./parse";
-import prompt = require("prompt-sync");
+import { str, _nul, _str, _vec, num, _num, _key, val2str } from "./val";
+import { ixToJs, jsToIx } from "./val-translate";
+
 import { exit } from "process";
-import { str, _nul, _str, _vec, num, _num, _key } from "./val";
-import { jsToIx, val2str, ixToJs } from "./val";
+import readline = require("readline");
 import fetch from "cross-fetch";
+import prompt = require("prompt-sync");
 import clone = require("git-clone/promise");
 const execSync = require("child_process").execSync;
+import { appendFileSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { unlinkSync, existsSync, mkdirSync } from "fs";
+import { join as pathJoin, dirname } from "path";
 
 const githubRegex = /^(?!https*:)[^\/]+?\/[^\/]+$/;
 let colourMode = true;

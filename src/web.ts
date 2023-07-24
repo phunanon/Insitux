@@ -1,6 +1,7 @@
 import { functionInvoker, InvokeOutput, invoker } from "./invoker";
 import { Ctx, defaultCtx, ExternalFunctions, Val, ValOrErr } from "./types";
-import { num, str, val2str, _nul, _str, _num, _boo, jsToIx } from "./val";
+import { num, str, val2str, _nul, _str, _num, _boo } from "./val";
+import { jsToIx } from "./val-translate";
 
 let state = new Map<string, Val>();
 

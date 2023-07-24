@@ -389,15 +389,17 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "criteria": {
       const name = `(criteria ${args.map(val2str).join(" ")})`;
       const ins: Ins[] = [
-        ...args.flatMap((value, i) => {
-          const jmp = (len(args) - 1 - i) * 4 + 2;
-          return [
-            { typ: "upa", value: 0, text: "x", errCtx },
-            { typ: "val", value, errCtx },
-            { typ: "exe", value: 1, errCtx },
-            { typ: "if", value: jmp, errCtx },
-          ] as Ins[];
-        }),
+        ...flat(
+          args.map((value, i) => {
+            const jmp = (len(args) - 1 - i) * 4 + 2;
+            return [
+              { typ: "upa", value: 0, text: "x", errCtx },
+              { typ: "val", value, errCtx },
+              { typ: "exe", value: 1, errCtx },
+              { typ: "if", value: jmp, errCtx },
+            ] as Ins[];
+          }),
+        ),
         { typ: "val", value: _boo(true), errCtx },
         { typ: "jmp", value: 1, errCtx },
         { typ: "val", value: _boo(false), errCtx },

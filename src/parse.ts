@@ -418,7 +418,7 @@ function parseForm(
         { typ: "exe", value: 1, errCtx },
         { typ: "if", value: 2, errCtx },
         { typ: "val", value: nullVal, errCtx },
-        { typ: "jmp", value: parsed[0].length + 9 + body.length + 12, errCtx },
+        { typ: "jmp", value: len(parsed[0]) + 9 + len(body) + 12, errCtx },
         ...parsed[0],
         { typ: "let", value: symNode.text + "-item", errCtx },
         { typ: "val", value: { t: "num", v: 0 }, errCtx },
@@ -575,7 +575,8 @@ function parseForm(
     if (len(args) < 1) {
       return [{ typ: "err", value: "provide a condition", errCtx }];
     }
-    const [cond, ...params] = args;
+    const cond = args[0];
+    const params = slice(args, 1);
     const flatParams = flat(params);
     return [
       ...cond,
