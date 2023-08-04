@@ -39,7 +39,6 @@ export const isEqual = (a: Val, b: Val) => {
       return len(a.v.keys) === len(bd.keys) && isVecEqual(a.v.keys, bd.keys);
     }
     case "str":
-    case "ref":
     case "key":
     case "func":
       return str(a) === str(b);

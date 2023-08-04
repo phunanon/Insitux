@@ -582,6 +582,11 @@ etc
 (find (< 5) [4 5 6 7])  → 6
 (find ["a" "b"] "Able") → "b"
 
+;Returns the index of the first item or character in a vector or string
+;  matching a predicate.
+(find-idx odd? [6 8 9 0])      → 2
+(find-idx (< 5) [2 3 4 5 6 7]) → 4
+
 ;Returns the number of vector items, string characters, or dictionary entries
 ;  matching a predicate.
 (count odd? (range 10))   → 5

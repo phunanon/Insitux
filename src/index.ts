@@ -1,4 +1,4 @@
-export const insituxVersion = 230723;
+export const insituxVersion = 230728;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -13,8 +13,8 @@ const { trim, trimStart, trimEnd, strIdx, replace, rreplace } = pf;
 const { charCode, codeChar, getTimeMs, randInt, randNum } = pf;
 const { isNum, len, objKeys, range, toNum, isArray, isObj } = pf;
 import { doTests } from "./test";
-import { assertUnreachable, Env, InvokeError, InvokeResult } from "./types";
-import { ExternalFunctions, syntaxes } from "./types";
+import { Env, InvokeError, InvokeResult, InvokeValResult } from "./types";
+import { assertUnreachable, ExternalFunctions, syntaxes } from "./types";
 import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, dictDrops, isEqual, num, stringify, val2str } from "./val";
 import { dic, vec, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
@@ -407,30 +407,31 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return { t: "clo", v: <Func>{ name, ins } };
     }
     case "map":
+    case "for": {
+      const collections = slice(args, 1);
+      const badArg = collections.findIndex(
+        ({ t }) => t !== "vec" && t !== "str" && t !== "dict",
+      );
+      if (badArg !== -1) {
+        const badType = typeNames[collections[badArg].t];
+        throwTypeErr(
+          `argument ${
+            badArg + 2
+          } must be either: string, vector, dictionary, not ${badType}`,
+          errCtx,
+        );
+      }
+    }
     case "flat-map":
-    case "for":
     case "reduce":
     case "reductions":
     case "filter":
     case "remove":
     case "find":
+    case "find-idx":
     case "count":
     case "all?": {
       const closure = getExe(ctx, args.shift()!, errCtx);
-      if (op === "map" || op === "for") {
-        const badArg = args.findIndex(
-          ({ t }) => t !== "vec" && t !== "str" && t !== "dict",
-        );
-        if (badArg !== -1) {
-          const badType = typeNames[args[badArg].t];
-          throwTypeErr(
-            `argument ${
-              badArg + 2
-            } must be either: string, vector, dictionary, not ${badType}`,
-            errCtx,
-          );
-        }
-      }
 
       if (op === "for") {
         const arrays = args.map(asArray);
@@ -475,7 +476,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       if (op !== "reduce" && op !== "reductions") {
         const array = asArray(args[0]);
         const isRemove = op === "remove",
-          isFind = op === "find",
+          isFind = op === "find" || op === "find-idx",
           isCount = op === "count",
           isAll = op === "all?";
         const filtered: Val[] = [];
@@ -490,7 +491,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
             count += b ? 1 : 0;
           } else if (isFind) {
             if (b) {
-              return array[i];
+              return op === "find" ? array[i] : _num(i);
             }
           } else if (b !== isRemove) {
             filtered.push(array[i]);
@@ -1588,7 +1589,7 @@ function parseAndExe(
 function ingestExternalOperations(functions: ExternalFunctions) {
   objKeys(functions).forEach(name => {
     if (ops[name] && !ops[name].external) {
-      throw "Redefining internal operations is disallowed.";
+      throw `Redefining internal operations (${name}) is disallowed.`;
     }
     ops[name] = { ...functions[name].definition, external: true };
   });
@@ -1696,7 +1697,7 @@ export function invokeVal(
   errCtx: ErrCtx,
   val: Val,
   params: Val[],
-): InvokeResult {
+): InvokeValResult {
   const ins: Ins[] = [
     ...params.map(value => <Ins>{ typ: "val", value, errCtx }),
     { typ: "val", value: val, errCtx },

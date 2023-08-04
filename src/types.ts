@@ -1,6 +1,6 @@
 export type Val =
   | { t: "vec"; v: Val[] }
-  | { t: "str" | "func" | "key" | "ref" | "unm"; v: string }
+  | { t: "str" | "func" | "key" | "unm"; v: string }
   | { t: "null"; v: undefined }
   | { t: "wild"; v: undefined }
   | { t: "bool"; v: boolean }
@@ -21,6 +21,7 @@ export type InvokeResult =
   | { kind: "empty" }
   | Val
   | { kind: "errors"; errors: InvokeError[] };
+export type InvokeValResult = Val | { kind: "errors"; errors: InvokeError[] };
 
 export type Dict = {
   keys: Val[];
@@ -282,6 +283,11 @@ export const ops: {
     returns: ["vec", "str", "dict"],
   },
   find: { exactArity: 2, params: ["any", ["vec", "dict", "str"]] },
+  "find-idx": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["num"],
+  },
   "take-while": {
     exactArity: 2,
     params: ["any", ["vec", "str"]],

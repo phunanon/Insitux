@@ -1,11 +1,11 @@
 import { arityCheck, keyOpErr, numOpErr, typeCheck } from "./checks";
 import { makeClosure } from "./closure";
 import * as pf from "./poly-fills";
-const { has, flat, push, slice, splice } = pf;
+const { has, flat, push, slice, splice, isNum, len, toNum } = pf;
 const { slen, starts, sub, substr, strIdx, subIdx } = pf;
-const { isNum, len, toNum } = pf;
 import { ParamsShape, Func, Funcs, Ins, ops, Val, syntaxes } from "./types";
 import { assertUnreachable, InvokeError, ErrCtx } from "./types";
+import { val2str } from "./val";
 
 export type Token = {
   typ: "str" | "num" | "sym" | "rem" | "(" | ")";
@@ -453,23 +453,34 @@ function parseForm(
         return err("provide a value after each declaration name");
       }
       const ins: ParserIns[] = [];
-      const symErrMsg = `${op} name must be a new symbol or destructuring`;
       for (let d = 0, lim = len(defs); d < lim; ++d) {
         push(ins, nodeParser(vals[d]));
         const def = defs[d];
         if (isToken(def)) {
-          const defIns = nodeParser(defs[d]);
-          if (len(defIns) > 1 || defIns[0].typ !== "ref") {
-            return err(symErrMsg, defIns[0].errCtx);
+          const [defIns] = nodeParser(defs[d]);
+          if (defIns.typ === "ref") {
+            if (has(syntaxes, defIns.value)) {
+              return err(
+                `"${defIns.value}" cannot be redefined: already exists`,
+              );
+            }
+            ins.push({ typ: op, value: defIns.value, errCtx });
+            continue;
           }
-          ins.push({ typ: op, value: defIns[0].value, errCtx });
+          const errMsg =
+            defIns.typ === "val"
+              ? `"${val2str(defIns.value)}" cannot be redefined: already exists`
+              : `invalid ${op} name`;
+          return err(errMsg, defIns.errCtx);
         } else {
           const { shape, errors } = parseParams([def], true);
           if (len(errors)) {
             return errors;
           }
           if (!len(shape)) {
-            return err(symErrMsg);
+            return err(
+              `${op} name must be a symbol or destructuring, not expression`,
+            );
           }
           const typ = op === "var" ? "dva" : "dle";
           ins.push({ typ, value: shape, errCtx });
