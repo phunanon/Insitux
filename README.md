@@ -26,7 +26,7 @@ Inspired by [Chika](https://github.com/phunanon/Chika),
 [Epizeuxis](https://github.com/phunanon/Epizeuxis), and
 [Kuan](https://github.com/phunanon/Kuan).
 
-- [**Main Github repository**](https://github.com/phunanon/Insitux)
+- [**Main NPM package**](https://www.npmjs.com/package/insitux) and its [Github repository](https://github.com/phunanon/Insitux)
 - [**Roblox-TS NPM package**](https://www.npmjs.com/package/@rbxts/insitux) and its [Github repository](https://github.com/insitux/rbxts-Insitux)
 - [YouTube tutorials and demonstrations playlist](https://www.youtube.com/watch?v=iKOuzXhs14A&list=PLOKSmPXGYmewQI3dNBubTNljRD2C4Dg0z)
 - [Rosetta Code entries](https://rosettacode.org/wiki/Insitux)
@@ -170,8 +170,8 @@ built-in operations each within an example, with results after a `→`.
 (let b [:a :b :c])
 (var! a inc)  → 11
 (var! a - 15) → 5
-(let! b 1) → :b
-[a b] → [21 :b]
+(let! b 1)    → :b
+[a b]         → [21 :b]
 
 ;Returns its last argument early from a function with a value, or null
 (function f (return 123) (print "hello"))
@@ -445,9 +445,29 @@ etc
 (xmap #(str (str* " " %) %1) ["hi" "hey" "hello"])
 → ["hi" " hey" "  hello"]
 
-;Iterates a function over one or more vectors
-(for * [0 1 2] [1 10 100])
-→ [0 1 2 0 10 20 0 100 200]
+;Iterates a body over one or more collections, with each sub-collection
+;  re-evaluated upon each first iteration of them, returning a vector of
+;  returns
+;Note: declarations are let-scoped
+;Note: declarations also have e.g. x-index
+(for x [0 1 2 3] (* x 10))
+→ [0 10 20 30]
+(for x [1 2 3]
+     y (range x)
+  [x y])
+→ [[1 0] [2 0] [2 1] [3 0] [3 1] [3 2]]
+(for x [0 1 2 3]
+  (let y (inc x))
+  (* y 10))
+→ [10 20 30 40]
+(for [k v] {0 1 2 3 4 5}
+  (when (= k 2) (continue))
+  v)
+→ [1 5]
+(for x "hello"
+  (when (= x "l") (break))
+  x)
+→ ["h" "e"]
 
 ;"Reduces" a vector, string, or dictionary into one value through a function,
 ;  optionally accepting an initial value as its second argument
@@ -486,13 +506,6 @@ etc
 (loop 3.5 i (print-str i))       → 0123null
 (loop 3 i (print-str i) i-limit) → 0123
 (loop (rand 10) i i) ;Loops up to ten times
-
-;Loops its body over a vector, string, or dictionary
-;Note: the provided item and index is available as e.g. i-item i-index
-(loop-over [0 1 2 3] i (print-str i))   → 0123null
-(loop-over "hello" i (print-str i))     → hellonull
-(loop-over {:a 1 :b 2} i (print-str i)) → [:a 1][:b 2]null
-(loop-over [] x x)                      → null
 
 ;Returns the first argument; returns the last argument
 (val 3 2 1 (print-str "hello"))
@@ -533,17 +546,6 @@ etc
 
 ;Prepend item to the beginning of a vector
 (prepend :a [1 2]) → [:a 1 2]
-
-;Returns a section of a string or vector
-(sect "Patrick")       → "atrick"
-(sect "Patrick" 2)     → "trick"
-(sect "Patrick" -2)    → "Patri"
-(sect "Patrick" 1 2)   → "at"
-(sect "Patrick" 1 -1)  → "atric"
-(sect "Patrick" -2 1)  → "c"
-(sect "Patrick" -2 -2) → "ri"
-(sect [0 1 2 3])       → [1 2 3]
-etc
 
 ;Returns particular sections of a string or vector
 (skip 1 "hello")      → "ello"
@@ -635,6 +637,7 @@ etc
 
 ;Returns a random item from a vector
 (rand-pick [0 1 2 3 4 5]) → 3
+(rand-pick [])            → null
 
 ;Returns a vector of vector items or string characters sorted
 ;Note: will only sort all number or all string
@@ -1354,12 +1357,12 @@ vector item or string character is "destructured" into.
 (function vec->html v
   (if! (vec? v) (return v))
   (let [tag attr] v
-       from-key   @((key? %) (-> % str sect))
+       from-key   @((key? %) (-> % str (skip 1)))
        has-attr   (dict? attr)
        make-attr  (fn [k v] (str " " (from-key k) "=\"" v "\""))
        attr       (if has-attr (map make-attr attr) "")
        tag        (from-key tag)
-       body       (sect v (has-attr 2 1))
+       body       (skip (has-attr 2 1) v)
        body       (map vec->html body))
   (if (["link" "meta" "input" "img"] tag)
     (.. str "<" tag attr " />")

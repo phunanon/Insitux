@@ -123,9 +123,39 @@ const tests: {
     out: `[2 4 6]`,
   },
   {
-    name: "For XY list",
-    code: `(for vec [0 1] [0 1])`,
-    out: `[[0 0] [1 0] [0 1] [1 1]]`,
+    name: "Basic for XY list",
+    code: `(for x [0 1] y [3 4] [x y])`,
+    out: `[[0 3] [0 4] [1 3] [1 4]]`,
+  },
+  {
+    name: "Dependent for XY list",
+    code: `(for x [0 1] y [(inc x) (+ x 2)] [x y])`,
+    out: `[[0 1] [0 2] [1 2] [1 3]]`,
+  },
+  {
+    name: "Empty for",
+    code: `(for x [] 1)`,
+    out: `[]`,
+  },
+  {
+    name: "Return from for",
+    code: `(for x [1 2 3] [x (return 4) x])`,
+    out: `4`,
+  },
+  {
+    name: "For triangle",
+    code: `(for x [0 1 2 3] y (range x) [x y])`,
+    out: `[[1 0] [2 0] [2 1] [3 0] [3 1] [3 2]]`,
+  },
+  {
+    name: "For continue",
+    code: `(for x [0 1 2 3] (when (= x 2) (continue)) x)`,
+    out: `[0 1 3]`,
+  },
+  {
+    name: "For break",
+    code: `(for x [0 1 2 3] (when (= x 2) (break)) x)`,
+    out: `[0 1]`,
   },
   {
     name: "Filter by integer",
@@ -160,16 +190,6 @@ const tests: {
     name: "Loop",
     code: `(loop 3 i (print-str i))`,
     out: `012null`,
-  },
-  {
-    name: "Loop over",
-    code: `(let v [0 1 2]) (loop-over v x (print-str x))`,
-    out: `012null`,
-  },
-  {
-    name: "Loop over empty",
-    code: `(loop-over [] x (print x))`,
-    out: `null`,
   },
   {
     name: "Catch error",
@@ -428,7 +448,7 @@ const tests: {
              (let out (or -out []))
              (let next (if (out (0 list)) [] [(0 list)]))
              (if (empty? list) out
-                 (recur (sect list) (into out next))))
+                 (recur (skip 1 list) (into out next))))
            (dedupe [1 1 2 3 3 3])`,
     out: `[1 2 3]`,
   },

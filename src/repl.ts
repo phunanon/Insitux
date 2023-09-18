@@ -271,8 +271,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
     },
     GET: {
       definition: {
-        minArity: 2,
-        maxArity: 3,
+        exactArity: 3,
         params: [["func", "clo"], "dict", "str"],
       },
       handler: ([callback, headers, url], errCtx) => {

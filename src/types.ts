@@ -83,12 +83,16 @@ export type Closure = {
   derefs: Ins[];
 };
 
+type VariableIns = { errCtx: ErrCtx } & (
+  | { typ: "var" | "let" | "ref"; value: string; errCtx: ErrCtx }
+  //Destructuring var/let
+  | { typ: "dva" | "dle"; value: ParamsShape; errCtx: ErrCtx }
+);
 export type Ins = { errCtx: ErrCtx } & (
-  | { typ: "var" | "let" | "ref"; value: string }
+  | VariableIns
   //Named and Unnamed parameters
   | { typ: "npa" | "upa"; value: number; text: string }
   | { typ: "dpa"; value: number[] } //Destructuring parameters
-  | { typ: "dva" | "dle"; value: ParamsShape } //Destructuring var/let
   | { typ: "exe"; value: number } //Execute last stack value, number of args
   //Execute last stack value, number of args, with arity check
   | { typ: "exa"; value: number }
@@ -98,7 +102,10 @@ export type Ins = { errCtx: ErrCtx } & (
   | { typ: "pop"; value: number } //Truncate stack, by number of values
   | { typ: "clo"; value: Closure } //Closure/partial
   | { typ: "val"; value: Val }
+  | { typ: "for"; defAndVals: DefAndValIns[]; body: Ins[] }
+  | { typ: "brk" | "cnt" } //break & continue
 );
+export type DefAndValIns = { def: VariableIns; val: Ins[] };
 
 /** Definition of an operation in Insitux,
  * with guarantees made for arity (number of parameters) and parameter types.
@@ -376,12 +383,6 @@ export const ops: {
     params: ["any", "vec"],
     returns: ["vec"],
   },
-  sect: {
-    minArity: 1,
-    maxArity: 3,
-    params: [["vec", "str"], "num", "num"],
-    returns: ["vec", "str"],
-  },
   skip: {
     exactArity: 2,
     params: ["num", ["vec", "str"]],
@@ -512,7 +513,7 @@ export const ops: {
 
 export const syntaxes = [
   ...["function", "fn", "var", "let", "var!", "let!", "return", "if", "if!"],
-  ...["when", "unless", "while", "loop", "loop-over", "match", "satisfy"],
+  ...["when", "unless", "while", "loop", "for", "match", "satisfy"],
   ...["catch", "args", "E", "PI"],
 ];
 

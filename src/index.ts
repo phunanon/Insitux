@@ -1,4 +1,4 @@
-export const insituxVersion = 230728;
+export const insituxVersion = 230918;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -22,6 +22,7 @@ import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun, str } from "./val";
 
 let lets: { [key: string]: Val } = {};
 let recurArgs: undefined | Val[];
+let forState: undefined | "for" | "brk" | "cnt" | "ret";
 
 type _Exception = { errors: InvokeError[] };
 function _throw(errors: InvokeError[]): Val {
@@ -406,8 +407,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       ];
       return { t: "clo", v: <Func>{ name, ins } };
     }
-    case "map":
-    case "for": {
+    case "map": {
       const collections = slice(args, 1);
       const badArg = collections.findIndex(
         ({ t }) => t !== "vec" && t !== "str" && t !== "dict",
@@ -432,25 +432,6 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "count":
     case "all?": {
       const closure = getExe(ctx, args.shift()!, errCtx);
-
-      if (op === "for") {
-        const arrays = args.map(asArray);
-        const lims = arrays.map(len);
-        const divisors = lims.map((_, i) =>
-          slice(lims, 0, i + 1).reduce((sum, l) => sum * l),
-        );
-        divisors.unshift(1);
-        const lim = divisors.pop()!;
-        if (lim > ctx.loopBudget) {
-          _throw([{ e: "Budget", m: "would exceed loop budget", errCtx }]);
-        }
-        const array: Val[] = [];
-        for (let t = 0; t < lim; ++t) {
-          const argIdxs = divisors.map((d, i) => floor((t / d) % lims[i]));
-          array.push(closure(arrays.map((a, i) => a[argIdxs[i]])));
-        }
-        return _vec(array);
-      }
 
       if (op === "map" || op === "flat-map") {
         const arrays = args.map(asArray);
@@ -678,43 +659,6 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         return _vec(concat(concat(slice(v, 0, n), [args[0]]), slice(v, n)));
       }
     }
-    case "sect": {
-      const v = args[0];
-      const vlen = v.t === "vec" ? len(v.v) : slen(str(v));
-      let a = 0,
-        b = vlen;
-      switch (len(args)) {
-        case 1:
-          a = 1;
-          break;
-        case 2: {
-          const del = num(args[1]);
-          if (del < 0) {
-            b += del;
-          } else {
-            a += del;
-          }
-          break;
-        }
-        case 3: {
-          const skip = num(args[1]);
-          const take = num(args[2]);
-          a = skip < 0 ? vlen + skip + (take < 0 ? take : 0) : a + skip;
-          b = (take < 0 ? b : a) + take;
-          break;
-        }
-      }
-      a = max(a, 0);
-      b = min(b, vlen);
-      if (a > b) {
-        return (v.t === "vec" ? _vec : _str)();
-      }
-      if (v.t === "vec") {
-        return _vec(slice(v.v, a, b));
-      } else {
-        return _str(substr(str(args[0]), a, b - a));
-      }
-    }
     case "skip":
     case "first":
     case "last":
@@ -777,7 +721,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     }
     case "rand-pick": {
       const arr = vec(args[0]);
-      return arr[randInt(0, len(arr))];
+      const l = len(arr);
+      return l ? arr[randInt(0, l)] : _nul();
     }
     case "sort":
     case "sort-by": {
@@ -1229,7 +1174,8 @@ function getExe(
       };
     }
     if (name in ctx.env.funcs && name !== "entry") {
-      return (params: Val[]) => exeFunc(ctx, ctx.env.funcs[name], params);
+      return (params: Val[]) =>
+        exeFunc(ctx, ctx.env.funcs[name], params, false);
     }
     if (name in lets) {
       return getExe(ctx, lets[name], errCtx);
@@ -1265,7 +1211,7 @@ function getExe(
       return valAndErr;
     };
   } else if (op.t === "clo") {
-    return (params: Val[]) => exeFunc(ctx, op.v, params);
+    return (params: Val[]) => exeFunc(ctx, op.v, params, false);
   } else if (op.t === "key") {
     return (params: Val[]) => {
       if (!len(params)) {
@@ -1373,11 +1319,18 @@ function destruct(args: Val[], shape: number[]): Val {
   return pos >= len(arr) ? _nul() : arr[pos];
 }
 
-function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
+function exeFunc(ctx: Ctx, func: Func, args: Val[], sharedLets: false): Val;
+function exeFunc(ctx: Ctx, func: Func, args: Val[], sharedLets: true): Val[];
+function exeFunc(
+  ctx: Ctx,
+  func: Func,
+  args: Val[],
+  sharedLets: boolean,
+): Val | Val[] {
   --ctx.callBudget;
   const prevLets = lets;
   let myLets: { [key: string]: Val } = {};
-  if (!closureDeref) {
+  if (!sharedLets) {
     lets = myLets;
   }
   const stack: Val[] = [];
@@ -1540,6 +1493,7 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
           stack.push(_nul());
         }
         i = lim;
+        forState = "ret";
         break;
       case "clo": {
         //Ensure any in-scope declarations are captured here
@@ -1551,20 +1505,118 @@ function exeFunc(ctx: Ctx, func: Func, args: Val[], closureDeref = false): Val {
           return decl ? <Ins>{ typ: "val", value: decl } : ins;
         });
         //Dereference closure captures
-        const captures = <Val[]>exeFunc(ctx, { ins: derefIns }, args, true).v;
+        const captures = exeFunc(ctx, { ins: derefIns }, args, true);
         //Enclose the closure with dereferenced values
         const cins = slice(func.ins, i + 1, i + 1 + ins.value.length);
         stack.push({ t: "clo", v: makeEnclosure(ins.value, cins, captures) });
         i += ins.value.length;
         break;
       }
+      case "for": {
+        const { defAndVals, body, errCtx } = ins;
+        const ret: Val[] = [];
+        const iterators = defAndVals.map(x => 0);
+        const lengths = defAndVals.map(x => 0);
+        const collections: Val[][] = defAndVals.map(x => []);
+        const maxDepth = len(lengths);
+        let collDepth = 0;
+        let evalDepth = 0;
+
+        do {
+          if (evalDepth < collDepth) {
+            const value = collections[evalDepth][iterators[evalDepth]];
+            const ins: Ins[] = [
+              { typ: "val", value, errCtx },
+              defAndVals[evalDepth].def,
+            ];
+            exeFunc(ctx, { ins }, args, true);
+            ++evalDepth;
+          }
+          if (collDepth !== maxDepth) {
+            const [coll] = exeFunc(
+              ctx,
+              { ins: defAndVals[collDepth].val },
+              args,
+              true,
+            );
+            if (coll.t !== "vec" && coll.t !== "str" && coll.t !== "dict") {
+              const badTypeName = typeNames[coll.t];
+              const m = `can only iterate over vector, string, or dictionary, not ${badTypeName}`;
+              return _throw([{ e: "Type", m, errCtx }]);
+            }
+            const collection = asArray(coll);
+            collections[collDepth] = collection;
+            const collLen = len(collection);
+            if (!collLen) {
+              if (++iterators[collDepth - 1] === lengths[collDepth - 1]) {
+                if (!collDepth) {
+                  break;
+                } else {
+                  --collDepth;
+                  iterators[collDepth] = 0;
+                }
+              }
+              --evalDepth;
+            } else {
+              lengths[collDepth] = collLen;
+              ++collDepth;
+            }
+          }
+          if (collDepth !== maxDepth || evalDepth !== maxDepth) {
+            continue;
+          }
+          --ctx.loopBudget;
+          if (!ctx.loopBudget) {
+            _throw([{ e: "Budget", m: "looped too many times", errCtx }]);
+          }
+          forState = "for";
+          const bodyStack = exeFunc(ctx, { ins: body }, args, true);
+          const value = bodyStack[len(bodyStack) - 1];
+          if ((forState as string) === "brk") {
+            break;
+          }
+          if ((forState as string) === "ret") {
+            stack.push(value);
+            i = lim;
+            break;
+          }
+          if ((forState as string) !== "cnt") {
+            ret.push(value);
+          }
+          forState = undefined;
+          --evalDepth;
+          while (
+            collDepth &&
+            ++iterators[collDepth - 1] === lengths[collDepth - 1]
+          ) {
+            --collDepth;
+            --evalDepth;
+            iterators[collDepth] = 0;
+          }
+        } while (collDepth);
+
+        if (forState !== "ret") {
+          stack.push(_vec(ret));
+        }
+        forState = undefined;
+        break;
+      }
+      case "brk":
+      case "cnt":
+        if (forState !== "for") {
+          const m = "can only use break and continue in a for loop";
+          return _throw([{ e: "For", m, errCtx }]);
+        }
+        forState = ins.typ;
+        i = lim;
+        break;
       default:
         assertUnreachable(ins);
     }
   }
   lets = prevLets;
-  if (closureDeref) {
-    return _vec(stack);
+  if (sharedLets) {
+    return stack;
   }
   return stack[len(stack) - 1];
 }
@@ -1583,7 +1635,7 @@ function parseAndExe(
   if (!("entry" in ctx.env.funcs)) {
     return;
   }
-  return exeFunc(ctx, ctx.env.funcs["entry"], params);
+  return exeFunc(ctx, ctx.env.funcs["entry"], params, false);
 }
 
 function ingestExternalOperations(functions: ExternalFunctions) {
@@ -1680,7 +1732,7 @@ export function invokeFunction(
   }
   return innerInvoke(
     ctx,
-    () => exeFunc(ctx, ctx.env.funcs[funcName], params),
+    () => exeFunc(ctx, ctx.env.funcs[funcName], params, false),
     printResult,
   );
 }
@@ -1704,7 +1756,7 @@ export function invokeVal(
     { typ: "exe", value: len(params), errCtx },
   ];
   try {
-    return exeFunc(ctx, { ins }, params);
+    return exeFunc(ctx, { ins }, params, false);
   } catch (e) {
     if (!isThrown(e)) {
       throw e;

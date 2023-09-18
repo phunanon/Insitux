@@ -77,7 +77,7 @@ export function typeCheck(
         ) {
           return false;
         }
-        const names = argTypes.map(t => typeNames[t]);
+        const names = argTypes.map(t => typeNames[t]).join(", ");
         return `argument ${i + 1} must be ${typeNames[need]}, not ${names}`;
       }
     })

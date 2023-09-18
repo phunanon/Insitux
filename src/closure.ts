@@ -33,10 +33,8 @@ export function makeClosure(
         newSubCaptures.push(!capture && cin.value.captures[j]);
         if (capture) {
           derefs.push(cin.value.derefs[d++]);
-        } else {
-          if (cin.value.captures[j]) {
-            newSubDerefs.push(cin.value.derefs[d++]);
-          }
+        } else if (cin.value.captures[j]) {
+          newSubDerefs.push(cin.value.derefs[d++]);
         }
       }
       cin.value.derefs = newSubDerefs;
