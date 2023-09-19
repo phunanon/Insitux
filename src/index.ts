@@ -1,4 +1,4 @@
-export const insituxVersion = 230918;
+export const insituxVersion = 230919;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -531,6 +531,31 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       return reduction;
     }
+    case "max-by":
+    case "min-by": {
+      const closure = getExe(ctx, args[0], errCtx);
+      const coll = asArray(args[1]);
+      let bestIdx = 0;
+      let bestValue: undefined | number = undefined;
+      for (let i = 0, lim = len(coll); i < lim; ++i) {
+        const value = closure([coll[i]]);
+        if (value.t !== "num") {
+          const badTypeName = typeNames[value.t];
+          const m = `predicate must return number not ${badTypeName}`;
+          return _throw([{ e: "Type", m, errCtx }]);
+        }
+        if (bestValue === undefined) {
+          bestValue = value.v;
+          bestIdx = i;
+        } else if (
+          op === "max-by" ? bestValue < value.v : bestValue > value.v
+        ) {
+          bestValue = value.v;
+          bestIdx = i;
+        }
+      }
+      return coll[bestIdx];
+    }
     case "empty?":
       return _boo(!len(asArray(args[0])));
     case "take-while":
@@ -924,6 +949,19 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _vec(str(args[1]).split(str(args[0])).map(_str));
     case "join":
       return _str(asArray(args[1]).map(val2str).join(str(args[0])));
+    case "pad-left":
+    case "pad-right": {
+      const [space, to, txt] = [str(args[0]), num(args[1]), val2str(args[2])];
+      const deficit = to - slen(txt);
+      const block = range(min(max(ceil(deficit), 0), 1_000))
+        .map(n => space)
+        .join("");
+      const [left, right] = [
+        op === "pad-left" ? block : "",
+        op === "pad-right" ? block : "",
+      ];
+      return _str(left + txt + right);
+    }
     case "replace":
     case "rreplace": {
       const rop = op === "replace" ? replace : rreplace;
@@ -974,7 +1012,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "str*": {
       const text = str(args[0]);
       return _str(
-        range(max(ceil(num(args[1])), 0))
+        range(min(max(ceil(num(args[1])), 0), 1_000))
           .map(n => text)
           .join(""),
       );

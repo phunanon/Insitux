@@ -103,7 +103,8 @@ export type Ins = { errCtx: ErrCtx } & (
   | { typ: "clo"; value: Closure } //Closure/partial
   | { typ: "val"; value: Val }
   | { typ: "for"; defAndVals: DefAndValIns[]; body: Ins[] }
-  | { typ: "brk" | "cnt" } //break & continue
+  //break & continue
+  | { typ: "brk" | "cnt" }
 );
 export type DefAndValIns = { def: VariableIns; val: Ins[] };
 
@@ -320,6 +321,14 @@ export const ops: {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["num"],
   },
+  "max-by": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+  },
+  "min-by": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+  },
   "empty?": {
     exactArity: 1,
     params: [["str", "vec", "dict"]],
@@ -465,6 +474,16 @@ export const ops: {
   join: {
     exactArity: 2,
     params: ["str", ["vec", "dict", "str"]],
+    returns: ["str"],
+  },
+  "pad-left": {
+    exactArity: 3,
+    params: ["str", "num", ["str", "num"]],
+    returns: ["str"],
+  },
+  "pad-right": {
+    exactArity: 3,
+    params: ["str", "num", ["str", "num"]],
     returns: ["str"],
   },
   replace: {

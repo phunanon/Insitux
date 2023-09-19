@@ -596,6 +596,15 @@ etc
 (count (comp 1 odd?) {:a 1 :b 2 :c 3})
 → 2
 
+;Returns item or character from vector, dictionary, or string which returns the
+;  highest or lowest number by predicate
+;Note: first instance of best value is selected
+(max-by len ["Hello" "Hey" "Yo"]) → "Hello"
+(max-by 1 {:a 1 :b 2 :c 3})       → [:c 3]
+(max-by char-code "Hello")        → "o"
+(min-by val [7 6 5 8 4 3])        → 3
+etc
+
 ;Returns a boolean on whether the vector, string, or dictionary is empty
 (empty? []) → true
 (empty? {}) → true
@@ -764,7 +773,15 @@ etc
 (punc? "+")     → true
 
 ;Returns a string repeated a specified number of times
+;Note: has a maximum of 1000
 (str* "x" 6) → "xxxxxx"
+
+;Returns a string or number padded to a particular length
+;Note: has a maximum of 1000
+(pad-left " " 10 "hello")  → "     hello"
+(pad-right "." 10 "hello") → "hello....."
+(pad-left "x" 5 "Hello!")  → "Hello!"
+(pad-left " " 5 10)        → "   10"
 
 ;Returns the code associated with a string's first or Nth character, or null
 ;Or returns a string with the associated supplied character code
