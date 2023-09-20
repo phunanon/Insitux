@@ -1,4 +1,4 @@
-export const insituxVersion = 230919;
+export const insituxVersion = 230920;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -482,6 +482,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
           case "count":
             return _num(count);
           case "find":
+          case "find-idx":
             return _nul();
           case "all?":
             return _boo(true);
@@ -991,8 +992,11 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "upper?":
     case "lower?": {
       const s = str(args[0]);
-      const f = op === "upper?" ? upperCase : lowerCase;
-      return _boo(s === f(s));
+      const code = charCode(s);
+      if (op === 'upper?') {
+        return _boo(code >= 65 && code < 91); 
+      }
+      return _boo(code >= 97 && code < 123);
     }
     case "letter?":
     case "digit?":
@@ -1040,9 +1044,6 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     }
     case "symbols": {
       let syms = symbols(ctx.env, false);
-      if (len(args) && asBoo(args[0])) {
-        syms = syms.filter(s => !ops[s]?.hasEffects ?? false);
-      }
       return _vec(syms.map(_str));
     }
     case "eval": {
@@ -1050,14 +1051,15 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const invokeId = `${errCtx.invokeId} eval`;
       try {
         const valOrNone = parseAndExe(ctx, str(args[0]), invokeId, []);
-        return valOrNone ? valOrNone : _nul();
+        return valOrNone ?? _nul();
       } catch (e) {
         if (isThrown(e)) {
-          _throw([
+          return _throw([
             { e: "Eval", m: "error within evaluated code", errCtx },
             ...e.errors,
           ]);
         }
+        throw e;
       }
     }
     case "about": {
@@ -1073,6 +1075,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         _vec(v.map(typ => (isArray(typ) ? _vec(typ.map(_str)) : _str(typ))));
       info("name", _str(func));
       info("external?", _boo(!!entry.external));
+      info("has-effects?", _boo(!!entry.hasEffects));
       if (entry.exactArity) {
         info("exact-arity", _num(entry.exactArity));
       } else {

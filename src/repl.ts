@@ -305,12 +305,11 @@ function makeFunctions(workingDirectory = process.cwd()) {
       handler: params => {
         let blob = new Blob();
         params.forEach(param => {
-          if (param.t === "ext" && param.v instanceof Blob) {
-            blob = new Blob([blob, param.v], {
-              type: "application/octet-stream",
-            });
-          } else if (param.t === "str") {
-            blob = new Blob([blob, param.v], {
+          if (
+            param.t === "str" ||
+            (param.t === "ext" && param.v instanceof Blob)
+          ) {
+            blob = new Blob([blob, param.v as string | Blob], {
               type: "application/octet-stream",
             });
           } else if (param.t === "num") {
@@ -465,9 +464,9 @@ const helpText = `Insitux ${insituxVersion} REPL
 $ ix help           #or -h, to show this help
 $ ix                #open a REPL session (exit with Ctrl+D or Ctrl+C)
 $ ix .              #execute entry.ix in the working directory
-$ ix . -r           #… then open a REPL session
 $ ix file.ix        #execute file.ix in the working directory
-$ ix file.ix -r     #… then open a REPL session
+$ ix -e "PI"        #execute provided string
+$ ix [args] -r      #… then open a REPL session
 
 $ ix i              #installs dependencies listed in deps.txt
 $ ix r              #remove dependencies listed in deps
@@ -487,17 +486,25 @@ async function processCliArguments(args: string[]) {
 
   colourMode = false;
 
-  const openReplAfter = args.includes("-r");
+  const executeInline = args.includes("-e");
+  const openReplAfter = !executeInline && args.includes("-r");
   const parts = openReplAfter ? args.filter(a => a !== "-r") : args;
 
   const matchParts = (b: RegExp[]) =>
-    parts.length === b.length &&
-    parts.every((part, i) => b[i] && b[i].test(part));
+    parts.length === b.length && parts.every((part, i) => b[i]?.test(part));
 
   const [arg0, arg1, arg2] = parts;
   if (["help", "-h"].includes(arg0)) {
     console.log(helpText);
     exit();
+  } else if (executeInline) {
+    const switchIndex = args.findIndex(x => x === "-e");
+    if (switchIndex + 1 === args.length) {
+      console.error("Code after -e was not provided.");
+    } else {
+      const code = args[switchIndex + 1];
+      printErrorOutput(invoker(ctx, code, code).output);
+    }
   } else if (matchParts([/^\.$/])) {
     //Execute entry.ix in working directory
     const path = "entry.ix";
@@ -525,7 +532,7 @@ async function processCliArguments(args: string[]) {
     exitIfBadAlias(arg1);
     await dependencyResolve({ kind: "alias remove", alias: arg1 });
   } else if (arg0 === "r") {
-    await depsFileAction("install");
+    await depsFileAction("remove");
     exit();
   } else {
     //Execute files

@@ -519,7 +519,7 @@ export const ops: {
   time: { exactArity: 0, returns: ["num"] },
   version: { exactArity: 0, returns: ["num"] },
   tests: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["str"] },
-  symbols: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["vec"] },
+  symbols: { exactArity: 0, returns: ["vec"] },
   eval: { exactArity: 1, params: ["str"] },
   about: { exactArity: 1, params: [["str", "func", "unm"]], returns: ["dict"] },
   reset: { exactArity: 0 },

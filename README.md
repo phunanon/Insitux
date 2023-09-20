@@ -41,9 +41,9 @@ $ alias ix="npx insitux"  #make `ix` available for your bash session
 $ ix help           #or -h, to show this help
 $ ix                #open a REPL session (exit with Ctrl+D or Ctrl+C)
 $ ix .              #execute entry.ix in the working directory
-$ ix . -r           #… then open a REPL session
 $ ix file.ix        #execute file.ix in the working directory
-$ ix file.ix -r     #… then open a REPL session
+$ ix -e "PI"        #execute provided string
+$ ix [args] -r      #… then open a REPL session
 
 $ ix i              #installs dependencies listed in deps.txt
 $ ix r              #remove dependencies listed in deps
@@ -588,6 +588,7 @@ etc
 ;  matching a predicate.
 (find-idx odd? [6 8 9 0])      → 2
 (find-idx (< 5) [2 3 4 5 6 7]) → 4
+(find-idx odd? [0 2 4])        → null
 
 ;Returns the number of vector items, string characters, or dictionary entries
 ;  matching a predicate.
@@ -761,9 +762,9 @@ etc
 (upper-case "hEllo") → "HELLO"
 (lower-case "HeLlO") → "hello"
 
-;Checks if a string is entirely upper- or lower-case
-(upper? "HELLO123") → true
-(lower? "hello123") → true
+;Checks if the first character of a string is upper- or lower-case
+(upper? "Hello123") → true
+(lower? "hELLO123") → true
 
 ;Checks if the first character of a string is a letter, digit,
 ;  whitespace (space, tab), or other (punctation)
@@ -898,21 +899,19 @@ etc
 ;Returns Insitux version as number
 (version) → 22****
 
-;Returns symbol name strings vector by definition order in the Insitux session,
-;  alternatively without built-in operations which cause side-effects
-(symbols)      → ["print" "print-str" "!" "=" …]
-(symbols true) → ["!" "!=" "&" "*" "**" "+" …]
+;Returns symbol name strings vector by definition order in the Insitux session
+(symbols) → ["print" "print-str" "!" "=" …]
 
 ;Evaluates a string as code, returning any values returned or null
 (eval "(+ 2 2)") → 4
 
 ;Returns arity, type, and other information about specified function
 (about +)
-→ {:name "+", :external? false, :minimum-arity 2, :in-types ["num"],
-   :out-types ["num"]}
+→ {:name "+", :external? false, :has-effects? false, :minimum-arity 2,
+   :in-types ["num"], :out-types ["num"], :mocked? false}
 (about "about")
-→ {:name "about", :external? false, :exact-arity 1, :in-types [["str" "func"]],
-   :out-types ["dict"], :mocked? false}
+→ {:name "about", :external? false, :has-effects? false, :exact-arity 1,
+   :in-types [["str" "func" "unm"]], :out-types ["dict"], :mocked? false}
 
 ;Resets an Insitux session back to how it started
 ;Note: safely position this in a program as it may cause Reference Errors
