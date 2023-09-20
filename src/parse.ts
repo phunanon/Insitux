@@ -291,10 +291,10 @@ function parseForm(
       }
     };
 
-    const needsCond = ["if", "if!", "when", "unless", "match", "satisfy"];
+    const needsCond = ["if", "if-not", "when", "unless", "match", "satisfy"];
     if (has(needsCond, op) && !len(nodes)) {
       return err("provide a condition");
-    } else if (op === "if" || op === "if!") {
+    } else if (op === "if" || op === "if-not") {
       if (len(nodes) === 1) {
         return err("provide at least one branch");
       } else if (len(nodes) > 3) {
@@ -303,8 +303,8 @@ function parseForm(
       const parsed = nodes.map(nodeParser);
       const [cond, branch1] = parsed;
       let branch2 = parsed[2];
-      const ifN = op === "if!" && [
-        <Ins>{ typ: "val", value: { t: "func", v: "!" }, errCtx },
+      const ifN = op === "if-not" && [
+        <Ins>{ typ: "val", value: { t: "func", v: "not" }, errCtx },
         <Ins>{ typ: "exe", value: 1, errCtx },
       ];
       if (!branch2) {
@@ -329,7 +329,7 @@ function parseForm(
         ...cond,
         ...(op === "unless"
           ? [
-              <Ins>{ typ: "val", value: { t: "func", v: "!" } },
+              <Ins>{ typ: "val", value: { t: "func", v: "not" } },
               <Ins>{ typ: "exe", value: 1 },
             ]
           : []),

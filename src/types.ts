@@ -136,10 +136,10 @@ export const ops: {
 } = {
   print: { returns: ["null"], hasEffects: true },
   "print-str": { returns: ["null"], hasEffects: true },
-  "!": { exactArity: 1, returns: ["bool"] },
+  not: { exactArity: 1, returns: ["bool"] },
   "=": { minArity: 2, returns: ["bool"] },
   "==": { minArity: 2 },
-  "!=": { minArity: 2, returns: ["bool"] },
+  "not=": { minArity: 2, returns: ["bool"] },
   "+": { minArity: 2, numeric: true },
   "-": { minArity: 2, numeric: true },
   "*": { minArity: 2, numeric: true },
@@ -531,7 +531,7 @@ export const ops: {
 };
 
 export const syntaxes = [
-  ...["function", "fn", "var", "let", "var!", "let!", "return", "if", "if!"],
+  ...["function", "fn", "var", "let", "var!", "let!", "return", "if", "if-not"],
   ...["when", "unless", "while", "loop", "for", "match", "satisfy"],
   ...["catch", "args", "E", "PI"],
 ];

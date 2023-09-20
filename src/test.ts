@@ -89,9 +89,9 @@ const tests: {
   {
     name: "Equalities",
     code: `[(= 1 2 1)
-            (!= 1 2 1)
+            (not= 1 2 1)
             (= "Hello" "hello")
-            (!= "world" "world")
+            (not= "world" "world")
             (= [0 [1]] [0 [1]])]`,
     out: `[false true false false true]`,
   },

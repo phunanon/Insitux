@@ -196,7 +196,7 @@ built-in operations each within an example, with results after a `→`.
   (print "hi")
   (print "bye"))
 → "bye"
-(if! true 1 2) → 2
+(if-not true 1 2) → 2
 etc
 
 ;Executes and returns arg[2x+2] where arg[2x+1] is equal to arg[0], else the
@@ -228,6 +228,12 @@ etc
   pos? "Greater than 0"
   "0 or below")
 → "Greater than 0"
+
+;Returns boolean negation of sole argument
+(not true)  → false
+(not 1)     → false
+(not false) → true
+(not null)  → true
 
 ;Tests each argument and returns true or false if all arguments are truthy
 ;Note: short-circuits evaluation after falsy argument
@@ -303,15 +309,15 @@ etc
 
 ;Various equality operators, which all accept two or more arguments
 ;Note: < > <= >= only compare numbers
-;Note: != will only check that each value is different from the next
-;Note: fast= fast!= fast< fast> fast<= fast>= are also available for two
+;Note: not= will only check that each value is different from the next
+;Note: fast= fastnot= fast< fast> fast<= fast>= are also available for two
 ;  arguments only
 (= 10 10)     → true
 (= :a :b)     → false
 (== 10 10)    → 10
 (== 10 11)    → null
-(!= 1 2 4 3)  → true
-(!= 1 1 2)    → false
+(not= 1 2 3)  → true
+(not= 1 1 2)  → false
 (< 1 2 3)     → true
 (> 10 5)      → true
 (<= 10 10 15) → true
@@ -1353,25 +1359,26 @@ vector item or string character is "destructured" into.
 
 ; Display the Mandelbrot fractal as ASCII
 (function mandelbrot width height depth
-  (.. str (for (fn xx yy
-    (let c_re (/ (* (- xx (/ width 2)) 4) width)
-         c_im (/ (* (- yy (/ height 2)) 4) width)
-         x 0 y 0 i 0)
-    (while (and (<= (+ (** x) (** y)) 4)
-                (< i depth))
-      (let x2 (+ c_re (- (** x) (** y)))
-           y  (+ c_im (* 2 x y))
-           x  x2
-           i  (inc i)))
-    (str ((zero? xx) "\n" "") (i "ABCDEFGHIJ ")))
-    (range width) (range height))))
+  (.. str 
+    (for yy (range height)
+         xx (range width)
+      (let c_re (/ (* (- xx (/ width 2)) 4) width)
+           c_im (/ (* (- yy (/ height 2)) 4) width)
+           x 0 y 0 i 0)
+      (while (and (<= (+ (** x) (** y)) 4)
+                  (< i depth))
+        (let x2 (+ c_re (- (** x) (** y)))
+             y  (+ c_im (* 2 x y))
+             x  x2
+             i  (inc i)))
+      (strn ((zero? xx) "\n") (i "ABCDEFGHIJ ")))))
 
 (mandelbrot 56 32 10)
 
 
 ; Convert nested arrays and dictionaries into HTML
 (function vec->html v
-  (if! (vec? v) (return v))
+  (if-not (vec? v) (return v))
   (let [tag attr] v
        from-key   @((key? %) (-> % str (skip 1)))
        has-attr   (dict? attr)
@@ -1432,3 +1439,4 @@ vector item or string character is "destructured" into.
 ⚠️ (= {:a 1 :b 2} {:b 2 :a 1}) -> false  
 ⚠️ syntax highlighter omits commas  
 ⚠️ ((let x) 1) x - doesn't work
+⚠️ ((fn x x) (let x 1))

@@ -1,4 +1,4 @@
-export const insituxVersion = 230920;
+export const insituxVersion = 230921;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -70,10 +70,10 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _vec(asArray(args[0]));
     case "bool":
       return _boo(asBoo(args[0]));
-    case "!":
+    case "not":
       return _boo(!asBoo(args[0]));
     case "=":
-    case "!=":
+    case "not=":
       for (let i = 1, lim = len(args); i < lim; ++i) {
         if (isEqual(args[i - 1], args[i]) !== (op === "=")) {
           return _boo(false);
