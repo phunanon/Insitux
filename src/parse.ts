@@ -346,26 +346,26 @@ function parseForm(
       if (!len(args)) {
         return err("provide at least one case");
       }
-      const elseLen = len(otherwise);
-      let insCount =
-        args.reduce((acc, a) => acc + len(a), 0) +
-        (elseLen ? elseLen : 2) +
-        len(args) +
-        1; //cond pop
       const ins: ParserIns[] = cond;
-      while (len(args) > 1) {
-        const [a, when] = [args.shift()!, args.shift()!];
+      for (let i = 0, max = len(args) - 1; i < max; i += 2) {
+        const [a, when] = [args[i], args[i + 1]];
         push(ins, a);
         ins.push({ typ: opIns, value: len(when) + 1, errCtx: a[0].errCtx });
         push(ins, when);
-        insCount -= len(a) + len(when) + 2;
-        ins.push({ typ: "jmp", value: insCount, errCtx });
+        ins.push({ typ: "jmp", value: 0, errCtx });
       }
       ins.push({ typ: "pop", value: 1, errCtx });
       if (len(otherwise)) {
         push(ins, otherwise);
       } else {
         ins.push({ typ: "val", value: falseVal, errCtx });
+      }
+      //Calculate jmp-to-ends
+      for (let i = 0, max = len(ins); i < max; ++i) {
+        const next = ins[i];
+        if (next.typ === 'jmp' && !next.value) {
+          next.value = (max - i) - 1;
+        }
       }
       return ins;
     } else if (op === "catch") {

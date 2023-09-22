@@ -201,7 +201,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
         const oldFuncs = ctx.functions;
         delete ctx.env.funcs["entry"];
         ctx.functions = makeFunctions(dirname(path));
-        const { result, output } = invoker(ctx, code, path, false);
+        const { result, output } = invoker(ctx, code, path, [], false);
         ctx.functions = oldFuncs;
         if ("kind" in result && result.kind === "errors") {
           printErrorOutput(output);
@@ -486,12 +486,23 @@ async function processCliArguments(args: string[]) {
 
   colourMode = false;
 
+  const programArgs: string[] = [];
+  if (args.includes("--")) {
+    const programArgsIdx = args.indexOf("--");
+    programArgs.push(...args.slice(programArgsIdx + 1));
+    args = args.slice(0, programArgsIdx);
+  }
+  const params = programArgs.map(_str);
+
   const executeInline = args.includes("-e");
   const openReplAfter = !executeInline && args.includes("-r");
   const parts = openReplAfter ? args.filter(a => a !== "-r") : args;
 
   const matchParts = (b: RegExp[]) =>
     parts.length === b.length && parts.every((part, i) => b[i]?.test(part));
+
+  const invoke = (code: string, id = code) =>
+    printErrorOutput(invoker(ctx, code, id, params).output);
 
   const [arg0, arg1, arg2] = parts;
   if (["help", "-h"].includes(arg0)) {
@@ -503,7 +514,7 @@ async function processCliArguments(args: string[]) {
       console.error("Code after -e was not provided.");
     } else {
       const code = args[switchIndex + 1];
-      printErrorOutput(invoker(ctx, code, code).output);
+      invoke(code);
     }
   } else if (matchParts([/^\.$/])) {
     //Execute entry.ix in working directory
@@ -512,7 +523,7 @@ async function processCliArguments(args: string[]) {
       console.log("entry.ix does not exist in this directory.");
     } else {
       const code = readFileSync(path).toString();
-      printErrorOutput(invoker(ctx, code, path).output);
+      invoke(code, path);
     }
   } else if (matchParts([/^i$/, githubRegex])) {
     //Install dependency via Github
@@ -541,7 +552,7 @@ async function processCliArguments(args: string[]) {
         console.log(`${path} not found - ignored.`);
       } else {
         const code = readFileSync(path).toString();
-        printErrorOutput(invoker(ctx, code, path).output);
+        invoke(code, path);
       }
     }
   }
@@ -568,6 +579,7 @@ function startRepl() {
       ? readFileSync(".repl-history.txt").toString().split("\n").reverse()
       : [],
   });
+  const params: Val[] = [];
 
   rl.on("line", line => {
     lines.push(line);
@@ -582,7 +594,14 @@ function startRepl() {
         return;
       }
       if (input.trim()) {
-        printErrorOutput(invoker(ctx, input).output);
+        const { output, result } = invoker(ctx, input, undefined, params);
+        if (!("kind" in result)) {
+          params.unshift(result);
+          if (params.length > 8) {
+            params.pop();
+          }
+        }
+        printErrorOutput(output);
       }
       rl.setPrompt("❯ ");
     } else {

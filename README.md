@@ -34,6 +34,7 @@ Inspired by [Chika](https://github.com/phunanon/Chika),
 Works in Node, the web, and Roblox.
 
 ## Node CLI tool usage & installation
+
 Requires [Node](https://nodejs.org/en/download/).
 ```console
 $ alias ix="npx insitux"  #make `ix` available for your bash session
@@ -44,6 +45,7 @@ $ ix .              #execute entry.ix in the working directory
 $ ix file.ix        #execute file.ix in the working directory
 $ ix -e "PI"        #execute provided string
 $ ix [args] -r      #… then open a REPL session
+$ ix [...] -- [...] #seperation between ix args and program args (e.g. %0)
 
 $ ix i              #installs dependencies listed in deps.txt
 $ ix r              #remove dependencies listed in deps
@@ -55,6 +57,11 @@ $ ix r alias        #… and subsequently remove
 If you have Visual Studio Code, install the syntax highlighter!
 $ code --install-extension insitux.insitux-syntax
 ```
+
+- If present, `.repl.ix` will be automatically executed whenever `ix` runs
+- Example of `--` switch: `ix -e "%" -- hi` prints `hi`
+- The REPL will remember previous REPL results, available as % through to %7
+
 ### `ix` environment operations
 
 The Node Insitux REPL/environment has operations in addition to pure Insitux.

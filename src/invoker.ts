@@ -15,11 +15,12 @@ export function invoker(
   ctx: Ctx,
   code: string,
   id?: string,
+  params: Val[] = [],
   printResult = true,
 ): { output: InvokeOutput; result: InvokeResult } {
   id = id ? `-${id}` : `${getTimeMs()}`;
   invocations.set(id, code);
-  const result = invoke(ctx, code, id, printResult);
+  const result = invoke(ctx, code, id, printResult, params);
   return { output: invokeResultToOutput(result), result };
 }
 
