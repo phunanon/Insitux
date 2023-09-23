@@ -494,51 +494,54 @@ async function processCliArguments(args: string[]) {
   }
   const params = programArgs.map(_str);
 
-  const executeInline = args.includes("-e");
-  const openReplAfter = !executeInline && args.includes("-r");
-  const parts = openReplAfter ? args.filter(a => a !== "-r") : args;
+  let executeInline = "";
+  const executeInlineIdx = args.indexOf("-e");
+  if (executeInlineIdx !== -1) {
+    if (executeInlineIdx + 1 === args.length) {
+      console.error(
+        "Argument after -e (the code to be executed inline) was not provided.",
+      );
+    } else {
+      executeInline = args[executeInlineIdx + 1];
+      args.splice(executeInlineIdx, 2);
+    }
+  }
 
-  const matchParts = (b: RegExp[]) =>
-    parts.length === b.length && parts.every((part, i) => b[i]?.test(part));
+  let openReplAfter = false;
+  const openReplAfterIdx = args.indexOf("-r");
+  if (openReplAfterIdx !== -1) {
+    openReplAfter = true;
+    args.splice(openReplAfterIdx, 1);
+  }
+
+  const matchArgs = (b: RegExp[]) =>
+    args.length === b.length && args.every((arg, i) => b[i]?.test(arg));
 
   const invoke = (code: string, id = code) =>
     printErrorOutput(invoker(ctx, code, id, params).output);
 
-  const [arg0, arg1, arg2] = parts;
+  if (matchArgs([/^\.$/])) {
+    args[0] = "entry.ix";
+  }
+
+  const [arg0, arg1, arg2] = args;
   if (["help", "-h"].includes(arg0)) {
     console.log(helpText);
     exit();
-  } else if (executeInline) {
-    const switchIndex = args.findIndex(x => x === "-e");
-    if (switchIndex + 1 === args.length) {
-      console.error("Code after -e was not provided.");
-    } else {
-      const code = args[switchIndex + 1];
-      invoke(code);
-    }
-  } else if (matchParts([/^\.$/])) {
-    //Execute entry.ix in working directory
-    const path = "entry.ix";
-    if (!existsSync(path)) {
-      console.log("entry.ix does not exist in this directory.");
-    } else {
-      const code = readFileSync(path).toString();
-      invoke(code, path);
-    }
-  } else if (matchParts([/^i$/, githubRegex])) {
+  } else if (matchArgs([/^i$/, githubRegex])) {
     //Install dependency via Github
     await dependencyResolve({ kind: "Github install", repo: arg1 });
-  } else if (matchParts([/^i$/, /.+/, /https*:/])) {
+  } else if (matchArgs([/^i$/, /.+/, /https*:/])) {
     //Install dependency via HTTP
     exitIfBadAlias(arg1);
     await dependencyResolve({ kind: "http install", url: arg2, alias: arg1 });
   } else if (arg0 === "i") {
     await depsFileAction("install");
     exit();
-  } else if (matchParts([/^r$/, githubRegex])) {
+  } else if (matchArgs([/^r$/, githubRegex])) {
     //Remove Github dependency
     await dependencyResolve({ kind: "Github remove", repo: arg1 });
-  } else if (matchParts([/^r$/, /.+/])) {
+  } else if (matchArgs([/^r$/, /.+/])) {
     //Remove aliased dependency
     exitIfBadAlias(arg1);
     await dependencyResolve({ kind: "alias remove", alias: arg1 });
@@ -547,13 +550,17 @@ async function processCliArguments(args: string[]) {
     exit();
   } else {
     //Execute files
-    for (const path of parts) {
+    for (const path of args) {
       if (!existsSync(path)) {
         console.log(`${path} not found - ignored.`);
       } else {
         const code = readFileSync(path).toString();
         invoke(code, path);
       }
+    }
+    //Execute optional inline
+    if (executeInline) {
+      invoke(executeInline);
     }
   }
 

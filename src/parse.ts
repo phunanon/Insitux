@@ -363,8 +363,8 @@ function parseForm(
       //Calculate jmp-to-ends
       for (let i = 0, max = len(ins); i < max; ++i) {
         const next = ins[i];
-        if (next.typ === 'jmp' && !next.value) {
-          next.value = (max - i) - 1;
+        if (next.typ === "jmp" && !next.value) {
+          next.value = max - i - 1;
         }
       }
       return ins;
@@ -547,7 +547,10 @@ function parseForm(
       const defAndVals: DefAndValIns[] = [];
       let bodyAt = 0;
       for (let n = 0, lim = len(nodes); n < lim; ++n) {
-        if (n === lim - 1 || !isToken(nodes[n])) {
+        if (
+          n === lim - 1 ||
+          (!isToken(nodes[n]) && symAt(nodes[n]) !== "vec")
+        ) {
           bodyAt = n;
           break;
         }

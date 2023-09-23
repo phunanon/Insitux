@@ -158,6 +158,11 @@ const tests: {
     out: `[0 1]`,
   },
   {
+    name: "For destructure",
+    code: `(for [x y] [[1 2]] [x y])`,
+    out: `[[1 2]]`
+  },
+  {
     name: "Filter by integer",
     code: `(filter 2 [[1] [:a :b :c] "hello" "hi"])`,
     out: `[[:a :b :c] "hello"]`,

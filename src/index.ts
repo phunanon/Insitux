@@ -1,4 +1,4 @@
-export const insituxVersion = 230922;
+export const insituxVersion = 230923;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -993,8 +993,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "lower?": {
       const s = str(args[0]);
       const code = charCode(s);
-      if (op === 'upper?') {
-        return _boo(code >= 65 && code < 91); 
+      if (op === "upper?") {
+        return _boo(code >= 65 && code < 91);
       }
       return _boo(code >= 97 && code < 123);
     }
@@ -1366,12 +1366,12 @@ function exeFunc(
   ctx: Ctx,
   func: Func,
   args: Val[],
-  sharedLets: boolean,
+  closureOrFor: boolean,
 ): Val | Val[] {
   --ctx.callBudget;
   const prevLets = lets;
   let myLets: { [key: string]: Val } = {};
-  if (!sharedLets) {
+  if (!closureOrFor) {
     lets = myLets;
   }
   const stack: Val[] = [];
@@ -1534,7 +1534,9 @@ function exeFunc(
           stack.push(_nul());
         }
         i = lim;
-        forState = "ret";
+        if (closureOrFor) {
+          forState = "ret";
+        }
         break;
       case "clo": {
         //Ensure any in-scope declarations are captured here
@@ -1656,7 +1658,7 @@ function exeFunc(
     }
   }
   lets = prevLets;
-  if (sharedLets) {
+  if (closureOrFor) {
     return stack;
   }
   return stack[len(stack) - 1];

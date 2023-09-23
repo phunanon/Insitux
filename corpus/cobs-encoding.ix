@@ -1,0 +1,36 @@
+(function COBS unencoded
+  (let chunk   (take-until [0] unencoded)
+       length  (len chunk)
+       encoded (append (first 254 chunk) (or %1 []))
+       more?   (< length (len unencoded)))
+  (if (or (and (= length 254) more?) (> length 254))
+    (recur (skip 254 unencoded) encoded)
+    (if more?
+      (recur (skip (inc length) unencoded) encoded)
+      (append 0 (flat-map @(.. vec (inc (len %))) encoded)))))
+
+; A more compact but probably wobbly version:
+; (function COBS unencoded
+;   (let chunk (take-until [0] unencoded)
+;        [c-len u-len] (proj len chunk unencoded)
+;        encoded (append (first 254 chunk) (or %1 [])))
+;   (if (<= 253 c-len 255 u-len)
+;     (recur (skip 254 unencoded) encoded)
+;     (if (< c-len u-len)
+;       (recur (skip (inc c-len) unencoded) encoded)
+;       (append 0 (flat-map @(.. vec (inc (len %))) encoded)))))
+
+(for [a b] [
+    [[0x00] [0x01 0x01 0x00]]
+    [[0x00 0x00] [0x01 0x01 0x01 0x00]]
+    [[0x00 0x11 0x00] [0x01 0x02 0x11 0x01 0x00]]
+    [[0x11 0x22 0x00 0x33] [0x03 0x11 0x22 0x02 0x33 0x00]]
+    [[0x11 0x22 0x33 0x44] [0x05 0x11 0x22 0x33 0x44 0x00]]
+    [[0x11 0x00 0x00 0x00] [0x02 0x11 0x01 0x01 0x01 0x00]]
+    [(range 1 255) (.. vec 0xFF (range 1 255) 0x00)]
+    [(range 255) (.. vec 0x01 0xFF (range 1 255) 0x00)]
+    [(range 1 256) (.. vec 0xFF (range 1 255) 0x02 0xFF 0x00)]
+    [(.. vec (range 2 256) 0x00) (.. vec 0xFF (range 2 256) 0x01 0x01 0x00)]
+    [(.. vec (range 3 256) 0x00 0x01) (.. vec 0xFE (range 3 256) 0x02 0x01 0x00)]
+  ]
+  (assert (= (COBS a) b)))
