@@ -620,9 +620,12 @@ etc
 etc
 
 ;Returns a boolean on whether the vector, string, or dictionary is empty
-(empty? []) → true
-(empty? {}) → true
-(empty? "") → true
+(empty? [])        → true
+(empty? {})        → true
+(empty? "")        → true
+(nonempty? [])     → false
+(nonempty? {:a 1}) → true
+(nonempty? "hi")   → true
 
 ;Returns a boolean on whether all vector items, dictionary entries, or string
 ;  characters satisfy a predicate 
@@ -630,6 +633,13 @@ etc
 (all? even? (range 0 10 2)) → true
 (all? ["a" "b"] "ababaaba") → true
 (all? #(% 1) {:a 1 :b 1})   → true
+
+;Returns boolean of whether any vector items, dictionary entries, or string
+;  characters match the predicate
+(some? odd? [0 1 2 3])  → true
+(some? digit? "Hello!") → false
+(none? odd? [0 2 4 6])  → true
+(none? digit? "Hello1") → false
 
 ;Returns a vector of either a function called N times with the incrementation,
 ; or a value repeated N times

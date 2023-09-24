@@ -1,4 +1,4 @@
-export const insituxVersion = 230923;
+export const insituxVersion = 230924;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -430,7 +430,9 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "find":
     case "find-idx":
     case "count":
-    case "all?": {
+    case "all?":
+    case "some?":
+    case "none?": {
       const closure = getExe(ctx, args.shift()!, errCtx);
 
       if (op === "map" || op === "flat-map") {
@@ -458,22 +460,21 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         const array = asArray(args[0]);
         const isRemove = op === "remove",
           isFind = op === "find" || op === "find-idx",
-          isCount = op === "count",
-          isAll = op === "all?";
+          isCount = op === "count";
         const filtered: Val[] = [];
         let count = 0;
         for (let i = 0, lim = len(array); i < lim; ++i) {
           const b = asBoo(closure([array[i]]));
-          if (isAll) {
-            if (!b) {
-              return _boo(false);
-            }
+          if (op === "all?") {
+            if (!b) return _boo(false);
+          } else if (op === "some?") {
+            if (b) return _boo(true);
+          } else if (op === "none?") {
+            if (b) return _boo(false);
           } else if (isCount) {
             count += b ? 1 : 0;
           } else if (isFind) {
-            if (b) {
-              return op === "find" ? array[i] : _num(i);
-            }
+            if (b) return op === "find" ? array[i] : _num(i);
           } else if (b !== isRemove) {
             filtered.push(array[i]);
           }
@@ -485,7 +486,10 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
           case "find-idx":
             return _nul();
           case "all?":
+          case "none?":
             return _boo(true);
+          case "some?":
+            return _boo(false);
         }
         if (args[0].t === "str") {
           return _str(filtered.map(v => val2str(v)).join(""));
@@ -558,7 +562,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return coll[bestIdx];
     }
     case "empty?":
-      return _boo(!len(asArray(args[0])));
+    case "nonempty?":
+      return _boo((op === "empty?") === !len(asArray(args[0])));
     case "take-while":
     case "take-until":
     case "skip-while":

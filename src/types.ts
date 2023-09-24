@@ -334,7 +334,22 @@ export const ops: {
     params: [["str", "vec", "dict"]],
     returns: ["bool"],
   },
+  "nonempty?": {
+    exactArity: 1,
+    params: [["str", "vec", "dict"]],
+    returns: ["bool"],
+  },
   "all?": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["bool"],
+  },
+  "some?": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["bool"],
+  },
+  "none?": {
     exactArity: 2,
     params: ["any", ["vec", "dict", "str"]],
     returns: ["bool"],
