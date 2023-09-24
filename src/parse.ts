@@ -392,6 +392,14 @@ function parseForm(
         ins.push({ typ: "pop", value: 1, errCtx });
         push(ins, flatBody);
         ins.push({ typ: "loo", value: looJmp, errCtx });
+        //Replace break/continue with calculated jumps
+        for (let i = 0, max = len(ins); i < max; ++i) {
+          if (ins[i].typ === "brk") {
+            ins[i] = { typ: "jmp", value: max - i - 1, errCtx };
+          } else if (ins[i].typ === "cnt") {
+            ins[i] = { typ: "jmp", value: -i, errCtx };
+          }
+        }
         return ins;
       }
       let insCount = args.reduce((acc, a) => acc + len(a), 0);

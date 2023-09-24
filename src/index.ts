@@ -1,4 +1,4 @@
-export const insituxVersion = 230924;
+export const insituxVersion = 230925;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -1652,7 +1652,7 @@ function exeFunc(
       case "brk":
       case "cnt":
         if (forState !== "for") {
-          const m = "can only use break and continue in a for loop";
+          const m = "can only use break and continue in a for or while loop";
           return _throw([{ e: "For", m, errCtx }]);
         }
         forState = ins.typ;

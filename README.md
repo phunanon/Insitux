@@ -462,7 +462,6 @@ etc
 ;  re-evaluated upon each first iteration of them, returning a vector of
 ;  returns
 ;Note: declarations are let-scoped
-;Note: declarations also have e.g. x-index
 (for x [0 1 2 3] (* x 10))
 → [0 10 20 30]
 (for x [1 2 3]
@@ -509,6 +508,12 @@ etc
 → 012345
 (while false 0)
 → null
+(while true
+  (let x (rand-int 100))
+  (when (> x 10) (continue))
+  (print x)
+  (when (= x 10) (break)))
+→ prints random values 10 and below until 10
 
 ;Loops its body N times, the first expression evaluated for N,
 ;  the second argument being a let name set to the current loop number.
@@ -1272,7 +1277,7 @@ vector item or string character is "destructured" into.
 
 
 ; Triple every vector item, four different ways
-(for * [0 1 2 3 4] [3])
+(for x [0 1 2 3 4] (* x 3))
 (map #(* 3 %) [0 1 2 3 4])
 (map @(* 3) [0 1 2 3 4])
 (map (* 3) [0 1 2 3 4])
