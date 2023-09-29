@@ -53,7 +53,7 @@
 
 (function render-board again?
   (let segment (juxt (first 4) (crop 4 2) (last 2))
-       reverses (pos-juxt reverse val reverse)
+       reverses (adj reverse val reverse)
        prepare #(reverses (segment %))
        ;Slice and orient the player's positions for rendering
        [[a1 a2 a3] [b1 b2 b3]] (map prepare positions)
@@ -80,7 +80,7 @@
 (function move player which by
   ;Calculate old position, new position, and if stones are already there
   (let other-p  (abs (dec player))
-       old-pos  (idx which (player positions))
+       old-pos  (idx (player positions) which)
        new-pos  (+ (or old-pos -1) by)
        at-new   (-> positions player new-pos)
        at-other (-> positions other-p new-pos))
@@ -165,7 +165,7 @@ See the source code for this app:
   (let move-by   (.. + dice)
        is-p0     (substr? cmd "1234567"))
 
-  (when (!= is-p0 (= turn 0))
+  (when (not= is-p0 (= turn 0))
     (print "🙅‍♀️ It's not your turn")
     (return (render-board)))
 
@@ -178,7 +178,7 @@ See the source code for this app:
 
   ;Roll dice for next player
   (var dice (roll) prev-turn turn)
-  (when (!= result :again)
+  (when (not= result :again)
     (next-turn))
 
   ;Keep rolling until non-zero

@@ -23,7 +23,7 @@
   (reduce reducer [[]] parts))
 
 (function 4th code
-  (when (empty? code) (return stack))
+  (return-when (empty? code) stack)
 
   (let parts (if (vec? code) code (-> code (replace "\n" " ") (split " ")))
        parts (map @(or (to-num %)) parts))
@@ -32,7 +32,7 @@
   (let groups   (split-parts parts)
        defs     (skip-each 1 (skip 1 groups))
        sentence (flatten (skip-each 1 groups)))
-  (loop-over defs def
+  (for def defs
     (var! words assoc (0 def) (skip 1 def)))
 
   ;Print new word definitions
@@ -42,7 +42,7 @@
     (unless (empty? defs) (print names)))
 
   (let if-depth 0)
-  (loop-over sentence word
+  (for word sentence
     (if (< 0 if-depth)
       (do (let! if-depth (match word "if" inc "else" dec "then" dec val))
           stack)
@@ -70,7 +70,8 @@
             (append (crop 1 1 word) stack)
           (criteria str? (starts? "'"))
             (append (skip 1 word) stack)
-          (append word stack))))))
+          (append word stack)))))
+  stack)
 
 (print "pick pop")
 (while (let input (prompt "> "))

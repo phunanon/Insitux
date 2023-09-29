@@ -44,8 +44,10 @@ $ ix                #open a REPL session (exit with Ctrl+D or Ctrl+C)
 $ ix .              #execute entry.ix in the working directory
 $ ix file.ix        #execute file.ix in the working directory
 $ ix -e "PI"        #execute provided string
+$ ix -b             #disable REPL budgets (loops, recur, etc)
 $ ix [args] -r      #… then open a REPL session
 $ ix [...] -- [...] #seperation between ix args and program args (e.g. %0)
+Most arguments/switches can be mixed with one another.
 
 $ ix i              #installs dependencies listed in deps.txt
 $ ix r              #remove dependencies listed in deps
@@ -673,9 +675,11 @@ etc
 (sample 5 (range 10)) → [5 1 0 7 8]
 (-> 100 range (sample 50) distinct len) → 50
 
-;Returns a random item from a vector
+;Returns a random item from a vector, string, or dictionary
 (rand-pick [0 1 2 3 4 5]) → 3
 (rand-pick [])            → null
+(rand-pick "hello")       → "l"
+(rand-pick {:a 1 :b 2})   → [:a 1]
 
 ;Returns a vector of vector items or string characters sorted
 ;Note: will only sort all number or all string
@@ -805,12 +809,14 @@ etc
 ;Note: has a maximum of 1000
 (str* "x" 6) → "xxxxxx"
 
-;Returns a string or number padded to a particular length
+;Returns a strigified value padded to a particular length
 ;Note: has a maximum of 1000
 (pad-left " " 10 "hello")  → "     hello"
 (pad-right "." 10 "hello") → "hello....."
 (pad-left "x" 5 "Hello!")  → "Hello!"
 (pad-left " " 5 10)        → "   10"
+(pad-right "." 10 {:a 1})  → "{:a 1}...."
+etc
 
 ;Returns the code associated with a string's first or Nth character, or null
 ;Or returns a string with the associated supplied character code
@@ -1461,4 +1467,3 @@ vector item or string character is "destructured" into.
 ⚠️ (= {:a 1 :b 2} {:b 2 :a 1}) -> false  
 ⚠️ syntax highlighter omits commas  
 ⚠️ ((let x) 1) x - doesn't work
-⚠️ ((fn x x) (let x 1))

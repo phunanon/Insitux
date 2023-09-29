@@ -101,6 +101,11 @@ export function tokenise(
       }
       continue;
     }
+    if (inString && c === "\n") {
+      ++line;
+      col = 0;
+      continue;
+    }
     if (!inString && c === ";") {
       const nl = subIdx(substr(code, ++i), "\n");
       const text = substr(code, i, nl > 0 ? nl : l - i);
@@ -158,7 +163,12 @@ function treeise(tokens: Token[]): Node[] {
   const nodes: Node[] = [];
   const _treeise = (tokens: Token[]): Node => {
     let prefix: Token | undefined;
-    if (tokens[0].typ === "sym" && sub("@#", tokens[0].text)) {
+    if (
+      len(tokens) > 1 &&
+      tokens[0].typ === "sym" &&
+      sub("@#", tokens[0].text) &&
+      tokens[1].typ === "("
+    ) {
       prefix = tokens.shift()!;
     }
     const token = tokens.shift();
@@ -223,8 +233,9 @@ function parseForm(
   if (!len(nodes)) {
     return [];
   }
+  const formParams = slice(params);
 
-  const nodeParser = (node: Node) => parseNode(node, params);
+  const nodeParser = (node: Node) => parseNode(node, formParams);
   let firstNode = nodes.shift()!;
   let head = nodeParser(firstNode);
   const { errCtx } = head[0];
@@ -264,6 +275,15 @@ function parseForm(
       }
       if (isToken(def)) {
         const [defIns] = nodeParser(def);
+        if (defIns.typ === "val" && defIns.value.t === "wild") {
+          return { val: okValIns, def: { typ: op, value: "_", errCtx } };
+        }
+        if (defIns.typ === "val" && defIns.value.t === "str") {
+          return err(
+            `${op} name must be a symbol, not a literal string`,
+            defIns.errCtx,
+          );
+        }
         if (defIns.typ === "ref") {
           if (has(syntaxes, defIns.value)) {
             return err(`"${defIns.value}" cannot be redefined: already exists`);
@@ -499,7 +519,7 @@ function parseForm(
       const pins: ParserIns[] = [];
       const name = node2str([firstNode, ...nodes]);
       const cloParams: string[] = [];
-      const outerParams = slice(params).map(p => p.name);
+      const outerParams = formParams.map(p => p.name);
       let monoFnBody = false;
       if (op === "fn") {
         const parsedParams = parseParams(nodes, false);
@@ -507,7 +527,7 @@ function parseForm(
           cloParams,
           parsedParams.shape.map(p => p.name),
         );
-        push(params, parsedParams.shape);
+        push(formParams, parsedParams.shape);
         push(pins, parsedParams.errors);
         if (!len(nodes)) {
           return err("provide a body");
@@ -531,7 +551,7 @@ function parseForm(
           { typ: "sym", text: "args", errCtx },
         ];
       }
-      push(pins, parseForm(nodes, params, op !== "@"));
+      push(pins, parseForm(nodes, formParams, op !== "@"));
       const cins = <Ins[]>pins.filter(i => i.typ !== "err");
       const errors = pins.filter(i => i.typ === "err");
       if (len(errors)) {
@@ -549,7 +569,7 @@ function parseForm(
         return err(`missing body`, errCtx);
       }
       const newNodes = nodes.reduce((acc, node) => [node, acc]) as Node[];
-      const parsed = parseForm(newNodes, params);
+      const parsed = parseForm(newNodes, formParams);
       return parsed;
     } else if (op === "for") {
       const defAndVals: DefAndValIns[] = [];
@@ -720,7 +740,7 @@ function parseParams(
       const { typ, errCtx } = param;
       if (typ === "sym") {
         shape.push({ name: param.text, position: [...position, n] });
-      } else {
+      } else if (typ !== "str") {
         errs.push({ typ: "err", value: "provide parameter name", errCtx });
       }
     }

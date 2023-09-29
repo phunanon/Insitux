@@ -161,7 +161,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
       definition: {
         exactArity: 1,
         params: ["str"],
-        returns: ["str"],
+        returns: ["str", "null"],
         hasEffects: true,
       },
       handler: params => jsToIx(prompt()(<string>params[0].v)),
@@ -466,7 +466,10 @@ $ ix                #open a REPL session (exit with Ctrl+D or Ctrl+C)
 $ ix .              #execute entry.ix in the working directory
 $ ix file.ix        #execute file.ix in the working directory
 $ ix -e "PI"        #execute provided string
+$ ix -b             #disable REPL budgets (loops, recur, etc)
 $ ix [args] -r      #… then open a REPL session
+$ ix [...] -- [...] #seperation between ix args and program args (e.g. %0)
+Most arguments/switches can be mixed with one another.
 
 $ ix i              #installs dependencies listed in deps.txt
 $ ix r              #remove dependencies listed in deps
@@ -477,6 +480,16 @@ $ ix r alias        #remove file downloaded earlier over HTTP by alias
 
 If you have Visual Studio Code, install the syntax highlighter!
 $ code --install-extension insitux.insitux-syntax`;
+
+const extractSwitch = (args: string[], arg: string) => {
+  let on = false;
+  const idx = args.indexOf(arg);
+  if (idx !== -1) {
+    on = true;
+    args.splice(idx, 1);
+  }
+  return on;
+};
 
 async function processCliArguments(args: string[]) {
   if (!args.length) {
@@ -507,11 +520,17 @@ async function processCliArguments(args: string[]) {
     }
   }
 
-  let openReplAfter = false;
-  const openReplAfterIdx = args.indexOf("-r");
-  if (openReplAfterIdx !== -1) {
-    openReplAfter = true;
-    args.splice(openReplAfterIdx, 1);
+  const openReplAfter = extractSwitch(args, "-r");
+  const disableBudgets = extractSwitch(args, "-b");
+
+  if (disableBudgets) {
+    ctx.callBudget = Infinity;
+    ctx.loopBudget = Infinity;
+    ctx.rangeBudget = Infinity;
+    ctx.recurBudget = Infinity;
+    if (!args.length) {
+      startRepl();
+    }
   }
 
   const matchArgs = (b: RegExp[]) =>
@@ -560,13 +579,23 @@ async function processCliArguments(args: string[]) {
     }
     //Execute optional inline
     if (executeInline) {
-      invoke(executeInline);
+      invoke(executeInline, "inline code");
     }
   }
 
   if (openReplAfter) {
     colourMode = true;
     startRepl();
+  }
+}
+
+function readHistory() {
+  try {
+    return existsSync(".repl-history.txt")
+      ? readFileSync(".repl-history.txt").toString().split("\n").reverse()
+      : [];
+  } catch (e) {
+    return [];
   }
 }
 
@@ -577,14 +606,14 @@ function startRepl() {
     printErrorOutput(invoker(ctx, readFileSync(".repl.ix").toString()).output);
   }
 
+  const history = readHistory();
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
     prompt: "❯ ",
     completer,
-    history: existsSync(".repl-history.txt")
-      ? readFileSync(".repl-history.txt").toString().split("\n").reverse()
-      : [],
+    history,
   });
   const params: Val[] = [];
 
@@ -593,7 +622,9 @@ function startRepl() {
     const input = lines.join("\n");
     if (haveFinishedEntry(input)) {
       if (lines.length === 1) {
-        appendFileSync(".repl-history.txt", `\n${input}`);
+        try {
+          appendFileSync(".repl-history.txt", `\n${input}`);
+        } catch (e) {}
       }
       lines = [];
       if (input === "quit") {

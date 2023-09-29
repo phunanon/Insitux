@@ -8,7 +8,7 @@ export const splice = <T>(arr: T[], start: number, numDel?: number): T[] =>
 export const len = <T>(arr: T[]): number => arr.length;
 export const slen = (str: string): number => str.length;
 export const isNum = (x: unknown): x is number =>
-  x !== "" && !Number.isNaN(Number(x));
+  x !== "" && x !== null && !Number.isNaN(Number(x));
 export const isArray = <T>(x: unknown): x is T[] => Array.isArray(x);
 export const substr = (str: string, start: number, length?: number): string =>
   str.substring(start, start + (length ?? str.length));

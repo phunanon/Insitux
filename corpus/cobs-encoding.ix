@@ -3,22 +3,10 @@
        length  (len chunk)
        encoded (append (first 254 chunk) (or %1 []))
        more?   (< length (len unencoded)))
-  (if (or (and (= length 254) more?) (> length 254))
-    (recur (skip 254 unencoded) encoded)
-    (if more?
-      (recur (skip (inc length) unencoded) encoded)
-      (append 0 (flat-map @(.. vec (inc (len %))) encoded)))))
+  (when (or (< 254 length) (and (= length 254) more?) more?)
+    (recur (skip (min 254 (inc length)) unencoded) encoded))
+  (append 0 (flat-map @(.. vec (inc (len %))) encoded)))
 
-; A more compact but probably wobbly version:
-; (function COBS unencoded
-;   (let chunk (take-until [0] unencoded)
-;        [c-len u-len] (proj len chunk unencoded)
-;        encoded (append (first 254 chunk) (or %1 [])))
-;   (if (<= 253 c-len 255 u-len)
-;     (recur (skip 254 unencoded) encoded)
-;     (if (< c-len u-len)
-;       (recur (skip (inc c-len) unencoded) encoded)
-;       (append 0 (flat-map @(.. vec (inc (len %))) encoded)))))
 
 (for [a b] [
     [[0x00] [0x01 0x01 0x00]]

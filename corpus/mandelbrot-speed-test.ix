@@ -1,16 +1,17 @@
 (function mandelbrot width height depth
-  (.. str (for #(do
-    (let c_re (/ (* (- % (/ width 2)) 4) width)
-         c_im (/ (* (- %1 (/ height 2)) 4) width))
-    (let x 0 y 0 i 0)
-    (while (and (<= (+ (** x) (** y)) 4)
-                (< i depth))
-      (let x2 (+ (- (** x) (** y)) c_re)
-           y  (+ (* 2 x y) c_im)
-           x  x2
-           i  (inc i)))
-    (str ((zero? %) "\n" "") (i "ABCDEFGHIJ ")))
-    (range width) (range height))))
+  (.. str 
+    (for yy (range height)
+         xx (range width)
+      (let c_re (/ (* (- xx (/ width 2)) 4) width)
+           c_im (/ (* (- yy (/ height 2)) 4) width)
+           x 0 y 0 i 0)
+      (while (and (<= (+ (** x) (** y)) 4)
+                  (< i depth))
+        (let x2 (+ c_re (- (** x) (** y)))
+             y  (+ c_im (* 2 x y))
+             x  x2
+             i  (inc i)))
+      (strn ((zero? xx) "\n") (i "ABCDEFGHIJ ")))))
 
 
 (var results [])
@@ -18,7 +19,7 @@
 (function best-avg
   (when (< (len results) 2)
     (return (0 results)))
-  (let tops (sect (sort results) 0 top))
+  (let tops (first top (sort results)))
   (floor (/ (.. + tops) (len tops))))
 
 (function measure n

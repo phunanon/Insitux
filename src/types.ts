@@ -436,7 +436,7 @@ export const ops: {
   flatten: { exactArity: 1, params: ["vec"], returns: ["vec"] },
   shuffle: { exactArity: 1, params: ["vec"], returns: ["vec"] },
   sample: { exactArity: 2, params: ["num", "vec"], returns: ["vec"] },
-  "rand-pick": { exactArity: 1, params: ["vec"] },
+  "rand-pick": { exactArity: 1, params: [["vec", "dict", "str"]] },
   sort: { exactArity: 1, params: [["vec", "str"]], returns: ["vec"] },
   "sort-by": {
     exactArity: 2,
@@ -493,12 +493,12 @@ export const ops: {
   },
   "pad-left": {
     exactArity: 3,
-    params: ["str", "num", ["str", "num"]],
+    params: ["str", "num", "any"],
     returns: ["str"],
   },
   "pad-right": {
     exactArity: 3,
-    params: ["str", "num", ["str", "num"]],
+    params: ["str", "num", "any"],
     returns: ["str"],
   },
   replace: {
