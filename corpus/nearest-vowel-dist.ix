@@ -1,0 +1,10 @@
+(var vowels (to-vec "aoeui"))
+
+(function nearest-vowel-dist string
+  (-> string
+      (xmap #[(reverse (first (inc %) string)) (skip % string)])
+      (map (map (find-idx vowels)))
+      (map (comp sieve (... min)))))
+
+(print [[0 0 0 0 0] [1 0 1 2 3] [0 1 2 1 0 1 2 3]])
+(proj nearest-vowel-dist "aaaaa" "babbb" "abcdabcd")

@@ -1,4 +1,4 @@
-export const insituxVersion = 230930;
+export const insituxVersion = 231001;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -1856,7 +1856,7 @@ export function symbols(env: Env, alsoSyntax = true): string[] {
   if (alsoSyntax) {
     push(syms, syntaxes);
   }
-  push(syms, ["args", "PI", "E"]);
+  push(syms, ["args", "PI", "E", "err-ctx"]);
   syms = concat(syms, objKeys(ops));
   syms = concat(syms, objKeys(env.funcs));
   syms = concat(syms, objKeys(env.vars));

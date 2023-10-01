@@ -5,7 +5,7 @@ const { has, flat, push, slice, splice, isNum, len, toNum } = pf;
 const { slen, starts, sub, substr, strIdx, subIdx, isArray } = pf;
 import { ParamsShape, Func, Funcs, Ins, ops, Val, syntaxes } from "./types";
 import { assertUnreachable, InvokeError, ErrCtx, DefAndValIns } from "./types";
-import { val2str } from "./val";
+import { _key, _num, val2str } from "./val";
 
 export type Token = {
   typ: "str" | "num" | "sym" | "rem" | "(" | ")";
@@ -658,6 +658,12 @@ function parseForm(
   return [...ins, { typ, value: len(args), errCtx }];
 }
 
+function errCtxDict(errCtx: ErrCtx): Val {
+  const keys: Val[] = [_key(":line"), _key(":col")];
+  const vals: Val[] = [_num(errCtx.line), _num(errCtx.col)];
+  return { t: "dict", v: { keys, vals } };
+}
+
 function parseArg(node: Node, params: ParamsShape): ParserIns[] {
   if (isToken(node)) {
     const { errCtx } = node;
@@ -695,6 +701,8 @@ function parseArg(node: Node, params: ParamsShape): ParserIns[] {
         return [{ typ: "dpa", value: param.position, errCtx }];
       } else if (text === "args") {
         return [{ typ: "upa", value: -1, text: "args", errCtx }];
+      } else if (text === "err-ctx") {
+        return [{ typ: "val", value: errCtxDict(errCtx), errCtx }];
       } else if (text === "PI" || text === "E") {
         const v = text === "PI" ? 3.141592653589793 : 2.718281828459045;
         return [{ typ: "val", value: { t: "num", v }, errCtx }];

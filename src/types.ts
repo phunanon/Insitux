@@ -170,8 +170,8 @@ export const ops: {
   neg: { exactArity: 1, numeric: true },
   inc: { exactArity: 1, numeric: true },
   dec: { exactArity: 1, numeric: true },
-  min: { minArity: 2, numeric: true },
-  max: { minArity: 2, numeric: true },
+  min: { minArity: 1, numeric: true },
+  max: { minArity: 1, numeric: true },
   abs: { exactArity: 1, numeric: true },
   sqrt: { exactArity: 1, numeric: true },
   round: { minArity: 1, maxArity: 2, numeric: true },
@@ -463,22 +463,22 @@ export const ops: {
   },
   "part-by": {
     exactArity: 2,
-    params: ["any", ["vec", "dict", "str"]],
+    params: ["any", ["vec", "str"]],
     returns: ["vec"],
   },
   "part-when": {
     exactArity: 2,
-    params: ["any", ["vec", "dict", "str"]],
+    params: ["any", ["vec", "str"]],
     returns: ["vec"],
   },
   "part-before": {
     exactArity: 2,
-    params: ["any", ["vec", "dict", "str"]],
+    params: ["any", ["vec", "str"]],
     returns: ["vec"],
   },
   "part-after": {
     exactArity: 2,
-    params: ["any", ["vec", "dict", "str"]],
+    params: ["any", ["vec", "str"]],
     returns: ["vec"],
   },
   partition: {

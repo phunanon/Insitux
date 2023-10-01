@@ -1027,6 +1027,8 @@ etc
 
 - `args` contains a vector of arguments the function was called with.
 
+- `err-ctx` contains a dictionary of its own source line and column number
+
 - Arguments can also be accessed through `%0`, `%1`, `%2`, etc, with `%` the
   same as `%0`.
 
