@@ -160,7 +160,7 @@ const tests: {
   {
     name: "For destructure",
     code: `(for [x y] [[1 2]] [x y])`,
-    out: `[[1 2]]`
+    out: `[[1 2]]`,
   },
   {
     name: "Filter by integer",
@@ -576,13 +576,16 @@ export function doTests(
       okErr,
       okOut,
       elapsedMs,
-      display: `${tNum} ${tName} ${tElapsed} ${tOutput} ${tErrors}`,
+      display: `${tNum} ${tName} ${tElapsed} ${tOutput}   ${tErrors}`,
     });
   }
   const totalMs = results.reduce((sum, { elapsedMs }) => sum + elapsedMs, 0);
   const numPassed = len(results.filter(({ okOut, okErr }) => okOut && okErr));
-  return concat(
+  const withHeader = concat(
+    terse ? [] : ["#   Name                     Time   OK-out OK-err"],
     results.filter(r => !terse || !r.okOut || !r.okErr).map(r => r.display),
-    [`---- ${numPassed}/${len(results)} tests passed in ${round(totalMs)}ms.`],
   );
+  return concat(withHeader, [
+    `---- ${numPassed}/${len(results)} tests passed in ${round(totalMs)}ms.`,
+  ]);
 }

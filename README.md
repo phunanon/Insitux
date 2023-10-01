@@ -45,6 +45,7 @@ $ ix .              #execute entry.ix in the working directory
 $ ix file.ix        #execute file.ix in the working directory
 $ ix -e "PI"        #execute provided string
 $ ix -b             #disable REPL budgets (loops, recur, etc)
+$ ix -nc            #turn off "colour mode" for REPL errors, etc
 $ ix [args] -r      #… then open a REPL session
 $ ix [...] -- [...] #seperation between ix args and program args (e.g. %0)
 Most arguments/switches can be mixed with one another.
@@ -293,6 +294,17 @@ etc
 (** 2 3)       → 8
 (round 3.5)    → 4
 (round 2 PI)   → 3.14
+
+;Various arithmetic operators which return a number or their sole argument when
+;  underloaded
+(*1)       → 1
+(*1 10)    → 10
+(*1 10 10) → 100
+etc
+(+0)       → 0
+(+0 10)    → 10
+(+0 10 10) → 20
+etc
 
 ;Various arithmetic and test functions which take fixed arguments
 (neg 10)     → -10
@@ -756,6 +768,18 @@ etc
 (distinct [0 1] [0 1] [2])    → [[0 1] [2]]
 (.. distinct [0 1] [0 1] [2]) → [0 1 2]
 (distinct [1 1 :a :a])        → [1 :a]
+
+;Rotates vector or string by certain offset
+(rotate 1 [0 1 2 3])  → [1 2 3 0]
+(rotate -1 [0 1 2 3]) → [3 0 1 2]
+(rotate 10 "hello")   → "ohell"
+(rotate -10 "hello")  → "elloh"
+(rotate 0 [0 1 2 3])  → [0 1 2 3]
+
+;Interleaves vectors or strings so that one item of each appears after the other
+(interleave [0 1 2] [3 4 5]) → [0 3 1 4 2 5]
+(interleave "hello" "hey")   → "hheely"
+(interleave [1 2] [9 8 7 6]) → [1 9 2 8]
 
 ;Generates a range of numbers
 ;Note: the first argument is always inclusive, second exclusive

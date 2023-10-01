@@ -497,8 +497,6 @@ async function processCliArguments(args: string[]) {
     return;
   }
 
-  colourMode = false;
-
   const programArgs: string[] = [];
   if (args.includes("--")) {
     const programArgsIdx = args.indexOf("--");
@@ -522,6 +520,7 @@ async function processCliArguments(args: string[]) {
 
   const openReplAfter = extractSwitch(args, "-r");
   const disableBudgets = extractSwitch(args, "-b");
+  colourMode = !extractSwitch(args, "-nc");
 
   if (disableBudgets) {
     ctx.callBudget = Infinity;
@@ -584,7 +583,6 @@ async function processCliArguments(args: string[]) {
   }
 
   if (openReplAfter) {
-    colourMode = true;
     startRepl();
   }
 }

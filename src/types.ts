@@ -145,6 +145,8 @@ export const ops: {
   "*": { minArity: 2, numeric: true },
   "/": { minArity: 2, numeric: true },
   "//": { minArity: 2, numeric: true },
+  "+0": { numeric: true },
+  "*1": { numeric: true },
   "**": { minArity: 1, maxArity: 2, numeric: true },
   "<": { minArity: 2, numeric: "in only", returns: ["bool"] },
   ">": { minArity: 2, numeric: "in only", returns: ["bool"] },
@@ -444,6 +446,16 @@ export const ops: {
     returns: ["vec"],
   },
   distinct: { returns: ["vec"] },
+  rotate: {
+    exactArity: 2,
+    params: ["num", ["vec", "str"]],
+    returns: ["vec", "str"],
+  },
+  interleave: {
+    minArity: 2,
+    params: [["vec", "str"]],
+    returns: ["vec", "str"],
+  },
   "group-by": {
     exactArity: 2,
     params: ["any", ["vec", "dict", "str"]],

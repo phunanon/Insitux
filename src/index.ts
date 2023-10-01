@@ -1,4 +1,4 @@
-export const insituxVersion = 230929;
+export const insituxVersion = 230930;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -48,8 +48,13 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _vec(args);
     case "dict":
       return toDict(args);
-    case "kv-dict":
-      return _dic({ keys: vec(args[0]), vals: vec(args[1]) });
+    case "kv-dict": {
+      const shortest = min(...args.map(vec).map(len));
+      return _dic({
+        keys: slice(vec(args[0]), 0, shortest),
+        vals: slice(vec(args[1]), 0, shortest),
+      });
+    }
     case "len":
       return _num(
         args[0].t === "str"
@@ -99,6 +104,10 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _num(args.map(num).reduce((sum, n) => sum / n));
     case "//":
       return _num(args.map(num).reduce((sum, n) => floor(sum / n)));
+    case "+0":
+      return _num(args.map(num).reduce((sum, n) => sum + n, 0));
+    case "*1":
+      return _num(args.map(num).reduce((sum, n) => sum * n, 1));
     case "fast=":
     case "fast!=":
       return _boo(isEqual(args[0], args[1]) === (op === "fast="));
@@ -930,6 +939,29 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         }
       });
       return _vec(distinct);
+    }
+    case "rotate":
+    case "interleave": {
+      let result: Val[] = [];
+      if (op === "rotate") {
+        const by = num(args[0]);
+        const coll = asArray(args[1]);
+        const l = len(coll);
+        const n = ((by % l) + l) % l;
+        result = concat(slice(coll, n), slice(coll, 0, n));
+      } else {
+        const colls = args.map(asArray);
+        const shortest = min(...colls.map(len));
+        for (let i = 0; i < shortest; ++i) {
+          for (let c = 0, max = len(colls); c < max; ++c) {
+            result.push(colls[c][i]);
+          }
+        }
+      }
+      if (args[1].t === "vec") {
+        return _vec(result);
+      }
+      return _str(result.map(val2str).join(""));
     }
     case "range": {
       const [a, b, s] = args.map(num);

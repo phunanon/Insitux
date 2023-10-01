@@ -104,6 +104,7 @@ export function tokenise(
     if (inString && c === "\n") {
       ++line;
       col = 0;
+      tokens[len(tokens) - 1].text += c;
       continue;
     }
     if (!inString && c === ";") {
