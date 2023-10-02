@@ -19,6 +19,7 @@ import { join as pathJoin, dirname } from "path";
 
 const githubRegex = /^(?!https*:)[^\/]+?\/[^\/]+$/;
 let colourMode = true;
+let coverages: { unvisited: string[]; all: string[] }[] = [];
 
 //#region External operations
 function invokeVal(
@@ -492,6 +493,14 @@ const extractSwitch = (args: string[], arg: string) => {
 };
 
 async function processCliArguments(args: string[]) {
+  if (extractSwitch(args, "-unv")) {
+    if (args.length) {
+      ctx.coverageReport = collectCoverages;
+    } else {
+      console.log("-unv was ignored.");
+    }
+  }
+
   if (!args.length) {
     startRepl();
     return;
@@ -538,8 +547,9 @@ async function processCliArguments(args: string[]) {
   const invoke = (code: string, id = code) =>
     printErrorOutput(invoker(ctx, code, id, params).output);
 
-  if (matchArgs([/^\.$/])) {
-    args[0] = "entry.ix";
+  const entryDotIdx = args.indexOf(".");
+  if (entryDotIdx !== -1) {
+    args[entryDotIdx] = "entry.ix";
   }
 
   const [arg0, arg1, arg2] = args;
@@ -569,17 +579,28 @@ async function processCliArguments(args: string[]) {
   } else {
     //Execute files
     for (const path of args) {
-      if (!existsSync(path)) {
-        console.log(`${path} not found - ignored.`);
-      } else {
-        const code = readFileSync(path).toString();
-        invoke(code, path);
+      try {
+        if (!existsSync(path)) {
+          console.log(`${path} not found - ignored.`);
+        } else {
+          const code = readFileSync(path).toString();
+          invoke(code, path);
+        }
+      } catch (e) {
+        console.error(
+          `Error executing "${path}":`,
+          typeof e === "object" && e && "message" in e ? e.message : e,
+        );
       }
     }
     //Execute optional inline
     if (executeInline) {
       invoke(executeInline, "inline code");
     }
+  }
+
+  if (ctx.coverageReport) {
+    generateCoverageReport();
   }
 
   if (openReplAfter) {
@@ -598,7 +619,10 @@ function readHistory() {
 }
 
 function startRepl() {
+  const coverageCallback = ctx.coverageReport;
+  ctx.coverageReport = undefined;
   printErrorOutput(invoker(ctx, `(str "Insitux " (version) " REPL")`).output);
+  ctx.coverageReport = coverageCallback;
 
   if (existsSync(".repl.ix")) {
     printErrorOutput(invoker(ctx, readFileSync(".repl.ix").toString()).output);
@@ -683,5 +707,30 @@ function printErrorOutput(lines: InvokeOutput) {
       process.stdout.write(text);
     }
   });
+}
+
+function collectCoverages(unvisited: string[], all: string[]) {
+  coverages.push({ unvisited, all });
+}
+
+function generateCoverageReport() {
+  const unvisited = coverages.flatMap(c => c.unvisited);
+  const all = coverages.reduce((n, c) => n + c.all.length, 0);
+  const collator = new Intl.Collator(undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+  unvisited.sort(collator.compare);
+  writeFileSync(
+    "unvisited.txt",
+    unvisited.map(u => (u.startsWith("-") ? u.substring(1) : u)).join("\n") +
+      "\n",
+  );
+  const coverage = Math.round(((all - unvisited.length) / all) * 1000) / 10;
+  console.log(
+    "unvisited.txt generated:",
+    unvisited.length,
+    `unvisited (${coverage}% coverage)`,
+  );
 }
 //#endregion

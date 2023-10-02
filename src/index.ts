@@ -1,4 +1,4 @@
-export const insituxVersion = 231001;
+export const insituxVersion = 231002;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -23,6 +23,8 @@ import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun, str } from "./val";
 let lets: { [key: string]: Val } = {};
 let recurArgs: undefined | Val[];
 let forState: undefined | "for" | "brk" | "cnt" | "ret";
+/** Used for code coverage reporting. */
+let lineCols: { [key: string]: 1 } = {};
 
 type _Exception = { errors: InvokeError[] };
 function _throw(errors: InvokeError[]): Val {
@@ -1414,12 +1416,18 @@ function exeFunc(
   const stack: Val[] = [];
   for (let i = 0, lim = len(func.ins); i < lim; ++i) {
     const ins = func.ins[i];
-    const { errCtx } = func.ins[i];
+    const { errCtx } = ins;
 
     const tooManyLoops = ctx.loopBudget < 1;
     if (tooManyLoops || ctx.callBudget < 1) {
       const m = `${tooManyLoops ? "looped" : "called"} too many times`;
       _throw([{ e: "Budget", m, errCtx }]);
+    }
+
+    if (ctx.coverageReport) {
+      delete lineCols[
+        `${ins.errCtx.invokeId}\t${ins.errCtx.line}\t${ins.errCtx.col}`
+      ];
     }
 
     switch (ins.typ) {
@@ -1465,6 +1473,12 @@ function exeFunc(
         const name = ins.value;
         if (ops[name]) {
           stack.push(_fun(name));
+        } else if (name in lets) {
+          stack.push(lets[name]);
+        } else if (name in ctx.env.vars) {
+          stack.push(ctx.env.vars[name]);
+        } else if (name in ctx.env.funcs) {
+          stack.push(_fun(name));
         } else if (starts(name, "$")) {
           if (!ctx.get) {
             const m = `"get" feature not implemented on this platform`;
@@ -1475,12 +1489,6 @@ function exeFunc(
             return _throw([{ e: "External", m: valAndErr.err, errCtx }]);
           }
           stack.push(valAndErr);
-        } else if (name in lets) {
-          stack.push(lets[name]);
-        } else if (name in ctx.env.vars) {
-          stack.push(ctx.env.vars[name]);
-        } else if (name in ctx.env.funcs) {
-          stack.push(_fun(name));
         } else {
           _throw([{ e: "Reference", m: `"${name}" did not exist`, errCtx }]);
         }
@@ -1577,12 +1585,12 @@ function exeFunc(
         break;
       case "clo": {
         //Ensure any in-scope declarations are captured here
-        const derefIns = slice(ins.value.derefs).map(ins => {
+        const derefIns: Ins[] = slice(ins.value.derefs).map(ins => {
           const decl =
             ins.typ === "val" &&
             ins.value.t === "str" &&
             (lets[ins.value.v] ?? ctx.env.vars[ins.value.v]);
-          return decl ? <Ins>{ typ: "val", value: decl } : ins;
+          return decl ? { typ: "val", value: decl, errCtx } : ins;
         });
         //Dereference closure captures
         const captures = exeFunc(ctx, { ins: derefIns }, args, true);
@@ -1712,10 +1720,17 @@ function parseAndExe(
     _throw(parsed.errors);
   }
   ctx.env.funcs = { ...ctx.env.funcs, ...parsed.funcs };
+  lineCols = parsed.lineCols.reduce((acc, lineCol) => {
+    acc[lineCol] = 1;
+    return acc;
+  }, {} as { [key: string]: 1 });
   if (!("entry" in ctx.env.funcs)) {
+    ctx.coverageReport?.(objKeys(lineCols), parsed.lineCols);
     return;
   }
-  return exeFunc(ctx, ctx.env.funcs["entry"], params, false);
+  const result = exeFunc(ctx, ctx.env.funcs["entry"], params, false);
+  ctx.coverageReport?.(objKeys(lineCols), parsed.lineCols);
+  return result;
 }
 
 function ingestExternalOperations(functions: ExternalFunctions) {

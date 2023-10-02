@@ -8,3 +8,5 @@
 
 (print [[0 0 0 0 0] [1 0 1 2 3] [0 1 2 1 0 1 2 3]])
 (proj nearest-vowel-dist "aaaaa" "babbb" "abcdabcd")
+
+; Could be improved: https://codegolf.stackexchange.com/questions/233837/find-me-vowels-near-you

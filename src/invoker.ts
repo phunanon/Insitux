@@ -9,7 +9,7 @@ export type InvokeOutput = {
 }[];
 
 const invocations = new Map<string, string>();
-export const parensRx = /[\[\]\(\) ,]/;
+export const parensRx = /[[\]() ,]/;
 
 export function invoker(
   ctx: Ctx,

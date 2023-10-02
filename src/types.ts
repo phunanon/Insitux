@@ -53,6 +53,8 @@ export type Ctx = {
   /** Called when Insitux cannot find a function definition otherwise.
    * You should return an error if unknown externally too. */
   exe?: (name: string, args: Val[]) => ValOrErr;
+  /** Callback for code coverage report */
+  coverageReport?: (uncoveredLineCols: string[], allLineCols: string[]) => void;
   /** Function and variable definitions, retained by you for each invocation. */
   env: Env;
   /** The number of loops an invocation is permitted. */
@@ -558,7 +560,8 @@ export const ops: {
 };
 
 export const syntaxes = [
-  ...["function", "fn", "var", "let", "var!", "let!", "return", "if", "if-not"],
+  ...["function", "fn", "var", "let", "var!", "let!", "if", "if-not"],
+  ...["return", "return-when", "return-unless"],
   ...["when", "unless", "while", "loop", "for", "match", "satisfy"],
   ...["catch", "args", "E", "PI"],
 ];

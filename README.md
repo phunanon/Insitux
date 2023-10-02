@@ -46,12 +46,13 @@ $ ix file.ix        #execute file.ix in the working directory
 $ ix -e "PI"        #execute provided string
 $ ix -b             #disable REPL budgets (loops, recur, etc)
 $ ix -nc            #turn off "colour mode" for REPL errors, etc
+$ ix -unv           #generate unvisited.txt of unvisited code line:column
 $ ix [args] -r      #… then open a REPL session
 $ ix [...] -- [...] #seperation between ix args and program args (e.g. %0)
 Most arguments/switches can be mixed with one another.
 
 $ ix i              #installs dependencies listed in deps.txt
-$ ix r              #remove dependencies listed in deps
+$ ix r              #remove dependencies listed in deps.txt
 $ ix i user/repo    #clone Github repository into the .ix directory
 $ ix r user/repo    #… and subsequently remove
 $ ix i alias http…  #download file via HTTP into the .ix directory as alias.ix
@@ -193,7 +194,7 @@ built-in operations each within an example, with results after a `→`.
 ;  when its condition is truthy
 (function f (return-when true 123) (print "hello"))
 (f) → 123
-(function f (return-when false) (print "hi"))
+(function f (return-unless true) (print "hi"))
 (f) → null ;and prints "hi"
 
 ;Tests a condition and executes and returns either the second or third argument

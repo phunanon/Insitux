@@ -346,14 +346,16 @@ function parseForm(
       const parsed = nodes.map(nodeParser);
       const [cond, body] = [parsed[0], slice(parsed, 1)];
       const bodyIns = poppedBody(body);
+      const unlessIns: Ins[] =
+        op === "unless"
+          ? [
+              { typ: "val", value: { t: "func", v: "not" }, errCtx },
+              { typ: "exe", value: 1, errCtx },
+            ]
+          : [];
       return [
         ...cond,
-        ...(op === "unless"
-          ? [
-              <Ins>{ typ: "val", value: { t: "func", v: "not" } },
-              <Ins>{ typ: "exe", value: 1 },
-            ]
-          : []),
+        ...unlessIns,
         { typ: "if", value: len(bodyIns) + 1, errCtx },
         ...bodyIns,
         { typ: "jmp", value: 1, errCtx },
@@ -631,15 +633,23 @@ function parseForm(
 
   const args = nodes.map(nodeParser);
   const firstSym = symAt([firstNode]);
-  if (firstSym === "return-when") {
+  if (firstSym === "return-when" || firstSym === "return-unless") {
     if (len(args) < 1) {
       return [{ typ: "err", value: "provide a condition", errCtx }];
     }
     const cond = args[0];
     const params = slice(args, 1);
     const flatParams = flat(params);
+    const unlessIns: Ins[] =
+      firstSym === "return-unless"
+        ? [
+            { typ: "val", value: { t: "func", v: "not" }, errCtx },
+            { typ: "exe", value: 1, errCtx },
+          ]
+        : [];
     return [
       ...cond,
+      ...unlessIns,
       <ParserIns>{ typ: "if", value: len(flatParams) + 1, errCtx },
       ...flatParams,
       <ParserIns>{ typ: "ret", value: !!(len(args) - 1), errCtx },
@@ -976,6 +986,10 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
         }
         break;
       case "for":
+        const errors = insErrorDetect(ins.body);
+        if (errors) {
+          return errors;
+        }
         stack.push({ types: ["vec"] });
         break;
       default:
@@ -984,20 +998,28 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
   }
 }
 
+function extractLineCols(ins: Ins[]): string[] {
+  return ins.flatMap(i =>
+    i.typ === "for"
+      ? extractLineCols(i.body)
+      : [`${i.errCtx.invokeId}\t${i.errCtx.line}\t${i.errCtx.col}`],
+  );
+}
+
 export function parse(
   code: string,
   invokeId: string,
-): { funcs: Funcs; errors: InvokeError[] } {
+): { funcs: Funcs; errors: InvokeError[]; lineCols: string[] } {
   const { tokens, stringError } = tokenise(code, invokeId);
   const tokenErrors = tokenErrorDetect(stringError, tokens);
   if (len(tokenErrors)) {
-    return { errors: tokenErrors, funcs: {} };
+    return { errors: tokenErrors, funcs: {}, lineCols: [] };
   }
   const okFuncs: Func[] = [],
     errors: InvokeError[] = [];
   const tree = treeise(slice(tokens));
   if (!len(tree)) {
-    return { funcs: {}, errors };
+    return { funcs: {}, errors, lineCols: [] };
   }
   const collected = collectFuncs(tree);
   const namedNodes: NamedNodes[] = [];
@@ -1016,7 +1038,9 @@ export function parse(
     }
   });
   push(errors, flat(okFuncs.map(f => insErrorDetect(f.ins) ?? [])));
+  const allLineCols = extractLineCols(okFuncs.flatMap(f => f.ins));
+  const lineCols = [...new Set(allLineCols)];
   const funcs: Funcs = {};
   okFuncs.forEach(func => (funcs[func.name ?? ""] = func));
-  return { errors, funcs };
+  return { errors, funcs, lineCols };
 }
