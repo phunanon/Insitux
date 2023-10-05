@@ -1,4 +1,4 @@
-export const insituxVersion = 231002;
+export const insituxVersion = 231005;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -7,11 +7,11 @@ import { parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, sign, sqrt, floor, ceil, round, max, min, logn, log2, log10 } = pf;
 const { cos, sin, tan, acos, asin, atan, sinh, cosh, tanh } = pf;
-const { concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
+const { len, concat, has, flat, push, reverse, slice, splice, sortBy } = pf;
 const { ends, slen, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
 const { trim, trimStart, trimEnd, strIdx, replace, rreplace } = pf;
 const { charCode, codeChar, getTimeMs, randInt, randNum } = pf;
-const { isNum, len, objKeys, range, toNum, isArray, isObj } = pf;
+const { isNum, objKeys, range, toNum, isArray, isObj, toRadix, fromRadix } = pf;
 import { doTests } from "./test";
 import { Env, InvokeError, InvokeResult, InvokeValResult } from "./types";
 import { assertUnreachable, ExternalFunctions, syntaxes } from "./types";
@@ -19,6 +19,7 @@ import { Ctx, Dict, ErrCtx, Func, Ins, Val, ops, typeNames } from "./types";
 import { asArray, dictDrops, isEqual, num, stringify, val2str } from "./val";
 import { dic, vec, dictDrop, dictGet, dictSet, toDict, pathSet } from "./val";
 import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun, str } from "./val";
+import { ixToJson, jsonToIx } from "./val-translate";
 
 let lets: { [key: string]: Val } = {};
 let recurArgs: undefined | Val[];
@@ -42,6 +43,14 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _str(stringify(args));
     case "strn":
       return _str(stringify(args.filter(a => a.t !== "null")));
+    case "to-base":
+    case "from-base": {
+      const base = max(min(num(args[0]), 36), 2);
+      if (op === "to-base") {
+        return _str(toRadix(num(args[1]), base));
+      }
+      return _num(fromRadix(str(args[1]), num(args[0])));
+    }
     case "print":
     case "print-str":
       ctx.print(stringify(args), op === "print");
@@ -578,14 +587,23 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "take-while":
     case "take-until":
     case "skip-while":
-    case "skip-until": {
+    case "skip-until":
+    case "count-while":
+    case "count-until": {
       const isTake = op === "take-while" || op === "take-until";
-      const isUntil = op === "take-until" || op === "skip-until";
+      const isUntil =
+        op === "take-until" || op === "skip-until" || op === "count-until";
       const closure = getExe(ctx, args[0], errCtx);
       const array = asArray(args[1]);
+
       let i = 0;
       for (let lim = len(array); i < lim; ++i)
         if (asBoo(closure([array[i]])) === isUntil) break;
+
+      if (op === "count-while" || op === "count-until") {
+        return _num(i);
+      }
+
       const sliced = isTake ? slice(array, 0, i) : slice(array, i);
       return args[1].t === "str"
         ? _str(sliced.map(str).join(""))
@@ -1073,6 +1091,10 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         return _str(codeChar(num(args[0])));
       }
     }
+    case "to-json":
+      return _str(ixToJson(args[0]));
+    case "from-json":
+      return jsonToIx(str(args[0]));
     case "time":
       return _num(getTimeMs());
     case "version":
@@ -1100,6 +1122,49 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         }
         throw e;
       }
+    }
+    case "safe-eval": {
+      delete ctx.env.funcs["entry"];
+      const parsed = parse(str(args[0]), "safe-eval");
+
+      if (len(parsed.errors)) {
+        return _throw(parsed.errors);
+      }
+
+      //Ensure the only executed operations are vec/dict
+      const { entry } = parsed.funcs;
+      let dangerous = false;
+      let prevIns: Ins | undefined = undefined;
+      for (const ins of entry.ins) {
+        if (ins.typ === "exe" || ins.typ === "exa") {
+          if (!prevIns) {
+            dangerous = true;
+            break;
+          }
+          if (
+            prevIns.typ !== "val" ||
+            !(
+              prevIns.value.t === "func" &&
+              (prevIns.value.v === "vec" || prevIns.value.v === "dict")
+            )
+          ) {
+            dangerous = true;
+            break;
+          }
+        }
+        prevIns = ins;
+      }
+
+      if (dangerous) {
+        return _nul();
+      }
+
+      return exeFunc(ctx, parsed.funcs.entry, [], false);
+    }
+    case "deref": {
+      const derefIns: Ins = { typ: "ref", value: str(args[0]), errCtx };
+      const derefStack = exeFunc(ctx, { ins: [derefIns] }, [], true);
+      return derefStack[0];
     }
     case "about": {
       const func = str(args[0]);

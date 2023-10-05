@@ -528,7 +528,7 @@ async function processCliArguments(args: string[]) {
   }
 
   const openReplAfter = extractSwitch(args, "-r");
-  const disableBudgets = extractSwitch(args, "-b");
+  const disableBudgets = extractSwitch(args, "-nb");
   colourMode = !extractSwitch(args, "-nc");
 
   if (disableBudgets) {

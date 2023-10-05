@@ -1,6 +1,7 @@
 import { isArray, isNum, isObj, isStr, objKeys, objVals } from "./poly-fills";
+import { fromJson, toJson } from "./poly-fills";
 import { Val } from "./types";
-import { val2str } from "./val";
+import { _nul, val2str } from "./val";
 
 /** Incomplete. */
 export function jsToIx(
@@ -67,3 +68,12 @@ export function ixToJs(
   }
   return ifUndetermined(v);
 }
+
+export const jsonToIx = (x: string) => {
+  try {
+    return jsToIx(fromJson(x));
+  } catch (e) {
+    return _nul();
+  }
+};
+export const ixToJson = (x: Val) => toJson(ixToJs(x));

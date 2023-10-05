@@ -25,6 +25,7 @@
 Inspired by [Chika](https://github.com/phunanon/Chika),
 [Epizeuxis](https://github.com/phunanon/Epizeuxis), and
 [Kuan](https://github.com/phunanon/Kuan).
+Pronounced /ɪnˈsɪtjuːɪks/ in the International Phonetic Alphabet.
 
 - [**Main NPM package**](https://www.npmjs.com/package/insitux) and its [Github repository](https://github.com/phunanon/Insitux)
 - [**Roblox-TS NPM package**](https://www.npmjs.com/package/@rbxts/insitux) and its [Github repository](https://github.com/insitux/rbxts-Insitux)
@@ -44,7 +45,7 @@ $ ix                #open a REPL session (exit with Ctrl+D or Ctrl+C)
 $ ix .              #execute entry.ix in the working directory
 $ ix file.ix        #execute file.ix in the working directory
 $ ix -e "PI"        #execute provided string
-$ ix -b             #disable REPL budgets (loops, recur, etc)
+$ ix -nb             #disable REPL budgets (loops, recur, etc)
 $ ix -nc            #turn off "colour mode" for REPL errors, etc
 $ ix -unv           #generate unvisited.txt of unvisited code line:column
 $ ix [args] -r      #… then open a REPL session
@@ -384,6 +385,16 @@ etc
 ;Same as str, but ignores null arguments
 (strn "Hello" null ", world!") → "Hello, world!"
 
+;Converts number into string of chosen base from 2 to 36
+(to-base 2 10)   → "1010"
+(to-base 16 10)  → "a"
+(to-base 36 100) → "2s"
+
+;Converts string of chosen base from 2 to 36 into number
+(from-base 2 "1010") → 10
+(from-base 16 "a")   → 10
+(from-base 36 "2s")  → 100
+
 ;Returns the average of numbers in a provided vector
 (average [1 2 -3])   → 0
 (average [1 2 4])    → 2.33333
@@ -629,6 +640,8 @@ etc
 (count (= 1) [1 1 2 3 3]) → 2
 (count (comp 1 odd?) {:a 1 :b 2 :c 3})
 → 2
+(count-until odd? [0 2 4 5 6 7]) → 3
+(count-while odd? [1 3 2 4 5 7]) → 2
 
 ;Returns item or character from vector, dictionary, or string which returns the
 ;  highest or lowest number by predicate
@@ -939,6 +952,20 @@ etc
 (... + 0 1 2 3 [4 5 6])
 → 21
 
+;Returns a string JSON representation of an Insitux value
+;Note: if you just need to serialise and deserialise Insitux values, use
+;  str and eval (safely), as it preserves complex data types
+(to-json {:a 1 :b 2}) → "{\":a\":1,\":b\":2}"
+(to-json [1 2 3])     → "[1,2,3]"
+(to-json "hello")     → "\"hello\""
+
+;Returns an Insitux value from a JSON string
+;Note: JSON is unable to provide lossless serialisation of Insitux values 
+(from-json "{\":a\":1,\":b\":2}") → {":a" 1 ":b" 2}
+(from-json "[1,2,3]")             → [1 2 3]
+(from-json "\"hello\"")           → "hello"
+(from-json ":bad JSON:")          → null
+
 ;Evaluates all but its final argument and returns the penultimate argument's
 ; value if no runtime errors occurred, else populates the let `errors` and
 ; returns the evaluation of the final argument
@@ -963,6 +990,17 @@ etc
 
 ;Evaluates a string as code, returning any values returned or null
 (eval "(+ 2 2)") → 4
+
+;Evaluates a string as an Insitux value, without executing any code
+(safe-eval "{:a 'Hello' :b 123}") → {:a "Hello", :b 123}
+(safe-eval "(+ 2 2)")             → null
+
+;Efficiently dereferences a string into a var/let/function value
+;Note: this can throw reference errors
+(let my-let 123)
+(deref "my-let")
+→ 123
+(deref "+") → +
 
 ;Returns arity, type, and other information about specified function
 (about +)
@@ -1257,6 +1295,9 @@ vector item or string character is "destructured" into.
 ```
 
 ## Various examples
+
+Check out our [Rosetta Code entries](https://rosettacode.org/wiki/Insitux) for
+70+ other examples.
 
 ```clj
 ; Test if 2D point is inside 2D area

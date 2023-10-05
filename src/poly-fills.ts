@@ -1,6 +1,8 @@
 export const isObj = (x: unknown): x is object => typeof x === "object";
 export const isStr = (x: unknown): x is string => typeof x === "string";
-export const toNum = (x: unknown): number => Number(x); //Should also support 0b and 0x
+export const toNum = (x: unknown): number => Number(x); //Must also support 0b and 0x
+export const fromRadix = (x: string, r: number): number => parseInt(x, r);
+export const toRadix = (x: number, r: number): string => x.toString(r);
 export const slice = <T>(arr: T[], start?: number, end?: number): T[] =>
   arr.slice(start, end);
 export const splice = <T>(arr: T[], start: number, numDel?: number): T[] =>
@@ -42,6 +44,8 @@ export const range = (len: number) => [...Array(len).keys()];
 export const objKeys = (x: object) => Object.keys(x);
 export const objVals = (x: object) => Object.values(x);
 export const getTimeMs = () => new Date().getTime();
+export const toJson = (x: unknown) => JSON.stringify(x);
+export const fromJson = (x: string) => JSON.parse(x);
 export const abs = Math.abs;
 export const min = Math.min;
 export const max = Math.max;

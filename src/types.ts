@@ -325,6 +325,16 @@ export const ops: {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["num"],
   },
+  "count-while": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["num"],
+  },
+  "count-until": {
+    exactArity: 2,
+    params: ["any", ["vec", "dict", "str"]],
+    returns: ["num"],
+  },
   "max-by": {
     exactArity: 2,
     params: ["any", ["vec", "dict", "str"]],
@@ -362,6 +372,8 @@ export const ops: {
   times: { minArity: 2, params: ["num", "any"] },
   str: { returns: ["str"] },
   strn: { returns: ["str"] },
+  "to-base": { exactArity: 2, params: ["num", "num"], returns: ["str"] },
+  "from-base": { exactArity: 2, params: ["num", "str"], returns: ["num"] },
   rand: { maxArity: 2, numeric: true, returns: ["num"] },
   "rand-int": { maxArity: 2, numeric: true, returns: ["num"] },
   ".": { minArity: 1 },
@@ -545,11 +557,15 @@ export const ops: {
     params: [["str", "num"], "num"],
     returns: ["str", "num", "null"],
   },
+  "to-json": { exactArity: 1, returns: ["str"] },
+  "from-json": { exactArity: 1, params: ["str"] },
   time: { exactArity: 0, returns: ["num"] },
   version: { exactArity: 0, returns: ["num"] },
   tests: { minArity: 0, maxArity: 1, params: ["bool"], returns: ["str"] },
   symbols: { exactArity: 0, returns: ["vec"] },
   eval: { exactArity: 1, params: ["str"] },
+  "safe-eval": { exactArity: 1, params: ["str"] },
+  deref: { exactArity: 1, params: ["str"] },
   about: { exactArity: 1, params: [["str", "func", "unm"]], returns: ["dict"] },
   reset: { exactArity: 0 },
   recur: {},
@@ -561,7 +577,7 @@ export const ops: {
 
 export const syntaxes = [
   ...["function", "fn", "var", "let", "var!", "let!", "if", "if-not"],
-  ...["return", "return-when", "return-unless"],
+  ...["return", "return-when", "return-unless", "continue", "break"],
   ...["when", "unless", "while", "loop", "for", "match", "satisfy"],
   ...["catch", "args", "E", "PI"],
 ];
