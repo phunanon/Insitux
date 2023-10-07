@@ -18,8 +18,8 @@ export const _fun = (v: string) => <Val>{ t: "func", v };
 export const isVecEqual = (a: Val[], b: Val[]): boolean =>
   len(a) === len(b) && !a.some((x, i) => !isEqual(x, b[i]));
 
-export const isEqual = (a: Val, b: Val) => {
-  if (a.t === "wild" || b.t === "wild") {
+export const isEqual = (a: Val, b: Val, wildcardByVal = true) => {
+  if (wildcardByVal && (a.t === "wild" || b.t === "wild")) {
     return true;
   }
   if (a.t !== b.t) {
@@ -36,16 +36,33 @@ export const isEqual = (a: Val, b: Val) => {
       return isVecEqual(a.v, vec(b));
     case "dict": {
       const bd = dic(b);
-      return len(a.v.keys) === len(bd.keys) && isVecEqual(a.v.keys, bd.keys);
+      if (len(a.v.keys) !== len(bd.keys)) {
+        return false;
+      }
+      //Match keys in any order
+      const aks = slice(a.v.keys);
+      const avs = slice(a.v.vals);
+      for (let k = 0, kmax = len(bd.keys); k < kmax; ++k) {
+        const bk = bd.keys[k];
+        const idx = aks.findIndex(x => isEqual(bk, x, false));
+        if (idx === -1 || !isEqual(avs[idx], bd.vals[k])) {
+          return false;
+        }
+        splice(aks, idx, 1);
+        splice(avs, idx, 1);
+      }
+      return true;
     }
     case "str":
     case "key":
     case "func":
       return str(a) === str(b);
     case "clo":
-      return (<Func>a.v).name === (<Func>b.v).name;
+      return a.v.name === (<Func>b.v).name;
     case "ext":
       return a.v === b.v;
+    case "wild":
+      return b.t === "wild";
   }
   return assertUnreachable(a);
 };
@@ -103,7 +120,16 @@ export const toDict = (args: Val[]): Val => {
   const vals = args.filter((_, i) => i % 2 === 1);
   const ddKeys: Val[] = [],
     ddVals: Val[] = [];
+  let hasWildcardKey = false;
   keys.forEach((key, i) => {
+    if (key.t === "wild") {
+      if (!hasWildcardKey) {
+        hasWildcardKey = true;
+        ddKeys.push(key);
+        ddVals.push(vals[i]);
+      }
+      return;
+    }
     const existingIdx = ddKeys.findIndex(k => isEqual(k, key));
     if (existingIdx === -1) {
       ddKeys.push(key);
@@ -118,14 +144,18 @@ export const toDict = (args: Val[]): Val => {
   };
 };
 
-export const dictGet = ({ keys, vals }: Dict, key: Val) => {
-  const idx = keys.findIndex(k => isEqual(k, key));
-  return idx === -1 ? <Val>{ t: "null", v: undefined } : vals[idx];
+export const dictGet = ({ keys, vals }: Dict, key: Val): Val => {
+  let idx = keys.findIndex(k => isEqual(k, key, false));
+  //Wildcard keys act as default value
+  if (idx === -1 && key.t !== "wild") {
+    idx = keys.findIndex(k => k.t === "wild");
+  }
+  return idx === -1 ? { t: "null", v: undefined } : vals[idx];
 };
 
 export const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
   const [nKeys, nVals] = [slice(keys), slice(vals)];
-  const idx = keys.findIndex(k => isEqual(k, key));
+  const idx = keys.findIndex(k => isEqual(k, key, false));
   if (idx !== -1) {
     nVals[idx] = val;
   } else {
@@ -137,7 +167,7 @@ export const dictSet = ({ keys, vals }: Dict, key: Val, val: Val) => {
 
 export const dictDrop = ({ keys, vals }: Dict, key: Val): Dict => {
   const [nKeys, nVals] = [slice(keys), slice(vals)];
-  const idx = keys.findIndex(k => isEqual(k, key));
+  const idx = keys.findIndex(k => isEqual(k, key, false));
   if (idx !== -1) {
     splice(nKeys, idx, 1);
     splice(nVals, idx, 1);

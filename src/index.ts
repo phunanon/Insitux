@@ -1,4 +1,4 @@
-export const insituxVersion = 231005;
+export const insituxVersion = 231007;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -1850,6 +1850,7 @@ function innerInvoke(
 
 /**
  * Parses and executes the given code.
+ * @remark Budgets are frozen then restored.
  * @param ctx An environment context you retain.
  * @param code The code to parse and execute.
  * @param invokeId A unique ID referenced in invocation errors.
@@ -1873,6 +1874,7 @@ export function invoke(
 
 /**
  * Executes a user-defined Insitux function by name.
+ * @remark Budgets are frozen then restored.
  * @param ctx An environment context you retain.
  * @param funcName The function to execute.
  * @param params The parameters to pass to the function.
@@ -1898,7 +1900,8 @@ export function invokeFunction(
 }
 
 /**
- * Executes a value
+ * Executes a value.
+ * @remark Budgets are frozen then restored.
  * @param ctx An environment context you retain.
  * @param value The value to execute.
  * @returns Invocation errors caused during the execution of the function,
@@ -1910,6 +1913,7 @@ export function invokeVal(
   val: Val,
   params: Val[],
 ): InvokeValResult {
+  const { callBudget, loopBudget, recurBudget, rangeBudget } = ctx;
   const ins: Ins[] = [
     ...params.map(value => <Ins>{ typ: "val", value, errCtx }),
     { typ: "val", value: val, errCtx },
@@ -1922,6 +1926,9 @@ export function invokeVal(
       throw e;
     }
     return { kind: "errors", errors: e.errors };
+  } finally {
+    [ctx.callBudget, ctx.recurBudget] = [callBudget, recurBudget];
+    [ctx.loopBudget, ctx.rangeBudget] = [loopBudget, rangeBudget];
   }
 }
 

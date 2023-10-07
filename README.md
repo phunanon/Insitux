@@ -363,7 +363,13 @@ etc
 (vec 1 "hello" :c)
 
 ;Creates a dictionary of keys and values
+;Note: dictionaries with duplicate keys only preserve the final duplicate key
+;  and its value
+;Note: a dictionary can have one wildcard key, with the first being preserved
+;Note: dictionary wildcard keys are matched by type rather than value
 {:a 123, "hello" "world"}           ;commas are optional
+{:a 123 :a 234} → {:a 234}
+{:a 123 _ 234}  → {:a 123 _ 234}
 (dict :a 123 "hello" "world")
 (dict [[:a 123] ["hello" "world"]])
 (kv-dict [:a "hello"] [123 "world"])
@@ -442,11 +448,14 @@ etc
 
 ;Returns value associated with key if within dictionary else null
 ({0 1 2 3} 0)           → 1
+({:a 1 _ 2} :b)         → 2
+({:a 1 _ 2} _)          → 2
 ({:a "hi" :b "bye"} :c) → null
 
 ;Associates a new key and value in a dictionary
 ;See also: assoc
-({:a 2 :b 3} :c 4) → {:a 2 :b 3 :c 4}
+({:a 2 :b 3} :c 4) → {:a 2, :b 3, :c 4}
+({:a 2 _ 3} _ 4)   → {a: 2, _ 4}
 
 ;Returns either its first or second argument, or null
 ;Note: unlike `if` or `when` all arguments are evaluated regardless of condition
@@ -1080,6 +1089,13 @@ etc
 (= [:a :b] [:a _]) → true
 ; Can also be used to discard values
 (let [_ _ c] [0 1 2])  → c is 2
+; Can also be used for a "default" dictionary value
+({:a 123 _ 234} :a) → 123
+({:a 123 _ 234} :b) → 234
+; Observe particular behaviour around dictionary equality
+(= {_ 123 2 234} {_ 123 2 234}) → true
+(= {_ 123 2 234} {1 123 2 234}) → false
+(= {1 123 2 234} {1 123 2 _})   → true
 ```
 
 It can also be used as an identity function (i.e. `val`).
@@ -1532,6 +1548,5 @@ Check out our [Rosetta Code entries](https://rosettacode.org/wiki/Insitux) for
 
 **Known bugs I put here to make sure I can't lose them,**  
 **and to shame myself that they still exist.**  
-⚠️ (= {:a 1 :b 2} {:b 2 :a 1}) -> false  
 ⚠️ syntax highlighter omits commas  
 ⚠️ ((let x) 1) x - doesn't work
