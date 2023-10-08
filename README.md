@@ -1308,6 +1308,18 @@ vector item or string character is "destructured" into.
 (var [x y z] [0 1])
 [x y z]
 → [0 1 null]
+
+; furthermore, we can provide a symbol for the "rest" of the items
+(let [x y & z] [0 1 2 3 4])
+[x y z]
+→ [0 1 [2 3 4]]
+
+(function f x & y
+  [x y])
+(f 1 2 3 4)
+→ [1 [2 3 4]]
+(f 1)
+→ [1 []]
 ```
 
 ## Various examples

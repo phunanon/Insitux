@@ -77,7 +77,11 @@ export const defaultCtx = {
   recurBudget: 1e4,
 };
 
-export type ParamsShape = { name: string; position: number[] }[];
+export type ParamsShape = {
+  name: string;
+  position: number[];
+  rest?: true;
+}[];
 export type Closure = {
   readonly name: string;
   readonly length: number;
@@ -94,7 +98,7 @@ export type Ins = { errCtx: ErrCtx } & (
   | VariableIns
   //Named and Unnamed parameters
   | { typ: "npa" | "upa"; value: number; text: string }
-  | { typ: "dpa"; value: number[] } //Destructuring parameters
+  | { typ: "dpa"; value: number[]; rest?: true } //Destructuring parameters
   | { typ: "exe"; value: number } //Execute last stack value, number of args
   //Execute last stack value, number of args, with arity check
   | { typ: "exa"; value: number }

@@ -406,6 +406,21 @@ const tests: {
     code: `(let f (fn a [a [a]])) (f 0)`,
     out: `[0 [0]]`,
   },
+  {
+    name: "Destructure rest",
+    code: `(let [a b & c] [1 2 3]) [a b c]`,
+    out: `[1 2 [3]]`,
+  },
+  {
+    name: "Destructure params rest",
+    code: `(function f a & b [a b]) (f 1 2 3)`,
+    out: `[1 [2 3]]`,
+  },
+  {
+    name: "Destructure rest empty",
+    code: `(function f a & b [a b]) (f 1)`,
+    out: `[1 []]`,
+  },
   { name: "Implicit currying", code: "(-> 1 inc (+ 10))", out: `12` },
   //Runtime errors
   {

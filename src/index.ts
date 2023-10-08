@@ -1,4 +1,4 @@
-export const insituxVersion = 231007;
+export const insituxVersion = 231008;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -1446,7 +1446,7 @@ function errorsToDict(errors: InvokeError[]) {
   });
 }
 
-function destruct(args: Val[], shape: number[]): Val {
+function destruct(args: Val[], shape: number[], rest?: true): Val {
   let arr: Val[] = args;
   for (let a = 0, b = len(shape) - 1; a < b; ++a) {
     const val = arr[shape[a]];
@@ -1461,7 +1461,13 @@ function destruct(args: Val[], shape: number[]): Val {
     }
   }
   const pos = shape[len(shape) - 1];
-  return pos >= len(arr) ? _nul() : arr[pos];
+  if (rest) {
+    return _vec(slice(arr, pos));
+  }
+  if (pos >= len(arr)) {
+    return _nul();
+  }
+  return arr[pos];
 }
 
 function exeFunc(ctx: Ctx, func: Func, args: Val[], sharedLets: false): Val;
@@ -1509,11 +1515,12 @@ function exeFunc(
       case "dva": {
         const val = stack.pop()!;
         let last: Val | undefined;
-        ins.value.forEach(({ name, position }) => {
+        ins.value.forEach(({ name, position, rest }) => {
+          const destructured = destruct([val], position, rest);
           if (ins.typ === "dva") {
-            last = ctx.env.vars[name] = destruct([val], position);
+            last = ctx.env.vars[name] = destructured;
           } else {
-            last = lets[name] = destruct([val], position);
+            last = lets[name] = destructured;
           }
         });
         stack.push(last!);
@@ -1532,7 +1539,7 @@ function exeFunc(
         break;
       }
       case "dpa":
-        stack.push(destruct(args, ins.value));
+        stack.push(destruct(args, ins.value, ins.rest));
         break;
       case "ref": {
         const name = ins.value;

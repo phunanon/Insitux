@@ -675,57 +675,53 @@ function errCtxDict(errCtx: ErrCtx): Val {
 }
 
 function parseArg(node: Node, params: ParamsShape): ParserIns[] {
-  if (isToken(node)) {
-    const { errCtx } = node;
-    if (node.typ === "str") {
-      return [{ typ: "val", value: { t: "str", v: node.text }, errCtx }];
-    } else if (node.typ === "num") {
-      return [{ typ: "val", value: { t: "num", v: toNum(node.text) }, errCtx }];
-    } else if (node.typ === "sym") {
-      const { text } = node;
-      const paramNames = params.map(({ name }) => name);
-      if (text === "true" || text === "false") {
-        return [
-          { typ: "val", value: <Val>{ t: "bool", v: text === "true" }, errCtx },
-        ];
-      } else if (text === "null") {
-        return [{ typ: "val", value: nullVal, errCtx }];
-      } else if (text === "_") {
-        return [{ typ: "val", value: { t: "wild", v: undefined }, errCtx }];
-      } else if (starts(text, ":")) {
-        return [{ typ: "val", value: <Val>{ t: "key", v: text }, errCtx }];
-      } else if (
-        text === "%" ||
-        (starts(text, "%") && isNum(substr(text, 1)))
-      ) {
-        const value = text === "%" ? 0 : toNum(substr(text, 1));
-        if (value < 0) {
-          return [{ typ: "val", value: nullVal, errCtx }];
-        }
-        return [{ typ: "upa", value, text, errCtx }];
-      } else if (has(paramNames, text)) {
-        const param = params.find(({ name }) => name === text)!;
-        if (len(param.position) === 1) {
-          return [{ typ: "npa", value: param.position[0], text, errCtx }];
-        }
-        return [{ typ: "dpa", value: param.position, errCtx }];
-      } else if (text === "args") {
-        return [{ typ: "upa", value: -1, text: "args", errCtx }];
-      } else if (text === "err-ctx") {
-        return [{ typ: "val", value: errCtxDict(errCtx), errCtx }];
-      } else if (text === "PI" || text === "E") {
-        const v = text === "PI" ? 3.141592653589793 : 2.718281828459045;
-        return [{ typ: "val", value: { t: "num", v }, errCtx }];
-      } else if (ops[text]) {
-        return [{ typ: "val", value: <Val>{ t: "func", v: text }, errCtx }];
-      }
-      return [{ typ: "ref", value: text, errCtx }];
-    }
-    return [];
-  } else if (!len(node)) {
-    return [];
+  if (!isToken(node)) {
+    return len(node) ? parseForm(node, params) : [];
   }
-  return parseForm(node, params);
+
+  const { errCtx } = node;
+  if (node.typ === "str") {
+    return [{ typ: "val", value: { t: "str", v: node.text }, errCtx }];
+  } else if (node.typ === "num") {
+    return [{ typ: "val", value: { t: "num", v: toNum(node.text) }, errCtx }];
+  } else if (node.typ === "sym") {
+    const { text } = node;
+    const paramNames = params.map(({ name }) => name);
+    if (text === "true" || text === "false") {
+      return [
+        { typ: "val", value: <Val>{ t: "bool", v: text === "true" }, errCtx },
+      ];
+    } else if (text === "null") {
+      return [{ typ: "val", value: nullVal, errCtx }];
+    } else if (text === "_") {
+      return [{ typ: "val", value: { t: "wild", v: undefined }, errCtx }];
+    } else if (starts(text, ":")) {
+      return [{ typ: "val", value: <Val>{ t: "key", v: text }, errCtx }];
+    } else if (text === "%" || (starts(text, "%") && isNum(substr(text, 1)))) {
+      const value = text === "%" ? 0 : toNum(substr(text, 1));
+      if (value < 0) {
+        return [{ typ: "val", value: nullVal, errCtx }];
+      }
+      return [{ typ: "upa", value, text, errCtx }];
+    } else if (has(paramNames, text)) {
+      const param = params.find(({ name }) => name === text)!;
+      if (len(param.position) === 1 && !param.rest) {
+        return [{ typ: "npa", value: param.position[0], text, errCtx }];
+      }
+      return [{ typ: "dpa", value: param.position, rest: param.rest, errCtx }];
+    } else if (text === "args") {
+      return [{ typ: "upa", value: -1, text: "args", errCtx }];
+    } else if (text === "err-ctx") {
+      return [{ typ: "val", value: errCtxDict(errCtx), errCtx }];
+    } else if (text === "PI" || text === "E") {
+      const v = text === "PI" ? 3.141592653589793 : 2.718281828459045;
+      return [{ typ: "val", value: { t: "num", v }, errCtx }];
+    } else if (ops[text]) {
+      return [{ typ: "val", value: <Val>{ t: "func", v: text }, errCtx }];
+    }
+    return [{ typ: "ref", value: text, errCtx }];
+  }
+  return [];
 }
 
 /** Consumes some tokens and returns ParamsShape.
@@ -744,26 +740,43 @@ function parseParams(
 ): { shape: ParamsShape; errors: ParserIns[] } {
   const shape: ParamsShape = [],
     errs: ParserIns[] = [];
-  let n = 0;
-  while (
+  for (
+    let n = 0;
     len(nodes) > (consumeLast ? 0 : 1) &&
-    (isToken(nodes[0]) || symAt(nodes[0]) === "vec")
+    (isToken(nodes[0]) || symAt(nodes[0]) === "vec");
+    ++n
   ) {
     const param = nodes.shift()!;
+
     if (!isToken(param)) {
-      param.shift();
+      param.shift(); //remove vec
       const parsed = parseParams(param, true, [...position, n]);
       push(shape, parsed.shape);
       push(errs, parsed.errors);
-    } else {
-      const { typ, errCtx } = param;
-      if (typ === "sym") {
-        shape.push({ name: param.text, position: [...position, n] });
-      } else if (typ !== "str") {
-        errs.push({ typ: "err", value: "provide parameter name", errCtx });
-      }
+      continue;
     }
-    ++n;
+
+    const { typ, errCtx } = param;
+    const err = (value: string) => errs.push({ typ: "err", value, errCtx });
+
+    if (typ === "sym") {
+      if (param.text === "&") {
+        if (!len(nodes)) {
+          err("provide rest parameter name");
+          continue;
+        }
+        const rest = nodes.shift()!;
+        if (!isToken(rest) || rest.typ !== "sym") {
+          err("rest parameter must be a symbol");
+          continue;
+        }
+        shape.push({ name: rest.text, position: [...position, n], rest: true });
+      } else {
+        shape.push({ name: param.text, position: [...position, n] });
+      }
+    } else if (typ !== "str") {
+      err("provide parameter name");
+    }
   }
   return { shape, errors: errs };
 }
