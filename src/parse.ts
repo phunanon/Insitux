@@ -577,6 +577,7 @@ function parseForm(
     } else if (op === "for") {
       const defAndVals: DefAndValIns[] = [];
       let bodyAt = 0;
+      //Separate body from def/val pairs
       for (let n = 0, lim = len(nodes); n < lim; ++n) {
         if (
           n === lim - 1 ||
@@ -878,7 +879,7 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
 
 //TODO: investigate Node implementation replacement
 /** Basic argument type error detection */
-function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
+function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
   type TypeInfo = {
     types?: Val["t"][];
     val?: Val;
@@ -952,8 +953,13 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
       case "dle":
       case "loo":
       case "jmp":
+        break;
       case "brk":
       case "cnt":
+        if (!inFor) {
+          const m = "can only use break and continue in a for or while loop";
+          return [{ e: "Parse", m, errCtx: ins.errCtx }];
+        }
         break;
       case "clo": {
         const errors = insErrorDetect(slice(fins, i + 1, i + ins.value.length));
@@ -999,7 +1005,7 @@ function insErrorDetect(fins: Ins[]): InvokeError[] | undefined {
         }
         break;
       case "for":
-        const errors = insErrorDetect(ins.body);
+        const errors = insErrorDetect(ins.body, true);
         if (errors) {
           return errors;
         }

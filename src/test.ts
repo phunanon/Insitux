@@ -143,6 +143,11 @@ const tests: {
     out: `4`,
   },
   {
+    name: "Trailing continue",
+    code: `(for x [1 2 3] (+ 2 2) (continue))`,
+    out: `[]`,
+  },
+  {
     name: "For triangle",
     code: `(for x [0 1 2 3] y (range x) [x y])`,
     out: `[[1 0] [2 0] [2 1] [3 0] [3 1] [3 2]]`,
@@ -452,6 +457,7 @@ const tests: {
     code: `(((fn +)) 1)`,
     err: ["Arity"],
   },
+  { name: "Orphaned break", code: `(break)`, err: ["Parse"] },
   //Complex functions
   {
     name: "Fibonacci 13",

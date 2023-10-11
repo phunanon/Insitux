@@ -11,6 +11,7 @@
 : 2dup over over ;
 : ?dup dup if dup then ;
 : fib dup 1 > if dup 1 - fib swap 2 - fib + then ;
+: and if if true else false then else 0 pop false then ;
 "
 
 (var words {} stack [])
@@ -44,13 +45,14 @@
   (let if-depth 0)
   (for word sentence
     (if (< 0 if-depth)
-      (do (let! if-depth (match word "if" inc "else" dec "then" dec val))
+      (do (let! if-depth
+            (match word "if" inc "else" #(if (= % 1) (dec %) %) "then" dec val))
           stack)
       (var stack
         (satisfy word
           ["true" "false"]
             (append (= word "true") stack)
-          ["+" "-" "*" "/" "=" "<" ">"]
+          ["+" "-" "*" "/" "=" "<" ">" "<=" ">="]
             (append (word (-2 stack) (-1 stack)) (crop 0 2 stack))
           (= "pop")
             (drop (-> stack -1 inc neg) (trunc 1 stack))
@@ -72,6 +74,17 @@
             (append (skip 1 word) stack)
           (append word stack)))))
   stack)
+
+(for [test expecting] [
+  ["true if 0 else 1 then" [0]]
+  ["false if 0 else 1 then" [1]]
+  ["true true if if 0 then then" [0]]
+  ["true true if if 0 else 1 then else 2 then" [0]]
+  ["true false if if 0 else 1 then else 2 then" [true 2]]
+]
+  (assert (= (4th test) expecting))
+  (var stack [])
+  (continue))
 
 (print "pick pop")
 (while (let input (prompt "> "))

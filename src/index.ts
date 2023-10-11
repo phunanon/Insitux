@@ -1,4 +1,4 @@
-export const insituxVersion = 231008;
+export const insituxVersion = 231011;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -23,7 +23,6 @@ import { ixToJson, jsonToIx } from "./val-translate";
 
 let lets: { [key: string]: Val } = {};
 let recurArgs: undefined | Val[];
-let forState: undefined | "for" | "brk" | "cnt" | "ret";
 /** Used for code coverage reporting. */
 let lineCols: { [key: string]: 1 } = {};
 
@@ -1163,8 +1162,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     }
     case "deref": {
       const derefIns: Ins = { typ: "ref", value: str(args[0]), errCtx };
-      const derefStack = exeFunc(ctx, { ins: [derefIns] }, [], true);
-      return derefStack[0];
+      const { stack } = exeFunc(ctx, { ins: [derefIns] }, [], true);
+      return stack[0];
     }
     case "about": {
       const func = str(args[0]);
@@ -1470,20 +1469,28 @@ function destruct(args: Val[], shape: number[], rest?: true): Val {
   return arr[pos];
 }
 
-function exeFunc(ctx: Ctx, func: Func, args: Val[], sharedLets: false): Val;
-function exeFunc(ctx: Ctx, func: Func, args: Val[], sharedLets: true): Val[];
+type ValsWithFlag = { stack: Val[]; flag?: "brk" | "cnt" | "ret" };
+
+function exeFunc(ctx: Ctx, func: Func, args: Val[], closureOrFor: false): Val;
+function exeFunc(
+  ctx: Ctx,
+  func: Func,
+  args: Val[],
+  closureOrFor: true,
+): ValsWithFlag;
 function exeFunc(
   ctx: Ctx,
   func: Func,
   args: Val[],
   closureOrFor: boolean,
-): Val | Val[] {
+): Val | ValsWithFlag {
   --ctx.callBudget;
   const prevLets = lets;
   let myLets: { [key: string]: Val } = {};
   if (!closureOrFor) {
     lets = myLets;
   }
+  let flag: undefined | "brk" | "cnt" | "ret";
   const stack: Val[] = [];
   for (let i = 0, lim = len(func.ins); i < lim; ++i) {
     const ins = func.ins[i];
@@ -1652,7 +1659,7 @@ function exeFunc(
         }
         i = lim;
         if (closureOrFor) {
-          forState = "ret";
+          flag = "ret";
         }
         break;
       case "clo": {
@@ -1665,7 +1672,7 @@ function exeFunc(
           return decl ? { typ: "val", value: decl, errCtx } : ins;
         });
         //Dereference closure captures
-        const captures = exeFunc(ctx, { ins: derefIns }, args, true);
+        const captures = exeFunc(ctx, { ins: derefIns }, args, true).stack;
         //Enclose the closure with dereferenced values
         const cins = slice(func.ins, i + 1, i + 1 + ins.value.length);
         stack.push({ t: "clo", v: makeEnclosure(ins.value, cins, captures) });
@@ -1681,8 +1688,10 @@ function exeFunc(
         const maxDepth = len(lengths);
         let collDepth = 0;
         let evalDepth = 0;
+        let flag: ValsWithFlag["flag"];
 
         do {
+          //Execute definition with collection value
           if (evalDepth < collDepth) {
             const value = collections[evalDepth][iterators[evalDepth]];
             const ins: Ins[] = [
@@ -1692,13 +1701,11 @@ function exeFunc(
             exeFunc(ctx, { ins }, args, true);
             ++evalDepth;
           }
+          //Evaluate collection
           if (collDepth !== maxDepth) {
-            const [coll] = exeFunc(
-              ctx,
-              { ins: defAndVals[collDepth].val },
-              args,
-              true,
-            );
+            const {
+              stack: [coll],
+            } = exeFunc(ctx, { ins: defAndVals[collDepth].val }, args, true);
             if (coll.t !== "vec" && coll.t !== "str" && coll.t !== "dict") {
               const badTypeName = typeNames[coll.t];
               const m = `can only iterate over vector, string, or dictionary, not ${badTypeName}`;
@@ -1729,21 +1736,21 @@ function exeFunc(
           if (!ctx.loopBudget) {
             _throw([{ e: "Budget", m: "looped too many times", errCtx }]);
           }
-          forState = "for";
-          const bodyStack = exeFunc(ctx, { ins: body }, args, true);
-          const value = bodyStack[len(bodyStack) - 1];
-          if ((forState as string) === "brk") {
+          //Execute body
+          const bodyResult = exeFunc(ctx, { ins: body }, args, true);
+          flag = bodyResult.flag;
+          const value = bodyResult.stack[len(bodyResult.stack) - 1];
+          if (flag === "brk") {
             break;
           }
-          if ((forState as string) === "ret") {
+          if (flag === "ret") {
             stack.push(value);
             i = lim;
             break;
           }
-          if ((forState as string) !== "cnt") {
+          if (flag !== "cnt") {
             ret.push(value);
           }
-          forState = undefined;
           --evalDepth;
           while (
             collDepth &&
@@ -1755,19 +1762,14 @@ function exeFunc(
           }
         } while (collDepth);
 
-        if (forState !== "ret") {
+        if (flag !== "ret") {
           stack.push(_vec(ret));
         }
-        forState = undefined;
         break;
       }
       case "brk":
       case "cnt":
-        if (forState !== "for") {
-          const m = "can only use break and continue in a for or while loop";
-          return _throw([{ e: "For", m, errCtx }]);
-        }
-        forState = ins.typ;
+        flag = ins.typ;
         i = lim;
         break;
       default:
@@ -1776,7 +1778,7 @@ function exeFunc(
   }
   lets = prevLets;
   if (closureOrFor) {
-    return stack;
+    return { stack, flag };
   }
   return stack[len(stack) - 1];
 }
