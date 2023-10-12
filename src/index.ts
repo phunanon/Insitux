@@ -1,4 +1,4 @@
-export const insituxVersion = 231011;
+export const insituxVersion = 231012;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -950,7 +950,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _dic({ keys: distinct, vals: counts.map(_num) });
     }
     case "distinct": {
-      const arr = len(args) === 1 && args[0].t === "vec" ? vec(args[0]) : args;
+      const arr = asArray(args[0]);
       const distinct: Val[] = [];
       arr.forEach(a => {
         if (!distinct.some(v => isEqual(a, v))) {

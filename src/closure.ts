@@ -1,4 +1,4 @@
-import { has, len } from "./poly-fills";
+import { has, len, push } from "./poly-fills";
 import { Closure, Func, Ins, Val } from "./types";
 
 /** Declare a closure from instructions and other info, calculating its
@@ -16,6 +16,9 @@ export function makeClosure(
   for (const cin of cins) {
     if (cin.typ === "let" || cin.typ === "var") {
       exclusions.push(cin.value);
+    } else if (cin.typ === "dle" || cin.typ === "dva") {
+      const names = cin.value.map(ps => ps.name);
+      push(exclusions, names);
     }
   }
   for (let i = 0, lim = len(cins); i < lim; ++i) {

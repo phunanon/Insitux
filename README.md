@@ -785,12 +785,11 @@ etc
 (freqs [0 0 1 2 3]) → {0 2, 1 1, 2 1, 3 1}
 (freqs "hellooooo") → {"h" 1, "e" 1, "l" 2, "o" 5}
 
-;Returns vector of distinct arguments or,
-;  if given one vector, a vector of distinct values
-(distinct 0 9 8 7 8 7 9 6)    → [0 9 8 7 6]
-(distinct [0 1] [0 1] [2])    → [[0 1] [2]]
-(.. distinct [0 1] [0 1] [2]) → [0 1 2]
-(distinct [1 1 :a :a])        → [1 :a]
+;Returns vector of distinct vector items or string characters
+(distinct [0 9 8 7 8 7 9 6]) → [0 9 8 7 6]
+(distinct [[0 1] [0 1] [2]]) → [[0 1] [2]]
+(distinct "hello")           → ["h" "e" "l" "o"]
+(distinct [1 1 :a :a])       → [1 :a]
 
 ;Rotates vector or string by certain offset
 (rotate 1 [0 1 2 3])  → [1 2 3 0]

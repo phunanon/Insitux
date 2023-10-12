@@ -463,7 +463,7 @@ export const ops: {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["vec"],
   },
-  distinct: { returns: ["vec"] },
+  distinct: { exactArity: 1, params: [["vec", "str"]], returns: ["vec"] },
   rotate: {
     exactArity: 2,
     params: ["num", ["vec", "str"]],
