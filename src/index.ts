@@ -1,9 +1,9 @@
-export const insituxVersion = 231012;
+export const insituxVersion = 231015;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
 import { makeEnclosure } from "./closure";
-import { parse } from "./parse";
+import { forReader, parse } from "./parse";
 import * as pf from "./poly-fills";
 const { abs, sign, sqrt, floor, ceil, round, max, min, logn, log2, log10 } = pf;
 const { cos, sin, tan, acos, asin, atan, sinh, cosh, tanh } = pf;
@@ -1680,7 +1680,7 @@ function exeFunc(
         break;
       }
       case "for": {
-        const { defAndVals, body, errCtx } = ins;
+        const { defAndVals, body } = forReader(ins, i + 1, func.ins);
         const ret: Val[] = [];
         const iterators = defAndVals.map(x => 0);
         const lengths = defAndVals.map(x => 0);
@@ -1765,6 +1765,9 @@ function exeFunc(
         if (flag !== "ret") {
           stack.push(_vec(ret));
         }
+        
+        //Skip instructions involved in this for
+        i += ins.totalLen;
         break;
       }
       case "brk":

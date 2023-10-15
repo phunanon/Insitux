@@ -4,7 +4,7 @@ import * as pf from "./poly-fills";
 const { has, flat, push, slice, splice, isNum, len, toNum } = pf;
 const { slen, starts, sub, substr, strIdx, subIdx, isArray } = pf;
 import { ParamsShape, Func, Funcs, Ins, ops, Val, syntaxes } from "./types";
-import { assertUnreachable, InvokeError, ErrCtx, DefAndValIns } from "./types";
+import { assertUnreachable, InvokeError, ErrCtx } from "./types";
 import { _key, _num, val2str } from "./val";
 
 export type Token = {
@@ -12,14 +12,15 @@ export type Token = {
   text: string;
   errCtx: ErrCtx;
 };
+export type DefAndVals = { def: Ins; val: Ins[] };
+
 type Node = Token | Node[];
-type ParserIns = Ins | { typ: "err"; value: string; errCtx: ErrCtx };
+type ErrIns = { typ: "err"; value: string; errCtx: ErrCtx };
+type ParserIns = Ins | ErrIns;
 const nullVal: Val = { t: "null", v: undefined };
 const falseVal = <Val>{ t: "bool", v: false };
-type NamedNodes = {
-  name: string;
-  nodes: Node[];
-};
+type NamedNodes = { name: string; nodes: Node[] };
+
 const isToken = (node: Node | undefined): node is Token =>
   !!node && "errCtx" in node;
 const symAt = (node: Node, pos = 0) => {
@@ -265,7 +266,7 @@ function parseForm(
       op: "var" | "let",
       def: Node,
       val: Node,
-    ): ParserIns[] | DefAndValIns | "shapeless" => {
+    ): ParserIns[] | DefAndVals | "shapeless" => {
       const valIns = nodeParser(val);
       const okValIns: Ins[] = [];
       for (const ins of valIns) {
@@ -575,7 +576,7 @@ function parseForm(
       const parsed = parseForm(newNodes, formParams);
       return parsed;
     } else if (op === "for") {
-      const defAndVals: DefAndValIns[] = [];
+      const defAndVals: DefAndVals[] = [];
       let bodyAt = 0;
       //Separate body from def/val pairs
       for (let n = 0, lim = len(nodes); n < lim; ++n) {
@@ -591,6 +592,7 @@ function parseForm(
           bodyAt = n;
           break;
         }
+        //If this is an error, return it
         if (isArray(parsedDefVal)) {
           return parsedDefVal;
         }
@@ -605,13 +607,25 @@ function parseForm(
       }
       const body = poppedBody(slice(nodes, bodyAt).map(nodeParser));
       const okBody: Ins[] = [];
+      const errors: ErrIns[] = [];
       for (const ins of body) {
         if (ins.typ === "err") {
-          return [ins];
+          errors.push(ins);
+        } else {
+          okBody.push(ins);
         }
-        okBody.push(ins);
       }
-      return [{ typ: "for", defAndVals, body: okBody, errCtx }];
+      if (len(errors)) {
+        return errors;
+      }
+      const collInsLens = defAndVals.map(dav => 1 + len(dav.val));
+      const bodyLen = len(okBody);
+      const totalLen = collInsLens.reduce((sum, l) => sum + l, bodyLen);
+      return [
+        { typ: "for", collInsLens, bodyLen, totalLen, errCtx },
+        ...defAndVals.flatMap(dav => [dav.def, ...dav.val]),
+        ...okBody,
+      ];
     } else if (op === "continue" || op === "break") {
       return [{ typ: op === "break" ? "brk" : "cnt", errCtx }];
     }
@@ -738,9 +752,9 @@ function parseParams(
   nodes: Node[],
   consumeLast: boolean,
   position: number[] = [],
-): { shape: ParamsShape; errors: ParserIns[] } {
-  const shape: ParamsShape = [],
-    errs: ParserIns[] = [];
+): { shape: ParamsShape; errors: ErrIns[] } {
+  const shape: ParamsShape = [];
+  const errs: ErrIns[] = [];
   for (
     let n = 0;
     len(nodes) > (consumeLast ? 0 : 1) &&
@@ -877,6 +891,31 @@ function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
   return errors;
 }
 
+/** The for instruction is a descriptor of its following instructions -
+ * this extracts them. */
+export function forReader(
+  { collInsLens, bodyLen, totalLen }: Extract<Ins, { typ: "for" }>,
+  nextInsAt: number,
+  funcIns: Ins[],
+): { defAndVals: DefAndVals[]; body: Ins[] } {
+  const defAndVals: DefAndVals[] = [];
+  let coll = 0;
+  let i = nextInsAt;
+  let imax = nextInsAt + (totalLen - bodyLen);
+  while (i < imax) {
+    const def = funcIns[i];
+    const val = slice(funcIns, i + 1, i + collInsLens[coll++]);
+    defAndVals.push({ def, val });
+    i += 1 + len(val);
+  }
+  const body = slice(
+    funcIns,
+    nextInsAt + (totalLen - bodyLen),
+    nextInsAt + totalLen,
+  );
+  return { body, defAndVals };
+}
+
 //TODO: investigate Node implementation replacement
 /** Basic argument type error detection */
 function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
@@ -962,7 +1001,9 @@ function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
         }
         break;
       case "clo": {
-        const errors = insErrorDetect(slice(fins, i + 1, i + ins.value.length));
+        const errors = insErrorDetect(
+          slice(fins, i + 1, i + 1 + ins.value.length),
+        );
         if (errors) {
           return errors;
         }
@@ -1004,13 +1045,17 @@ function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
           stack.pop();
         }
         break;
-      case "for":
-        const errors = insErrorDetect(ins.body, true);
-        if (errors) {
-          return errors;
+      case "for": {
+        const { defAndVals, body } = forReader(ins, i + 1, fins);
+        const vErrs = defAndVals.flatMap(dav => insErrorDetect(dav.val) ?? []);
+        const bErrs = insErrorDetect(body, true);
+        if (len(vErrs) || bErrs) {
+          return bErrs ? [...vErrs, ...bErrs] : vErrs;
         }
         stack.push({ types: ["vec"] });
+        i += ins.totalLen;
         break;
+      }
       default:
         assertUnreachable(ins);
     }
@@ -1018,10 +1063,8 @@ function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
 }
 
 function extractLineCols(ins: Ins[]): string[] {
-  return ins.flatMap(i =>
-    i.typ === "for"
-      ? extractLineCols(i.body)
-      : [`${i.errCtx.invokeId}\t${i.errCtx.line}\t${i.errCtx.col}`],
+  return ins.map(
+    i => `${i.errCtx.invokeId}\t${i.errCtx.line}\t${i.errCtx.col}`,
   );
 }
 
@@ -1034,8 +1077,8 @@ export function parse(
   if (len(tokenErrors)) {
     return { errors: tokenErrors, funcs: {}, lineCols: [] };
   }
-  const okFuncs: Func[] = [],
-    errors: InvokeError[] = [];
+  const okFuncs: Func[] = [];
+  const errors: InvokeError[] = [];
   const tree = treeise(slice(tokens));
   if (!len(tree)) {
     return { funcs: {}, errors, lineCols: [] };

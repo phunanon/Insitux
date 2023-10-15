@@ -168,6 +168,11 @@ const tests: {
     out: `[[1 2]]`,
   },
   {
+    name: "For closure capture",
+    code: `(var y 10 f (fn (for x (range 3) y)) y 20) (f)`,
+    out: `[10 10 10]`,
+  },
+  {
     name: "Filter by integer",
     code: `(filter 2 [[1] [:a :b :c] "hello" "hi"])`,
     out: `[[:a :b :c] "hello"]`,

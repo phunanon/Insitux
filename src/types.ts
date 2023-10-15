@@ -96,23 +96,70 @@ type VariableIns = { errCtx: ErrCtx } & (
 );
 export type Ins = { errCtx: ErrCtx } & (
   | VariableIns
-  //Named and Unnamed parameters
-  | { typ: "npa" | "upa"; value: number; text: string }
-  | { typ: "dpa"; value: number[]; rest?: true } //Destructuring parameters
-  | { typ: "exe"; value: number } //Execute last stack value, number of args
-  //Execute last stack value, number of args, with arity check
-  | { typ: "exa"; value: number }
-  //Number of instructions
-  | { typ: "or" | "if" | "jmp" | "loo" | "cat" | "mat" | "sat"; value: number }
-  | { typ: "ret"; value: boolean } //Return, with value?
-  | { typ: "pop"; value: number } //Truncate stack, by number of values
-  | { typ: "clo"; value: Closure } //Closure/partial
+  | {
+      /** Named / unnamed parameter */
+      typ: "npa" | "upa";
+      /** Position */
+      value: number;
+      text: string;
+    }
+  | {
+      /** Destructured parameter */
+      typ: "dpa";
+      /** Position */
+      value: number[];
+      /** Is rest? */
+      rest?: true;
+    }
+  | {
+      /** Execute last stack value */
+      typ: "exe";
+      /** Number of arguments */
+      value: number;
+    }
+  | {
+      /** Execute last stack value with arity check */
+      typ: "exa";
+      /** Number of arguments */
+      value: number;
+    }
+  | {
+      typ: "or" | "if" | "jmp" | "loo" | "cat" | "mat" | "sat";
+      /** Number of instructions */
+      value: number;
+    }
+  | {
+      /** Return */
+      typ: "ret";
+      /** Has value? */
+      value: boolean;
+    }
+  | {
+      /** Truncate stack */
+      typ: "pop";
+      /** Number of values to truncate */
+      value: number;
+    }
+  | {
+      /** Closure / partial */
+      typ: "clo";
+      value: Closure;
+    }
   | { typ: "val"; value: Val }
-  | { typ: "for"; defAndVals: DefAndValIns[]; body: Ins[] }
-  //break & continue
-  | { typ: "brk" | "cnt" }
+  | {
+      /** A descriptor of following instructions: `[def [val]] [body]` */
+      typ: "for";
+      /** Length of `def [val]`, including definition instruction (1) */
+      collInsLens: number[];
+      bodyLen: number;
+      /** Sum of `collInsLens` and `bodyLen` */
+      totalLen: number;
+    }
+  | {
+      /** Break / continue */
+      typ: "brk" | "cnt";
+    }
 );
-export type DefAndValIns = { def: VariableIns; val: Ins[] };
 
 /** Definition of an operation in Insitux,
  * with guarantees made for arity (number of parameters) and parameter types.
