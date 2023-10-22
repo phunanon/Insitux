@@ -880,6 +880,13 @@ etc
 (substr? "ll" "Hello") → true
 (substr? "x" "abcd")   → false
 
+;Tests if a value is in a vector as an item, dictionary as a key, or string as a
+;  character
+(has? 1 [0 1 2])    → true
+(has? :a {:a null}) → true
+(has? "l" "Hello")  → true
+(has? 1 "111")      → false
+
 ;Returns index of an item or sub-string in a vector or string, or null
 (idx [1 2 3 4] 3)         → 2
 (idx [1 2 3 4] 5)         → null

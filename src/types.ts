@@ -285,6 +285,11 @@ export const ops: {
   "to-vec": { exactArity: 1, params: [["str", "dict"]], returns: ["vec"] },
   bool: { exactArity: 1, returns: ["bool"] },
   "substr?": { exactArity: 2, params: ["str", "str"], returns: ["bool"] },
+  "has?": {
+    exactArity: 2,
+    params: ["any", ["str", "vec", "dict"]],
+    returns: ["bool"],
+  },
   idx: {
     exactArity: 2,
     params: [["str", "vec"], "any"],

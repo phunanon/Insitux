@@ -1,4 +1,4 @@
-export const insituxVersion = 231015;
+export const insituxVersion = 231022;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -297,6 +297,11 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _str(args[0].t);
     case "substr?":
       return _boo(!!slen(str(args[0])) && sub(str(args[1]), str(args[0])));
+    case "has?":
+      if (args[1].t === "dict") {
+        return _boo(!!args[1].v.keys.find(x => isEqual(x, args[0])));
+      }
+      return _boo(!!asArray(args[1]).find(x => isEqual(x, args[0])));
     case "idx":
     case "idx-of":
     case "last-idx":
@@ -681,13 +686,19 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       if (args[0].t === "vec") {
         return _vec(concat(args[0].v, asArray(args[1])));
       } else {
+        let dict = dic(args[0]);
         if (args[1].t === "vec") {
-          return toDict(concat(flat(asArray(args[0]).map(vec)), args[1].v));
+          const coll = args[1].v;
+          for (let i = 0, imax = len(dict.keys); i < imax - 1; i += 2) {
+            dict = dictSet(dict, coll[i], coll[i + 1]);
+          }
         } else {
-          const { keys: ks1, vals: vs1 } = dic(args[0]);
-          const { keys: ks2, vals: vs2 } = dic(args[1]);
-          return _dic({ keys: concat(ks1, ks2), vals: concat(vs1, vs2) });
+          const dict2 = dic(args[1]);
+          for (let i = 0, imax = len(dict2.keys); i < imax; ++i) {
+            dict = dictSet(dict, dict2.keys[i], dict2.vals[i]);
+          }
         }
+        return _dic(dict);
       }
     }
     case "omit":
@@ -1765,7 +1776,7 @@ function exeFunc(
         if (flag !== "ret") {
           stack.push(_vec(ret));
         }
-        
+
         //Skip instructions involved in this for
         i += ins.totalLen;
         break;
