@@ -1,6 +1,6 @@
 {
   "name": "insitux",
-  "version": "23.10.22",
+  "version": "23.10.26",
   "description": "Extensible scripting language written in portable TypeScript.",
   "main": "dist/invoker.js",
   "types": "dist/invoker.d.ts",
@@ -14,18 +14,17 @@
     "build-npm": "webpack && tsc -p tsconfig.json"
   },
   "dependencies": {
-    "cross-fetch": "^3.1.5",
     "git-clone": "^0.2.0",
     "prompt-sync": "^4.2.0"
   },
   "devDependencies": {
-    "@types/git-clone": "^0.2.0",
-    "@types/node": "^16.18.11",
-    "@types/prompt-sync": "^4.1.1",
-    "esbuild-loader": "^2.15.1",
-    "typescript": "^4.3.5",
-    "webpack": "^5.52.1",
-    "webpack-cli": "^4.8.0"
+    "@types/git-clone": "^0.2.2",
+    "@types/node": "^20.8.9",
+    "@types/prompt-sync": "^4.2.2",
+    "esbuild-loader": "^4.0.2",
+    "typescript": "^5.2.2",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
   },
   "repository": {
     "type": "git",

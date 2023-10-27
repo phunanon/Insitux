@@ -9,7 +9,6 @@ import { ixToJs, jsToIx } from "./val-translate";
 
 import { exit } from "process";
 import readline = require("readline");
-import fetch from "cross-fetch";
 import prompt = require("prompt-sync");
 import clone = require("git-clone/promise");
 const execSync = require("child_process").execSync;
@@ -239,7 +238,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
     "clear-interval": {
       definition: { exactArity: 1, params: ["ext"], returns: ["null"] },
       handler: ([timer]) => {
-        clearInterval(timer.v as NodeJS.Timer);
+        clearInterval(timer.v as NodeJS.Timeout);
       },
     },
     "clear-timeout": {
