@@ -78,7 +78,7 @@ function invokeResultToOutput(result: InvokeResult) {
       err(sym);
       msg(`${half2}\n`);
     }
-    msg(`${e} Error: ${m}.\n${path}`);
+    msg(`${e} Error: ${m}\n${path}`);
   });
   return out;
 }

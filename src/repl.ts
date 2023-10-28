@@ -10,13 +10,12 @@ import { ixToJs, jsToIx } from "./val-translate";
 import { exit } from "process";
 import readline = require("readline");
 import prompt = require("prompt-sync");
-import clone = require("git-clone/promise");
-const execSync = require("child_process").execSync;
+import { execSync, spawn } from "child_process";
 import { appendFileSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { unlinkSync, existsSync, mkdirSync } from "fs";
 import { join as pathJoin, dirname } from "path";
 
-const githubRegex = /^(?!https*:)[^\/]+?\/[^\/]+$/;
+const githubRegex = /^(?!https*:)[^\/]+?\/[^\/][^.]*$/;
 let colourMode = true;
 let coverages: { unvisited: string[]; all: string[] }[] = [];
 
@@ -194,6 +193,12 @@ function makeFunctions(workingDirectory = process.cwd()) {
         );
         //Error due to missing dependency
         if (!existsSync(path)) {
+          if (isGithub) {
+            return {
+              kind: "err",
+              err: `not found, you should run: ix i ${p0}`,
+            };
+          }
           return { kind: "err", err: `not found: ${path}` };
         }
         //Execute and return
@@ -205,7 +210,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
         ctx.functions = oldFuncs;
         if ("kind" in result && result.kind === "errors") {
           printErrorOutput(output);
-          return { kind: "err", err: `errors in importing ${path}` };
+          return { kind: "err", err: `errors during import of ${path}` };
         }
         return !("kind" in result) ? result : _nul();
       },
@@ -416,8 +421,16 @@ async function dependencyResolve(dependency: DependencyResolution) {
         });
       }
       if (dependency.kind === "Github install") {
-        await clone(`https://github.com/${dependency.repo}.git`, path, {
-          shallow: true,
+        const url = `https://github.com/${dependency.repo}.git`;
+        await new Promise((resolve, reject) => {
+          const proc = spawn("git", ["clone", "--depth", "1", url, path]);
+          proc.on("close", status => {
+            if (status == 0) {
+              resolve(0);
+            } else {
+              reject(new Error("'git clone' failed with status " + status));
+            }
+          });
         });
       }
     }
@@ -529,6 +542,12 @@ async function processCliArguments(args: string[]) {
   const openReplAfter = extractSwitch(args, "-r");
   const disableBudgets = extractSwitch(args, "-nb");
   colourMode = !extractSwitch(args, "-nc");
+
+  if (!colourMode) {
+    ctx.print = (str, withNewLine) => {
+      process.stdout.write(`${str}${withNewLine ? "\n" : ""}`);
+    };
+  }
 
   if (disableBudgets) {
     ctx.callBudget = Infinity;

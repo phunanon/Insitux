@@ -32,13 +32,16 @@ Pronounced /ɪnˈsɪtjuːɪks/ in the International Phonetic Alphabet.
 - [YouTube tutorials and demonstrations playlist](https://www.youtube.com/watch?v=iKOuzXhs14A&list=PLOKSmPXGYmewQI3dNBubTNljRD2C4Dg0z)
 - [Rosetta Code entries](https://rosettacode.org/wiki/Insitux)
 
-Works in Node, the web, and Roblox.
+Works in Node.js/Bun, the web, and Roblox.
 
 ## Node CLI tool usage & installation
 
-Requires [Node](https://nodejs.org/en/download/).
+Requires [Node.js](https://nodejs.org/en/download/) or [Bun](https://bun.sh/docs/installation).  
+Bun has faster cold-starts, and Node.js slightly faster performance when warm.
+
 ```console
-$ alias ix="npx insitux"  #make `ix` available for your bash session
+$ npm i -g insitux  #make ix available in your terminal via Node.js
+$ bun i -g insitux  #… or via Bun
 
 $ ix help           #or -h, to show this help
 $ ix                #open a REPL session (exit with Ctrl+D or Ctrl+C)
