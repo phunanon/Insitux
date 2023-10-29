@@ -1,4 +1,4 @@
-export const insituxVersion = 231022;
+export const insituxVersion = 231029;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -934,6 +934,42 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       return _vec(parted);
     }
+    case "split-when":
+    case "split-before":
+    case "split-after":
+    case "split-with": {
+      const closure = getExe(ctx, args[0], errCtx);
+      const src = asArray(args[1]);
+      const head = src[0];
+      if (!head) {
+        return _vec();
+      }
+      let previous = closure([head]);
+      const split: Val[][] = [op === "split-with" ? [head] : []];
+      let wasSplitAfter = false;
+      for (let i = op === "split-with" ? 1 : 0, lim = len(src); i < lim; ++i) {
+        if (wasSplitAfter) {
+          split.push([]);
+        }
+        const current = src[i];
+        const next = closure([current]);
+        const doSplit =
+          op === "split-with" ? !isEqual(next, previous) : asBoo(next);
+        const isSplitBefore = op === "split-before" || op === "split-with";
+        if (doSplit && isSplitBefore) {
+          split.push([]);
+        }
+        if (!(op === "split-when" && doSplit)) {
+          split[split.length - 1].push(current);
+        }
+        wasSplitAfter = doSplit && !isSplitBefore;
+        previous = next;
+      }
+      if (args[1].t === "str") {
+        return _vec(split.map(s => _str(s.map(str).join(""))));
+      }
+      return _vec(split.map(_vec));
+    }
     case "skip-each": {
       const n = max(num(args[0]), 0);
       const src = asArray(args[1]);
@@ -1081,10 +1117,25 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _boo(f(charCode(s)));
     }
     case "str*": {
-      const text = str(args[0]);
+      const text =
+        args[0].t === "str"
+          ? args[0].v
+          : args[1].t === "str"
+          ? args[1].v
+          : null;
+      const n =
+        args[0].t === "num"
+          ? args[0].v
+          : args[1].t === "num"
+          ? args[1].v
+          : null;
+      if (text === null || n === null) {
+        const m = "arguments must be one string and one number";
+        return _throw([{ e: "Type", m, errCtx }]);
+      }
       return _str(
-        range(min(max(ceil(num(args[1])), 0), 1_000))
-          .map(n => text)
+        range(min(max(ceil(n), 0), 1_000))
+          .map(() => text)
           .join(""),
       );
     }

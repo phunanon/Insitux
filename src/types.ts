@@ -184,6 +184,11 @@ export type ExternalFunction = {
 };
 export type ExternalFunctions = { [name: string]: ExternalFunction };
 
+const anyAndVecStrToVec: Operation = {
+  exactArity: 2,
+  params: ["any", ["vec", "str"]],
+  returns: ["vec"],
+};
 export const ops: {
   [name: string]: Operation & { external?: boolean };
 } = {
@@ -531,31 +536,19 @@ export const ops: {
     params: ["any", ["vec", "dict", "str"]],
     returns: ["dict"],
   },
-  "part-by": {
-    exactArity: 2,
-    params: ["any", ["vec", "str"]],
-    returns: ["vec"],
-  },
-  "part-when": {
-    exactArity: 2,
-    params: ["any", ["vec", "str"]],
-    returns: ["vec"],
-  },
-  "part-before": {
-    exactArity: 2,
-    params: ["any", ["vec", "str"]],
-    returns: ["vec"],
-  },
-  "part-after": {
-    exactArity: 2,
-    params: ["any", ["vec", "str"]],
-    returns: ["vec"],
-  },
+  "part-by": anyAndVecStrToVec,
+  "part-when": anyAndVecStrToVec,
+  "part-before": anyAndVecStrToVec,
+  "part-after": anyAndVecStrToVec,
   partition: {
     exactArity: 2,
     params: ["num", ["vec", "str"]],
     returns: ["vec"],
   },
+  "split-when": anyAndVecStrToVec,
+  "split-before": anyAndVecStrToVec,
+  "split-after": anyAndVecStrToVec,
+  "split-with": anyAndVecStrToVec,
   "skip-each": {
     exactArity: 2,
     params: ["num", ["vec", "str"]],
@@ -606,7 +599,14 @@ export const ops: {
   trim: { exactArity: 1, params: ["str"], returns: ["str"] },
   "trim-start": { exactArity: 1, params: ["str"], returns: ["str"] },
   "trim-end": { exactArity: 1, params: ["str"], returns: ["str"] },
-  "str*": { exactArity: 2, params: ["str", "num"], returns: ["str"] },
+  "str*": {
+    exactArity: 2,
+    params: [
+      ["str", "num"],
+      ["str", "num"],
+    ],
+    returns: ["str"],
+  },
   "char-code": {
     minArity: 1,
     maxArity: 2,

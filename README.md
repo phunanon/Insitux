@@ -820,7 +820,22 @@ etc
 (range 0 4 0)  → [0 1 2 3]
 
 ;Splits a string by a provided delimiter string
-(split "e" "Hello") → ["H" "llo"]
+(split "e" "Hello, there!") → ["H" "llo, th" "r" "!"]
+
+;Splits a vector or string into a vector of items or substrings by a predicate
+(split-when odd? [0 1 2 3 4 5])    → [[0] [2] [4]]
+(split-when [" "] "Hello, world!") → ["Hello," "world!"]
+
+;Splits a vector or string into a vector of items or substrings by a predicate,
+;  including the item or substring that matched the predicate
+(split-before odd? [0 1 2 3 4 5]) → [[0] [1 2] [3 4] [5]]
+(split-after odd? [0 1 2 3 4 5])  → [[0 1] [2 3] [4 5]]
+
+;Splits a vector or string into a vector of items or substrings by a function,
+;  when the value returned by the function changes from the previous item
+(split-with [3] [1 2 3 4 5])      → [[1 2] [3] [4 5]]
+(split-with odd? [0 2 3 3 4 4])   → [[0 2] [3 3] [4 4]]
+(split-with val "Leeeeeerrroyyy") → ["L" "eeeeee" "rrr" "o" "yyy"]
 
 ;Joins a vector, dictionary, or string by a provided string
 (join " " [1 2 3])  → "1 2 3"
@@ -856,7 +871,8 @@ etc
 
 ;Returns a string repeated a specified number of times
 ;Note: has a maximum of 1000
-(str* "x" 6) → "xxxxxx"
+(str* "x" 6)  → "xxxxxx"
+(str* 3 "hi") → "hihihi"
 
 ;Returns a strigified value padded to a particular length
 ;Note: has a maximum of 1000

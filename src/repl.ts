@@ -425,10 +425,10 @@ async function dependencyResolve(dependency: DependencyResolution) {
         await new Promise((resolve, reject) => {
           const proc = spawn("git", ["clone", "--depth", "1", url, path]);
           proc.on("close", status => {
-            if (status == 0) {
+            if (!status) {
               resolve(0);
             } else {
-              reject(new Error("'git clone' failed with status " + status));
+              reject(new Error(`'git clone' failed with status ${status}`));
             }
           });
         });
