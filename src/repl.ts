@@ -118,7 +118,10 @@ function fetchOp(
   });
 }
 
-function makeFunctions(workingDirectory = process.cwd()) {
+function makeFunctions(
+  rootDirectory: string,
+  workingDirectory = process.cwd(),
+) {
   return <ExternalFunctions>{
     read: {
       definition: {
@@ -188,7 +191,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
         const isGithub = githubRegex.test(p0);
         const isAliased = !p0.endsWith(".ix");
         const path = pathJoin(
-          workingDirectory,
+          isGithub || isAliased ? rootDirectory : workingDirectory,
           isGithub ? `.ix/${p0}/entry.ix` : isAliased ? `.ix/${p0}.ix` : p0,
         );
         //Error due to missing dependency
@@ -205,7 +208,7 @@ function makeFunctions(workingDirectory = process.cwd()) {
         const code = readFileSync(path).toString();
         const oldFuncs = ctx.functions;
         delete ctx.env.funcs["entry"];
-        ctx.functions = makeFunctions(dirname(path));
+        ctx.functions = makeFunctions(rootDirectory, dirname(path));
         const { result, output } = invoker(ctx, code, path, [], false);
         ctx.functions = oldFuncs;
         if ("kind" in result && result.kind === "errors") {
@@ -360,7 +363,7 @@ const ctx: Ctx = {
   ...defaultCtx,
   get,
   set,
-  functions: makeFunctions(),
+  functions: makeFunctions(process.cwd()),
   print(str, withNewLine) {
     process.stdout.write(`\x1b[32m${str}\x1b[0m${withNewLine ? "\n" : ""}`);
   },
@@ -398,9 +401,12 @@ type DependencyResolution =
 
 /** Checks a dependency is or isn't present, and downloads if necessary. */
 async function dependencyResolve(dependency: DependencyResolution) {
-  mkdirSync(".ix", { recursive: true });
+  if (!existsSync(".ix")) {
+    mkdirSync(".ix");
+  }
   try {
     if (dependency.kind === "http install") {
+      console.log("Downloading", dependency.url);
       const response = await fetch(dependency.url);
       if (!response.ok) {
         throw `${response.status}: ${response.statusText}: ${dependency.url}`;
@@ -421,6 +427,7 @@ async function dependencyResolve(dependency: DependencyResolution) {
         });
       }
       if (dependency.kind === "Github install") {
+        console.log("Cloning", dependency.repo);
         const url = `https://github.com/${dependency.repo}.git`;
         await new Promise((resolve, reject) => {
           const proc = spawn("git", ["clone", "--depth", "1", url, path]);
@@ -428,7 +435,8 @@ async function dependencyResolve(dependency: DependencyResolution) {
             if (!status) {
               resolve(0);
             } else {
-              reject(new Error(`'git clone' failed with status ${status}`));
+              const e = `git clone --depth 1 ${url} ${path}\nfailed with status ${status}`;
+              reject(new Error(e));
             }
           });
         });

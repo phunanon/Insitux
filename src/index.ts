@@ -1,4 +1,4 @@
-export const insituxVersion = 231029;
+export const insituxVersion = 231103;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -918,6 +918,18 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         }
       }
       return pack();
+    }
+    case "part-at": {
+      const i = max(0, num(args[0]));
+      const coll = args[1];
+      if (coll.t === 'str') {
+        const head = substr(coll.v, 0, i);
+        const tail = substr(coll.v, i);
+        return _vec([_str(head), _str(tail)]);
+      }
+      const head = slice(vec(coll), 0, i);
+      const tail = slice(vec(coll), i);
+      return _vec([_vec(head), _vec(tail)]);
     }
     case "partition": {
       const n = num(args[0]);

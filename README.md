@@ -773,6 +773,13 @@ etc
 ;Calls are (f i) for vector items or characters
 (part-after odd? [0 2 4 5 6 8 9 0]) → [[0 2 4 5] [6 8 9 0]]
 
+;Partitions a vector or string into two vectors or strings at a specified index
+(part-at 2 [0 1 2 3 4 5]) → [[0 1] [2 3 4 5]]
+(part-at 0 [0 1 2 3 4 5]) → [[] [0 1 2 3 4 5]]
+(part-at 6 [0 1 2 3 4 5]) → [[0 1 2 3 4 5] []]
+(part-at 2 "hello")       → ["he" "llo"]
+(part-at 0 "hello")       → ["" "hello"]
+
 ;Returns a vector partitioned into vectors or strings with N items/chars at most
 (partition 2 (range 8))       → [[0 1] [2 3] [4 5] [6 7]]
 (partition 3 "Hello, world!") → ["Hel" "lo," " wo" "rld" "!"]

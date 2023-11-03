@@ -540,6 +540,11 @@ export const ops: {
   "part-when": anyAndVecStrToVec,
   "part-before": anyAndVecStrToVec,
   "part-after": anyAndVecStrToVec,
+  "part-at": {
+    exactArity: 2,
+    params: ["num", ["vec", "str"]],
+    returns: ["vec"],
+  },
   partition: {
     exactArity: 2,
     params: ["num", ["vec", "str"]],
