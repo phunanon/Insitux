@@ -1299,6 +1299,20 @@ captured.
 → [0 1 3 6 10]
 ```
 
+One pit-fall is that, as Insitux only captures data just as a closure is being
+created, nested closures can be tricky due to the change in scope.  
+This example will cause a reference error as `x` technically goes out-of-scope
+before `(fn x)` is materialised:
+
+```clj
+(let x 1 f (fn (fn x)))
+(f) ;Reference Error: "x" did not exist
+
+(let x 1 f (fn (fn x)))
+(var x 1)
+(f) ;1 - this is fine as calling f captures x, which exists even within f itself
+```
+
 **Destructuring**
 
 Destructuring is a syntax available as part of named function signatures,

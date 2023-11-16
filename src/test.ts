@@ -387,6 +387,11 @@ const tests: {
     out: `[:a :b :c]`,
   },
   {
+    name: "Clojure w/ shadow param",
+    code: `(function f y ((fn x y [x y]) 1 y)) (f 5)`,
+    out: `[1 5]`,
+  },
+  {
     name: "Destructure var",
     code: `(var [x [y]] [1 [2]]) [y x]`,
     out: `[2 1]`,

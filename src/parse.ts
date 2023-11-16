@@ -522,22 +522,33 @@ function parseForm(
     } else if (op === "#" || op === "@" || op === "fn") {
       const pins: ParserIns[] = [];
       const name = node2str([firstNode, ...nodes]);
+      /** Used to exclude from capturing in makeClosure. */
       const cloParams: string[] = [];
+      /** Used within the closure, with shadowing of formParams as needed. */
+      const cloFormParams: ParamsShape = [];
+      /** Informs capturing of child-closure references to parent params. */
       const outerParams = formParams.map(p => p.name);
+      /** E.g. `(fn x)` */
       let monoFnBody = false;
       if (op === "fn") {
-        const parsedParams = parseParams(nodes, false);
-        push(
-          cloParams,
-          parsedParams.shape.map(p => p.name),
-        );
-        push(formParams, parsedParams.shape);
-        push(pins, parsedParams.errors);
+        const { shape, errors } = parseParams(nodes, false);
+        const paramNames = shape.map(p => p.name);
+        push(cloParams, paramNames);
+        push(pins, errors);
+        //Closures are allowed to see both parent parameters and their own as
+        //  they then pick from them to capture appropriately. However, we need
+        //  to shadow parent parameters with the same name as child parameters.
+        const shadowed = outerParams.filter(p => has(paramNames, p));
+        push(cloFormParams, formParams.filter(p => !has(shadowed, p.name)));
+        push(cloFormParams, shape);
+
         if (!len(nodes)) {
           return err("provide a body");
         }
         monoFnBody = len(nodes) === 1;
         nodes.unshift({ typ: "sym", text: "do", errCtx });
+      } else {
+        push(cloFormParams, formParams);
       }
       //Rewrite partial closure to #(... [body] args)
       if (op === "@") {
@@ -555,7 +566,7 @@ function parseForm(
           { typ: "sym", text: "args", errCtx },
         ];
       }
-      push(pins, parseForm(nodes, formParams, op !== "@"));
+      push(pins, parseForm(nodes, cloFormParams, op !== "@"));
       const cins = <Ins[]>pins.filter(i => i.typ !== "err");
       const errors = pins.filter(i => i.typ === "err");
       if (len(errors)) {
