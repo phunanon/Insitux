@@ -135,6 +135,12 @@ export type Ins = { errCtx: ErrCtx } & (
       value: boolean;
     }
   | {
+      /** Recur */
+      typ: "rec";
+      /** Number of arguments */
+      value: number;
+    }
+  | {
       /** Truncate stack */
       typ: "pop";
       /** Number of values to truncate */
@@ -629,7 +635,6 @@ export const ops: {
   deref: { exactArity: 1, params: ["str"] },
   about: { exactArity: 1, params: [["str", "func", "unm"]], returns: ["dict"] },
   reset: { exactArity: 0 },
-  recur: {},
   assert: { minArity: 1 },
   mock: { minArity: 2, returns: ["null"] },
   unmock: { returns: ["null"] },
@@ -638,7 +643,7 @@ export const ops: {
 
 export const syntaxes = [
   ...["function", "fn", "var", "let", "var!", "let!", "if", "if-not"],
-  ...["return", "return-when", "return-unless", "continue", "break"],
+  ...["return", "return-when", "return-unless", "recur", "continue", "break"],
   ...["when", "unless", "while", "loop", "for", "match", "satisfy"],
   ...["catch", "args", "E", "PI"],
 ];

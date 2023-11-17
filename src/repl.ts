@@ -363,7 +363,7 @@ const ctx: Ctx = {
   ...defaultCtx,
   get,
   set,
-  functions: makeFunctions(process.cwd()),
+  functions: {},
   print(str, withNewLine) {
     process.stdout.write(`\x1b[32m${str}\x1b[0m${withNewLine ? "\n" : ""}`);
   },
@@ -519,6 +519,11 @@ async function processCliArguments(args: string[]) {
     } else {
       console.log("-unv was ignored.");
     }
+  }
+
+  const safeMode = extractSwitch(args, "-s");
+  if (!safeMode) {
+    ctx.functions = makeFunctions(process.cwd());
   }
 
   if (!args.length) {

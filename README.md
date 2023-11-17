@@ -1608,3 +1608,4 @@ Check out our [Rosetta Code entries](https://rosettacode.org/wiki/Insitux) for
 **and to shame myself that they still exist.**  
 ⚠️ syntax highlighter omits commas  
 ⚠️ ((let x) 1) x - doesn't work
+⚠️ (((vec))) crashes

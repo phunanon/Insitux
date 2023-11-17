@@ -65,7 +65,7 @@ export function tokenise(
   emitComments = false,
 ) {
   const tokens: Token[] = [];
-  const isDigit = (ch: string) => sub("0123456789", ch);
+  const isDigit = (ch: string) => ch && sub("0123456789", ch);
   let inString = false as false | "'" | '"';
   let [line, col, inStringAt] = [1, 0, [1, 0]];
   let [inSymbol, inNumber, inHex] = [false, false, false];
@@ -539,7 +539,10 @@ function parseForm(
         //  they then pick from them to capture appropriately. However, we need
         //  to shadow parent parameters with the same name as child parameters.
         const shadowed = outerParams.filter(p => has(paramNames, p));
-        push(cloFormParams, formParams.filter(p => !has(shadowed, p.name)));
+        push(
+          cloFormParams,
+          formParams.filter(p => !has(shadowed, p.name)),
+        );
         push(cloFormParams, shape);
 
         if (!len(nodes)) {
@@ -684,6 +687,8 @@ function parseForm(
   const ins: ParserIns[] = flat(args);
   if (firstSym === "return") {
     return [...ins, { typ: "ret", value: !!len(args), errCtx }];
+  } else if (firstSym === "recur") {
+    return [...ins, { typ: "rec", value: len(args), errCtx }];
   } else if (len(head) === 1 && head[0].typ === "ref") {
     //Transform potential external function into string
     const { value: v, errCtx } = head[0];
@@ -1055,6 +1060,9 @@ function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
         if (ins.value) {
           stack.pop();
         }
+        break;
+      case "rec":
+        splice(stack, len(stack) - ins.value, ins.value);
         break;
       case "for": {
         const { defAndVals, body } = forReader(ins, i + 1, fins);

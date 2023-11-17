@@ -1,4 +1,4 @@
-export const insituxVersion = 231116;
+export const insituxVersion = 231117;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -22,7 +22,6 @@ import { _boo, _num, _str, _key, _vec, _dic, _nul, _fun, str } from "./val";
 import { ixToJson, jsonToIx } from "./val-translate";
 
 let lets: { [key: string]: Val } = {};
-let recurArgs: undefined | Val[];
 /** Used for code coverage reporting. */
 let lineCols: { [key: string]: 1 } = {};
 
@@ -922,7 +921,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "part-at": {
       const i = max(0, num(args[0]));
       const coll = args[1];
-      if (coll.t === 'str') {
+      if (coll.t === "str") {
         const head = substr(coll.v, 0, i);
         const tail = substr(coll.v, i);
         return _vec([_str(head), _str(tail)]);
@@ -1272,9 +1271,6 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       info("mocked?", _boo(!!ctx.env.mocks[func]));
       return toDict(infos);
     }
-    case "recur":
-      recurArgs = args;
-      return _nul();
     case "reset":
       ctx.env.vars = {};
       ctx.env.funcs = {};
@@ -1669,16 +1665,6 @@ function exeFunc(
           }
           throw e;
         }
-        if (recurArgs) {
-          lets = myLets = {};
-          i = -1;
-          args = recurArgs;
-          recurArgs = undefined;
-          --ctx.recurBudget;
-          if (!ctx.recurBudget) {
-            _throw([{ e: "Budget", m: `recurred too many times`, errCtx }]);
-          }
-        }
         break;
       }
       case "or":
@@ -1736,6 +1722,16 @@ function exeFunc(
           flag = "ret";
         }
         break;
+      case "rec": {
+        lets = myLets = {};
+        i = -1;
+        args = splice(stack, len(stack) - ins.value, ins.value);
+        --ctx.recurBudget;
+        if (!ctx.recurBudget) {
+          _throw([{ e: "Budget", m: `recurred too many times`, errCtx }]);
+        }
+        break;
+      }
       case "clo": {
         //Ensure any in-scope declarations are captured here
         const derefIns: Ins[] = slice(ins.value.derefs).map(ins => {
