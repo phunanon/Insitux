@@ -1,4 +1,4 @@
-export type Val =
+export type Val = (
   | { t: "vec"; v: Val[] }
   | { t: "str" | "func" | "key" | "unm"; v: string }
   | { t: "null"; v: undefined }
@@ -7,7 +7,8 @@ export type Val =
   | { t: "num"; v: number }
   | { t: "clo"; v: Func }
   | { t: "dict"; v: Dict }
-  | { t: "ext"; v: unknown };
+  | { t: "ext"; v: unknown }
+) & { lineCol?: string };
 
 export type ErrCtx = { invokeId: string; line: number; col: number };
 export type InvokeError = { e: string; m: string; errCtx: ErrCtx };
@@ -55,6 +56,8 @@ export type Ctx = {
   exe?: (name: string, args: Val[]) => ValOrErr;
   /** Callback for code coverage report */
   coverageReport?: (uncoveredLineCols: string[], allLineCols: string[]) => void;
+  /** Enables value origin tracking, queried with val-origin */
+  valOriginTracking?: boolean;
   /** Function and variable definitions, retained by you for each invocation. */
   env: Env;
   /** The number of loops an invocation is permitted. */
@@ -634,6 +637,7 @@ export const ops: {
   "safe-eval": { exactArity: 1, params: ["str"] },
   deref: { exactArity: 1, params: ["str"] },
   about: { exactArity: 1, params: [["str", "func", "unm"]], returns: ["dict"] },
+  "val-origin": { exactArity: 1, params: ["any"], returns: ["dict"] },
   reset: { exactArity: 0 },
   assert: { minArity: 1 },
   mock: { minArity: 2, returns: ["null"] },

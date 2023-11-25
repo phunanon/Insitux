@@ -24,6 +24,8 @@ import { ixToJson, jsonToIx } from "./val-translate";
 let lets: { [key: string]: Val } = {};
 /** Used for code coverage reporting. */
 let lineCols: { [key: string]: 1 } = {};
+const errCtx2lineCol = (errCtx: ErrCtx) =>
+  `${errCtx.invokeId}\t${errCtx.line}\t${errCtx.col}`;
 
 type _Exception = { errors: InvokeError[] };
 function _throw(errors: InvokeError[]): Val {
@@ -1271,6 +1273,22 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       info("mocked?", _boo(!!ctx.env.mocks[func]));
       return toDict(infos);
     }
+    case "val-origin": {
+      const valOrigin = args[0].lineCol;
+      if (!valOrigin) {
+        return _key(":unavailable");
+      }
+      const [invokeId, line, col] = valOrigin?.split("\t");
+      const dictVals = [
+        _key(":invoke-id"),
+        _str(invokeId),
+        _key(":line"),
+        _num(parseInt(line)),
+        _key(":column"),
+        _num(parseInt(col)),
+      ];
+      return toDict(dictVals);
+    }
     case "reset":
       ctx.env.vars = {};
       ctx.env.funcs = {};
@@ -1384,7 +1402,11 @@ function getExe(
         if (violations) {
           _throw(violations);
         }
-        return exeOp(name, params, ctx, errCtx);
+        const ret = exeOp(name, params, ctx, errCtx);
+        if (ctx.valOriginTracking) {
+          ret.lineCol = errCtx2lineCol(errCtx);
+        }
+        return ret;
       };
     }
     if (name in ctx.env.funcs && name !== "entry") {
@@ -1573,13 +1595,14 @@ function exeFunc(
     }
 
     if (ctx.coverageReport) {
-      delete lineCols[
-        `${ins.errCtx.invokeId}\t${ins.errCtx.line}\t${ins.errCtx.col}`
-      ];
+      delete lineCols[errCtx2lineCol(ins.errCtx)];
     }
 
     switch (ins.typ) {
       case "val":
+        if (ctx.valOriginTracking) {
+          ins.value.lineCol = errCtx2lineCol(ins.errCtx);
+        }
         stack.push(ins.value);
         break;
       case "var":

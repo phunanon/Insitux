@@ -521,6 +521,10 @@ async function processCliArguments(args: string[]) {
     }
   }
 
+  if (extractSwitch(args, "-vot")) {
+    ctx.valOriginTracking = true;
+  }
+
   const safeMode = extractSwitch(args, "-s");
   if (!safeMode) {
     ctx.functions = makeFunctions(process.cwd());
