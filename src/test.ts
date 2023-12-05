@@ -417,6 +417,11 @@ const tests: {
     out: `[3 2 1 0]`,
   },
   {
+    name: "Destruct closure capture",
+    code: `(((fn [x] #(val x)) [1]))`,
+    out: `1`,
+  },
+  {
     name: "Destructuring fn decoy",
     code: `(let f (fn a [a [a]])) (f 0)`,
     out: `[0 [0]]`,

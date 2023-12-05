@@ -1,4 +1,4 @@
-export const insituxVersion = 231117;
+export const insituxVersion = 231205;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -426,6 +426,24 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         ),
         { typ: "val", value: _boo(true), errCtx },
         { typ: "jmp", value: 1, errCtx },
+        { typ: "val", value: _boo(false), errCtx },
+      ];
+      return { t: "clo", v: <Func>{ name, ins } };
+    }
+    case "either": {
+      const name = `(either ${args.map(val2str).join(" ")})`;
+      const ins: Ins[] = [
+        ...flat(
+          args.map((value, i) => {
+            const jmp = (len(args) - 1 - i) * 4 + 1;
+            return [
+              { typ: "upa", value: 0, text: "x", errCtx },
+              { typ: "val", value, errCtx },
+              { typ: "exe", value: 1, errCtx },
+              { typ: "or", value: jmp, errCtx },
+            ] as Ins[];
+          }),
+        ),
         { typ: "val", value: _boo(false), errCtx },
       ];
       return { t: "clo", v: <Func>{ name, ins } };

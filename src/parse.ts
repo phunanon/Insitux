@@ -735,11 +735,11 @@ function parseArg(node: Node, params: ParamsShape): ParserIns[] {
       }
       return [{ typ: "upa", value, text, errCtx }];
     } else if (has(paramNames, text)) {
-      const param = params.find(({ name }) => name === text)!;
-      if (len(param.position) === 1 && !param.rest) {
-        return [{ typ: "npa", value: param.position[0], text, errCtx }];
+      const { position, rest } = params.find(({ name }) => name === text)!;
+      if (len(position) === 1 && !rest) {
+        return [{ typ: "npa", value: position[0], text, errCtx }];
       }
-      return [{ typ: "dpa", value: param.position, rest: param.rest, errCtx }];
+      return [{ typ: "dpa", value: position, rest, text, errCtx }];
     } else if (text === "args") {
       return [{ typ: "upa", value: -1, text: "args", errCtx }];
     } else if (text === "err-ctx") {

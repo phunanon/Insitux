@@ -9,8 +9,6 @@ export function makeClosure(
   cloParams: string[],
   cins: Ins[],
 ): Closure {
-  const captures: boolean[] = [];
-  const derefs: Ins[] = [];
   const exclusions: string[] = cloParams;
   //First scan for any let/var declarations to be excluded throughout
   for (const cin of cins) {
@@ -21,6 +19,9 @@ export function makeClosure(
       push(exclusions, names);
     }
   }
+  //Calculate captures and derefs
+  const captures: boolean[] = [];
+  const derefs: Ins[] = [];
   for (let i = 0, lim = len(cins); i < lim; ++i) {
     const cin = cins[i];
     let capture = false;
@@ -88,7 +89,8 @@ function canCapture(exclusions: string[], ins0: Ins, ins1: false | Ins) {
     ins1 && ins0.typ === "val" && ins0.value.t === "str" && ins1.typ === "exe";
   return (
     isExeVal ||
-    (ins0.typ === "npa" && !has(exclusions, ins0.text)) ||
+    ((ins0.typ === "npa" || ins0.typ === "dpa") &&
+      !has(exclusions, ins0.text)) ||
     (ins0.typ === "ref" && !has(exclusions, ins0.value))
   );
 }

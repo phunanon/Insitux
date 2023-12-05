@@ -355,12 +355,6 @@ etc
 (str<= "a" "a" "b") → true
 (str>= "A" "b")     → false
 
-;Negates boolean value
-(! true)  → false
-(! false) → true
-(! null)  → true
-(! 123)   → false
-
 ;Creates a vector (list) of values in two different ways
 [1 "hello" :c]
 (vec 1 "hello" :c)
@@ -969,11 +963,17 @@ etc
 ((toggle :cozy :compact) :compact) → :cozy
 ((toggle :cozy :compact) :hello)   → :hello
 
-;Returns a closure which returns true or false based on multiple criteria
+;Returns a closure that returns true by AND of multiple criteria
 ;Note: the evalution short-circuits on falsy values
 ((criteria num? (< 5) odd?) 11) → true
 ((criteria [0 1 2] [1 2 3]) 2)  → true
 ((criteria [0 1 2] [3 4 5]) 10) → false
+
+;Returns a closure that returns truthy by OR of multiple criteria
+;Note: the evalution short-circuits on truthy values
+((either (< 5) odd?) 11)      → true
+((either [0 1 2] [3 4 5]) 2)  → 2
+((either [0 1 2] [3 4 5]) 10) → false
 
 ;Calls its first argument with each of its subsequent arguments, returning
 ;  results as a vector
@@ -1607,5 +1607,5 @@ Check out our [Rosetta Code entries](https://rosettacode.org/wiki/Insitux) for
 **Known bugs I put here to make sure I can't lose them,**  
 **and to shame myself that they still exist.**  
 ⚠️ syntax highlighter omits commas  
-⚠️ ((let x) 1) x - doesn't work
-⚠️ (((vec))) crashes
+⚠️ `((let x) 1) x` doesn't work
+⚠️ `(((vec)))` crashes  

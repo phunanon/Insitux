@@ -110,6 +110,7 @@ export type Ins = { errCtx: ErrCtx } & (
       value: number[];
       /** Is rest? */
       rest?: true;
+      text?: string;
     }
   | {
       /** Execute last stack value */
@@ -336,6 +337,7 @@ export const ops: {
   comp: { minArity: 2, returns: ["clo"] },
   toggle: { exactArity: 2, returns: ["clo"] },
   criteria: { minArity: 2, returns: ["clo"] },
+  either: { minArity: 2, returns: ["clo"] },
   map: { minArity: 2, returns: ["vec"] },
   "flat-map": { minArity: 2, returns: ["vec"] },
   xmap: {
