@@ -1509,8 +1509,8 @@ Check out our [Rosetta Code entries](https://rosettacode.org/wiki/Insitux) for
 
 
 ; Add thousands separator
-(var thousands (comp str reverse (partition 3) reverse (join ",")))
-(thousands 1234567890) → "1,432,765,098"
+(var thousands (comp str reverse (partition 3) (map reverse) reverse (join ",")))
+(thousands 1234567890) → "1,234,567,890"
 
 
 ; Time a function call
