@@ -262,6 +262,7 @@ export const ops: {
   "pos?": { exactArity: 1, numeric: "in only", returns: ["bool"] },
   "neg?": { exactArity: 1, numeric: "in only", returns: ["bool"] },
   "zero?": { exactArity: 1, numeric: "in only", returns: ["bool"] },
+  "int?": { exactArity: 1, numeric: "in only", returns: ["bool"] },
   "null?": { exactArity: 1, returns: ["bool"] },
   "num?": { exactArity: 1, returns: ["bool"] },
   "bool?": { exactArity: 1, returns: ["bool"] },

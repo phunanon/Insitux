@@ -221,6 +221,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     }
     case "div?":
       return _boo(num(args[0]) % num(args[1]) === 0);
+    case "int?":
+      return _boo(Number.isInteger(num(args[0])));
     case "average": {
       const src = vec(args[0]);
       let sum = 0;
