@@ -329,7 +329,7 @@ etc
 (~ 10)       → -11 ;Bitwise NOT
 (div? 10 2)  → true
 (asin 1) (acos 1) (atan 1) (sinh 1) (cosh 1) (tanh 1)
-(odd? 5) (even? 6) (pos? 5) (neg? -5) (zero? 0)
+(odd? 5) (even? 6) (pos? 5) (neg? -5) (zero? 0) (int? 5)
 (null? null) (num? 123) (bool? true) (str? "hi")
 (dict? {}) (vec? []) (key? :abc) (func? +) (wild? _)
 
