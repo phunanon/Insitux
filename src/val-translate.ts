@@ -1,5 +1,3 @@
-import { isArray, isNum, isObj, isStr, objKeys, objVals } from "./poly-fills";
-import { fromJson, toJson } from "./poly-fills";
 import { Val } from "./types";
 import { _nul, val2str } from "./val";
 
@@ -8,10 +6,10 @@ export function jsToIx(
   v: unknown,
   ifUndetermined = (x: unknown) => <Val>{ t: "str", v: `${x}` },
 ): Val {
-  if (isStr(v)) {
+  if (typeof v === "string") {
     return { t: "str", v };
   }
-  if (isNum(v)) {
+  if (typeof v === "number") {
     return { t: "num", v };
   }
   if (v === true || v === false) {
@@ -21,13 +19,13 @@ export function jsToIx(
     return { t: "null", v: undefined };
   }
   const mapper = (v: unknown[]) => v.map(x => jsToIx(x, ifUndetermined));
-  if (isArray(v)) {
+  if (Array.isArray(v)) {
     return { t: "vec", v: mapper(v) };
   }
-  if (isObj(v)) {
+  if (typeof v === "object") {
     return {
       t: "dict",
-      v: { keys: mapper(objKeys(v)), vals: mapper(objVals(v)) },
+      v: { keys: mapper(Object.keys(v)), vals: mapper(Object.values(v)) },
     };
   }
   return ifUndetermined(v);
@@ -71,9 +69,9 @@ export function ixToJs(
 
 export const jsonToIx = (x: string) => {
   try {
-    return jsToIx(fromJson(x));
+    return jsToIx(JSON.parse(x));
   } catch (e) {
     return _nul();
   }
 };
-export const ixToJson = (x: Val) => toJson(ixToJs(x));
+export const ixToJson = (x: Val) => JSON.stringify(ixToJs(x));

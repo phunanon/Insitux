@@ -1,6 +1,4 @@
 import { invoke, invokeFunction, invokeVal } from ".";
-import { padEnd, slen, starts, substr, trimStart } from "./poly-fills";
-import { getTimeMs } from "./poly-fills";
 import { Ctx, ErrCtx, InvokeResult, Val } from "./types";
 
 export type InvokeOutput = {
@@ -18,7 +16,7 @@ export function invoker(
   params: Val[] = [],
   printResult = true,
 ): { output: InvokeOutput; result: InvokeResult } {
-  id = id ? `-${id}` : `${getTimeMs()}`;
+  id = id ? `-${id}` : `${new Date().getTime()}`;
   invocations.set(id, code);
   const result = invoke(ctx, code, id, printResult, params);
   return { output: invokeResultToOutput(result), result };
@@ -65,16 +63,16 @@ function invokeResultToOutput(result: InvokeResult) {
       return;
     }
     const lineText = invocation.split("\n")[line - 1];
-    const sym = substr(lineText, col - 1).split(parensRx)[0];
-    const half1 = trimStart(substr(lineText, 0, col - 1));
-    const path = starts(invokeId, "-") ? `In ${substr(invokeId, 1)}\n` : "";
-    msg(`\n${padEnd(`${line}:${col}`, 7)} ${half1}`);
+    const sym = lineText.substring(col - 1).split(parensRx)[0];
+    const half1 = lineText.substring(0, col - 1).trimStart();
+    const path = invokeId.startsWith("-") ? `In ${invokeId.substring(1)}\n` : "";
+    msg(`\n${`${line}:${col}`.padEnd(7)} ${half1}`);
     if (!sym) {
-      const half2 = substr(lineText, col);
+      const half2 = lineText.substring(col);
       err(lineText[col - 1] ?? "");
       msg(`${half2}\n`);
     } else {
-      const half2 = substr(lineText, col - 1 + slen(sym));
+      const half2 = lineText.substring(col - 1 + sym.length);
       err(sym);
       msg(`${half2}\n`);
     }
