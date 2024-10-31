@@ -3,25 +3,7 @@ import { Ctx, defaultCtx, ExternalFunctions, Val, ValOrErr } from "./types";
 import { num, str, val2str, _nul, _str, _num, _boo } from "./val";
 import { jsToIx } from "./val-translate";
 
-let state = new Map<string, Val>();
-
-const get = (key: string): ValOrErr =>
-  state.has(key) ? state.get(key)! : _nul();
-const set = (key: string, val: Val) => {
-  state.set(key, val);
-  localStorage.setItem("insitux-state", JSON.stringify([...state.entries()]));
-  return undefined;
-};
-
 function exe(name: string, args: Val[]): ValOrErr {
-  if (args.length && args[0].t == "str" && args[0].v.startsWith("$")) {
-    if (args.length === 1) {
-      return get(`${args[0].v.substring(1)}.${name}`);
-    } else {
-      set(`${args[0].v.substring(1)}.${name}`, args[1]);
-      return args[1];
-    }
-  }
   return { err: `operation ${name} does not exist` };
 }
 
@@ -253,8 +235,6 @@ const loadScript = async (scriptEl: HTMLScriptElement) => {
 };
 
 window.onload = async () => {
-  const savedState = localStorage.getItem("insitux-state");
-  state = new Map<string, Val>(savedState ? JSON.parse(savedState) : []);
   const scripts = Array.from(document.querySelectorAll("script")).filter(
     el => el.type === "text/insitux",
   );

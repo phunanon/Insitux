@@ -501,11 +501,6 @@ const tests: {
     out: `{"1" 4, "2" 4}`,
   },
   //Test environment functions
-  {
-    name: "set get",
-    code: `[($globals.time_offset 5.5) $globals.time_offset]`,
-    out: `[5.5 5.5]`,
-  },
   { name: "exe", code: `(test.function 123)`, out: `123\nnull` },
   //Syntax errors
   { name: "Empty parens", code: `()`, err: ["Parse"] },

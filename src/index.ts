@@ -1,4 +1,4 @@
-export const insituxVersion = 241021;
+export const insituxVersion = 241030;
 import { asBoo } from "./checks";
 import { arityCheck, keyOpErr, numOpErr, typeCheck, typeErr } from "./checks";
 import { isLetter, isDigit, isSpace, isPunc } from "./checks";
@@ -1417,22 +1417,6 @@ function getExe(
     if (name in ctx.env.vars) {
       return getExe(ctx, ctx.env.vars[name], errCtx);
     }
-    if (starts(name, "$")) {
-      return (params: Val[]) => {
-        if (!len(params)) {
-          _throw(monoArityError(op.t, errCtx));
-        }
-        if (!ctx.set) {
-          const m = `"set" feature not implemented on this platform`;
-          return _throw([{ e: "External", m, errCtx }]);
-        }
-        const err = ctx.set(substr(name, 1), params[0]);
-        if (err) {
-          _throw([{ e: "External", m: err, errCtx }]);
-        }
-        return params[0];
-      };
-    }
     return (params: Val[]) => {
       if (!ctx.exe) {
         const m = `operation "${name}" does not exist"`;
@@ -1648,16 +1632,6 @@ function exeFunc(
           stack.push(ctx.env.vars[name]);
         } else if (name in ctx.env.funcs) {
           stack.push(_fun(name));
-        } else if (starts(name, "$")) {
-          if (!ctx.get) {
-            const m = `"get" feature not implemented on this platform`;
-            return _throw([{ e: "External", m, errCtx }]);
-          }
-          const valAndErr = ctx.get(substr(name, 1));
-          if ("err" in valAndErr) {
-            return _throw([{ e: "External", m: valAndErr.err, errCtx }]);
-          }
-          stack.push(valAndErr);
         } else {
           _throw([{ e: "Reference", m: `"${name}" did not exist`, errCtx }]);
         }
