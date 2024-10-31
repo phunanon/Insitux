@@ -1,19 +1,7 @@
 import { concat, round, getTimeMs, len, padEnd, trim } from "./poly-fills";
 import { Ctx, Env, Val, ValOrErr, InvokeResult } from "./types";
 
-type State = { dict: Map<string, Val>; output: string };
-
-function get(state: State, key: string): ValOrErr {
-  if (!state.dict.has(key)) {
-    return { err: `"${key}" not found.` };
-  }
-  return state.dict.get(key)!;
-}
-
-function set(state: State, key: string, val: Val): string | undefined {
-  state.dict.set(key, val);
-  return undefined;
-}
+type State = { output: string };
 
 function exe(state: State, name: string, args: Val[]): ValOrErr {
   const nullVal: Val = { t: "null", v: undefined };
@@ -564,16 +552,11 @@ export function doTests(
   }[] = [];
   for (let t = 0; t < len(tests); ++t) {
     const { name, code, err, out } = tests[t];
-    const state: State = {
-      dict: new Map<string, Val>(),
-      output: "",
-    };
+    const state: State = { output: "" };
     const env: Env = { funcs: {}, vars: {}, mocks: {} };
     const startTime = getTimeMs();
     const valOrErrs = invoke(
       {
-        get: (key: string) => get(state, key),
-        set: (key: string, val: Val) => set(state, key, val),
         print: (str, withNewLine) => {
           state.output += str + (withNewLine ? "\n" : "");
         },
