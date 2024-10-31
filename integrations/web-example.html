@@ -4,9 +4,13 @@
     <title>Example</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="../out/insitux-web.js" type="module"></script>
+    <script src="../dist/insitux.min.js" type="module"></script>
     <script type="text/insitux">
-      (inner-html "body" "Hello!")
+      (let hits (to-num (or (js "localStorage.getItem('hits')") 0))
+           hits (inc hits)
+           body  (str "Hello! You have visited this page " hits " time" ((= 1 hits) "" "s") "."))
+      (js (str "localStorage.setItem('hits', " hits ")"))
+      (inner-html "body" body)
     </script>
   </head>
   <body></body>

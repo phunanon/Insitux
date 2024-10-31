@@ -3,10 +3,6 @@ import { Ctx, defaultCtx, ExternalFunctions, Val, ValOrErr } from "./types";
 import { num, str, val2str, _nul, _str, _num, _boo } from "./val";
 import { jsToIx } from "./val-translate";
 
-function exe(name: string, args: Val[]): ValOrErr {
-  return { err: `operation ${name} does not exist` };
-}
-
 const invokeFunction = (ctx: Ctx, name: string, args: Val[]) => {
   alertErrors(functionInvoker(ctx, name, args, false));
 };
@@ -220,7 +216,6 @@ const functions: ExternalFunctions = {
 
 const ctx: Ctx = {
   ...defaultCtx,
-  exe,
   print: str => console.log(str),
   functions,
 };
