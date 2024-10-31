@@ -221,8 +221,6 @@ const functions: ExternalFunctions = {
 const ctx: Ctx = {
   ...defaultCtx,
   exe,
-  get,
-  set,
   print: str => console.log(str),
   functions,
 };
