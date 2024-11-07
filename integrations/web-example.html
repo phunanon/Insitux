@@ -8,7 +8,7 @@
     <script type="text/insitux">
       (let hits (to-num (or (js "localStorage.getItem('hits')") 0))
            hits (inc hits)
-           body  (str "Hello! You have visited this page " hits " time" ((= 1 hits) "" "s") "."))
+           body (str "Hello! You have visited this page " hits " time" ((= 1 hits) "" "s") "."))
       (js (str "localStorage.setItem('hits', " hits ")"))
       (inner-html "body" body)
     </script>
