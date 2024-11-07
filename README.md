@@ -113,18 +113,6 @@ set-timeout set-interval
 
 ## Coding in Insitux
 
-Like any programming language it is written down as _code_. Insitux takes your
-code and follows it like complex instructions.  
-You and the Insitux app talk to each other in these ways:
-
-| what   | direction of data        | example                       |
-| ------ | ------------------------ | ----------------------------- |
-| code   | goes into the app        | `(+ 2 2)`                     |
-| return | comes out of the app     | `4`                           |
-| set    | writes data              | `($day.cycle_speed 100)`      |
-| get    | reads data               | `$day.cycle_speed`            |
-| exe    | data goes both in an out | `(util.fire [0 0 0] [0 1 0])` |
-
 ### Writing the code
 
 Most code is written as _expressions_ like `(+ 2 2)`. As you can see, values are
@@ -1137,16 +1125,6 @@ It can also be used as an identity function (i.e. `val`).
 - Lets take precedence over vars.
 
 - Parameters take precedence over lets, vars, and functions.
-
-- Insitux implementations are advised to support this behaviour:
-
-```clj
-($test.ing 123)   → 123
-$test.ing         → 123
-(ing "$test")     → 123
-(ing "$test" 456) → 456
-$test.ing         → 456
-```
 
 ### Functions
 

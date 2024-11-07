@@ -348,42 +348,13 @@ function makeFunctions(
 //#endregion
 
 //#region Context
-const env = new Map<string, Val>();
-
-function get(key: string): ValOrErr {
-  return env.has(key) ? env.get(key)! : { err: `key ${key} not found` };
-}
-
-function set(key: string, val: Val) {
-  env.set(key, val);
-  return undefined;
-}
-
 const ctx: Ctx = {
   ...defaultCtx,
-  get,
-  set,
   functions: {},
   print(str, withNewLine) {
     process.stdout.write(`\x1b[32m${str}\x1b[0m${withNewLine ? "\n" : ""}`);
   },
-  exe,
 };
-
-function exe(name: string, args: Val[]): ValOrErr {
-  if (args.length) {
-    const a = args[0];
-    if (a.t === "str" && a.v.startsWith("$")) {
-      if (args.length === 1) {
-        return get(`${a.v.substring(1)}.${name}`);
-      } else {
-        set(`${a.v.substring(1)}.${name}`, args[1]);
-        return args[1];
-      }
-    }
-  }
-  return { err: `operation "${name}" does not exist` };
-}
 //#endregion
 
 //#region REPL IO
