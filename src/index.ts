@@ -8,11 +8,11 @@ import * as pf from "./poly-fills";
 const { abs, sign, sqrt, floor, ceil, round, max, min, log2, log10 } = Math;
 const { log: logn } = Math;
 const { cos, sin, tan, acos, asin, atan, sinh, cosh, tanh } = Math;
-const { len, concat, has, flat, push, reverse, sortBy } = pf;
-const { ends, starts, sub, subIdx, substr, upperCase, lowerCase } = pf;
+const { len, concat, has, push, reverse, sortBy } = pf;
+const { subIdx, substr, upperCase, lowerCase } = pf;
 const { trim, trimStart, trimEnd, strIdx, replace, rreplace } = pf;
-const { charCode, codeChar, getTimeMs, randInt, randNum } = pf;
-const { isNum, objKeys, range, toNum, isArray, isObj, toRadix, fromRadix } = pf;
+const { charCode, codeChar, randInt, randNum } = pf;
+const { isNum, objKeys, range, isArray, isObj, toRadix, fromRadix } = pf;
 import { doTests } from "./test";
 import { Env, InvokeError, InvokeResult, InvokeValResult } from "./types";
 import { assertUnreachable, ExternalFunctions, syntaxes } from "./types";
@@ -74,8 +74,8 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
           : len(dic(args[0]).keys),
       );
     case "to-num":
-      if (isNum(args[0].v)) {
-        return _num(toNum(args[0].v));
+      if (!Number.isNaN(Number(args[0].v))) {
+        return _num(Number(args[0].v));
       } else {
         return _nul();
       }
@@ -298,7 +298,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "type-of":
       return _str(args[0].t);
     case "substr?":
-      return _boo(!!str(args[0]).length && sub(str(args[1]), str(args[0])));
+      return _boo(!!str(args[0]).length && str(args[1]).includes(str(args[0])));
     case "has?":
       if (args[1].t === "dict") {
         return _boo(!!args[1].v.keys.find(x => isEqual(x, args[0])));
@@ -344,7 +344,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         { typ: "exe", value: 2, errCtx },
       ];
       const ins: Ins[] = [
-        ...flat(args.map(makeArg)),
+        ...args.flatMap(makeArg),
         { typ: "val", value: _fun("vec"), errCtx },
         { typ: "exe", value: len(args), errCtx },
       ];
@@ -364,7 +364,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       ];
       const ins: Ins[] = [
         { typ: "val", value: _fun("vec"), errCtx },
-        ...flat(args.map(makeArg)),
+        ...args.flatMap(makeArg),
         { typ: "val", value: _num(len(args)), errCtx },
         { typ: "upa", value: 0, text: "x", errCtx },
         { typ: "val", value: _fun("skip"), errCtx },
@@ -383,14 +383,12 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         { typ: "upa", value: -1, text: "args", errCtx },
         { typ: "val", value: _fun("..."), errCtx },
         { typ: "exe", value: 2, errCtx },
-        ...flat(
-          args
-            .slice(1)
-            .map(value => [
-              <Ins>{ typ: "val", value, errCtx },
-              <Ins>{ typ: "exe", value: 1, errCtx },
-            ]),
-        ),
+        ...args
+          .slice(1)
+          .flatMap(value => [
+            <Ins>{ typ: "val", value, errCtx },
+            <Ins>{ typ: "exe", value: 1, errCtx },
+          ]),
       ];
       return {
         t: "clo",
@@ -420,17 +418,15 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "criteria": {
       const name = `(criteria ${args.map(val2str).join(" ")})`;
       const ins: Ins[] = [
-        ...flat(
-          args.map((value, i) => {
-            const jmp = (len(args) - 1 - i) * 4 + 2;
-            return [
-              { typ: "upa", value: 0, text: "x", errCtx },
-              { typ: "val", value, errCtx },
-              { typ: "exe", value: 1, errCtx },
-              { typ: "if", value: jmp, errCtx },
-            ] as Ins[];
-          }),
-        ),
+        ...args.flatMap((value, i) => {
+          const jmp = (len(args) - 1 - i) * 4 + 2;
+          return [
+            { typ: "upa", value: 0, text: "x", errCtx },
+            { typ: "val", value, errCtx },
+            { typ: "exe", value: 1, errCtx },
+            { typ: "if", value: jmp, errCtx },
+          ] as Ins[];
+        }),
         { typ: "val", value: _boo(true), errCtx },
         { typ: "jmp", value: 1, errCtx },
         { typ: "val", value: _boo(false), errCtx },
@@ -440,17 +436,15 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "either": {
       const name = `(either ${args.map(val2str).join(" ")})`;
       const ins: Ins[] = [
-        ...flat(
-          args.map((value, i) => {
-            const jmp = (len(args) - 1 - i) * 4 + 1;
-            return [
-              { typ: "upa", value: 0, text: "x", errCtx },
-              { typ: "val", value, errCtx },
-              { typ: "exe", value: 1, errCtx },
-              { typ: "or", value: jmp, errCtx },
-            ] as Ins[];
-          }),
-        ),
+        ...args.flatMap((value, i) => {
+          const jmp = (len(args) - 1 - i) * 4 + 1;
+          return [
+            { typ: "upa", value: 0, text: "x", errCtx },
+            { typ: "val", value, errCtx },
+            { typ: "exe", value: 1, errCtx },
+            { typ: "or", value: jmp, errCtx },
+          ] as Ins[];
+        }),
         { typ: "val", value: _boo(false), errCtx },
       ];
       return { t: "clo", v: <Func>{ name, ins } };
@@ -542,7 +536,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         if (args[0].t === "str") {
           return _str(filtered.map(v => val2str(v)).join(""));
         } else if (args[0].t === "dict") {
-          return toDict(flat(filtered.map(v => <Val[]>v.v)));
+          return toDict(filtered.flatMap(v => <Val[]>v.v));
         } else {
           return _vec(filtered);
         }
@@ -675,7 +669,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const [a, b] = [
         nArgs < 2 ? 0 : num(args[0]),
         nArgs === 0
-          ? 1 + toNum(op === "rand-int")
+          ? 1 + Number(op === "rand-int")
           : nArgs === 1
           ? num(args[0])
           : num(args[1]),
@@ -694,10 +688,11 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       }
       let flatArgs: Val[] = args;
       if (op === "..") {
-        flatArgs = flat(args.map(a => (a.t === "vec" ? a.v : [a])));
+        flatArgs = args.flatMap(a => (a.t === "vec" ? a.v : [a]));
       } else {
         const a = flatArgs.pop()!;
-        push(flatArgs, flat([a.t === "vec" ? a.v : [a]]));
+        if (a.t === "vec") flatArgs.push(...a.v);
+        else flatArgs.push(a);
       }
       return closure(flatArgs);
     }
@@ -1110,10 +1105,10 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       return _str(rop(str(args[2]), str(args[0]), str(args[1])));
     }
     case "starts?":
-    case "ends?":
-      return _boo(
-        (op === "starts?" ? starts : ends)(str(args[1]), str(args[0])),
-      );
+    case "ends?": {
+      const method = op === "starts?" ? "startsWith" : "endsWith";
+      return _boo(str(args[1])[method](str(args[0])));
+    }
     case "upper-case":
     case "lower-case":
     case "trim":
@@ -1195,7 +1190,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "from-json":
       return jsonToIx(str(args[0]));
     case "time":
-      return _num(getTimeMs());
+      return _num(new Date().getTime());
     case "version":
       return _num(insituxVersion);
     case "tests": {

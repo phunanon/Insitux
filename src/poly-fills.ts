@@ -1,6 +1,5 @@
 export const isObj = (x: unknown): x is object => typeof x === "object";
 export const isStr = (x: unknown): x is string => typeof x === "string";
-export const toNum = (x: unknown): number => Number(x); //Must also support 0b and 0x
 export const fromRadix = (x: string, r: number): number => parseInt(x, r);
 export const toRadix = (x: number, r: number): string => x.toString(r);
 export const len = <T>(arr: T[]): number => arr.length;
@@ -10,17 +9,12 @@ export const isArray = <T>(x: unknown): x is T[] => Array.isArray(x);
 export const substr = (str: string, start: number, length?: number): string =>
   str.substring(start, start + (length ?? str.length));
 export const strIdx = (str: string, idx: number): string => str[idx];
-export const sub = (x: string, s: string): boolean => x.includes(s);
 export const subIdx = (x: string, s: string) => x.indexOf(s);
 export const has = <T>(x: T[], y: T): boolean => x.includes(y);
-export const starts = (str: string, prefix: string): boolean =>
-  str.startsWith(prefix);
-export const ends = (str: string, x: string): boolean => str.endsWith(x);
 export const replace = (str: string, what: string, to: string): string =>
   str.split(what).join(to);
 export const rreplace = (str: string, what: string, to: string) =>
   str.replace(new RegExp(what, "g"), to);
-export const flat = <T>(arr: T[][]): T[] => arr.flat(); //e.g. [[0], [1], []] => [0, 1]
 export const concat = <T>(a: T[], b: T[]): T[] => a.concat(b);
 export const push = <T>(arr: T[], add: T[]) => arr.push(...add);
 export const sortBy = <T>(arr: T[], by: (a: T, b: T) => number) => arr.sort(by);
@@ -38,6 +32,3 @@ export const randInt = (a: number, b: number) => Math.floor(randNum(a, b));
 export const range = (len: number) => [...Array(len).keys()];
 export const objKeys = (x: object) => Object.keys(x);
 export const objVals = (x: object) => Object.values(x);
-export const getTimeMs = () => new Date().getTime();
-export const toJson = (x: unknown) => JSON.stringify(x);
-export const fromJson = (x: string) => JSON.parse(x);
