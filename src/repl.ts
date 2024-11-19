@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { insituxVersion, symbols } from ".";
-import { Ctx, defaultCtx, ErrCtx, Val, ValOrErr } from "./types";
+import { Ctx, defaultCtx, ErrCtx, Val } from "./types";
 import { Operation, ExternalFunctions } from "./types";
 import { InvokeOutput, invoker, parensRx, valueInvoker } from "./invoker";
 import { tokenise } from "./parse";
