@@ -1,5 +1,5 @@
 import { functionInvoker, InvokeOutput, invoker } from "./invoker";
-import { Ctx, defaultCtx, ExternalFunctions, Val, ValOrErr } from "./types";
+import { Ctx, defaultCtx, ExternalFunctions, Val } from "./types";
 import { num, str, val2str, _nul, _str, _num, _boo } from "./val";
 import { jsToIx } from "./val-translate";
 

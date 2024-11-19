@@ -1,7 +1,7 @@
 import { arityCheck, keyOpErr, numOpErr, typeCheck } from "./checks";
 import { makeClosure } from "./closure";
 import * as pf from "./poly-fills";
-const { has, flat, push, slice, splice, isNum, len, toNum } = pf;
+const { has, flat, push, slice, isNum, len, toNum } = pf;
 const { slen, starts, sub, substr, strIdx, subIdx, isArray } = pf;
 import { ParamsShape, Func, Funcs, Ins, ops, Val, syntaxes } from "./types";
 import { assertUnreachable, InvokeError, ErrCtx } from "./types";
@@ -28,15 +28,15 @@ const symAt = (node: Node, pos = 0) => {
     return "";
   }
   const arg = node[pos];
-  return (isToken(arg) && has(["sym", "str"], arg.typ) && arg.text) || "";
+  return (isToken(arg) && ["sym", "str"].includes(arg.typ) && arg.text) || "";
 };
 const token2str = ({ typ, text }: Token): string =>
   typ === "str" ? `"${text}"` : text;
 function node2str(nodes: Node[]): string {
   const sym0 = symAt(nodes, 0);
-  const isClosure = has(["#", "@"], sym0);
+  const isClosure = ["#", "@"].includes(sym0);
   if (isClosure) {
-    nodes = slice(nodes, 1);
+    nodes = nodes.slice(1);
   }
   return `${isClosure ? sym0 : ""}(${nodes
     .map(n => (isToken(n) ? token2str(n) : node2str(n)))
@@ -49,7 +49,7 @@ const poppedBody = (expressions: ParserIns[][]): ParserIns[] => {
     return flat(expressions);
   }
   const lastExp = expressions[len(expressions) - 1];
-  const truncatedExps = slice(expressions, 0, len(expressions) - 1);
+  const truncatedExps = expressions.slice(0, len(expressions) - 1);
   const popIns = <ParserIns>{
     typ: "pop",
     value: len(truncatedExps),
@@ -69,7 +69,7 @@ export function tokenise(
   let inString = false as false | "'" | '"';
   let [line, col, inStringAt] = [1, 0, [1, 0]];
   let [inSymbol, inNumber, inHex] = [false, false, false];
-  for (let i = 0, l = slen(code); i < l; ++i) {
+  for (let i = 0, l = code.length; i < l; ++i) {
     const c = strIdx(code, i),
       nextCh = i + 1 !== l ? strIdx(code, i + 1) : "";
     ++col;
@@ -111,7 +111,7 @@ export function tokenise(
     if (!inString && c === ";") {
       const nl = subIdx(substr(code, ++i), "\n");
       const text = substr(code, i, nl > 0 ? nl : l - i);
-      i += slen(text);
+      i += text.length;
       ++line;
       col = 0;
       if (emitComments) {
@@ -212,7 +212,7 @@ function collectFuncs(
       } else if (ops[name]) {
         funcs.push({ err: "redeclaration of built-in operation", errCtx });
       } else {
-        funcs.push({ name, nodes: slice(node, 2) });
+        funcs.push({ name, nodes: node.slice(2) });
       }
     } else {
       entries.push(node);
@@ -252,7 +252,11 @@ function parseForm(
         firstNode = { typ: "sym", text: "@", errCtx: firstNode.errCtx };
       }
     }
-    if (has(["var", "let"], firstNode.text) && len(nodes) && len(nodes) % 2) {
+    if (
+      ["var", "let"].includes(firstNode.text) &&
+      len(nodes) &&
+      len(nodes) % 2
+    ) {
       nodes.unshift(firstNode);
       nodes.push({ typ: "sym", text: "%", errCtx: firstNode.errCtx });
       firstNode = { typ: "sym", text: "#", errCtx: firstNode.errCtx };
@@ -345,7 +349,7 @@ function parseForm(
         return err("provide a body");
       }
       const parsed = nodes.map(nodeParser);
-      const [cond, body] = [parsed[0], slice(parsed, 1)];
+      const [cond, body] = [parsed[0], parsed.slice(1)];
       const bodyIns = poppedBody(body);
       const unlessIns: Ins[] =
         op === "unless"
@@ -365,7 +369,7 @@ function parseForm(
     } else if (op === "match" || op === "satisfy") {
       const opIns: Ins["typ"] = op === "match" ? "mat" : "sat";
       const parsed = nodes.map(nodeParser);
-      const [cond, args] = [parsed[0], slice(parsed, 1)];
+      const [cond, args] = [parsed[0], parsed.slice(1)];
       const otherwise: ParserIns[] = len(args) % 2 ? args.pop()! : [];
       if (!len(args)) {
         return err("provide at least one case");
@@ -406,7 +410,7 @@ function parseForm(
       }
       const ins: ParserIns[] = [];
       if (op === "while") {
-        const [head, body] = [args[0], slice(args, 1)];
+        const [head, body] = [args[0], args.slice(1)];
         const flatBody = poppedBody(body);
         const ifJmp = len(flatBody) + 2;
         const looJmp = -(len(head) + len(flatBody) + 3);
@@ -506,7 +510,7 @@ function parseForm(
         return err("provide 1 declaration name and 1 function");
       }
       const parsed = nodes.map(nodeParser);
-      const [def, func, args] = [parsed[0][0], parsed[1], slice(parsed, 2)];
+      const [def, func, args] = [parsed[0][0], parsed[1], parsed.slice(2)];
       if (def.typ !== "ref") {
         return err("declaration name must be symbol", def.errCtx);
       }
@@ -667,7 +671,7 @@ function parseForm(
       return [{ typ: "err", value: "provide a condition", errCtx }];
     }
     const cond = args[0];
-    const params = slice(args, 1);
+    const params = args.slice(1);
     const flatParams = flat(params);
     const unlessIns: Ins[] =
       firstSym === "return-unless"
@@ -695,7 +699,8 @@ function parseForm(
     head[0] = { typ: "val", value: { t: "str", v }, errCtx };
   }
   push(ins, head);
-  const typ = len(head) > 1 || has(["npa", "upa"], head[0].typ) ? "exa" : "exe";
+  const typ =
+    len(head) > 1 || ["npa", "upa"].includes(head[0].typ) ? "exa" : "exe";
   return [...ins, { typ, value: len(args), errCtx }];
 }
 
@@ -920,7 +925,7 @@ export function forReader(
   let imax = nextInsAt + (totalLen - bodyLen);
   while (i < imax) {
     const def = funcIns[i];
-    const val = slice(funcIns, i + 1, i + collInsLens[coll++]);
+    const val = funcIns.slice(i + 1, i + collInsLens[coll++]);
     defAndVals.push({ def, val });
     i += 1 + len(val);
   }
@@ -949,7 +954,7 @@ function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
       case "exa":
       case "exe": {
         const head = stack.pop()!;
-        const args = splice(stack, len(stack) - ins.value, ins.value);
+        const args = stack.splice(len(stack) - ins.value, ins.value);
         const badMatch = (okTypes: Val["t"][]) =>
           args.findIndex(
             ({ types }) => types && !okTypes.find(t => has(types, t)),
@@ -959,7 +964,7 @@ function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
           : head.types && len(head.types) === 1 && head.types[0];
         if (head.val && head.val.t === "func") {
           if (head.val.v === "recur") {
-            splice(stack, len(stack) - ins.value, ins.value);
+            stack.splice(len(stack) - ins.value, ins.value);
             break;
           }
           const errors = typeCheck(
@@ -989,7 +994,7 @@ function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
             return keyOpErr(ins.errCtx, args[badArg].types!);
           }
           stack.push({});
-        } else if (headType && has(["str", "bool", "null"], headType)) {
+        } else if (headType && ["str", "bool", "null"].includes(headType)) {
           stack.push({});
         } else if (!head.types && !head.val) {
           stack.push({});
@@ -1018,7 +1023,7 @@ function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
         break;
       case "clo": {
         const errors = insErrorDetect(
-          slice(fins, i + 1, i + 1 + ins.value.length),
+          fins.slice(i + 1, i + 1 + ins.value.length),
         );
         if (errors) {
           return errors;
@@ -1036,7 +1041,7 @@ function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
       case "if": {
         stack.pop();
         stack.push({});
-        const ifIns = slice(fins, i + 1, ins.value + 1);
+        const ifIns = fins.slice(i + 1, ins.value + 1);
         const errors = insErrorDetect(ifIns);
         if (errors) {
           return errors;
@@ -1054,7 +1059,7 @@ function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
         break;
       }
       case "pop":
-        splice(stack, len(stack) - ins.value, ins.value);
+        stack.splice(len(stack) - ins.value, ins.value);
         break;
       case "ret":
         if (ins.value) {
@@ -1062,7 +1067,7 @@ function insErrorDetect(fins: Ins[], inFor = false): InvokeError[] | undefined {
         }
         break;
       case "rec":
-        splice(stack, len(stack) - ins.value, ins.value);
+        stack.splice(len(stack) - ins.value, ins.value);
         break;
       case "for": {
         const { defAndVals, body } = forReader(ins, i + 1, fins);

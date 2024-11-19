@@ -1,4 +1,3 @@
-import { concat, getTimeMs, len, padEnd, trim } from "./poly-fills";
 import { Ctx, Env, Val, ValOrErr, InvokeResult } from "./types";
 const { round } = Math;
 
@@ -551,11 +550,11 @@ export function doTests(
     elapsedMs: number;
     display: string;
   }[] = [];
-  for (let t = 0; t < len(tests); ++t) {
+  for (let t = 0; t < tests.length; ++t) {
     const { name, code, err, out } = tests[t];
     const state: State = { output: "" };
     const env: Env = { funcs: {}, vars: {}, mocks: {} };
-    const startTime = getTimeMs();
+    const startTime = new Date().getTime();
     const valOrErrs = invoke(
       {
         print: (str, withNewLine) => {
@@ -575,13 +574,13 @@ export function doTests(
     );
     const errors = "errors" in valOrErrs ? valOrErrs.errors : [];
     const okErr = (err || []).join() === errors.map(({ e }) => e).join();
-    const okOut = !out || trim(state.output) === out;
-    const elapsedMs = getTimeMs() - startTime;
+    const okOut = !out || state.output.trim() === out;
+    const elapsedMs = new Date().getTime() - startTime;
     const [tNum, tName, tElapsed, tOutput, tErrors] = [
-      padEnd(`${t + 1}`, 3),
-      padEnd(name, 24),
-      padEnd(`${round(elapsedMs)}ms`, 6),
-      okOut || out + "\t!=\t" + trim(state.output),
+      `${t + 1}`.padEnd(3),
+      name.padEnd(24),
+      `${round(elapsedMs)}ms`.padEnd(6),
+      okOut || out + "\t!=\t" + state.output.trim(),
       okErr ||
         errors.map(
           ({ e, m, errCtx: { line, col } }) => `${e} ${line}:${col}: ${m}`,
@@ -595,12 +594,13 @@ export function doTests(
     });
   }
   const totalMs = results.reduce((sum, { elapsedMs }) => sum + elapsedMs, 0);
-  const numPassed = len(results.filter(({ okOut, okErr }) => okOut && okErr));
-  const withHeader = concat(
-    terse ? [] : ["#   Name                     Time   OK-out OK-err"],
-    results.filter(r => !terse || !r.okOut || !r.okErr).map(r => r.display),
-  );
-  return concat(withHeader, [
-    `---- ${numPassed}/${len(results)} tests passed in ${round(totalMs)}ms.`,
-  ]);
+  const numPassed = results.filter(({ okOut, okErr }) => okOut && okErr).length;
+  const withHeader = [
+    ...(terse ? [] : ["#   Name                     Time   OK-out OK-err"]),
+    ...results.filter(r => !terse || !r.okOut || !r.okErr).map(r => r.display),
+  ];
+  return [
+    ...withHeader,
+    `---- ${numPassed}/${results.length} tests passed in ${round(totalMs)}ms.`,
+  ];
 }

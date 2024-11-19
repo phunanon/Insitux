@@ -3,12 +3,7 @@ export const isStr = (x: unknown): x is string => typeof x === "string";
 export const toNum = (x: unknown): number => Number(x); //Must also support 0b and 0x
 export const fromRadix = (x: string, r: number): number => parseInt(x, r);
 export const toRadix = (x: number, r: number): string => x.toString(r);
-export const slice = <T>(arr: T[], start?: number, end?: number): T[] =>
-  arr.slice(start, end);
-export const splice = <T>(arr: T[], start: number, numDel?: number): T[] =>
-  arr.splice(start, numDel);
 export const len = <T>(arr: T[]): number => arr.length;
-export const slen = (str: string): number => str.length;
 export const isNum = (x: unknown): x is number =>
   x !== "" && x !== null && !Number.isNaN(Number(x));
 export const isArray = <T>(x: unknown): x is T[] => Array.isArray(x);
