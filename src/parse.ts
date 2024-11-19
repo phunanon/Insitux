@@ -2,7 +2,7 @@ import { arityCheck, keyOpErr, numOpErr, typeCheck } from "./checks";
 import { makeClosure } from "./closure";
 import * as pf from "./poly-fills";
 const { has, push, isNum, len } = pf;
-const { substr, strIdx, subIdx, isArray } = pf;
+const { substr, subIdx } = pf;
 import { ParamsShape, Func, Funcs, Ins, ops, Val, syntaxes } from "./types";
 import { assertUnreachable, InvokeError, ErrCtx } from "./types";
 import { _key, _num, val2str } from "./val";
@@ -70,8 +70,8 @@ export function tokenise(
   let [line, col, inStringAt] = [1, 0, [1, 0]];
   let [inSymbol, inNumber, inHex] = [false, false, false];
   for (let i = 0, l = code.length; i < l; ++i) {
-    const c = strIdx(code, i),
-      nextCh = i + 1 !== l ? strIdx(code, i + 1) : "";
+    const c = code[i];
+    const nextCh = i + 1 !== l ? code[i + 1] : "";
     ++col;
     if (c === "\\" && inString) {
       tokens[len(tokens) - 1].text += doTransforms
@@ -497,7 +497,7 @@ function parseForm(
             `${op} name must be a symbol or destructuring, not expression`,
           );
         }
-        if (isArray(parsedDefVal)) {
+        if (Array.isArray(parsedDefVal)) {
           return parsedDefVal; //Errors
         }
         push(ins, parsedDefVal.val);
@@ -611,7 +611,7 @@ function parseForm(
           break;
         }
         //If this is an error, return it
-        if (isArray(parsedDefVal)) {
+        if (Array.isArray(parsedDefVal)) {
           return parsedDefVal;
         }
         defAndVals.push(parsedDefVal);

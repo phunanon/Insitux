@@ -8,11 +8,11 @@ import * as pf from "./poly-fills";
 const { abs, sign, sqrt, floor, ceil, round, max, min, log2, log10 } = Math;
 const { log: logn } = Math;
 const { cos, sin, tan, acos, asin, atan, sinh, cosh, tanh } = Math;
-const { len, concat, has, push, reverse, sortBy } = pf;
+const { len, concat, has, push, reverse } = pf;
 const { subIdx, substr, upperCase, lowerCase } = pf;
-const { trim, trimStart, trimEnd, strIdx, replace, rreplace } = pf;
+const { trim, trimStart, trimEnd, replace, rreplace } = pf;
 const { charCode, codeChar, randInt, randNum } = pf;
-const { isNum, objKeys, range, isArray, isObj, toRadix, fromRadix } = pf;
+const { objKeys, range, fromRadix } = pf;
 import { doTests } from "./test";
 import { Env, InvokeError, InvokeResult, InvokeValResult } from "./types";
 import { assertUnreachable, ExternalFunctions, syntaxes } from "./types";
@@ -31,7 +31,7 @@ function _throw(errors: InvokeError[]): Val {
   throw <_Exception>{ errors };
 }
 function isThrown(e: unknown): e is _Exception {
-  return !!e && isObj(e) && "errors" in e;
+  return !!e && typeof e === "object" && "errors" in e;
 }
 const throwTypeErr = (msg: string, errCtx: ErrCtx) =>
   _throw([typeErr(msg, errCtx)]);
@@ -46,7 +46,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
     case "from-base": {
       const base = max(min(num(args[0]), 36), 2);
       if (op === "to-base") {
-        return _str(toRadix(num(args[1]), base));
+        return _str(num(args[1]).toString(base));
       }
       return _num(fromRadix(str(args[1]), num(args[0])));
     }
@@ -838,9 +838,9 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         throwTypeErr("can only sort by all number or all string", errCtx);
       }
       if (okT === "num") {
-        sortBy(mapped, ([x, a], [y, b]) => (num(a) > num(b) ? 1 : -1));
+        mapped.sort(([, a], [, b]) => (num(a) > num(b) ? 1 : -1));
       } else {
-        sortBy(mapped, ([x, a], [y, b]) => (str(a) > str(b) ? 1 : -1));
+        mapped.sort(([, a], [, b]) => (str(a) > str(b) ? 1 : -1));
       }
       return _vec(mapped.map(([v]) => v));
     }
@@ -1179,7 +1179,7 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
         if (s.length <= n || n < 0) {
           return _nul();
         } else {
-          return _num(charCode(strIdx(s, n)));
+          return _num(charCode(s[n]));
         }
       } else {
         return _str(codeChar(num(args[0])));
@@ -1270,7 +1270,9 @@ function exeOp(op: string, args: Val[], ctx: Ctx, errCtx: ErrCtx): Val {
       const info = (what: string, val: Val) =>
         infos.push(_key(`:${what}`), val);
       const toStrVec = (v: (string | string[])[]): Val =>
-        _vec(v.map(typ => (isArray(typ) ? _vec(typ.map(_str)) : _str(typ))));
+        _vec(
+          v.map(typ => (Array.isArray(typ) ? _vec(typ.map(_str)) : _str(typ))),
+        );
       info("name", _str(func));
       info("external?", _boo(!!entry.external));
       info("has-effects?", _boo(!!entry.hasEffects));
@@ -1530,7 +1532,7 @@ function destruct(args: Val[], shape: number[], rest?: true): Val {
     } else if (val.t === "vec") {
       arr = val.v;
     } else if (val.t === "str" && a + 1 === b && shape[a + 1] < val.v.length) {
-      return _str(strIdx(val.v, shape[a + 1]));
+      return _str(val.v[shape[a + 1]]);
     } else {
       return _nul();
     }
@@ -2027,5 +2029,5 @@ export function symbols(env: Env, alsoSyntax = true): string[] {
   syms = concat(syms, objKeys(env.vars));
   const hidden = ["entry"];
   syms = syms.filter(o => !has(hidden, o));
-  return sortBy(syms, (a, b) => (a > b ? 1 : -1));
+  return syms.toSorted((a, b) => (a > b ? 1 : -1));
 }

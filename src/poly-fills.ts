@@ -1,14 +1,9 @@
-export const isObj = (x: unknown): x is object => typeof x === "object";
-export const isStr = (x: unknown): x is string => typeof x === "string";
 export const fromRadix = (x: string, r: number): number => parseInt(x, r);
-export const toRadix = (x: number, r: number): string => x.toString(r);
 export const len = <T>(arr: T[]): number => arr.length;
 export const isNum = (x: unknown): x is number =>
   x !== "" && x !== null && !Number.isNaN(Number(x));
-export const isArray = <T>(x: unknown): x is T[] => Array.isArray(x);
 export const substr = (str: string, start: number, length?: number): string =>
   str.substring(start, start + (length ?? str.length));
-export const strIdx = (str: string, idx: number): string => str[idx];
 export const subIdx = (x: string, s: string) => x.indexOf(s);
 export const has = <T>(x: T[], y: T): boolean => x.includes(y);
 export const replace = (str: string, what: string, to: string): string =>
@@ -17,7 +12,6 @@ export const rreplace = (str: string, what: string, to: string) =>
   str.replace(new RegExp(what, "g"), to);
 export const concat = <T>(a: T[], b: T[]): T[] => a.concat(b);
 export const push = <T>(arr: T[], add: T[]) => arr.push(...add);
-export const sortBy = <T>(arr: T[], by: (a: T, b: T) => number) => arr.sort(by);
 export const reverse = <T>(arr: T[]) => arr.reverse();
 export const lowerCase = (str: string) => str.toLowerCase();
 export const upperCase = (str: string) => str.toUpperCase();
