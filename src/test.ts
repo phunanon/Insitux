@@ -1,5 +1,6 @@
-import { concat, round, getTimeMs, len, padEnd, trim } from "./poly-fills";
+import { concat, getTimeMs, len, padEnd, trim } from "./poly-fills";
 import { Ctx, Env, Val, ValOrErr, InvokeResult } from "./types";
+const { round } = Math;
 
 type State = { output: string };
 

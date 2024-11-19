@@ -1,4 +1,4 @@
-import { flat, len, max, slice, splice } from "./poly-fills";
+import { flat, len, slice, splice } from "./poly-fills";
 import { assertUnreachable, Dict, Func, InvokeError, Val } from "./types";
 
 export const num = ({ v }: Val) => v as number;
@@ -217,7 +217,7 @@ export function pathSet(
   if (coll.t === "vec") {
     const vecCopy = slice(coll.v);
     let idx = num(path[0]);
-    if (idx < 0) idx = max(len(vecCopy) + idx, 0);
+    if (idx < 0) idx = Math.max(len(vecCopy) + idx, 0);
     if (len(path) === 1) {
       vecCopy[idx] = replacer(vecCopy[idx]);
       return { t: "vec", v: vecCopy };
