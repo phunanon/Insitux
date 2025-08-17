@@ -1085,6 +1085,16 @@ etc
 - `'` can be alternatively used to start and end strings, freely containing `"`.
   Use `\'` inside one of these strings to represent `'`.
 
+- You can interpolate code and variables into strings using `{}`
+  - Use `\{` and `\}` to write literal `{` and `}` in a string
+
+```clj
+(var name "Patrick" a 2 b 2)
+(print "Hello, {name}!") ;Prints "Hello, Patrick!"
+(print 'A number: {+ a b}') ;Prints "A number: 4"
+(#'<p>{%}</p>' 123) ;Returns "<p>123</p>"
+```
+
 - Write decimal numbers either `0.123` or `.123`.
 
 - Hexadecimal can be written as, for example `0xFFF`

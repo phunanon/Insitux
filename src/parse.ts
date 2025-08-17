@@ -64,17 +64,17 @@ export function tokenise(
   doTransforms = true,
   emitComments = false,
 ) {
-  const tokens: Token[] = [];
+  const rawTokens: Token[] = [];
   const isDigit = (ch: string) => ch && "0123456789".includes(ch);
   let inString = false as false | "'" | '"';
-  let [line, col, inStringAt] = [1, 0, [1, 0]];
+  let [line, col, inStringAt] = [1, 0, [1, 0] as [number, number]];
   let [inSymbol, inNumber, inHex] = [false, false, false];
   for (let i = 0, l = code.length; i < l; ++i) {
     const c = code[i];
     const nextCh = i + 1 !== l ? code[i + 1] : "";
     ++col;
     if (c === "\\" && inString) {
-      tokens[len(tokens) - 1].text += doTransforms
+      rawTokens[len(rawTokens) - 1].text += doTransforms
         ? { n: "\n", t: "\t", r: "\r", '"': '"', "'": "'" }[nextCh] ||
           (nextCh === "\\" ? "\\" : `\\${nextCh}`)
         : `\\${nextCh}`;
@@ -87,7 +87,7 @@ export function tokenise(
       inString = inString ? false : c;
       if (inString) {
         inStringAt = [line, col];
-        tokens.push({ typ: "str", text: "", errCtx });
+        rawTokens.push({ typ: "str", text: "", errCtx });
       }
       inNumber = inSymbol = false;
       continue;
@@ -105,7 +105,7 @@ export function tokenise(
     if (inString && c === "\n") {
       ++line;
       col = 0;
-      tokens[len(tokens) - 1].text += c;
+      rawTokens[len(rawTokens) - 1].text += c;
       continue;
     }
     if (!inString && c === ";") {
@@ -115,22 +115,22 @@ export function tokenise(
       ++line;
       col = 0;
       if (emitComments) {
-        tokens.push({ typ: "rem", text, errCtx });
+        rawTokens.push({ typ: "rem", text, errCtx });
       }
       continue;
     }
     const isParen = "()[]{}".includes(c);
     //Allow one . per number, or hex, or binary, else convert into symbol
     if (inNumber && !isDigit(c)) {
-      const hexStart = c === "x" && tokens[len(tokens) - 1].text === "0";
+      const hexStart = c === "x" && rawTokens[len(rawTokens) - 1].text === "0";
       inHex = inHex || hexStart;
       inNumber =
-        (c === "b" && tokens[len(tokens) - 1].text === "0") ||
-        (c === "." && !tokens[len(tokens) - 1].text.includes(".")) ||
+        (c === "b" && rawTokens[len(rawTokens) - 1].text === "0") ||
+        (c === "." && !rawTokens[len(rawTokens) - 1].text.includes(".")) ||
         (inHex && (hexStart || "ABCDEFabcdef".includes(c)));
       if (!inNumber && !isParen && !isWhite) {
         inSymbol = true;
-        tokens[len(tokens) - 1].typ = "sym";
+        rawTokens[len(rawTokens) - 1].typ = "sym";
       }
     }
     //Stop scanning symbol if a paren
@@ -141,9 +141,13 @@ export function tokenise(
     if (!inString && !inSymbol && !inNumber) {
       if (isParen) {
         const text = subIdx("[{(", c) === -1 ? ")" : "(";
-        tokens.push({ typ: text, text: doTransforms ? text : c, errCtx });
+        rawTokens.push({ typ: text, text: doTransforms ? text : c, errCtx });
         if (doTransforms && (c === "[" || c === "{")) {
-          tokens.push({ typ: "sym", text: c === "[" ? "vec" : "dict", errCtx });
+          rawTokens.push({
+            typ: "sym",
+            text: c === "[" ? "vec" : "dict",
+            errCtx,
+          });
         }
         continue;
       }
@@ -153,11 +157,74 @@ export function tokenise(
         (c === "-" && (isDigit(nextCh) || nextCh === "."));
       inHex = inSymbol = !inNumber;
       const typ: Token["typ"] = inSymbol ? "sym" : "num";
-      tokens.push({ typ, text: "", errCtx });
+      rawTokens.push({ typ, text: "", errCtx });
     }
-    tokens[len(tokens) - 1].text += c;
+    rawTokens[len(rawTokens) - 1].text += c;
   }
-  return { tokens, stringError: inString ? inStringAt : undefined };
+  //Handle string interpolation
+  let innerStringError: [number, number] | undefined;
+  const tokens = rawTokens.flatMap((token): Token[] => {
+    if (!doTransforms) return [token];
+    if (token.typ !== "str") return [token];
+    if (!token.text.includes("{")) return [token];
+    //e.g. "Hello, {name}!" becomes (str "Hello, " name "!")
+    //e.g. "2 + 2 = {+ 2 2}" becomes (str "2 + 2 = " (+ 2 2))
+    //e.g. "Result: {(func)}" becomes (str "Result: " (func))
+    //e.g. "{"{2}"}" becomes (str 2)
+    //e.g. #'<p>{%}</p>' becomes #(str "<p>" % "</p>")
+    //e.g. "Hello, \{name\}" stays the same
+    let intTokens: Token[] = [
+      { ...token, typ: "(" },
+      { ...token, typ: "sym", text: "str" },
+    ];
+    let escaped = false;
+    let buffer = "";
+    let depth = 0;
+    for (let c = 0; c < token.text.length; ++c) {
+      const ch = token.text[c]!;
+      if (escaped) {
+        escaped = false;
+        buffer += ch;
+        continue;
+      }
+      if (ch === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (!depth) {
+        //When outer, check if we need to switch to inner
+        if (ch === "{") {
+          ++depth;
+          if (buffer) intTokens.push({ ...token, typ: "str", text: buffer });
+          buffer = "";
+        } else {
+          buffer += ch;
+        }
+      } else {
+        //When inner
+        if (ch === "{" || ch === "(" || ch === "[") {
+          ++depth;
+        } else if (ch === "}" || ch === ")" || ch === "]") {
+          --depth;
+          if (depth <= 0 && ch === "}") {
+            const { tokens, stringError } = tokenise(buffer, invokeId);
+            if (stringError) innerStringError = stringError;
+            if (tokens.length !== 1) intTokens.push({ ...token, typ: "(" });
+            intTokens.push(...tokens);
+            if (tokens.length !== 1) intTokens.push({ ...token, typ: ")" });
+            buffer = "";
+            continue;
+          }
+        }
+        buffer += ch;
+      }
+    }
+    if (depth) buffer += "{"; //Unclosed
+    if (buffer) intTokens.push({ ...token, typ: "str", text: buffer });
+    return [...intTokens, { ...token, typ: ")", text: ")" }];
+  });
+  const stringError = inString ? inStringAt : innerStringError || undefined;
+  return { tokens, stringError };
 }
 
 /** Parses tokens into a tree where each node is a token or token list. */
@@ -870,16 +937,19 @@ function findParenImbalance(
   return [0, 0];
 }
 
-function tokenErrorDetect(stringError: number[] | undefined, tokens: Token[]) {
+function tokenErrorDetect(
+  stringError: [number, number] | undefined,
+  tokens: Token[],
+) {
   const invokeId = len(tokens) ? tokens[0].errCtx.invokeId : "";
   const errors: InvokeError[] = [];
   const err = (m: string, errCtx: ErrCtx) =>
     errors.push({ e: "Parse", m, errCtx });
 
-  //Check for double-quote imbalance
+  //Check for string imbalance
   if (stringError) {
     const [line, col] = stringError;
-    err("unmatched quotation mark", { invokeId, line, col });
+    err("unclosed string", { invokeId, line, col });
     return errors;
   }
 

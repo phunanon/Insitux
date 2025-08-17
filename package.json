@@ -1,6 +1,6 @@
 {
   "name": "insitux",
-  "version": "24.10.30",
+  "version": "25.8.17",
   "description": "Extensible scripting language written in portable TypeScript.",
   "main": "dist/invoker.js",
   "types": "dist/invoker.d.ts",
@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@types/git-clone": "^0.2.2",
-    "@types/node": "^20.8.9",
+    "@types/node": "^24.3.0",
     "@types/prompt-sync": "^4.2.2",
     "esbuild-loader": "^4.0.2",
     "typescript": "^5.2.2",

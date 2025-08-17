@@ -1,0 +1,22 @@
+(let input "3   4
+4   3
+2   5
+1   3
+3   9
+3   3")
+
+(-> input
+    (split '\n')
+    (map (split '   '))
+    (map (map to-num))
+   @(.. map vec)
+    (map sort)
+   @(... map #(abs (- % %1)))
+    (... +))
+
+;or
+(-> (str "[" input "]")
+    eval
+   #(proj sort (skip-each 1 %) (skip-each 1 (drop 0 %)))
+   @(... map #(abs (- % %1)))
+   (... +))
